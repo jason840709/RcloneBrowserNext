@@ -244,7 +244,7 @@ private final class CoreTestSuite {
             let compareFlags: Set<String> = ["--checksum", "--ignore-size", "--size-only", "--ignore-times"]
             for (mode, expected) in [("default", [String]()), ("checksum", ["--checksum"]), ("modtime", ["--ignore-size"]),
                                       ("size", ["--size-only"]), ("checksum-only", ["--checksum", "--ignore-size"]), ("none", ["--ignore-times"])] {
-                let args = try EngineTransferRequest(request(from, to, options: ["comparison": mode])).arguments()
+                let args = try EngineTransferRequest(request(from, to, options: ["comparison": mode, "localHashPolicy": "default"])).arguments()
                 try expect(Set(args.filter { compareFlags.contains($0) }) == Set(expected), "comparison flags for \(mode)")
                 try expect(Array(args.suffix(3)) == ["--", from.path, to.path], "endpoints were not isolated from option parsing")
             }
@@ -311,7 +311,7 @@ private final class CoreTestSuite {
                 try EngineStorage.atomicJSON(previous, to: state.appendingPathComponent("settings.json"))
                 let engine = try RcloneEngine(stateDirectory: state, defaultRcloneDirectory: area.appendingPathComponent("rclone"))
                 let settings = engine.settingsSnapshot()
-                try expect(settings["settingsSchemaVersion"] as? Int == 4 && settings["maxConcurrentJobs"] as? Int == expected, "wrong limit migration")
+                try expect(settings["settingsSchemaVersion"] as? Int == 5 && settings["maxConcurrentJobs"] as? Int == expected, "wrong limit migration")
                 try expect(settings["language"] as? String == "en" && settings["theme"] as? String == "blue-light" && settings["skippedRcloneVersion"] as? String == "v99.1.0", "migration changed independent preferences")
                 if schema == 0 {
                     let network = settings["networkOptions"] as! [String: Any]
@@ -326,6 +326,64 @@ private final class CoreTestSuite {
                 try expect(reopened.settingsSnapshot()["maxConcurrentJobs"] as? Int == 2, "explicit 0.4 choice of 2 migrated again")
                 reopened.shutdown()
             }
+        }
+
+        test("0.5 upgrades legacy global defaults once while retaining saved task and workspace snapshots") {
+            let area = try folder("migrate-v05"), state = try folder("migrate-v05/state")
+            let from = try folder("migrate-v05/source"), to = try folder("migrate-v05/target")
+            let legacyOptions = EngineTransferOptions.defaults.merging(["maxDelete": 100, "deleteMode": "after", "localHashPolicy": "default"]) { _, new in new }
+            let savedRequest = request(from, to, mode: "sync", options: legacyOptions)
+            let task = EngineTask(id: UUID().uuidString, name: "Legacy snapshot", request: try EngineTransferRequest(savedRequest), createdAt: EngineJSON.now(), updatedAt: EngineJSON.now())
+            let workspace: [String: Any] = ["left": endpoint(from), "right": endpoint(to), "direction": "lr", "mode": "sync", "options": legacyOptions]
+            try EngineStorage.atomicJSON(["settingsSchemaVersion": 4, "defaultTransferOptions": legacyOptions, "savedWorkspace": workspace], to: state.appendingPathComponent("settings.json"))
+            try EngineStorage.atomicJSON([task.json], to: state.appendingPathComponent("tasks.json"))
+            let engine = try RcloneEngine(stateDirectory: state, defaultRcloneDirectory: area.appendingPathComponent("rclone"))
+            let defaults = engine.settingsSnapshot()["defaultTransferOptions"] as! [String: Any]
+            try expect(defaults["maxDelete"] as? Int == -1 && defaults["deleteMode"] as? String == "during" && defaults["comparison"] as? String == "default" && defaults["localHashPolicy"] as? String == "none", "legacy defaults were not upgraded")
+            let saved = try engine.invoke("listTasks", arguments: []) as! [[String: Any]]
+            try expect(try EngineJSON.data(saved[0]["request"]!) == EngineJSON.data(savedRequest), "migration changed a saved task")
+            try expect(try EngineJSON.data(engine.settingsSnapshot()["savedWorkspace"]!) == EngineJSON.data(workspace), "migration changed remembered workspace")
+            var sparseRequest = savedRequest; sparseRequest["options"] = ["comparison": "checksum"]
+            var sparseTask = task.json; sparseTask["request"] = sparseRequest
+            let oldTask = try EngineTask(sparseTask)
+            try expect(oldTask.request.options.integer("maxDelete") == 100 && oldTask.request.options.text("deleteMode") == "after" && oldTask.request.options.text("localHashPolicy") == "default", "sparse legacy task inherited destructive new defaults")
+            var sparseWorkspace = workspace; sparseWorkspace["options"] = ["comparison": "checksum"]
+            let sparseState = try folder("migrate-v05/sparse-workspace")
+            try EngineStorage.atomicJSON(["settingsSchemaVersion": 4, "savedWorkspace": sparseWorkspace], to: sparseState.appendingPathComponent("settings.json"))
+            let sparseEngine = try RcloneEngine(stateDirectory: sparseState, defaultRcloneDirectory: area.appendingPathComponent("rclone"))
+            let oldWorkspace = try EngineWorkspace(sparseEngine.settingsSnapshot()["savedWorkspace"])
+            try expect(oldWorkspace.options.integer("maxDelete") == 100 && oldWorkspace.options.text("localHashPolicy") == "default", "sparse workspace was dropped or inherited new defaults")
+            sparseEngine.shutdown()
+            _ = try engine.invoke("saveSettings", arguments: [["defaultTransferOptions": ["maxDelete": 100, "deleteMode": "after", "localHashPolicy": "default"]]])
+            engine.shutdown()
+            let reopened = try RcloneEngine(stateDirectory: state, defaultRcloneDirectory: area.appendingPathComponent("rclone")); defer { reopened.shutdown() }
+            let explicit = reopened.settingsSnapshot()["defaultTransferOptions"] as! [String: Any]
+            try expect(explicit["maxDelete"] as? Int == 100 && explicit["deleteMode"] as? String == "after" && explicit["localHashPolicy"] as? String == "default", "schema5 explicit choices migrated again")
+            for (index, custom) in [["comparison": "checksum", "maxDelete": 12, "deleteMode": "before", "localHashPolicy": "default"],
+                                     ["comparison": "size", "maxDelete": 0, "deleteMode": "during", "localHashPolicy": "none"]].enumerated() {
+                let customState = try folder("migrate-v05/custom-\(index)")
+                try EngineStorage.atomicJSON(["settingsSchemaVersion": 4, "defaultTransferOptions": custom], to: customState.appendingPathComponent("settings.json"))
+                let customEngine = try RcloneEngine(stateDirectory: customState, defaultRcloneDirectory: area.appendingPathComponent("rclone"))
+                let actual = customEngine.settingsSnapshot()["defaultTransferOptions"] as! [String: Any]
+                for (key, value) in custom { try expect(try EngineJSON.data([actual[key]!]) == EngineJSON.data([value]), "custom \(key) changed") }
+                customEngine.shutdown()
+            }
+        }
+
+        test("hidden built-in presets persist independently of transfers and reject unrecognized values") {
+            let area = try folder("hidden-presets"), engine = try self.engine("hidden-presets", useRclone: false)
+            let original = engine.settingsSnapshot()["defaultTransferOptions"]!
+            _ = try engine.invoke("saveSettings", arguments: [["hiddenBuiltinPresets": ["nas-cloud", "local-nas", "local-nas"]]])
+            try expect(engine.settingsSnapshot()["hiddenBuiltinPresets"] as? [String] == ["local-nas", "nas-cloud"], "preset hide choices did not normalize")
+            try expect(try EngineJSON.data(engine.settingsSnapshot()["defaultTransferOptions"]!) == EngineJSON.data(original), "hiding presets changed transfer choices")
+            for invalid: Any in [["custom-script"], ["local-nas", "nas-cloud", "local-cloud", "local-nas"], "local-nas", [1]] {
+                try rejects("invalid preset identifier accepted") { _ = try engine.invoke("saveSettings", arguments: [["hiddenBuiltinPresets": invalid]]) }
+            }
+            engine.shutdown()
+            let reopened = try RcloneEngine(stateDirectory: area.appendingPathComponent("state"), defaultRcloneDirectory: area.appendingPathComponent("Tools/rclone")); defer { reopened.shutdown() }
+            try expect(reopened.settingsSnapshot()["hiddenBuiltinPresets"] as? [String] == ["local-nas", "nas-cloud"], "hidden presets were lost on restart")
+            _ = try reopened.invoke("saveSettings", arguments: [["hiddenBuiltinPresets": [String]()]])
+            try expect(reopened.settingsSnapshot()["hiddenBuiltinPresets"] as? [String] == [], "restore did not clear hidden presets")
         }
 
         test("remembered workspace round-trips every option atomically without selecting files or starting jobs") {
@@ -504,6 +562,76 @@ private final class CoreTestSuite {
             try expect(EngineJSON.number(file["percentage"]) == 50 && file["eta"] is NSNull, "per-file progress")
         }
 
+        test("native-copy JSON with zero rclone speed produces rolling throughput and ETA without disabling acceleration") {
+            var progress = EngineProgressWindow(); progress.start(at: 1000)
+            // rclone's BytesNoNetwork path reports logical bytes even when its
+            // global network-speed estimate stays zero (including macOS copyfile).
+            let raw = try EngineJSON.object(Data(#"{"bytes":1500000000,"totalBytes":3400000000,"elapsedTime":30,"transfers":150,"totalTransfers":340,"serverSideCopyBytes":1500000000,"speed":0,"eta":null}"#.utf8)) as! [String: Any]
+            let result = progress.update(raw, previous: EngineStatistics.empty, at: 1030)
+            try expect(EngineJSON.number(result["speed"]) == 50_000_000 && EngineJSON.number(result["eta"]) == 38, "native-copy counters did not produce the expected logical rate/ETA")
+            try expect(result["speedKind"] as? String == "rolling" && result["etaSource"] as? String == "bytes" && EngineJSON.number(result["speedWindowSeconds"]) == 30, "metric explanation metadata is missing")
+            let args = try EngineTransferRequest(request(try folder("native-metrics/source"), try folder("native-metrics/target"))).arguments()
+            try expect(!args.contains("--local-no-clone") && args.contains("--stats=1s"), "metrics changed the native copy path or added polling")
+            let nas = try EngineTransferRequest(request(try folder("native-metrics/source"), try folder("native-metrics/target"), mode: "sync",
+                                                       options: ["transfers": 1, "checkers": 10, "extraArgs": ["--multi-thread-streams=0"]])).arguments()
+            for flag in ["--transfers=1", "--checkers=10", "--local-hashes=none", "--delete-during", "--max-delete=-1", "--multi-thread-streams=0"] {
+                try expect(nas.contains(flag), "NAS preset did not preserve \(flag)")
+            }
+        }
+
+        test("rolling rate uses the most recent minute, handles a full stall, and bounds memory under repeated updates") {
+            var progress = EngineProgressWindow(); progress.start(at: 0)
+            var result = EngineStatistics.empty
+            for second in 1...120 {
+                let bytes = second <= 60 ? second * 100 : 6000 + (second - 60) * 200
+                result = progress.update(["bytes": bytes, "totalBytes": 100000, "elapsedTime": second, "transfers": second, "totalTransfers": 1000], previous: result, at: Double(second))
+            }
+            try expect(EngineJSON.number(result["speed"]) == 200 && EngineJSON.number(result["averageSpeed"]) == 150 && EngineJSON.number(result["speedWindowSeconds"]) == 60, "rolling rate used whole-job average or the wrong window")
+            for second in 121...181 { result = progress.update(["bytes": 18000, "totalBytes": 100000, "elapsedTime": second, "transfers": 120], previous: result, at: Double(second)) }
+            try expect(EngineJSON.number(result["speed"]) == 0 && result["eta"] is NSNull, "stalled transfer retained stale speed or an invented ETA")
+            let measuredAt = ProcessInfo.processInfo.systemUptime
+            for tick in 1...10_000 {
+                let time = 181 + Double(tick) / 100
+                result = progress.update(["bytes": 18000 + tick, "totalBytes": 100000, "elapsedTime": time], previous: result, at: time)
+            }
+            try expect(progress.sampleCount <= 64 && EngineJSON.number(result["speedWindowSeconds"]) <= 60, "sample history grew with logging frequency")
+            try expect(try EngineJSON.data(result).count < 2000, "private sample history leaked into IPC/persisted stats")
+            print(String(format: "BENCHMARK: 10000 counter snapshots %.6f seconds; peak bound 64 samples", ProcessInfo.processInfo.systemUptime - measuredAt))
+        }
+
+        test("statistics recover from counter resets and missing elapsed fields without negative rates or clock spikes") {
+            var progress = EngineProgressWindow(); progress.start(at: 100)
+            var result = progress.update(["bytes": 1000, "elapsedTime": 10, "totalBytes": 5000], previous: EngineStatistics.empty, at: 110)
+            result = progress.update(["bytes": 1200, "totalBytes": 6000, "elapsedTime": NSNull()], previous: result, at: 112)
+            try expect(EngineJSON.number(result["speed"]) == 100 && EngineJSON.number(result["elapsedTime"]) == 12, "missing elapsed field did not use monotonic time")
+            result = progress.update(["bytes": 50, "elapsedTime": 1, "totalBytes": 5000], previous: result, at: 113)
+            try expect(EngineJSON.number(result["speed"]) == 0 && result["eta"] is NSNull, "counter reset caused a rate spike")
+            result = progress.update(["bytes": 250, "elapsedTime": 3], previous: result, at: 115)
+            try expect(EngineJSON.number(result["speed"]) == 100 && EngineJSON.number(result["totalBytes"]) == 5000, "rate did not recover after reset")
+            result = progress.update(["bytes": 350], previous: result, at: 116)
+            try expect(EngineJSON.number(result["elapsedTime"]) == 4 && EngineJSON.number(result["speed"]) == 100, "missing clock after reset reused pre-reset elapsed time")
+            var extreme = EngineProgressWindow(); extreme.start(at: 0)
+            let overflow = extreme.update(["bytes": 1e308, "totalBytes": 1.5e308, "elapsedTime": 1e-308, "transfers": 1e308], previous: EngineStatistics.empty, at: 1e-308)
+            try expect(EngineJSON.number(overflow["speed"]) == 0 && overflow["eta"] is NSNull, "non-finite quotient produced a completed-looking ETA")
+            _ = try EngineJSON.data(EngineStatistics.finished(overflow, completed: false))
+        }
+
+        test("tiny-file ETA uses completed file counts and finished history retains an overall byte rate") {
+            var progress = EngineProgressWindow(); progress.start(at: 10)
+            let tiny = progress.update(["bytes": 0, "totalBytes": 0, "elapsedTime": 20, "transfers": 20, "totalTransfers": 100], previous: EngineStatistics.empty, at: 30)
+            try expect(EngineJSON.number(tiny["filesPerSecond"]) == 1 && EngineJSON.number(tiny["eta"]) == 80 && tiny["etaSource"] as? String == "files", "zero-byte file ETA is unavailable")
+            var short = EngineProgressWindow(); short.start(at: 100)
+            let value = short.update(["bytes": 1024, "totalBytes": 1024, "transfers": 1, "totalTransfers": 1, "elapsedTime": 0.25, "speed": 0], previous: EngineStatistics.empty, at: 100.25)
+            let finished = short.finish(value, completed: true, at: 100.3)
+            try expect(EngineJSON.number(finished["speed"]) == 4096 && finished["speedKind"] as? String == "overall" && EngineJSON.number(finished["eta"]) == 0, "short job lost its final average")
+            let saved = EngineJob(request: try EngineTransferRequest(request(try folder("metric-history/from"), try folder("metric-history/to"))), command: "rclone")
+            saved.status = "completed"; saved.stats = finished
+            let reopened = try EngineJob(saved: saved.json)
+            try expect(EngineJSON.number(reopened.stats["speed"]) == 4096 && reopened.stats["speedKind"] as? String == "overall", "restart lost the completed average speed")
+            saved.stats["speed"] = 0; saved.stats.removeValue(forKey: "averageSpeed")
+            try expect(EngineJSON.number(try EngineJob(saved: saved.json).stats["speed"]) == 4096, "older completed job counters did not recover an average speed")
+        }
+
         test("saved tasks import atomically with new identities; restart never starts jobs") {
             let from = try folder("task-from"), to = try folder("task-to")
             let area = try folder("task-engine")
@@ -536,7 +664,7 @@ private final class CoreTestSuite {
             original["direction"] = "rl"; original["label"] = "task metadata"
             let task = try engine.invoke("saveTask", arguments: ["完整設定", original]) as! [String: Any]
             try expect(try EngineJSON.data(task["request"]!) == EngineJSON.data(original), "save dropped request metadata or options")
-            _ = try engine.invoke("saveSettings", arguments: [["defaultTransferOptions": ["comparison": "checksum", "transfers": 1]]])
+            _ = try engine.invoke("saveSettings", arguments: [["defaultTransferOptions": ["comparison": "checksum", "localHashPolicy": "default", "transfers": 1]]])
             var edited = task["request"] as! [String: Any]
             var options = edited["options"] as! [String: Any]; options["bandwidth"] = "3M"; edited["options"] = options
             let updated = try engine.invoke("saveTask", arguments: ["修改後", edited, task["id"]!]) as! [String: Any]
@@ -713,7 +841,7 @@ private final class CoreTestSuite {
                 try file(from, "sample.txt", Data(sourceContent.utf8)); try file(to, "sample.txt", Data(targetContent.utf8))
                 try modified(from, "sample.txt", sourceDate); try modified(to, "sample.txt", sameDate ? sourceDate : oldDate)
                 let engine = try self.engine("comparison-engine-\(index)", aliases: ["target": to]); defer { engine.shutdown() }
-                let job = try completed(engine, request(from, to, options: ["comparison": comparison], destinationRemote: "target"))
+                let job = try completed(engine, request(from, to, options: ["comparison": comparison, "localHashPolicy": "default"], destinationRemote: "target"))
                 try expect(try String(contentsOf: to.appendingPathComponent("sample.txt"), encoding: .utf8) == (expectedCopy ? sourceContent : targetContent), "wrong copy decision for \(comparison)")
                 let stats = job["stats"] as! [String: Any]
                 try expect((EngineJSON.number(stats["transfers"]) > 0) == expectedCopy, "wrong transfer counter for \(comparison)")
@@ -737,7 +865,7 @@ private final class CoreTestSuite {
 
         #if os(Linux)
         test("actual engine argv avoids NAS-content read with local-hashes none; ignore-checksum alone still reads") {
-            for (index, specification) in [([String: Any](), true, true), (["ignoreChecksum": true], true, true),
+            for (index, specification) in [(["localHashPolicy": "default"], true, true), (["ignoreChecksum": true, "localHashPolicy": "default"], true, true),
                                             (["localHashPolicy": "none"], false, true), (["comparison": "size"], false, false)].enumerated() {
                 let (options, shouldRead, shouldTransfer) = specification
                 let from = try folder("nas-read/\(index)/source"), to = try folder("nas-read/\(index)/destination")
@@ -797,9 +925,11 @@ private final class CoreTestSuite {
             try file(from, "same.txt", Data("same".utf8)); try file(to, "same.txt", Data("same".utf8))
             let old = Date(timeIntervalSince1970: 1600000000), recent = Date(timeIntervalSince1970: 1700000000)
             try modified(from, "same.txt", recent); try modified(to, "same.txt", old)
-            _ = try completed(engine, request(from, to, selection: [["name": "same.txt", "isDir": false]], options: ["noUpdateModtime": true]))
+            _ = try completed(engine, request(from, to, selection: [["name": "same.txt", "isDir": false]], options: ["noUpdateModtime": true, "localHashPolicy": "default"]))
             let retained = try FileManager.default.attributesOfItem(atPath: to.appendingPathComponent("same.txt").path)[.modificationDate] as! Date
             try expect(abs(retained.timeIntervalSince(old)) < 1, "no-update-modtime updated an unchanged destination")
+            let withoutHashes = try completed(engine, request(from, to, selection: [["name": "same.txt", "isDir": false]], options: ["noUpdateModtime": true]))
+            try expect(EngineJSON.number((withoutHashes["stats"] as! [String: Any])["transfers"]) == 1, "hash-free comparison must still copy a changed modification time")
         }
 
         test("choosing an engine waits for an in-flight operation and refreshes its environment in the same save") {
@@ -869,8 +999,10 @@ private final class CoreTestSuite {
                 try file(from, filename, payload); try file(from, "not-selected.txt")
                 let engine = try self.engine("matrix-engine-\(index)", aliases: ["source": from, "target": to])
                 defer { engine.shutdown() }
-                _ = try completed(engine, request(from, to, selection: [["name": filename, "isDir": false]],
+                let transferred = try completed(engine, request(from, to, selection: [["name": filename, "isDir": false]],
                                                    sourceRemote: pair.0, destinationRemote: pair.1))
+                let metrics = transferred["stats"] as! [String: Any]
+                try expect(EngineJSON.number(metrics["speed"]) > 0 && metrics["speedKind"] as? String == "overall", "short real copy lost its completed average speed")
                 try expect(try Data(contentsOf: to.appendingPathComponent(filename)) == payload, "matrix \(index) did not copy exact content")
                 try expect(!FileManager.default.fileExists(atPath: to.appendingPathComponent("not-selected.txt").path), "matrix \(index) widened selection")
                 try expect(FileManager.default.fileExists(atPath: from.appendingPathComponent(filename).path), "copy unexpectedly removed source")

@@ -1,10 +1,10 @@
 # 功能對照與架構
 
-Rclone Browser Next 0.4.0 延續原版的位置瀏覽、傳輸設定、工作與 Tasks 四個責任區域，改成左右面板與 Swift／AppKit host。以下以公開來源核對功能與實作位置，不以 App 體積推論完成度。
+Rclone Browser Next 0.5.0 延續原版的位置瀏覽、傳輸設定、工作與 Tasks 四個責任區域，改成左右面板與 Swift／AppKit host。以下以公開來源核對功能與實作位置，不以 App 體積推論完成度。
 
 ## 原版與新版的責任分工
 
-| 原版 Rclone Browser | 職責 | Next 0.4.0 |
+| 原版 Rclone Browser | 職責 | Next 0.5.0 |
 |---|---|---|
 | `remote_widget.cpp`、`item_model.cpp` | 瀏覽位置、列檔案與操作項目 | `BrowserPane.tsx`、`useBrowser.ts`、`RcloneEngine.swift` |
 | `transfer_dialog.cpp/.ui` | 傳輸表單 | 主傳輸選項與完整 Task 編輯器 |
@@ -14,7 +14,7 @@ Rclone Browser Next 0.4.0 延續原版的位置瀏覽、傳輸設定、工作與
 | `list_of_job_options.cpp` | 儲存與載入 Tasks | `EngineStorage` 的 JSON 與完整 Tasks 介面 |
 | `preferences_dialog.cpp/.ui` | 執行檔、路徑、介面與預設值 | `Settings.tsx`、原子保存、即時刷新 |
 
-原版 `MainWindow::addTransfer` 直接建立 `QProcess`；`mJobCount` 用來計數，沒有整體並行上限。Next 0.4.0 預設亦不限制工作數，另提供可選上限。單一 rclone 工作的 `--transfers` 與 `--checkers` 仍各自有效。
+原版 `MainWindow::addTransfer` 直接建立 `QProcess`；`mJobCount` 用來計數，沒有整體並行上限。Next 自 0.4.0 起預設亦不限制工作數，另提供可選上限。單一 rclone 工作的 `--transfers` 與 `--checkers` 仍各自有效。
 
 公開參考：[原版來源](https://github.com/kapitainsky/RcloneBrowser/tree/45bf7411839b0919c488a3e3a0a5272b50c9fc7b)、[RcloneBrowser2](https://github.com/downer08tutti/RcloneBrowser2)。原始碼的分工與操作語意可對照；這不是將 Qt 程式碼直接改名的 fork。
 
@@ -23,6 +23,7 @@ Rclone Browser Next 0.4.0 延續原版的位置瀏覽、傳輸設定、工作與
 | 功能 | Next 的處理 |
 |---|---|
 | Copy / Move / Sync | 左到右、右到左；來源與目標均可為本機或 remote |
+| 常用方案 | 電腦到 NAS、NAS 到雲端、電腦到雲端；套用完整選項，可隱藏與還原，不自動開始 |
 | Dry Run | 主流程與 Tasks 都有直接入口；實際執行 rclone `--dry-run` |
 | 比較方式 | 大小＋修改時間、大小＋雜湊、僅時間、僅大小、僅雜湊與全部傳輸；另有 NAS metadata 模式 |
 | Skip file | 略過已存在、略過目標較新；與移動語意衝突的組合會阻止執行並要求修改 |
@@ -33,7 +34,7 @@ Rclone Browser Next 0.4.0 延續原版的位置瀏覽、傳輸設定、工作與
 | Task 保存 | 完整 source、destination、direction、mode、options、selection、名稱與時間 |
 | Task 操作 | 列表直接提供 Dry Run、Run、Edit、Delete；編輯可保留原作業或另存副本 |
 | Task 匯入／匯出 | Next JSON 格式；不會把原版 Qt 設定檔誤當成相同格式 |
-| 工作記錄 | JSON 統計、速度、預計剩餘時間、數量、單檔狀態、原始記錄、重試與取消 |
+| 工作記錄 | JSON 統計、最近 60 秒平均處理速度、粗估剩餘時間、一位小數百分比、檔案數量、單檔狀態、原始記錄、重試與取消；完成後保留整次平均速度 |
 
 同步是**單向同步**。本版沒有提供雙向 `bisync` 的衝突解決與狀態管理，不能把左右方向切換稱為自動雙向同步。
 
@@ -41,7 +42,9 @@ Rclone Browser Next 0.4.0 延續原版的位置瀏覽、傳輸設定、工作與
 
 | 功能 | Next 的處理與範圍 |
 |---|---|
-| 雙面板、分頁 | 每側獨立位置與分頁；本次工作階段保留返回歷史與選取 |
+| 雙面板、分頁 | 每側獨立位置與分頁；分頁底色連接內容，各自保留返回／前進歷史與選取 |
+| 滑鼠側鍵 | 原生 AppKit 接收常見返回／前進按鍵，依游標所在面板切換；鍵盤亦有 Command＋`[`／`]` |
+| 提示狀態 | 目錄錯誤以整張卡片呈現，空白作業不顯示執行工具列；懸浮通知不擠動版面 |
 | 常用 Mac 目錄 | 從系統取得個人資料夾、桌面、文件、下載、圖片、音樂、影片及已掛載磁碟 |
 | 位置分組 | 本機、雲端、NAS／伺服器；保留協定名稱辨識用途不明的 remote |
 | 欄寬與列背景 | 可拖曳欄寬，單細線分隔，剩餘面板與空白列保留交錯底色 |

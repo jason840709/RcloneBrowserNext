@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent, type MouseEvent, type PointerEvent } from 'react';
 import { TableVirtuoso, type TableComponents, type TableVirtuosoHandle } from 'react-virtuoso';
-import { ArrowLeft, ArrowUp, ArrowClockwise, Folder, FolderOpen, FolderPlus, HardDrives, Cloud, MagnifyingGlass,
+import { ArrowLeft, ArrowRight, ArrowUp, ArrowClockwise, Folder, FolderOpen, FolderPlus, HardDrives, Cloud, MagnifyingGlass,
   Eye, EyeSlash, CaretDown, CaretUp, File as FileIcon, FileText, FileImage, FileZip, PencilSimple, Trash, ChartBar, X, Plus } from '@phosphor-icons/react';
 import type { FileEntry, ResolvedLanguage, RemoteInfo, LocalLocation, PaneColumnWidths, Settings } from '../shared/types';
 import type { BrowserState } from './useBrowser';
@@ -104,10 +104,10 @@ export default function BrowserPane({ side, browser, remotes, locations, home, t
       const diff = Number.isFinite(primary) && primary !== 0 ? primary : a.name.localeCompare(b.name, language, {numeric: true});
       return sort.ascending ? diff : -diff;
     }), [entries, query, showHidden, sort, language]);
-  const visibleNames = new Set(filtered.map(item => item.name));
-  const allSelected = filtered.length > 0 && filtered.every(item => selected.has(item.name));
-  const someSelected = filtered.some(item => selected.has(item.name));
-  const hiddenSelection = selection.some(item => !visibleNames.has(item.name));
+  const visibleNames = useMemo(() => new Set(filtered.map(item => item.name)), [filtered]);
+  const allSelected = useMemo(() => filtered.length > 0 && selected.size > 0 && filtered.every(item => selected.has(item.name)), [filtered, selected]);
+  const someSelected = useMemo(() => selected.size > 0 && filtered.some(item => selected.has(item.name)), [filtered, selected]);
+  const hiddenSelection = useMemo(() => selection.some(item => !visibleNames.has(item.name)), [selection, visibleNames]);
   const navigate = useCallback((target: typeof endpoint) => {
     setPathDraft(null); setQuery(''); setFocused(''); anchor.current = null; browser.navigate(target);
   }, [browser.navigate]);
@@ -162,16 +162,15 @@ export default function BrowserPane({ side, browser, remotes, locations, home, t
 
   return <section ref={sectionRef} className={`browser-pane ${active ? 'pane-active' : ''} ${preferences.alternatingRows ? 'striped-rows' : ''}`} aria-label={`${t(side)} ${t('files')}`} data-testid={`${side}-pane`} data-pane-side={side}
     onFocusCapture={onActivate} onPointerDown={onActivate} onKeyDownCapture={onKeyDown}>
+    <header className="pane-heading"><span className="pane-side">{t(side)}</span><span className={`role-tag ${isSource ? 'source-tag' : ''}`}>{t(isSource ? 'source' : 'destination')}</span></header>
     <div className="pane-tabs" role="tablist" aria-label={`${t(side)} ${t('locationTabs')}`}>{browser.tabs.map(tab => <div key={tab.id} className={`pane-tab ${tab.id === browser.activeTab ? 'active' : ''}`}><button type="button" role="tab" aria-selected={tab.id === browser.activeTab} title={endpointText(tab.endpoint)} onClick={() => browser.switchTab(tab.id)} onKeyDown={event => { if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') { event.preventDefault(); const index = browser.tabs.findIndex(item => item.id === tab.id); const next = browser.tabs[(index + (event.key === 'ArrowRight' ? 1 : browser.tabs.length - 1)) % browser.tabs.length]; browser.switchTab(next.id); requestAnimationFrame(() => sectionRef.current?.querySelector<HTMLButtonElement>('[role="tab"][aria-selected="true"]')?.focus()); } }}>{tab.endpoint.remote ? <Cloud size={13}/> : <HardDrives size={13}/>}<span>{endpointName(tab.endpoint)}</span></button>{browser.tabs.length > 1 && <button type="button" className="tab-close" aria-label={`${t('closeTab')} ${endpointName(tab.endpoint)}`} onClick={() => browser.closeTab(tab.id)}><X size={11}/></button>}</div>)}<IconButton title={t('newTab')} disabled={browser.tabs.length >= 12} onClick={browser.newTab}><Plus size={15}/></IconButton></div>
-      <header className="pane-heading">
-      <span className="pane-side">{t(side)}</span>
-      <LocationPicker endpoint={endpoint} locations={locations} remotes={remotes} label={`${t(side)} ${t('location')}`} disabled={disabled} remoteAvailable={remoteAvailable} t={t} onChange={navigate} remotePath={name => rememberedPaths.current[name] || ''}/>
-      <span className={`role-tag ${isSource ? 'source-tag' : ''}`}>{t(isSource ? 'source' : 'destination')}</span>
-    </header>
     <div className="path-toolbar">
+      <LocationPicker compact endpoint={endpoint} locations={locations} remotes={remotes} label={`${t(side)} ${t('location')}`} disabled={disabled} remoteAvailable={remoteAvailable} t={t} onChange={navigate} remotePath={name => rememberedPaths.current[name] || ''}/>
       <IconButton title={t('back')} disabled={!browser.canBack || navigationDisabled} onClick={() => { setPathDraft(null); browser.back(); }}><ArrowLeft size={17}/></IconButton>
+      <IconButton title={t('forward')} disabled={!browser.canForward || navigationDisabled} onClick={() => { setPathDraft(null); browser.forward(); }}><ArrowRight size={17}/></IconButton>
       <IconButton title={t('up')} disabled={navigationDisabled || endpointEqual(endpoint, parentEndpoint(endpoint))} onClick={() => { setPathDraft(null); browser.up(); }}><ArrowUp size={17}/></IconButton>
       <form className="path-form" onSubmit={event => { event.preventDefault(); if (navigationDisabled) return; const raw = pathDraft ?? endpoint.path; if (!endpoint.remote && !raw.trim()) return; navigate({ ...endpoint, path: raw }); }}>
+        {endpoint.remote && <span className="path-endpoint-name" title={endpoint.remote}>{endpoint.remote}:</span>}
         <input ref={pathRef} aria-label={`${t(side)} ${t('path')}`} spellCheck={false} value={pathDraft ?? (endpoint.path || '/')} onChange={event => { setPathDraft(event.target.value); browser.setPathDirty(event.target.value !== endpoint.path); }} onKeyDown={event => { if (event.key === 'Escape') { event.preventDefault(); setPathDraft(null); browser.setPathDirty(false); } }} disabled={navigationDisabled}/>
         <button type="submit" className="path-go" title={t('go')} aria-label={t('go')} disabled={navigationDisabled}><CaretDown className="rotate-left" size={13}/></button>
       </form>
@@ -185,9 +184,9 @@ export default function BrowserPane({ side, browser, remotes, locations, home, t
       <IconButton title={t(showHidden ? 'hideHidden' : 'showHidden')} aria-pressed={showHidden} onClick={() => setShowHidden(!showHidden)}>{showHidden ? <Eye size={18}/> : <EyeSlash size={18}/>}</IconButton>
     </div>
     {browser.missingSelection && <Notice kind="warning">{t('missingSelection')} <button type="button" className="text-button" onClick={() => browser.setSelection([])}>{t('clearSelection')}</button></Notice>}
-    <div className="file-list" aria-busy={loading}>
+    <div className="file-list" data-empty={Boolean(error) || !filtered.length || undefined} aria-busy={loading}>
       {loading && entries.length === 0 ? <div className="file-loading" role="status"><span>{t('loadingFolder')}</span>{[0, 1, 2, 3, 4, 5].map(i => <div className="skeleton-row" key={i}><i/><span/><small/></div>)}</div> : error ?
-        <EmptyState compact icon={<Cloud size={30}/>} title={t('cannotBrowse')} action={<button type="button" onClick={browser.reload}>{t('retry')}</button>}>{error}</EmptyState> : filtered.length === 0 ?
+        <EmptyState compact kind="error" icon={endpoint.remote ? <Cloud size={30}/> : <FolderOpen size={30}/>} title={t('cannotBrowse')} action={<button type="button" onClick={browser.reload}>{t('retry')}</button>}>{error}</EmptyState> : filtered.length === 0 ?
         <EmptyState compact icon={query ? <MagnifyingGlass size={32}/> : <FolderOpen size={34} weight="duotone"/>} title={t(query || entries.length > 0 ? 'noMatches' : 'emptyFolder')}>{t(query || entries.length > 0 ? 'noMatchesHint' : 'emptyFolderHint')}</EmptyState> :
         <TableVirtuoso ref={virtuoso} data={filtered} components={tableComponents} context={context} fixedItemHeight={37} overscan={200} onScroll={event => { const element = event.currentTarget as HTMLElement; element.closest<HTMLElement>('.file-list')?.style.setProperty('--stripe-offset', `${33 - element.scrollTop % 74}px`); }}
           computeItemKey={(_index, item) => item.name}

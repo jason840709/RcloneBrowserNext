@@ -90,7 +90,16 @@ final class BrowserAppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegat
             configuration.websiteDataStore = .nonPersistent()
             configuration.preferences.javaScriptCanOpenWindowsAutomatically = false
             configuration.userContentController.add(self, name: "rclone")
+            configuration.userContentController.addUserScript(WKUserScript(
+                source: "window.__rbnNativeHistory = true;", injectionTime: .atDocumentStart, forMainFrameOnly: true))
             let browserView = RcloneWebView(frame: .zero, configuration: configuration)
+            browserView.acceptsHistoryNavigation = { [weak self] in
+                guard let self = self else { return false }
+                return self.pageReady && !self.terminationStarted && self.isBundledDocument(self.webView?.url)
+            }
+            browserView.onHistoryNavigation = { [weak self] direction, point in
+                self?.sendEvent(type: "navigateHistory", data: ["direction": direction, "x": point.x, "y": point.y])
+            }
             browserView.acceptsFileDrop = { [weak self] in
                 guard let self = self else { return false }
                 return !self.terminationStarted && self.isBundledDocument(self.webView?.url)
@@ -392,6 +401,10 @@ final class BrowserAppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegat
             DispatchQueue.main.async { self?.terminalTimer?.cancel(); NSApp.reply(toApplicationShouldTerminate: true) }
         }
         return .terminateLater
+    }
+
+    func applicationWillTerminate(_ notification: Notification) {
+        (webView as? RcloneWebView)?.stopHistoryMonitoring()
     }
 
     private func local(_ chinese: String, _ english: String, _ japanese: String? = nil) -> String {

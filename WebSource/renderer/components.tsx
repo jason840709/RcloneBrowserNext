@@ -33,8 +33,29 @@ export function Notice({ children, kind = 'info', onClose }: PropsWithChildren<{
   </div>;
 }
 
-export function EmptyState({ icon, title, children, action, compact = false }: PropsWithChildren<{ icon: ReactNode; title: string; action?: ReactNode; compact?: boolean }>) {
-  return <div className={`empty-state ${compact ? 'compact' : ''}`}><div className="empty-icon">{icon}</div><h3>{title}</h3>{children && <p>{children}</p>}{action}</div>;
+export function EmptyState({ icon, title, children, action, compact = false, kind = 'info' }: PropsWithChildren<{ icon: ReactNode; title: string; action?: ReactNode; compact?: boolean; kind?: 'info'|'error' }>) {
+  return <div className={`empty-state ${compact ? 'compact' : ''}`}><div className={`status-card status-card-${kind}`} role={kind === 'error' ? 'alert' : undefined}><div className="empty-icon">{icon}</div><h3>{title}</h3>{children && <p>{children}</p>}{action && <div className="status-card-actions">{action}</div>}</div></div>;
+}
+
+/** Temporary feedback stays out of document flow; only its opacity/transform animate. */
+export function FloatingNotice({ message, kind = 'success', serial = 0, onClose }: {message: string; kind?: 'success'|'error'|'info'; serial?: number; onClose(): void}) {
+  const [visible, setVisible] = useState(false);
+  const anchor = useRef<HTMLSpanElement>(null);
+  const [container, setContainer] = useState<HTMLElement>(document.body);
+  useLayoutEffect(() => { setContainer(anchor.current?.closest('dialog') || document.body); }, []);
+  const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const finish = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const callback = useRef(onClose); callback.current = onClose;
+  const dismiss = () => { clearTimeout(finish.current); clearTimeout(timer.current); setVisible(false); finish.current = setTimeout(() => callback.current(), 200); };
+  const schedule = () => { clearTimeout(timer.current); if (message) timer.current = setTimeout(dismiss, 5000); };
+  useEffect(() => {
+    clearTimeout(timer.current); clearTimeout(finish.current);
+    if (!message) { setVisible(false); return; }
+    const frame = requestAnimationFrame(() => setVisible(true)); schedule();
+    return () => { cancelAnimationFrame(frame); clearTimeout(timer.current); clearTimeout(finish.current); };
+  }, [message, kind, serial]);
+  if (!message) return <span ref={anchor} hidden aria-hidden="true"/>;
+  return <><span ref={anchor} hidden aria-hidden="true"/>{createPortal(<div className="app-notice floating-notice" data-visible={visible} onPointerEnter={() => clearTimeout(timer.current)} onPointerLeave={schedule} onFocusCapture={() => clearTimeout(timer.current)} onBlurCapture={schedule}><Notice kind={kind} onClose={dismiss}>{message}</Notice></div>, container)}</>;
 }
 
 export function InfoTooltip({ text, label, descriptionId }: {text: string; label?: string; descriptionId?: string}) {
@@ -78,7 +99,13 @@ export function InfoTooltip({ text, label, descriptionId }: {text: string; label
   return <><span id={descId} className="sr-only">{text}</span><button ref={button} type="button" className="info-tooltip-trigger" aria-label={label ? `${label} — ${info}` : info} aria-describedby={descId} aria-expanded={open} aria-controls={open ? tipId : undefined} onPointerEnter={show} onPointerLeave={leave} onFocus={() => { if (!suppressFocus.current) show(); }} onBlur={() => { if (!pinned) setOpen(false); }} onClick={() => { if (pinned) close(); else { setOpen(true); setPinned(true); } }}><Info size={15}/></button>{open && createPortal(<div ref={bubble} id={tipId} role="tooltip" className="info-tooltip" style={{position: container === document.body ? 'fixed' : 'absolute', ...position}} onPointerEnter={show} onPointerLeave={leave}>{text}</div>, container)}</>;
 }
 
-export function Field({ label, hint, children, className = '', inlineHint = false }: PropsWithChildren<{label: string; hint?: string; className?: string; inlineHint?: boolean}>) {
+function shortHint(text: string): string {
+  const match = text.match(/^.*?(?:。|[.!?](?=\s|$))/u);
+  const first = match?.[0] || text;
+  return first.length <= 120 ? first : '';
+}
+
+export function Field({ label, hint, summary, children, className = '', inlineHint = false }: PropsWithChildren<{label: string; hint?: string; summary?: string; className?: string; inlineHint?: boolean}>) {
   const id = useId();
   const hintId = `${id}-hint`;
   let assigned = false;
@@ -92,10 +119,10 @@ export function Field({ label, hint, children, className = '', inlineHint = fals
     if (element.props.children) return cloneElement(element, {children: Children.map(element.props.children as ReactNode, connectLabel)});
     return element;
   };
-  return <div className={`field ${className}`}><div className="field-label-row"><label className="field-label" htmlFor={id}>{label}</label>{hint && !inlineHint && <InfoTooltip label={label} text={hint} descriptionId={hintId}/>}</div>{Children.map(children, connectLabel)}{hint && inlineHint && <span className="field-hint" id={hintId}>{hint}</span>}</div>;
+  return <div className={`field ${className}`}><div className="field-label-row"><label className="field-label" htmlFor={id}>{label}</label>{hint && !inlineHint && <InfoTooltip label={label} text={hint} descriptionId={hintId}/>}</div>{Children.map(children, connectLabel)}{(summary || hint && !inlineHint && shortHint(hint)) && <span className={`field-hint ${summary ? '' : 'option-brief'}`}>{summary || shortHint(hint!)}</span>}{hint && inlineHint && <span className="field-hint" id={hintId}>{hint}</span>}</div>;
 }
 
 export function Checkbox({ checked, onChange, children, hint, disabled = false }: PropsWithChildren<{checked: boolean; onChange(value: boolean): void; hint?: string; disabled?: boolean}>) {
   const hintId = useId();
-  return <div className="checkbox-with-info"><label className="checkbox-field"><input type="checkbox" aria-label={typeof children === 'string' ? children : undefined} aria-describedby={hint ? hintId : undefined} checked={checked} onChange={event => onChange(event.target.checked)} disabled={disabled}/><span>{children}</span></label>{hint && <InfoTooltip text={hint} label={typeof children === 'string' ? children : undefined} descriptionId={hintId}/>}</div>;
+  return <div className="checkbox-with-info"><label className="checkbox-field"><input type="checkbox" aria-label={typeof children === 'string' ? children : undefined} aria-describedby={hint ? hintId : undefined} checked={checked} onChange={event => onChange(event.target.checked)} disabled={disabled}/><span className="checkbox-copy"><span>{children}</span>{hint && shortHint(hint) && <small className="option-brief">{shortHint(hint)}</small>}</span></label>{hint && <InfoTooltip text={hint} label={typeof children === 'string' ? children : undefined} descriptionId={hintId}/>}</div>;
 }

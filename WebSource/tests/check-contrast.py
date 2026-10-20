@@ -3,7 +3,7 @@ import json
 from pathlib import Path
 import sys
 
-tokens_path = Path(sys.argv[1] if len(sys.argv) > 1 else '.build-cache/qa04/palette-tokens.json')
+tokens_path = Path(sys.argv[1] if len(sys.argv) > 1 else '.build-cache/qa05/palette-tokens.json')
 def luminance(color):
     color = color.lstrip('#')
     if len(color) == 3:

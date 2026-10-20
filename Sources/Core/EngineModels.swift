@@ -228,15 +228,21 @@ struct EngineTransferOptions {
         "transfers": 4, "checkers": 8, "bandwidth": "", "comparison": "default",
         "skipExisting": false, "updateOnly": false, "createEmptyDirs": true,
         "exclude": [".DS_Store", "._*"], "include": [String](), "retries": 3,
-        "maxDelete": 100, "preserveMetadata": false, "driveSharedWithMe": false,
-        "deleteMode": "after", "deleteExcluded": false, "ignoreChecksum": false,
+        "maxDelete": -1, "preserveMetadata": false, "driveSharedWithMe": false,
+        "deleteMode": "during", "deleteExcluded": false, "ignoreChecksum": false,
         "modifyWindow": "", "checkFirst": false, "noTraverse": false, "fastList": false,
         "oneFileSystem": false, "noUpdateModtime": false,
         "minSize": "", "maxSize": "", "minAge": "", "maxAge": "", "maxDepth": -1,
         "connectTimeout": "", "ioTimeout": "", "lowLevelRetries": 10,
-        "retrySleep": "", "extraArgs": [String](), "localHashPolicy": "default"
+        "retrySleep": "", "extraArgs": [String](), "localHashPolicy": "none"
     ]
     let json: [String: Any]
+
+    /// Sparse snapshots created before schema 5 inherit the defaults in force
+    /// when they were saved. Newly saved requests always contain every option.
+    static func preservingLegacySnapshot(_ raw: [String: Any]) -> [String: Any] {
+        ["maxDelete": 100, "deleteMode": "after", "localHashPolicy": "default"].merging(raw) { _, saved in saved }
+    }
     var includes: [String] { json["include"] as! [String] }
     var excludes: [String] { json["exclude"] as! [String] }
     func flag(_ key: String) -> Bool { json[key] as! Bool }
@@ -488,7 +494,8 @@ struct EngineTransferRequest {
 enum EngineStatistics {
     static var empty: [String: Any] {
         ["bytes": 0, "totalBytes": 0, "speed": 0, "eta": NSNull(), "transfers": 0, "totalTransfers": 0,
-         "checks": 0, "totalChecks": 0, "errors": 0, "deletes": 0, "elapsedTime": 0, "transferring": [[String: Any]]()]
+         "checks": 0, "totalChecks": 0, "errors": 0, "deletes": 0, "elapsedTime": 0, "transferring": [[String: Any]](),
+         "speedKind": "rolling", "speedWindowSeconds": 0, "averageSpeed": 0, "filesPerSecond": 0, "etaSource": NSNull()]
     }
     static func parse(_ value: Any?, previous: [String: Any] = empty) -> [String: Any] {
         guard let raw = value as? [String: Any] else { return previous }
@@ -498,6 +505,9 @@ enum EngineStatistics {
         }
         result["speed"] = EngineJSON.number(raw["speed"])
         result["eta"] = EngineJSON.seconds(raw["eta"])
+        result["speedKind"] = raw["speedKind"] as? String == "overall" ? "overall" : "rolling"
+        for key in ["speedWindowSeconds", "averageSpeed", "filesPerSecond"] { result[key] = EngineJSON.number(raw[key]) }
+        result["etaSource"] = ["bytes", "files"].contains(raw["etaSource"] as? String ?? "") ? raw["etaSource"]! : NSNull()
         result["transferring"] = (raw["transferring"] as? [[String: Any]] ?? []).prefix(64).map { file -> [String: Any] in
             let size = EngineJSON.number(file["size"]), bytes = EngineJSON.number(file["bytes"])
             return ["name": String((file["name"] as? String ?? "").prefix(16000)), "size": size, "bytes": bytes,
@@ -505,6 +515,98 @@ enum EngineStatistics {
                     "speed": EngineJSON.number(file["speed"]), "speedAvg": EngineJSON.number(file["speedAvg"]), "eta": EngineJSON.seconds(file["eta"])]
         }
         return result
+    }
+
+    /// Historical speed describes work completed, not a currently active network
+    /// connection. Older saved jobs can recover it from their existing counters.
+    static func finished(_ value: [String: Any], completed: Bool) -> [String: Any] {
+        var result = value
+        let elapsed = EngineJSON.number(result["elapsedTime"])
+        let average = elapsed > 0 ? EngineJSON.number(result["bytes"]) / elapsed : EngineJSON.number(result["averageSpeed"])
+        result["speed"] = average.isFinite ? average : 0
+        result["averageSpeed"] = result["speed"]
+        result["speedKind"] = "overall"; result["speedWindowSeconds"] = elapsed
+        let fileRate = elapsed > 0 ? EngineJSON.number(result["transfers"]) / elapsed : 0
+        result["filesPerSecond"] = fileRate.isFinite ? fileRate : 0
+        result["eta"] = completed ? 0 : NSNull(); result["etaSource"] = NSNull()
+        result["transferring"] = [[String: Any]]()
+        return result
+    }
+}
+
+/// Estimates logical transfer throughput from the JSON counters already emitted
+/// by rclone. Native/server-side copies may increment bytes while rclone reports
+/// speed=0; no additional file reads, scans, subprocesses or timers are needed.
+struct EngineProgressWindow {
+    private struct Sample { let time: Double; let bytes: Double; let files: Double }
+    private var samples: [Sample] = []
+    private var startedAt: TimeInterval = 0
+    private var lastObservedAt: TimeInterval = 0
+    private var lastElapsed: Double = 0
+    private var lastRawElapsed: Double?
+    private var lastBytes: Double = 0
+    private var lastFiles: Double = 0
+    var sampleCount: Int { samples.count }
+
+    mutating func start(at uptime: TimeInterval = ProcessInfo.processInfo.systemUptime) {
+        startedAt = uptime; lastObservedAt = uptime; lastElapsed = 0; lastRawElapsed = nil; lastBytes = 0; lastFiles = 0
+        samples = [Sample(time: 0, bytes: 0, files: 0)]
+    }
+
+    mutating func update(_ raw: [String: Any], previous: [String: Any], at uptime: TimeInterval = ProcessInfo.processInfo.systemUptime) -> [String: Any] {
+        if samples.isEmpty { start(at: uptime) }
+        var result = EngineStatistics.parse(raw, previous: previous)
+        let bytes = EngineJSON.number(result["bytes"]), files = EngineJSON.number(result["transfers"])
+        let rawElapsed = EngineJSON.seconds(raw["elapsedTime"]) as? Double
+        let clockReset = rawElapsed != nil && lastRawElapsed != nil && rawElapsed! < lastRawElapsed!
+        let elapsed = rawElapsed.map { clockReset ? $0 : max(lastElapsed, $0) } ?? (lastElapsed + max(0, uptime - lastObservedAt))
+        result["elapsedTime"] = elapsed
+        let reset = bytes < lastBytes || files < lastFiles || clockReset
+        let current = Sample(time: elapsed, bytes: bytes, files: files)
+        if reset {
+            // A retry can reset counters. Do not turn the discontinuity into a
+            // negative rate or assume the replacement counter arrived instantly.
+            samples = [current]
+        } else if elapsed >= (samples.last?.time ?? 0) {
+            if samples.count > 1, floor(samples.last!.time) == floor(elapsed) { samples[samples.count - 1] = current }
+            else if elapsed > (samples.last?.time ?? 0) { samples.append(current) }
+            else if samples.count > 1 { samples[samples.count - 1] = current }
+            let cutoff = max(0, elapsed - 60)
+            while samples.count > 2 && samples[1].time <= cutoff { samples.removeFirst() }
+            if samples.count > 1, samples[0].time < cutoff {
+                let a = samples[0], b = samples[1], fraction = (cutoff - a.time) / (b.time - a.time)
+                samples[0] = Sample(time: cutoff, bytes: a.bytes + (b.bytes - a.bytes) * fraction, files: a.files + (b.files - a.files) * fraction)
+            }
+            if samples.count > 64 { samples.removeFirst(samples.count - 64) }
+        }
+        lastElapsed = elapsed; lastRawElapsed = rawElapsed ?? lastRawElapsed; lastBytes = bytes; lastFiles = files; lastObservedAt = uptime
+        let first = samples.first ?? current, duration = max(0, elapsed - first.time)
+        let byteQuotient = duration > 0 ? max(0, bytes - first.bytes) / duration : 0
+        let fileQuotient = duration > 0 ? max(0, files - first.files) / duration : 0
+        let speed = byteQuotient.isFinite ? byteQuotient : 0, fileRate = fileQuotient.isFinite ? fileQuotient : 0
+        result["speed"] = speed; result["filesPerSecond"] = fileRate
+        result["speedKind"] = "rolling"; result["speedWindowSeconds"] = min(60, duration)
+        let average = elapsed > 0 ? bytes / elapsed : 0
+        result["averageSpeed"] = average.isFinite ? average : 0
+        result["eta"] = NSNull(); result["etaSource"] = NSNull()
+        let remainingBytes = max(0, EngineJSON.number(result["totalBytes"]) - bytes)
+        let remainingFiles = max(0, EngineJSON.number(result["totalTransfers"]) - files)
+        if remainingBytes > 0 && speed > 0 {
+            let eta = remainingBytes / speed
+            if eta.isFinite { result["eta"] = eta; result["etaSource"] = "bytes" }
+        } else if remainingBytes == 0 && remainingFiles > 0 && fileRate > 0 {
+            let eta = remainingFiles / fileRate
+            if eta.isFinite { result["eta"] = eta; result["etaSource"] = "files" }
+        }
+        return result
+    }
+
+    func finish(_ value: [String: Any], completed: Bool, at uptime: TimeInterval = ProcessInfo.processInfo.systemUptime) -> [String: Any] {
+        var result = value
+        if EngineJSON.number(result["elapsedTime"]) == 0, !samples.isEmpty {
+            result["elapsedTime"] = max(0, uptime - startedAt)
+        }
+        return EngineStatistics.finished(result, completed: completed)
     }
 }
 
@@ -517,6 +619,7 @@ final class EngineJob {
     var startedAt: String?
     var endedAt: String?
     var stats: [String: Any]
+    var progress = EngineProgressWindow()
     var logs: [[String: Any]]
     var error: String?
     var exitCode: Int32?
@@ -537,7 +640,9 @@ final class EngineJob {
     init(saved: [String: Any]) throws {
         id = try EngineJSON.text(saved["id"], "工作編號")
         guard EngineJSON.validID(id) else { throw EngineError("工作編號格式不正確。") }
-        request = try EngineTransferRequest(saved["request"], validateOperationalRules: false)
+        var savedRequest = try EngineJSON.dictionary(saved["request"], "傳輸設定格式不正確。")
+        if let options = savedRequest["options"] as? [String: Any] { savedRequest["options"] = EngineTransferOptions.preservingLegacySnapshot(options) }
+        request = try EngineTransferRequest(savedRequest, validateOperationalRules: false)
         createdAt = try EngineJSON.text(saved["createdAt"], "建立時間")
         let previous = try EngineJSON.text(saved["status"], "工作狀態")
         guard Self.terminal.contains(previous) || ["queued", "running", "cancelling"].contains(previous) else { throw EngineError("工作狀態格式不正確。") }
@@ -553,8 +658,8 @@ final class EngineJob {
         if let code = saved["exitCode"] as? NSNumber { exitCode = code.int32Value }
         if status != previous {
             endedAt = EngineJSON.now(); error = "上次關閉時工作尚未完成，未自動重跑。"
-            stats["speed"] = 0; stats["eta"] = NSNull(); stats["transferring"] = [[String: Any]]()
         }
+        stats = EngineStatistics.finished(stats, completed: status == "completed")
     }
 }
 
@@ -581,7 +686,9 @@ struct EngineTask {
         // Keep a previously saved task visible even when a newer version has
         // learned that one flag combination is unsafe. Running/editing it still
         // validates the combination; the task is never silently discarded.
-        request = try EngineTransferRequest(raw["request"], validateOperationalRules: false)
+        var savedRequest = try EngineJSON.dictionary(raw["request"], "傳輸設定格式不正確。")
+        if let options = savedRequest["options"] as? [String: Any] { savedRequest["options"] = EngineTransferOptions.preservingLegacySnapshot(options) }
+        request = try EngineTransferRequest(savedRequest, validateOperationalRules: false)
         createdAt = try EngineJSON.text(raw["createdAt"], "建立時間")
         updatedAt = try EngineJSON.text(raw["updatedAt"], "更新時間")
     }

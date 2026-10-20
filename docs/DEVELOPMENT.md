@@ -15,6 +15,7 @@ Rclone Browser Next uses a Swift core, an AppKit host and a bundled React interf
 | `Sources/Core/RcloneTools.swift` | Tree, export, links, mount and stream sessions |
 | `Sources/Core/NativeMessages.swift` | Known native/error translations with paths and backend diagnostics preserved |
 | `Sources/Mac/AppMain.swift` | AppKit lifecycle, menus, WebKit bridge and native confirmations |
+| `Sources/Mac/RcloneWebView.swift` | Finder drops and window-scoped auxiliary mouse-button events |
 | `WebSource/renderer` | Dual-pane UI, settings, transfer editor, jobs and tasks |
 | `WebSource/shared/types.ts` | Renderer/native JSON contracts |
 | `Resources/Web` | Prebuilt production interface used by normal app builds |
@@ -55,7 +56,9 @@ Use the exact lockfile dependencies. `vite build` writes the production bundle t
 
 ## Settings and migration
 
-Settings schema 4 adds system language, `savedWorkspace`, `networkOptions` and unlimited job scheduling. Existing manual languages/themes are preserved. For legacy settings without the schema marker, the old default concurrency value 2 becomes 0 (unlimited); other saved non-default limits remain intact. A value 2 explicitly saved in schema 4 remains 2.
+Settings schema 5 adds `hiddenBuiltinPresets`, validated against `local-nas`, `nas-cloud` and `local-cloud`. Fresh transfer defaults are `comparison: default`, `localHashPolicy: none`, `deleteMode: during`, and `maxDelete: -1`. Legacy default values are migrated once; saved tasks and remembered workspaces retain their original transfer semantics, including sparse older snapshots that relied on the old defaults.
+
+Schema 4 introduced system language, `savedWorkspace`, `networkOptions` and unlimited job scheduling. Existing manual languages/themes are preserved. For legacy settings before schema 4, the old default concurrency value 2 becomes 0 (unlimited); other saved non-default limits remain intact. A value 2 explicitly saved in schema 4 or later remains 2.
 
 `RBNLanguageResolver.resolve` maps the first preferred system language: Chinese variants to `zh-TW`, Japanese to `ja`, all others to `en`. Explicit supported language selections override the system value. Bootstrap supplies `resolvedLanguage` so native dialogs and renderer text agree.
 
@@ -64,6 +67,14 @@ Settings schema 4 adds system language, `savedWorkspace`, `networkOptions` and u
 Saved task requests retain source/destination semantics and optional left/right direction metadata. Editing a task preserves its ID and creation timestamp unless the user saves a copy. Dry Run is applied to the submitted run; it must not silently change the stored task's normal operation.
 
 Settings changes are validated and persisted before success is reported. Connection-affecting settings cannot change during active transfer, mount, stream, account setup or engine replacement. Renderer refreshes must consume the successful settings snapshot, not a stale form draft.
+
+## Navigation and progress
+
+Folder history belongs to each pane tab, not the WKWebView document. A window-local AppKit monitor handles auxiliary button 3/4, consumes both down/up phases, and forwards a `navigateHistory` native event with CSS-coordinate position. The bridge dispatches `rbn:navigate-history`. The renderer ignores navigation while a dialog is open and routes it to the pointed-at pane or the active pane. `window.__rbnNativeHistory` disables duplicate DOM handling; the monitor does not request global input access.
+
+The progress estimator consumes the same `--stats=1s` JSON counters as the existing job pipeline. Its bounded rolling window covers at most 60 seconds. This is logical-byte throughput: rclone's `BytesNoNetwork` path can increase `bytes` while leaving its native `speed` at zero. Preserve fast local/server-side copy rather than changing transfer flags for the display. Finished jobs retain an overall mean; missing or stale data must not produce fabricated ETA. The estimator starts no filesystem scan, checksum, timer, poller or child process of its own.
+
+Presets are complete transfer-option snapshots applied by an explicit user action. They never enqueue a job or switch endpoints. The NAS destination preset uses one file transfer, ten checkers and `--multi-thread-streams=0`; this avoids parallel chunk writes but does not guarantee physical allocation or a universally optimal throughput. Core validation remains authoritative for every request sent by the UI.
 
 ## rclone arguments and network settings
 

@@ -4,6 +4,10 @@ on:
   push:
     branches: [main]
     tags: ['v*']
+    paths-ignore:
+      - '**/*.md'
+      - 'docs/**'
+      - 'SOURCE_MANIFEST.json'
   pull_request:
   workflow_dispatch:
 
@@ -50,4 +54,51 @@ jobs:
             Distribution/*.sha256
           if-no-files-found: error
           retention-days: 30
+
+  release:
+    name: Publish a new verified version
+    needs: macos
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Check whether this version is already published
+        id: version
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          RBN_RELEASE_VERSION="$(python3 -c 'import plistlib; print(plistlib.load(open("Resources/Info.plist", "rb"))["CFBundleShortVersionString"])')"
+          [[ "$RBN_RELEASE_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
+          printf 'version=%s\n' "$RBN_RELEASE_VERSION" >> "$GITHUB_OUTPUT"
+          if gh release view "v$RBN_RELEASE_VERSION" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            printf 'publish=false\n' >> "$GITHUB_OUTPUT"
+          else
+            printf 'publish=true\n' >> "$GITHUB_OUTPUT"
+          fi
+      - uses: actions/download-artifact@v8
+        if: steps.version.outputs.publish == 'true'
+        with:
+          pattern: RcloneBrowserNext-macOS-*
+          path: .release-artifacts
+      - name: Prepare source, native builds and checksums
+        if: steps.version.outputs.publish == 'true'
+        run: python3 Scripts/prepare-release.py --artifacts .release-artifacts --output .release-assets
+      - name: Publish without replacing an existing release
+        if: steps.version.outputs.publish == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RBN_RELEASE_VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          test -f "docs/RELEASE_$RBN_RELEASE_VERSION.md"
+          gh release create "v$RBN_RELEASE_VERSION" .release-assets/* \
+            --repo "$GITHUB_REPOSITORY" \
+            --target "$GITHUB_SHA" \
+            --title "Rclone Browser Next $RBN_RELEASE_VERSION" \
+            --notes-file "docs/RELEASE_$RBN_RELEASE_VERSION.md"
 

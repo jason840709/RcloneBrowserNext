@@ -5,7 +5,7 @@ import FoundationNetworking
 #endif
 
 enum RBNProject {
-    static let version = "0.4.0"
+    static let version = "0.5.0"
     static let author = "Jason Chen"
     static let repository = "jason840709/RcloneBrowserNext"
     static var repositoryURL: URL { URL(string: "https://github.com/" + repository)! }

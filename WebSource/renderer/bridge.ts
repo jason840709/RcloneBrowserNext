@@ -1,12 +1,14 @@
 import type { AppAPI, Job, UpdateStatus, MenuAction, ToolSession, FinderDrop } from '../shared/types';
 
 type Reply = { id: string; result?: unknown; error?: string | { message?: string } | null };
-type NativeEvent = { type: 'jobUpdate'; data: Job } | { type: 'updateStatus'; data: UpdateStatus } | { type: 'configurationChanged'; data?: unknown } | {type: 'menuAction'; data: MenuAction} | {type: 'toolSessionUpdate'; data: ToolSession} | {type: 'finderDrop'; data: FinderDrop};
+type HistoryNavigation = {direction: 'back'|'forward'; x: number; y: number};
+type NativeEvent = { type: 'jobUpdate'; data: Job } | { type: 'updateStatus'; data: UpdateStatus } | { type: 'configurationChanged'; data?: unknown } | {type: 'menuAction'; data: MenuAction} | {type: 'toolSessionUpdate'; data: ToolSession} | {type: 'finderDrop'; data: FinderDrop} | {type: 'navigateHistory'; data: HistoryNavigation};
 type Pending = { resolve(value: unknown): void; reject(reason: Error): void; timer: ReturnType<typeof setTimeout> };
 
 declare global {
   interface Window {
     rclone: AppAPI;
+    __rbnNativeHistory?: boolean;
     webkit?: { messageHandlers?: { rclone?: { postMessage(message: { id: string; method: string; args: unknown[] }): void } } };
     __rbnReply?: (reply: Reply) => void;
     __rbnEvent?: (event: NativeEvent) => void;
@@ -61,6 +63,7 @@ export function installNativeBridge(): void {
     if (!event) return;
     if (event.type === 'configurationChanged') { for (const callback of configurationChanges) callback(); return; }
     if (!event.data) return;
+    if (event.type === 'navigateHistory') window.dispatchEvent(new CustomEvent('rbn:navigate-history', {detail: event.data}));
     if (event.type === 'jobUpdate') for (const callback of jobs) callback(event.data);
     if (event.type === 'updateStatus') for (const callback of updates) callback(event.data);
     if (event.type === 'toolSessionUpdate') for (const callback of toolSessions) callback(event.data);

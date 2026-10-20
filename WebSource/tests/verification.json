@@ -1,22 +1,58 @@
 {
-  "version": "0.4.0",
+  "version": "0.5.0",
   "test_execution": {
-    "date_utc": "2026-10-20",
-    "duration_reported": "1.0m",
-    "expected": 62,
+    "startTime": "2026-10-20T09:12:47.117Z",
+    "duration": 99191.447,
+    "expected": 78,
     "skipped": 0,
-    "unexpected": 0,
+    "unexpected": 3,
     "flaky": 0,
-    "scope": "Full suite completed before final comparison-help and unpublished-app-release presentation corrections. Those changed paths and the rebuilt production bundle were then rechecked in the targeted run below."
+    "date_utc": "2026-10-20",
+    "total_cases": 81,
+    "scope": "First complete run of 81 cases: 78 passed and 3 stale expectations failed. Those assertions were corrected and the same unchanged production bundle was used for the targeted follow-up below. This first run is intentionally not represented as all passing."
   },
   "final_targeted_execution": {
-    "startTime": "2026-10-20T06:09:54.115Z",
-    "duration": 7867.468,
-    "expected": 3,
+    "startTime": "2026-10-20T09:15:50.606Z",
+    "duration": 16609.881999999998,
+    "expected": 8,
     "skipped": 0,
     "unexpected": 0,
     "flaky": 0,
-    "scope": "Production file/IPC contract; seven comparison tooltips in zh-TW/en/ja including interaction and compact-window bounds; app update available/current/unpublished with unpublished download controls absent in all three languages."
+    "total_cases": 8,
+    "scope": "The 3 corrected cases plus 5 new targeted regressions: stable root toast after closing its editor, selected-operation initial keyboard focus, and NAS-to-cloud advice in zh-TW/en/ja."
+  },
+  "aggregate_unique_cases_verified": 86,
+  "aggregate_verification": {
+    "status": "passed",
+    "full_run_passed_carried_forward": 78,
+    "corrected_cases_passed_on_followup": 3,
+    "additional_cases_passed_on_followup": 5,
+    "overlapping_cases": 3,
+    "unique_cases": 86,
+    "all_unique_cases_have_passing_result": true,
+    "method": "Union by source file, describe hierarchy and test title; all three initially failing case keys have a passing follow-up result. 78 + 3 + 5 = 86 unique passing cases, not 89 independent cases."
+  },
+  "assertion_corrections": [
+    {
+      "test": "comparison tips work with hover, focus, click and Escape without dismissing the dialog",
+      "correction": "Initial tooltip assertion now expects comparisonNASHint because the new-install default is size plus modification time with no local hashes; the former assertion expected the old general comparison default.",
+      "production_change": false
+    },
+    {
+      "test": "the application menu exposes native About, engine updates and distinct app release checks",
+      "correction": "Expected release transition updated from 0.4.0 → 0.5.0 to the deliberately fictional fixture transition 0.5.0 → 0.6.0.",
+      "production_change": false
+    },
+    {
+      "test": "job progress shows one decimal, rolling speed, rough ETA and a retained completed average",
+      "correction": "Completed speed expectation corrected from 19 MiB/s to 19.1 MiB/s for the fixture value 20,000,000 bytes/s.",
+      "production_change": false
+    }
+  ],
+  "production_unchanged_between_runs": true,
+  "production_resource_modified_utc": {
+    "Resources/Web/app.js": "2026-10-20T09:12:31.406603+00:00",
+    "Resources/Web/style.css": "2026-10-20T09:12:31.411124+00:00"
   },
   "browser": "Chrome for Testing 155.0.8059.84, Linux headless, visible scrollbars",
   "playwright": "1.64.1",
@@ -44,6 +80,17 @@
   "new_install_theme": "purple-dark",
   "surfaces": "neutral gray/white; purple and blue used as accents",
   "new_default_concurrent_jobs": 0,
+  "new_transfer_defaults": {
+    "comparison": "default",
+    "localHashPolicy": "none",
+    "deleteMode": "during",
+    "maxDelete": -1
+  },
+  "builtin_presets": [
+    "local-nas",
+    "nas-cloud",
+    "local-cloud"
+  ],
   "viewports": [
     {
       "width": 1060,
@@ -54,6 +101,16 @@
       "height": 900
     }
   ],
+  "large_list_progress_guard": {
+    "passed": true,
+    "files_per_pane": 100000,
+    "progress_events": 25,
+    "full_size_array_map_filter_sort_passes": 0,
+    "additional_directory_list_requests": 0,
+    "rendered_rows_less_than": 100,
+    "wall_milliseconds": 679.1000000014901,
+    "scope": "Synthetic Linux browser regression guard for avoiding repeated full-list work during progress events. This is not a macOS CPU or NAS/network transfer benchmark."
+  },
   "native_mac_execution": false,
   "real_cloud_or_nas_transfer": false,
   "palette_contrast": {
@@ -69,8 +126,8 @@
       "sha256": "401a52547c510b5c231c69f9077b192e2759d282e68f74d13339922f9d9e8552"
     },
     "Resources/Web/app.js": {
-      "bytes": 593224,
-      "sha256": "780353b92e682a2b555f29ca23d6f7ade836fda40f3e365a5f45b187bb9297e4"
+      "bytes": 623866,
+      "sha256": "7ca33dca0b3b816572c512a18a5ad30eb3472347874020731f312cb40c3a45c7"
     },
     "Resources/Web/favicon.svg": {
       "bytes": 18533,
@@ -81,92 +138,159 @@
       "sha256": "6d64e8836f8ea3c2cdfb0bd3f4e214da93f633390ecbb6512949e65a94801411"
     },
     "Resources/Web/style.css": {
-      "bytes": 62205,
-      "sha256": "bf85d905a3fa9df63e9d3514be8ef43da18ab79e19cd4720e7ca7faabce95697"
+      "bytes": 71368,
+      "sha256": "a990fea10652c5bece0e4ebbb08b441e725d3d5ad37055762261b6fc172996b8"
     }
   },
-  "production_bytes": 681354,
-  "v2_icon_exact_match": true,
-  "evidence_directory": "WebSource/.build-cache/qa04",
-  "full_suite_evidence_directory": "WebSource/.build-cache/qa04/playwright",
-  "final_targeted_evidence": "WebSource/.build-cache/qa04/final-targeted-results.json",
+  "production_bytes": 721159,
+  "v2_icon_sha256_unchanged_from_0_4_0": true,
+  "evidence_directory": "WebSource/.build-cache/qa05",
+  "full_suite_evidence_directory": "WebSource/.build-cache/qa05-tests",
+  "full_suite_results": "WebSource/.build-cache/ui-v05-results.json",
+  "final_targeted_evidence": "WebSource/.build-cache/ui-v05-followup.json",
+  "raw_result_files": {
+    "WebSource/.build-cache/ui-v05-results.json": {
+      "bytes": 120771,
+      "sha256": "db280964946129f8da4760d743e8b3856cf59b50168ae3485d7dfe2b9b0414a0"
+    },
+    "WebSource/.build-cache/ui-v05-followup.json": {
+      "bytes": 12143,
+      "sha256": "27f0f62e4d7dd7914ba88907620b68902e5b34457afa5c1f7975b795ecfd9ef5"
+    }
+  },
   "previews": {
     "clean-preview-blue-dark-1060.png": {
-      "bytes": 90160,
-      "sha256": "c4cbb4822bb64dfdaeefbdd51d76f0dc8ce2355e5e25b9e398214cf0c63b8545"
+      "bytes": 96884,
+      "sha256": "1f71daafc25f30f98fa2b1978bf51ea75cf6ee58b7cff6359bfeb0d0b44bd7d7"
     },
     "clean-preview-blue-dark.png": {
-      "bytes": 140748,
-      "sha256": "3a4163d65134153b3a87e7108bb048c6fe7f481812ab7c863a103545e3005197"
+      "bytes": 143520,
+      "sha256": "ed37f9070f742ddb66ee45202c2ab9568f7914cc5dc02b1419a68bb4748a1279"
     },
     "clean-preview-blue-light-1060.png": {
-      "bytes": 89715,
-      "sha256": "e489bb4dfb5a68bbb76bd53e94b13d821338c1ec58d8104b7e48a049c7b6f683"
+      "bytes": 96209,
+      "sha256": "407df9030ea684e234d9d3e28406f1386f1908a6b45b92cfa4f3c9c4aaa7446e"
     },
     "clean-preview-blue-light.png": {
-      "bytes": 139890,
-      "sha256": "1440fd3e5267f6442185c17c3651e7d47e9fce4051f5eb3fc503e4c44cf60715"
+      "bytes": 142583,
+      "sha256": "9cd37254768da67aaef4934340425d22f658518d56d32497f6ee6a9b7769870c"
     },
     "clean-preview-purple-dark-1060.png": {
-      "bytes": 90065,
-      "sha256": "dc5f1dcc457766fdd72cb0ec2f167e6eb9f79539a568524efd05646ffb09fdad"
+      "bytes": 96814,
+      "sha256": "4eeb6eb8d52f460e2a6ca4264ee2e1685a58a0d78813c669db606115f6a7f9eb"
     },
     "clean-preview-purple-dark.png": {
-      "bytes": 140250,
-      "sha256": "e8932912fa98d71b86a275b5dfb43c0dcf0c39eb486a1cde4dbda6166f0e1ba5"
+      "bytes": 143393,
+      "sha256": "b90b748fe6ca76291de9323332d3cabd57b79b303a7df70c2850d8b2778dbc55"
     },
     "clean-preview-purple-light-1060.png": {
-      "bytes": 89569,
-      "sha256": "44c4cf57d353d4e0a35bd6c894630e0f5d301c61327ec7bf56be9bbbd98b19f4"
+      "bytes": 95963,
+      "sha256": "ce27d7ccd6d26aa85418aaeb06566cf25965dfa6303421072fbda7c86efa96a1"
     },
     "clean-preview-purple-light.png": {
-      "bytes": 139189,
-      "sha256": "14f9c5f2c9d5013d29c2e472a4f81d3e0c70f8e445c4cc1d276a19230cf8f5ba"
+      "bytes": 142499,
+      "sha256": "d49e28aeaa5f7f78add2d46b20a943efe93e8145777c4e1128593a0802727ba7"
     },
     "comparison-tooltip-1060.png": {
-      "bytes": 99357,
-      "sha256": "12b99740944afe1a01e655f047d94d62febe5b768fba8cfc0050b12ef725139b"
+      "bytes": 105104,
+      "sha256": "e88f51a32ec5213ea30253de736ad7bcaf959dce7b691517df360f88e6b92399"
+    },
+    "critical-connected-tabs-purple-dark-1060.png": {
+      "bytes": 84747,
+      "sha256": "c5f76a7395b24287a62e42b3cd96861d8804327ec6db65f5e52cb71fdcd39bda"
+    },
+    "critical-connected-tabs-purple-dark.png": {
+      "bytes": 125307,
+      "sha256": "e9d29ac8b4a3e108e191ffb15b4d3016b8dded24e055ac2198daacf5cece2be4"
+    },
+    "critical-connected-tabs-purple-light-1060.png": {
+      "bytes": 84057,
+      "sha256": "1ad40c00f1248babcbee766c33ed54e1df951947d02cb7d9789f401f2b63d15f"
+    },
+    "critical-connected-tabs-purple-light.png": {
+      "bytes": 124346,
+      "sha256": "a6b6617369cfae4678f2d36595180feb57532980c2bde8aea17f774371835ab0"
+    },
+    "critical-empty-tasks-purple-dark.png": {
+      "bytes": 34018,
+      "sha256": "a8d35c7979c86456f2734705ebb2858ae0055722ddf2ce7b3f393a4eeb05ec23"
+    },
+    "critical-empty-tasks-purple-light.png": {
+      "bytes": 34004,
+      "sha256": "3bf1b9dc544f8ad4e88e79972dc9760ef09ade34be2a8f7d12fd674d7c93ee17"
+    },
+    "critical-error-card-purple-dark.png": {
+      "bytes": 141026,
+      "sha256": "50ebeb51c0f82b43c55231d3d04234bed1501a950d2ec8cd538fe0473886099d"
+    },
+    "critical-error-card-purple-light.png": {
+      "bytes": 140033,
+      "sha256": "d11b9805fe85d59e1b417598e9aad6abb2fae44141bdbb3a20d6f420b013fe13"
+    },
+    "critical-floating-toast-purple-dark.png": {
+      "bytes": 128101,
+      "sha256": "453263f1556f3221bcdbb5deb632a4d9adffe66492777ca20b679ca9431ebfba"
+    },
+    "critical-floating-toast-purple-light.png": {
+      "bytes": 128885,
+      "sha256": "799f3d39c6665f4cc91069ef06102951f91a7a003d78e67530ae79ef5fa280e4"
+    },
+    "critical-nas-options-purple-dark-1060.png": {
+      "bytes": 117485,
+      "sha256": "1176973f02478e888b5ebdcbbae6821b3970207c39f3f774a9902b13c3b076a6"
+    },
+    "critical-nas-options-purple-light-1060.png": {
+      "bytes": 115491,
+      "sha256": "6e44a137ba3a14bf7e0d5ba2a76c40855a57c4c5d7f3ca01a0e24c947a8930a4"
+    },
+    "critical-preset-menu-purple-dark.png": {
+      "bytes": 148090,
+      "sha256": "a553fc4448ce4aa30a6be8331727396e8b3537d1997cfe7dd9b4a16a98a4d7a1"
+    },
+    "critical-preset-menu-purple-light.png": {
+      "bytes": 148732,
+      "sha256": "de923bcaeec4ea7e9513d4762b919b3fd97e05e0322775aab364741b361c6420"
     },
     "options-filters-1060.png": {
-      "bytes": 102270,
-      "sha256": "fb0b4b52697194a6539698ef821ea2c53d0e7927cf117747a42fb3ff260438a3"
+      "bytes": 109050,
+      "sha256": "dffeec0c88054284ee11474ed8e3d5f3212fc3ddb902620720e58408298a31da"
     },
     "options-nas-sync-1060.png": {
-      "bytes": 116696,
-      "sha256": "c900b049d4615580b6691920ca6acdaee65b002c1bb3ee571084b0dac83d2587"
+      "bytes": 130061,
+      "sha256": "4ceabc2c1b68b8e70df2f9663a6f27f8ebfaa0cc3e4dd0bf35b62018e69cb008"
     },
     "options-transfer-1060.png": {
-      "bytes": 112822,
-      "sha256": "c10d28a55dd85f82de4dc47170e1ebfe32cbc052786d0349cae149b24f1bc3cd"
+      "bytes": 121395,
+      "sha256": "0abe7f1c3087215c3001ec4aac8dfae6a6ae01403433e32230c3cc9e5a861b49"
     },
     "settings-general-1060.png": {
-      "bytes": 109195,
-      "sha256": "fc8647f1146c9ebce82238bf8c2f68581f43e7feb9382a5eda1eaa91269e02d0"
+      "bytes": 110567,
+      "sha256": "198dad5dbd0039bb3e5a1d9b643bf63480bbd3eef1f27bd30ff29f45c08c753e"
     },
     "settings-japanese-1060.png": {
-      "bytes": 82872,
-      "sha256": "751207fbd26a4f6828c9f80fd89e04a4c3d54db3009c519e32337690ecb37775"
+      "bytes": 84169,
+      "sha256": "448c81d8d789055ff6dda847cb456608e5c5b9f2c5901c75d5ecf07203d913e6"
     },
     "settings-network-1060.png": {
-      "bytes": 96688,
-      "sha256": "f1f559c3f88cd8dbdd0abea7abe2f39d98750066eda6cc6d8407bf2d9d009ab5"
+      "bytes": 97930,
+      "sha256": "8e9d45ab669d33d1dfba070bba62dd2b3ca06dc71c4a72ade1fef30c09f8e964"
     },
     "settings-rclone-connections-1060.png": {
-      "bytes": 97381,
-      "sha256": "a7e79ddbea7961f1cf85504e7e9608f421796b7059492eb5d8d44c90d848c9e7"
+      "bytes": 99691,
+      "sha256": "017c671c5123f5fb15eac31ae094c778e96da86f9ffb61389c899d5002b8d416"
     },
     "task-editor-comparison-1060.png": {
-      "bytes": 77524,
-      "sha256": "8a67bdf51412cb8b15d0221ed03c2b3441487073288166d39504bb179f269814"
+      "bytes": 92726,
+      "sha256": "a767365d9f0f66c7f96448478242e9c2fb5ec6c9bc005c07ccc2ca11dc72e9b0"
     },
     "task-editor-locations-1060.png": {
-      "bytes": 75987,
-      "sha256": "e868de85ebf3b5c277634fa0b1f216d0eba620234a652e667e9b5cbe6c793738"
+      "bytes": 79317,
+      "sha256": "06a6f73b63d348d6e5a0524fc70c03c53c056b6b6ae1ed4034935d1bed53886a"
     },
     "tasks-list-1440.png": {
-      "bytes": 67894,
-      "sha256": "15dc07b9798bb5fc0c94f20c314bd8c50de5ae441b81d275edd6e5773bd11d54"
+      "bytes": 67820,
+      "sha256": "736ade08459b244d628ee6e60dbb5068945a6585022cdd2a9570f10ca4560b17"
     }
   },
-  "preview_note": "Production UI with fictional deterministic fixture data. Images are internal review evidence, not user screenshots and not evidence of macOS execution or actual cloud/NAS transfers."
+  "preview_note": "Production UI with fictional deterministic fixture data. Final stills wait for completed opacity transitions. Images are internal review evidence, not user screenshots and not evidence of macOS execution or actual cloud/NAS transfers."
 }

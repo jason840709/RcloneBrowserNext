@@ -1,3 +1,5 @@
+> 這份文件保留 0.4.0 的操作記錄。目前版本請使用 [新版使用手冊](../README.zh-TW.md)。
+
 # Rclone Browser Next 0.4.0
 
 作者：**Jason Chen**

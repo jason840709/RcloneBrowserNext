@@ -27,6 +27,7 @@ enum RBNNativeStrings {
         Entry("記住的環境必須包含左右位置、方向、操作與傳輸選項。", "A saved workspace must include both locations, direction, operation and transfer options.", "作業環境には左右の場所、方向、操作、転送オプションが必要です。"),
         Entry("傳輸方向不正確。", "The transfer direction is invalid.", "転送方向が正しくありません。"),
         Entry("網路設定格式不正確。", "The network settings format is invalid.", "ネットワーク設定の形式が正しくありません。"),
+        Entry("內建方案設定格式不正確。", "The built-in preset settings are invalid.", "組み込みプリセット設定の形式が正しくありません。"),
         Entry("網路設定包含不支援的選項。", "The network settings contain an unsupported option.", "ネットワーク設定に未対応のオプションが含まれています。"),
         Entry("連線位址模式不正確。", "The connection address mode is invalid.", "接続アドレスのモードが正しくありません。"),
         Entry("來源位址請填入有效的 IPv4 或 IPv6，不要填入網卡名稱、網址或連接埠。", "Enter a valid source IPv4 or IPv6 address, without an interface name, URL or port.", "接続元には有効な IPv4 または IPv6 アドレスを入力してください。インターフェース名、URL、ポート番号は使用できません。"),

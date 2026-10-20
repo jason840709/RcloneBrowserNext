@@ -11,14 +11,16 @@ export function useBrowser() {
   const [missingSelection, setMissingSelection] = useState(false);
   const [pathDirty, setPathDirty] = useState(false);
   const [canBack, setCanBack] = useState(false);
+  const [canForward, setCanForward] = useState(false);
   const endpointRef = useRef(endpoint);
   const selectionRef = useRef(selection);
   const history = useRef<Endpoint[]>([]);
+  const future = useRef<Endpoint[]>([]);
   const generation = useRef(0);
   const nextTab = useRef(1);
   const activeTabRef = useRef('tab-1');
   const [activeTab, setActiveTab] = useState('tab-1');
-  const tabState = useRef(new Map<string, {endpoint: Endpoint; selection: Selection[]; history: Endpoint[]}>([['tab-1', {endpoint: {remote: null, path: ''}, selection: [], history: []}]]));
+  const tabState = useRef(new Map<string, {endpoint: Endpoint; selection: Selection[]; history: Endpoint[]; future: Endpoint[]}>([['tab-1', {endpoint: {remote: null, path: ''}, selection: [], history: [], future: []}]]));
   const [tabs, setTabs] = useState([{id: 'tab-1', endpoint: {remote: null, path: ''} as Endpoint}]);
   const publishTabs = useCallback(() => setTabs(Array.from(tabState.current, ([id, value]) => ({id, endpoint: value.endpoint}))), []);
 
@@ -48,11 +50,14 @@ export function useBrowser() {
     }
   }, []);
   const navigate = useCallback((target: Endpoint, wanted: Selection[] = [], record = true) => {
-    if (record && (endpointRef.current.path || endpointRef.current.remote) && !endpointEqual(endpointRef.current, target)) history.current.push(endpointRef.current);
+    if (record && !endpointEqual(endpointRef.current, target)) {
+      if (endpointRef.current.path || endpointRef.current.remote) history.current = [...history.current.slice(-99), endpointRef.current];
+      future.current = [];
+    }
     endpointRef.current = target;
     setEndpoint(target); setSelection(wanted); setEntries([]); setPathDirty(false);
-    setCanBack(history.current.length > 0);
-    tabState.current.set(activeTabRef.current, {endpoint: target, selection: wanted, history: history.current});
+    setCanBack(history.current.length > 0); setCanForward(future.current.length > 0);
+    tabState.current.set(activeTabRef.current, {endpoint: target, selection: wanted, history: history.current, future: future.current});
     publishTabs();
     void load(target, wanted);
   }, [load, setSelection, publishTabs]);
@@ -61,7 +66,11 @@ export function useBrowser() {
   }, [load]);
   const back = useCallback(() => {
     const target = history.current.pop();
-    if (target) navigate(target, [], false);
+    if (target) { future.current = [...future.current.slice(-99), endpointRef.current]; navigate(target, [], false); }
+  }, [navigate]);
+  const forward = useCallback(() => {
+    const target = future.current.pop();
+    if (target) { history.current = [...history.current.slice(-99), endpointRef.current]; navigate(target, [], false); }
   }, [navigate]);
   const up = useCallback(() => {
     const target = parentEndpoint(endpointRef.current);
@@ -72,13 +81,13 @@ export function useBrowser() {
     const target = tabState.current.get(id);
     if (!target) return;
     activeTabRef.current = id; setActiveTab(id);
-    history.current = target.history;
+    history.current = target.history; future.current = target.future;
     navigate(target.endpoint, target.selection, false);
   }, [navigate]);
   const newTab = useCallback(() => {
     if (tabState.current.size >= 12) return;
     const id = `tab-${++nextTab.current}`;
-    const target = {endpoint: {...endpointRef.current}, selection: [], history: []};
+    const target = {endpoint: {...endpointRef.current}, selection: [], history: [], future: []};
     tabState.current.set(id, target);
     switchTab(id);
   }, [switchTab]);
@@ -90,7 +99,7 @@ export function useBrowser() {
     tabState.current.delete(id);
     publishTabs();
   }, [switchTab, publishTabs]);
-  return { tabs, activeTab, newTab, switchTab, closeTab, endpoint, entries, selection, loading, error, missingSelection, pathDirty, canBack, navigate, reload, back, up, setSelection, setPathDirty };
+  return { tabs, activeTab, newTab, switchTab, closeTab, endpoint, entries, selection, loading, error, missingSelection, pathDirty, canBack, canForward, navigate, reload, back, forward, up, setSelection, setPathDirty };
 }
 
 export type BrowserState = ReturnType<typeof useBrowser>;

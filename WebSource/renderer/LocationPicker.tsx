@@ -10,9 +10,9 @@ export function localLocationName(location: LocalLocation, t: Translate): string
   return location.id === 'volumes' ? t('volumesFolder') : location.kind === 'volume' ? location.name : t(labels[location.kind]);
 }
 
-export function LocationPicker({ endpoint, locations, remotes, label, disabled = false, remoteAvailable = true, t, onChange, remotePath }: {
+export function LocationPicker({ endpoint, locations, remotes, label, disabled = false, remoteAvailable = true, t, onChange, remotePath, compact = false }: {
   endpoint: Endpoint; locations: LocalLocation[]; remotes: RemoteInfo[]; label: string; disabled?: boolean; remoteAvailable?: boolean; t: Translate;
-  onChange(endpoint: Endpoint): void; remotePath?(name: string): string;
+  compact?: boolean; onChange(endpoint: Endpoint): void; remotePath?(name: string): string;
 }) {
   const current = !endpoint.remote && locations.find(location => location.path === endpoint.path);
   const value = endpoint.remote || (current ? `@local:${current.id}` : '');
@@ -20,7 +20,7 @@ export function LocationPicker({ endpoint, locations, remotes, label, disabled =
   const networkVolumes = locations.filter(location => location.group === 'network');
   const groups = (['network','cloud','other'] as const).map(group => ({group, items: remotes.filter(remote => (remote.group || (['smb','sftp','ftp'].includes(remote.type) ? 'network' : 'other')) === group)}));
   const places = (list: LocalLocation[]) => list.map(location => <option key={location.id} value={`@local:${location.id}`}>{localLocationName(location, t)}</option>);
-  return <div className="location-select">{endpoint.remote ? <Cloud size={18}/> : <HardDrives size={18}/>}<select aria-label={label} value={value} disabled={disabled} onChange={event => {
+  return <div className={`location-select ${compact ? 'location-select-compact' : ''}`} title={label}>{endpoint.remote ? <Cloud size={18}/> : <HardDrives size={18}/>}<select aria-label={label} value={value} disabled={disabled} onChange={event => {
     const next = event.target.value;
     if (next.startsWith('@local:')) { const location = locations.find(item => `@local:${item.id}` === next); if (location) onChange({remote: null, path: location.path}); }
     else if (next) onChange({remote: next, path: remotePath?.(next) || ''});

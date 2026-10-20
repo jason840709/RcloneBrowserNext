@@ -90,8 +90,8 @@ struct AppReleaseTests {
                 if attempts == 1 { throw URLError(.timedOut) }
                 return reply(try release())
             }
-            try rejects({ _ = try checker.check(settings: settings) }, "timeout swallowed")
-            try expect(try checker.check(settings: settings).status == .available && attempts == 2, "next manual check recovers")
+            try rejects({ _ = try checker.check(currentVersion: "0.4.0", settings: settings) }, "timeout swallowed")
+            try expect(try checker.check(currentVersion: "0.4.0", settings: settings).status == .available && attempts == 2, "next manual check recovers")
         }
         test("native app update fetch rejects a TLS-to-proxy address before opening a connection") {
             let checker = try RBNAppReleaseChecker(repository: repository)

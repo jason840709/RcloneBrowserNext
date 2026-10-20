@@ -8,6 +8,9 @@ import Foundation
 final class RcloneWebView: WKWebView {
     var acceptsFileDrop: (() -> Bool)?
     var onFileDrop: (([URL], CGPoint) -> Void)?
+    var acceptsHistoryNavigation: (() -> Bool)?
+    var onHistoryNavigation: ((String, CGPoint) -> Void)?
+    private var historyEventMonitor: Any?
 
     override init(frame: CGRect, configuration: WKWebViewConfiguration) {
         super.init(frame: frame, configuration: configuration)
@@ -15,6 +18,41 @@ final class RcloneWebView: WKWebView {
     }
 
     required init?(coder: NSCoder) { super.init(coder: coder) }
+
+    override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+        stopHistoryMonitoring()
+        guard window != nil else { return }
+        // WKWebView's content view can consume auxiliary buttons before the
+        // responder chain reaches this view. A local monitor handles only this
+        // window; it needs no global input or Accessibility permission.
+        historyEventMonitor = NSEvent.addLocalMonitorForEvents(matching: [.otherMouseDown, .otherMouseUp]) { [weak self] event in
+            guard let self = self, let window = self.window,
+                  event.window === window, window.attachedSheet == nil,
+                  NSApp.modalWindow == nil, self.acceptsHistoryNavigation?() == true,
+                  event.buttonNumber == 3 || event.buttonNumber == 4 else { return event }
+            let location = self.convert(event.locationInWindow, from: nil)
+            guard self.bounds.contains(location) else { return event }
+            if event.type == .otherMouseDown {
+                let point = CGPoint(x: location.x, y: self.isFlipped ? location.y : self.bounds.height - location.y)
+                self.onHistoryNavigation?(event.buttonNumber == 3 ? "back" : "forward", point)
+            }
+            // Consume both phases so WebKit cannot navigate the bundled page
+            // or send a second DOM auxiliary-click for the same press.
+            return nil
+        }
+    }
+
+    func stopHistoryMonitoring() {
+        if let monitor = historyEventMonitor {
+            NSEvent.removeMonitor(monitor)
+            historyEventMonitor = nil
+        }
+    }
+
+    deinit {
+        if let monitor = historyEventMonitor { NSEvent.removeMonitor(monitor) }
+    }
 
     override func draggingEntered(_ sender: NSDraggingInfo) -> NSDragOperation { dropOperation(sender) }
     override func draggingUpdated(_ sender: NSDraggingInfo) -> NSDragOperation { dropOperation(sender) }

@@ -1,25 +1,23 @@
-# Rclone Browser Next 0.4.0 驗證記錄
+# Rclone Browser Next 0.5.0 驗證記錄
 
-> 以下保留原 0.4.0 交付時的測試結果與當時狀態，不代表本次重新執行。GitHub 發布整理與目前狀態請看 [發布整理紀錄](PUBLICATION.zh-TW.md)；原交付 manifest 保留在 `archive/0.4.0/SOURCE_MANIFEST.original.json`。
-
-驗證日期：2026-10-20 UTC。本記錄對應 0.4.0 的 Swift 來源、正式 Web 資源與本機建置腳本；先前版本的測試數字不列入。
+驗證日期：2026-10-20 UTC。本記錄對應 0.5.0 的 Swift 來源、正式 Web 資源與本機建置腳本；先前版本的執行結果不列入本次通過數。
 
 ## 結果與範圍
 
-**六套 Swift 測試共 95 項通過，正式介面完整回歸 62 項通過。** 介面最後的比對說明與更新狀態修正另補驗 3 項，全部通過。Swift 各套取本輪最後一次成功執行的結果，初次完整測試和後續修正回歸不重複計數。後續回歸補驗確認快照、原生代理限制及其翻譯。列出的 Swift 測試均無失敗、略過或編譯警告。
+**六套 Swift 測試共 101 項通過；介面 86 個不同案例驗證通過。** Swift 各套取本輪最後一次成功執行的結果，初次測試和後續修正回歸不重複計數。Core 與另外五套測試核對的是同一份最終 Core 產品來源；全部無失敗、略過或編譯警告。正式介面的執行組成與範圍列於下方，測試資料與交付資源雜湊保留在 JSON 記錄。
 
 Swift 環境是 Linux x86_64、Swift 6.0.3（Swift 5 語言模式），使用經官方校驗值核對的 rclone v1.75.2。測試只使用獨立暫存檔案、alias 遠端與 loopback HTTP 回應，沒有接觸日常備份、真實 NAS 或雲端帳號。
 
 | 測試套件 | 通過 | 主要範圍 |
 | --- | ---: | --- |
-| CoreTests | 37 | 真實傳輸、完整作業與環境、設定遷移、網路參數、佇列及確認快照 |
+| CoreTests | 43 | 真實傳輸、完整作業與環境、schema 5 遷移、60 秒速度估算、NAS 旗標、網路參數、佇列及確認快照 |
 | UpdaterTests | 20 | rclone 版本、校驗、備份／替換／復原、代理與失敗後重試 |
 | ToolsTests | 12 | 目錄樹、清單匯出、串流、停止與失敗清理 |
 | NativeMessagesTests | 13 | 三語原生提示，保留檔名、路徑與後端診斷 |
 | FinderDropTests | 5 | 檔案 URL、來源範圍、類型與符號連結驗證 |
 | AppReleaseTests | 8 | App 正式版比較、回應邊界、來源限制、未發布與代理錯誤 |
 
-[驗證摘要 JSON](verification/0.4.0.json) 保留各套退出碼、來源雜湊與測試範圍。[SOURCE_MANIFEST.json](../SOURCE_MANIFEST.json) 可核對交付包內各檔案的大小與 SHA-256；manifest 本身不自我雜湊。
+[驗證摘要 JSON](verification/0.5.0.json) 保留各套退出碼、來源雜湊與測試範圍。[SOURCE_MANIFEST.json](../SOURCE_MANIFEST.json) 可核對交付包內各檔案的大小與 SHA-256；manifest 本身不自我雜湊。
 
 ## 核心：真正執行的行為
 
@@ -37,7 +35,15 @@ CoreTests 會啟動真正的 rclone，驗證結果與檔案內容，並非只檢
 - rclone 來源 IP、連線／閒置逾時、TPS、User-Agent 與 HTTP/2 參數；Task 自己的明確設定優先，空白逾時沿用全域值。
 - 設定 partial patch 依序保存、失敗回復、位置切換與查詢互斥，更新與外觀設定交錯時不清空引擎路徑。
 
-本輪另加一個實際同步 regression：確認前解析完整 request，確認期間變更全域刪除上限與排除規則，最後執行仍必須使用原確認快照。結果保留被排除檔案，按確認的刪除規則處理 obsolete 檔案。
+回歸包含實際同步的確認快照案例：確認前解析完整 request，確認期間變更全域刪除上限與排除規則，最後執行仍必須使用原確認快照。結果保留被排除檔案，按確認的刪除規則處理 obsolete 檔案。
+
+0.5 新增／調整的驗證包含：
+
+- 新起始值是 `maxDelete=-1`、`deleteMode=during`、`localHashPolicy=none`。舊全域預設只遷移一次；已儲存作業與工作環境保留原本參數，稀疏的舊記錄也先補回舊預設，不因升級擴大刪除範圍。
+- 本機→NAS 方案實際使用單檔傳輸、10 個檢查工作及 `--multi-thread-streams=0`。隱藏方案資料只接受三個已知 ID，去除重複並限制長度。
+- rclone 回報 `speed=0`、`eta=null` 但容量持續增加時，仍可由既有統計估算速度與 ETA。測試涵蓋停滯、同秒取樣、缺少 elapsed、計數重設、不合法數值、只剩檔案數的 ETA 與完成後平均速度。
+- 單一工作的速度視窗最多保留 64 個數值樣本。10,000 次純數值更新的 Linux 微型測試約 0.069 秒；這不含每檔資料列，不能當作 Mac、NAS 或整體傳輸效能實測。
+- `--local-hashes=none` 的已存在檔案若修改時間不同，可能直接重傳；`--no-update-modtime` 不被誤認成停用本機雜湊的替代方案。
 
 Linux inotify 只驗證該測試條件下的本機後端讀取。在 Mac 執行時此案例會明確略過；不能把預期通過數當成實際 Mac 結果。
 
@@ -57,7 +63,9 @@ ToolsTests 使用真正的 rclone 驗證有上限的目錄樹、CSV／TXT 匯出
 
 TypeScript 型別檢查與正式建置通過。Playwright 從 `file://` 載入交付用的 `Resources/Web`，透過測試專用 native host fixture 回覆訊息。正式 App 沒有範例帳號、假檔案系統或模擬傳輸。
 
-完整回歸涵蓋三種語言、四種主題與 1060 × 680／1440 × 900 兩種尺寸，也驗證設定即時套用、失敗恢復、Config 刷新、Compare／同步細項、位置／分頁／選取隔離、欄寬保存、鍵盤選單及減少動態效果。0.4 增加：
+第一次完整執行 81 個案例，78 個通過；另外 3 個案例仍預期舊的比對提示、舊版本 fixture 或不正確的速度小數。更正測試預期後，對這 3 個案例及 5 個新增案例補驗，8 個全部通過。兩次執行之間的正式資源未改動；總計 78＋3＋5＝86 個不同案例，不把重跑重複計數。
+
+回歸涵蓋三種語言、四種主題與 1060 × 680／1440 × 900 兩種尺寸，也驗證設定即時套用、失敗恢復、Config 刷新、Compare／同步細項、位置／分頁／選取隔離、欄寬保存、鍵盤選單及減少動態效果。保留並重新驗證的既有範圍：
 
 - 系統語言解析；手動選定語言優先。
 - 完整作業編輯、Run／Dry Run、另存新作業與移除。
@@ -69,17 +77,23 @@ TypeScript 型別檢查與正式建置通過。Playwright 從 `file://` 載入�
 
 80 組指定前景／背景色配對檢查通過。這是限定配色 token 的測量，不是完整 WCAG 或 VoiceOver 認證。人工另檢視四種主題、窄視窗、作業編輯器、設定與 tooltip 的邊框、分隔線及文字間距。
 
-最後提示文案與未發布狀態修正的補驗範圍見 [Web 驗證記錄](../WebSource/tests/VERIFICATION.zh-TW.md) 及其 [JSON](../WebSource/tests/verification.json)。測試預覽只供檢查，不納入 App 或發行包。
+0.5 的新案例包括整張錯誤卡片、空作業頁、懸浮通知不改變版面及自動關閉、三種方案與隱藏／還原、單向同步說明、新預設、各分頁歷史與側鍵橋接、合併導覽列、連續分頁底色、速度／ETA／小數百分比及大目錄更新成本。瀏覽器 fixture 測試原生事件訊息契約，不能代替實體滑鼠在 WKWebView 中的操作。
+
+詳細執行數字、補驗原因與範圍見 [Web 驗證記錄](../WebSource/tests/VERIFICATION.zh-TW.md) 及其 [JSON](../WebSource/tests/verification.json)。測試預覽只供檢查，不納入 App 或發行包。
 
 App 的 `.icns` 與介面 SVG 圖示維持使用者提供的 v2，SHA-256 與來源相符，沒有重新繪製。
 
 ## Mac 與 GitHub：尚未完成的驗證
 
-最終 Core／Mac Swift 來源通過 arm64、x86_64 的語法解析；shell 入口語法與 Info.plist 已檢查。Info.plist 為 0.4.0、build 40、最低 macOS 13.0、三種本地化與 v2 圖示。
+最終 Core／Mac Swift 來源通過 arm64、x86_64 的語法解析；九個 shell 入口語法與 Info.plist 已檢查。Info.plist 為 0.5.0、build 50、最低 macOS 13.0、三種本地化與 v2 圖示。
 
 **語法解析不是 Apple SDK 型別檢查。** 此環境沒有 macOS SDK，沒有完成 Mac 連結、實機啟動、codesign 或 Gatekeeper 驗證。Cmd-Q、AppKit 選單、WKWebView 橋接、Finder 拖放、Terminal Config、通知、狀態列及掛載 API 均有實作與來源審查，但仍待 Mac 實機驗證。
 
-本輪尚未成功建立公開 GitHub 專案，也沒有執行 GitHub macOS CI。原始碼已附 Apple Silicon 與 Intel 的建置／測試 workflow；「已附 workflow」不等於「CI 已通過」。因此 App 更新目前尚無可下載的 GitHub 正式版本。
+滑鼠側鍵使用視窗內的 AppKit 事件監聽：按下時傳入左右面板座標、消耗同一側鍵的按下與放開事件，避免 WebKit 再導航一次；原生或 HTML 對話框開啟時不操作歷史。監聽器在換視窗與離開時清理。以上做過靜態與官方 API 對照，尚未用實體滑鼠或滑鼠廠商自訂驅動程式驗證。
+
+公開專案已由作者建立於 [jason840709/RcloneBrowserNext](https://github.com/jason840709/RcloneBrowserNext)，並已發布 0.4.0。整合 0.5 時保留了該專案的 Clang module cache 修正，以及兩個 APFS 測試 fixture 的串流設定；它們只影響測試，不會停用一般操作中的 APFS 複製加速。
+
+0.5 的 Apple Silicon 與 Intel 建置、簽章及核心測試由 [GitHub Actions](https://github.com/jason840709/RcloneBrowserNext/actions) 執行。本頁上方的 101 項是 Linux 實際結果，不代指 Mac 通過數；Mac 的執行結果另以對應 commit 的 CI 記錄為準。發布工作只會在兩個 Mac 工作都成功、且該版本尚未存在時建立 Release，不覆寫現有版本。
 
 交付物是 **Mac 本機建置包**，不是宣稱在 Mac 驗證完成的預編譯 App。`Build-on-Mac.command` 使用既有 Apple 工具，編譯來源、裝入完整資源、建立 ad-hoc 本機簽章並驗證。它不安裝額外工具、不下載 Web 開發依賴、不關閉 Gatekeeper，也不把本機簽章當成 Developer ID 或 Apple 公證。
 
@@ -93,6 +107,6 @@ App 的 `.icns` 與介面 SVG 圖示維持使用者提供的 v2，SHA-256 與來
 /bin/bash "/來源包路徑/Test-on-Mac.command" "/rclone資料夾/rclone"
 ```
 
-六套測試使用專案內的獨立資料。不提供相容 rclone 時，需要引擎的項目會標示略過；不要把這種結果當成本次 95 項完整通過。Web 重跑方式在 [Tests/Web](../Tests/Web/README.md)，屬於選用開發流程，一般 Mac 建置不下載 Node.js、測試瀏覽器或字型。
+六套測試使用專案內的獨立資料。不提供相容 rclone 時，需要引擎的項目會標示略過；不要把這種結果當成本次 101 項完整通過。Web 重跑方式在 [Tests/Web](../Tests/Web/README.md)，屬於選用開發流程，一般 Mac 建置不下載 Node.js、測試瀏覽器或字型。
 
 原版功能與目前保留差異列在 [功能對照](FEATURE_MATRIX.zh-TW.md)。檔案體積、介面截圖與測試數量都不能單獨代表完整功能等價。

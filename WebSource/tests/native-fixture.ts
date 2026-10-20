@@ -27,7 +27,7 @@ export async function installHostFixture(page: Page, options: {
   };
   const bootstrap: Bootstrap = {
     environment: { version: available ? 'v1.75.2' : '', rclonePath: available ? '/Users/test/Engine/rclone' : '', configPath: '/Users/test/.config/rclone/rclone.conf', platform: 'darwin', arch: 'arm64', available },
-    settings: { rcloneDirectory: '/Users/test/Engine', rclonePath: '', configPath: '', language: 'zh-TW', theme: 'purple-light', autoCheckUpdates: true, skippedRcloneVersion: '', settingsRevision: 0, settingsSchemaVersion: 4, savedWorkspace: null, networkOptions: {bindMode: 'auto', bindAddress: '', connectTimeout: '1m', ioTimeout: '5m', tpsLimit: 0, tpsBurst: 1, userAgent: '', disableHTTP2: false}, paneColumnWidths: {}, defaultTransferOptions: DEFAULT_OPTIONS, maxConcurrentJobs: 0, proxyMode: 'system', httpProxy: '', httpsProxy: '', noProxy: '', defaultRcloneOptions: [], initialLocations: {}, streamPlayerPath: '', streamPlayerArguments: ['-'], showStatusItem: false, notifyOnCompletion: false, showHiddenFiles: true, showFolderIcons: true, showFileIcons: true, alternatingRows: true, ...options.settings },
+    settings: { rcloneDirectory: '/Users/test/Engine', rclonePath: '', configPath: '', language: 'zh-TW', theme: 'purple-light', autoCheckUpdates: true, skippedRcloneVersion: '', settingsRevision: 0, settingsSchemaVersion: 5, hiddenBuiltinPresets: [], savedWorkspace: null, networkOptions: {bindMode: 'auto', bindAddress: '', connectTimeout: '1m', ioTimeout: '5m', tpsLimit: 0, tpsBurst: 1, userAgent: '', disableHTTP2: false}, paneColumnWidths: {}, defaultTransferOptions: DEFAULT_OPTIONS, maxConcurrentJobs: 0, proxyMode: 'system', httpProxy: '', httpsProxy: '', noProxy: '', defaultRcloneOptions: [], initialLocations: {}, streamPlayerPath: '', streamPlayerArguments: ['-'], showStatusItem: false, notifyOnCompletion: false, showHiddenFiles: true, showFolderIcons: true, showFileIcons: true, alternatingRows: true, ...options.settings },
     resolvedLanguage: options.settings?.language === 'system' ? (options.preferredLanguage?.startsWith('ja') ? 'ja' : options.preferredLanguage?.startsWith('zh') ? 'zh-TW' : 'en') : options.settings?.language || 'zh-TW',
     home: '/Users/test', localLocations: [{id: 'home', name: 'test', path: '/Users/test', kind: 'home', group: 'local'}, ...(['desktop','documents','downloads','pictures','music','movies'] as const).map(kind => ({id: kind, name: kind, path: `/Users/test/${kind[0].toUpperCase()}${kind.slice(1)}`, kind, group: 'local' as const})), {id: 'volumes', name: 'Volumes', path: '/Volumes', kind: 'volumes', group: 'local'}, {id: 'test-nas-volume', name: 'Media Backup', path: '/Volumes/Media Backup', kind: 'volume', group: 'network'}], remotes: [{ name: 'research-drive', type: 'drive', group: 'cloud' }, { name: 'lab-nas', type: 'sftp', group: 'network' }, { name: 'web-storage', type: 'webdav', group: 'other' }],
     jobs: options.job ? [job] : [], tasks: [],
@@ -36,7 +36,7 @@ export async function installHostFixture(page: Page, options: {
     const win = window as any;
     const state = {
       bootstrap, job, preferredLanguage, appStatus, started: 0, calls: [] as {id: string; method: string; args: any[]}[],
-      chosenFolder, chosenExecutable, manualStatus, delays: {} as Record<string, number[]>, rejectSave: false, manualErrorOnce: false, toolSessions: [] as any[],
+      chosenFolder, chosenExecutable, manualStatus, listingError: '', delays: {} as Record<string, number[]>, rejectSave: false, manualErrorOnce: false, toolSessions: [] as any[],
     };
     win.__fixture = state;
     const files = [
@@ -50,6 +50,7 @@ export async function installHostFixture(page: Page, options: {
       switch (method) {
         case 'bootstrap': return state.bootstrap;
         case 'list':
+          if (state.listingError) throw new Error(state.listingError);
           if (args[0].path === '/missing-folder') throw new Error('Directory does not exist: /missing-folder');
           if (args[0].remote && !state.bootstrap.environment.available) throw new Error('Remote browsing requires rclone.');
           return files;
@@ -83,7 +84,7 @@ export async function installHostFixture(page: Page, options: {
           state.bootstrap.settings.settingsRevision += 1; state.bootstrap.environment.settingsRevision = state.bootstrap.settings.settingsRevision;
           return {status: state.manualStatus, currentVersion: '1.75.2', latestVersion: '1.76.0', path: state.bootstrap.environment.rclonePath};
         }
-        case 'checkAppUpdates': return {status: state.appStatus, current: '0.4.0', latest: state.appStatus === 'available' ? '0.5.0' : undefined, releaseURL: 'https://github.com/jason840709/RcloneBrowserNext/releases/latest'};
+        case 'checkAppUpdates': return {status: state.appStatus, current: '0.5.0', latest: state.appStatus === 'available' ? '0.6.0' : undefined, releaseURL: 'https://github.com/jason840709/RcloneBrowserNext/releases/latest'};
         case 'showAbout': return null;
         case 'listToolSessions': return state.toolSessions;
         case 'directoryTree': return {text: `${args[0].remote || '/Users/test'}\n├── Documents\n└── 照片與影片`, truncated: false};

@@ -1,10 +1,10 @@
-import {chromium} from '@playwright/test';
+import {chromium,expect} from '@playwright/test';
 import {installHostFixture} from './native-fixture.ts';
 import {translator} from '../renderer/i18n.ts';
 import {pathToFileURL} from 'node:url';
 import path from 'node:path';
 import {mkdir,writeFile} from 'node:fs/promises';
-const out=path.resolve(process.env.RBN_PREVIEW_OUTPUT || '.build-cache/qa04');
+const out=path.resolve(process.env.RBN_PREVIEW_OUTPUT || '.build-cache/qa05');
 await mkdir(out,{recursive:true});
 const browser=await chromium.launch({executablePath:process.env.RBN_TEST_BROWSER,headless:true,ignoreDefaultArgs:['--hide-scrollbars']});
 const errors:string[]=[];
@@ -46,8 +46,57 @@ for(const theme of ['purple-light','purple-dark','blue-light','blue-dark'] as co
  }
  await page.close();
 }
+// Revision 0.5 review states use the same production bundle and fictional host.
+// Wait for completed opacity transitions so exported stills do not show mid-motion text.
+for(const theme of ['purple-dark','purple-light'] as const){
+ const t=translator('zh-TW');
+ const page=await browser.newPage({viewport:{width:1440,height:900},reducedMotion:'reduce'});
+ page.on('pageerror',error=>errors.push(`${theme} critical: ${error.message}`));
+ await installHostFixture(page,{cleanPreview:true,settings:{theme,autoCheckUpdates:false}});
+ await page.goto(pathToFileURL(path.resolve('../Resources/Web/index.html')).href);
+ await page.getByTestId('right-pane').locator('.file-name').first().waitFor();
+ await page.evaluate(()=>document.fonts.ready);
+ await page.locator('.main-nav button').last().click();
+ await expect(page.locator('.tasks-page .status-card')).toBeVisible();
+ await page.screenshot({path:path.join(out,`critical-empty-tasks-${theme}.png`),animations:'disabled'});
+ await page.locator('.main-nav button').first().click();
+ await page.evaluate(()=>{(window as any).__fixture.listingError='rclone 執行失敗：雲端帳號的登入授權已過期。\n請從「帳號設定（Config）」重新登入，再重試。';});
+ await page.getByTestId('right-pane').getByRole('button',{name:t('refresh'),exact:true}).click();
+ await expect(page.getByTestId('right-pane').locator('.status-card-error')).toBeVisible();
+ await page.screenshot({path:path.join(out,`critical-error-card-${theme}.png`),animations:'disabled'});
+ await page.evaluate(()=>{(window as any).__fixture.listingError='';});
+ await page.getByTestId('right-pane').getByRole('button',{name:t('retry'),exact:true}).click();
+ await page.getByTestId('right-pane').locator('.file-name').first().waitFor();
+ await page.getByRole('button',{name:t('rememberWorkspace'),exact:true}).click();
+ await page.mouse.move(0,0);
+ const toast=page.locator('.floating-notice');
+ await expect(toast).toHaveCSS('opacity','1');
+ await page.screenshot({path:path.join(out,`critical-floating-toast-${theme}.png`),animations:'disabled'});
+ await toast.getByRole('button',{name:t('close'),exact:true}).click();await expect(toast).toHaveCount(0);
+ await page.getByTestId('operation-picker').click();
+ await expect(page.locator('.operation-menu')).toBeVisible();
+ await page.screenshot({path:path.join(out,`critical-preset-menu-${theme}.png`),animations:'disabled'});
+ await page.keyboard.press('Escape');
+ const pane=page.getByTestId('left-pane');
+ await pane.getByRole('button',{name:t('newTab'),exact:true}).click();
+ const pathInput=page.getByLabel(`${t('left')} ${t('path')}`,{exact:true});
+ await pathInput.fill('/Users/test/Documents/Research');await pathInput.press('Enter');
+ await pane.locator('.file-name').first().waitFor();await page.mouse.move(0,0);
+ await page.screenshot({path:path.join(out,`critical-connected-tabs-${theme}.png`),animations:'disabled'});
+ await page.setViewportSize({width:1060,height:680});
+ await page.screenshot({path:path.join(out,`critical-connected-tabs-${theme}-1060.png`),animations:'disabled'});
+ await page.getByTestId('right-pane').locator('.location-select select').selectOption('lab-nas');
+ await page.getByTestId('right-pane').locator('.file-name').first().waitFor();
+ await page.getByTestId('operation-picker').click();
+ await page.getByRole('menuitemradio',{name:new RegExp('^'+t('presetLocalNAS'))}).click();
+ await expect(page.locator('.floating-notice')).toHaveCSS('opacity','1');
+ await page.locator('.floating-notice').getByRole('button',{name:t('close'),exact:true}).click();await expect(page.locator('.floating-notice')).toHaveCount(0);
+ await page.locator('.options-button').click();
+ await page.screenshot({path:path.join(out,`critical-nas-options-${theme}-1060.png`),animations:'disabled'});
+ await page.close();
+}
 await writeFile(path.join(out,'palette-tokens.json'),JSON.stringify(paletteTokens,null,2)+'\n');
 await writeFile(path.join(out,'PREVIEWS.txt'),'These images show the production file:// interface with deterministic, clearly fictional test data. No cloud transfer, NAS transfer, mount or native macOS execution is represented. Preview-only data filtering is confined to tests/native-fixture.ts. The shipped app includes no demonstration filesystem or injected fixture.\n');
 await browser.close();
 if(errors.length)throw new Error(errors.join('\n'));
-console.log(`Created four clean previews plus settings, task editor and tooltip screenshots in ${out}.`);
+console.log(`Created all four themes, settings, tasks, tooltips and revision 0.5 critical-state previews in ${out}.`);

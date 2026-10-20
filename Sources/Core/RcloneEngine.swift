@@ -69,8 +69,9 @@ final class RcloneEngine {
 
     static func defaultSettings(directory: URL) -> [String: Any] {
         ["rclonePath": "", "rcloneDirectory": directory.path, "configPath": "", "language": "system", "theme": "purple-dark",
-         "autoCheckUpdates": true, "skippedRcloneVersion": "", "settingsRevision": 0, "settingsSchemaVersion": 4,
+         "autoCheckUpdates": true, "skippedRcloneVersion": "", "settingsRevision": 0, "settingsSchemaVersion": 5,
          "paneColumnWidths": [String: Any](), "defaultTransferOptions": EngineTransferOptions.defaults,
+         "hiddenBuiltinPresets": [String](),
          "maxConcurrentJobs": 0, "proxyMode": "system", "httpProxy": "", "httpsProxy": "", "noProxy": "",
          "networkOptions": EngineNetworkOptions.defaults,
          "defaultRcloneOptions": [String](), "showStatusItem": false, "notifyOnCompletion": false,
@@ -78,37 +79,54 @@ final class RcloneEngine {
          "streamPlayerPath": "", "streamPlayerArguments": ["-"], "initialLocations": [String: Any](), "savedWorkspace": NSNull()] as [String: Any]
     }
 
-    /// One-time 0.4 migration. The previous release wrote 2 as its own default,
-    /// so those entries become unlimited. Subsequent explicit choices of 2 are
-    /// preserved by the schema marker. Other configured limits are unchanged.
+    /// Schema markers keep default upgrades from repeatedly overriding later
+    /// choices. Only global defaults are migrated; task/workspace snapshots retain
+    /// the options the user saved with them.
     private static func migrateSettings(_ value: Any) -> Any {
-        guard var raw = value as? [String: Any], (raw["settingsSchemaVersion"] as? Int ?? 0) < 4 else { return value }
-        if raw["maxConcurrentJobs"] as? Int == 2 { raw["maxConcurrentJobs"] = 0 }
-        if var options = raw["defaultTransferOptions"] as? [String: Any] {
-            for (key, previousDefault) in [("connectTimeout", "1m"), ("ioTimeout", "5m")] where options[key] as? String == previousDefault {
-                options[key] = "" // inherits the same common timeout until changed
+        guard var raw = value as? [String: Any] else { return value }
+        let schema = raw["settingsSchemaVersion"] as? Int ?? 0
+        if schema < 4 {
+            if raw["maxConcurrentJobs"] as? Int == 2 { raw["maxConcurrentJobs"] = 0 }
+            if var options = raw["defaultTransferOptions"] as? [String: Any] {
+                for (key, previousDefault) in [("connectTimeout", "1m"), ("ioTimeout", "5m")] where options[key] as? String == previousDefault {
+                    options[key] = "" // inherits the same common timeout until changed
+                }
+                raw["defaultTransferOptions"] = options
             }
+            var network = raw["networkOptions"] as? [String: Any] ?? [:]
+            if let arguments = raw["defaultRcloneOptions"] as? [String] {
+                raw["defaultRcloneOptions"] = arguments.filter { argument in
+                    let pieces = argument.split(separator: "=", maxSplits: 1, omittingEmptySubsequences: false)
+                    let key = pieces.first.map(String.init) ?? ""
+                    guard EngineNetworkOptions.globalOwnedFlags.contains(key),
+                          (try? EngineTransferOptions.validateExtraArguments([argument])) != nil else { return true }
+                    let value = pieces.count > 1 ? String(pieces[1]) : "true"
+                    switch key {
+                    case "--tpslimit": if network["tpsLimit"] == nil { network["tpsLimit"] = Double(value) ?? 0 }
+                    case "--tpslimit-burst": if network["tpsBurst"] == nil { network["tpsBurst"] = max(1, Int(value) ?? 1) }
+                    case "--disable-http2": if network["disableHTTP2"] == nil { network["disableHTTP2"] = value == "true" }
+                    default: break
+                    }
+                    return false
+                }
+            }
+            raw["networkOptions"] = network
+        }
+        if schema < 5, var options = raw["defaultTransferOptions"] as? [String: Any] {
+            if options["maxDelete"] as? Int == 100 { options["maxDelete"] = -1 }
+            if options["deleteMode"] as? String == "after" { options["deleteMode"] = "during" }
+            if !["checksum", "checksum-only"].contains(options["comparison"] as? String ?? "default"),
+               options["localHashPolicy"] as? String == "default" { options["localHashPolicy"] = "none" }
+            // A legacy partial checksum preference predates localHashPolicy.
+            if ["checksum", "checksum-only"].contains(options["comparison"] as? String ?? "default"),
+               options["localHashPolicy"] == nil { options["localHashPolicy"] = "default" }
             raw["defaultTransferOptions"] = options
         }
-        var network = raw["networkOptions"] as? [String: Any] ?? [:]
-        if let arguments = raw["defaultRcloneOptions"] as? [String] {
-            raw["defaultRcloneOptions"] = arguments.filter { argument in
-                let pieces = argument.split(separator: "=", maxSplits: 1, omittingEmptySubsequences: false)
-                let key = pieces.first.map(String.init) ?? ""
-                guard EngineNetworkOptions.globalOwnedFlags.contains(key),
-                      (try? EngineTransferOptions.validateExtraArguments([argument])) != nil else { return true }
-                let value = pieces.count > 1 ? String(pieces[1]) : "true"
-                switch key {
-                case "--tpslimit": if network["tpsLimit"] == nil { network["tpsLimit"] = Double(value) ?? 0 }
-                case "--tpslimit-burst": if network["tpsBurst"] == nil { network["tpsBurst"] = max(1, Int(value) ?? 1) }
-                case "--disable-http2": if network["disableHTTP2"] == nil { network["disableHTTP2"] = value == "true" }
-                default: break
-                }
-                return false
-            }
+        if schema < 5, var workspace = raw["savedWorkspace"] as? [String: Any], let options = workspace["options"] as? [String: Any] {
+            workspace["options"] = EngineTransferOptions.preservingLegacySnapshot(options)
+            raw["savedWorkspace"] = workspace
         }
-        raw["networkOptions"] = network
-        raw["settingsSchemaVersion"] = 4
+        raw["settingsSchemaVersion"] = 5
         return raw
     }
 
@@ -678,6 +696,7 @@ final class RcloneEngine {
             let command = Self.displayCommand(try resolvedRclonePath(), configuredArguments(args))
             stateLock.holding { job.command = command }
             try appLog(job, running: running, level: "info", message: job.request.dryRun ? "開始預演。" : "開始傳輸。")
+            stateLock.holding { job.progress.start() }
             let result = try runProcess(args, timeout: nil, activeJob: running, lines: { [self] line in consumeLine(line, job: job, running: running) }, checked: false)
             if let failure = stateLock.holding({ running.failure }) { throw EngineError(failure) }
             stateLock.holding {
@@ -694,8 +713,8 @@ final class RcloneEngine {
             }
         }
         stateLock.holding {
-            job.endedAt = EngineJSON.now(); job.stats["speed"] = 0
-            job.stats["eta"] = job.status == "completed" ? 0 : NSNull(); job.stats["transferring"] = [[String: Any]]()
+            job.endedAt = EngineJSON.now()
+            job.stats = job.progress.finish(job.stats, completed: job.status == "completed")
         }
         do {
             let (message, level): (String, String) = stateLock.holding {
@@ -727,7 +746,7 @@ final class RcloneEngine {
         }
         stateLock.holding {
             if let stats = raw["stats"] as? [String: Any] {
-                job.stats = EngineStatistics.parse(stats, previous: job.stats)
+                job.stats = job.progress.update(stats, previous: job.stats)
                 if let error = stats["lastError"] as? String, !error.isEmpty { job.error = String(error.prefix(16000)) }
             } else {
                 let message = String((raw["msg"] as? String ?? raw["error"] as? String ?? "rclone 記錄").prefix(16000))
@@ -896,8 +915,13 @@ final class RcloneEngine {
         }
         output["skippedRcloneVersion"] = try EngineJSON.text(merged["skippedRcloneVersion"], "略過版本", maximum: 128)
         output["settingsRevision"] = try EngineJSON.integer(merged["settingsRevision"], "設定版本", 0...9007199254740990)
-        output["settingsSchemaVersion"] = 4
+        output["settingsSchemaVersion"] = 5
         output["maxConcurrentJobs"] = try EngineJSON.integer(merged["maxConcurrentJobs"], "同時執行的工作數", 0...128)
+        guard let hidden = merged["hiddenBuiltinPresets"] as? [String], hidden.count <= 3,
+              Set(hidden).isSubset(of: ["local-nas", "nas-cloud", "local-cloud"]) else {
+            throw EngineError("內建方案設定格式不正確。")
+        }
+        output["hiddenBuiltinPresets"] = Array(Set(hidden)).sorted()
 
         let existingOptions = defaults["defaultTransferOptions"] as? [String: Any] ?? EngineTransferOptions.defaults
         let optionPatch = raw["defaultTransferOptions"] == nil ? [:] : try EngineJSON.dictionary(raw["defaultTransferOptions"], "預設傳輸選項格式不正確。")

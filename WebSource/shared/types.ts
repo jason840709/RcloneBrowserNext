@@ -7,6 +7,7 @@ export interface LocalLocation { id: string; name: string; path: string; kind: '
 export interface FileEntry { name: string; path: string; size: number; modified: string; isDir: boolean; isLink?: boolean }
 export interface FinderDrop { source: Endpoint; selection: Selection[]; x: number; y: number }
 export interface Selection { name: string; isDir: boolean }
+export type BuiltinPresetID = 'local-nas' | 'nas-cloud' | 'local-cloud';
 export type TransferMode = 'copy' | 'sync' | 'move';
 export interface TransferOptions {
   transfers: number; checkers: number; bandwidth: string; comparison: 'default' | 'checksum' | 'modtime' | 'size' | 'checksum-only' | 'none';
@@ -28,6 +29,7 @@ export interface TransferRequest {
 export interface TransferFile { name: string; size: number; bytes: number; percentage: number; speed: number; speedAvg: number; eta: number | null }
 export interface TransferStats {
   bytes: number; totalBytes: number; speed: number; eta: number | null; transfers: number; totalTransfers: number;
+  speedKind?: 'rolling' | 'overall'; speedWindowSeconds?: number; averageSpeed?: number; filesPerSecond?: number; etaSource?: 'bytes' | 'files' | null;
   checks: number; totalChecks: number; errors: number; deletes: number; elapsedTime: number; transferring: TransferFile[];
 }
 export type JobStatus = 'queued' | 'running' | 'cancelling' | 'completed' | 'failed' | 'cancelled' | 'interrupted';
@@ -48,6 +50,7 @@ export interface Settings {
   showStatusItem: boolean; notifyOnCompletion: boolean; showHiddenFiles: boolean; showFolderIcons: boolean; showFileIcons: boolean; alternatingRows: boolean;
   settingsRevision: number; settingsSchemaVersion: number;
   paneColumnWidths: {left?: PaneColumnWidths; right?: PaneColumnWidths};
+  hiddenBuiltinPresets?: BuiltinPresetID[];
   defaultTransferOptions: TransferOptions; maxConcurrentJobs: number;
   proxyMode: 'system' | 'manual'; httpProxy: string; httpsProxy: string; noProxy: string;
   defaultRcloneOptions: string[]; initialLocations: {left?: Endpoint; right?: Endpoint};
@@ -110,9 +113,9 @@ export interface AppAPI {
 }
 export const DEFAULT_OPTIONS: TransferOptions = {
   transfers: 4, checkers: 8, bandwidth: '', comparison: 'default', skipExisting: false, updateOnly: false,
-  createEmptyDirs: true, exclude: ['.DS_Store', '._*'], include: [], retries: 3, maxDelete: 100,
+  createEmptyDirs: true, exclude: ['.DS_Store', '._*'], include: [], retries: 3, maxDelete: -1,
   preserveMetadata: false, driveSharedWithMe: false,
-  localHashPolicy: 'default', deleteMode: 'after', deleteExcluded: false, ignoreChecksum: false, modifyWindow: '', checkFirst: false,
+  localHashPolicy: 'none', deleteMode: 'during', deleteExcluded: false, ignoreChecksum: false, modifyWindow: '', checkFirst: false,
   noTraverse: false, fastList: false, oneFileSystem: false, noUpdateModtime: false,
   minSize: '', maxSize: '', minAge: '', maxAge: '', maxDepth: -1, connectTimeout: '', ioTimeout: '',
   lowLevelRetries: 10, retrySleep: '', extraArgs: [],
