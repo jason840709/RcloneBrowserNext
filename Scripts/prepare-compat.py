@@ -69,7 +69,7 @@ def main() -> None:
             entry = struct.pack("<BBBBHHII", 0, 0, 0, 0, 1, 32, len(png), 22)
             (icons / "icon.ico").write_bytes(header + entry + png)
     version = plistlib.loads((ROOT / "Resources" / "Info.plist").read_bytes())["CFBundleShortVersionString"]
-    config = json.loads((ROOT / "Compat" / "desktop" / "tauri.conf.json").read_text())
+    config = json.loads((ROOT / "Compat" / "desktop" / "tauri.conf.json").read_text(encoding="utf-8"))
     if config["version"] != version:
         raise ValueError(f"Tauri version {config['version']} differs from Info.plist {version}")
     receipt = {
@@ -77,7 +77,7 @@ def main() -> None:
         "web": {p.name: {"bytes": p.stat().st_size, "sha256": hashlib.sha256(p.read_bytes()).hexdigest()} for p in sorted(web.iterdir()) if p.is_file()},
         "icons": "Exact PNG image members from the original ICNS files; no recolouring during packaging.",
     }
-    (CACHE / "prepared-assets.json").write_text(json.dumps(receipt, indent=2) + "\n")
+    (CACHE / "prepared-assets.json").write_text(json.dumps(receipt, indent=2) + "\n", encoding="utf-8")
     print(f"Prepared compatibility resources for {version}")
 
 

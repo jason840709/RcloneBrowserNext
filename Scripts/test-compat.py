@@ -116,7 +116,7 @@ with tempfile.TemporaryDirectory(prefix="fixture-", dir=cache) as value:
     fixture = Path(value)
     (fixture / "tmp").mkdir()
     config = fixture / "empty-rclone.conf"
-    config.write_text("")
+    config.write_text("", encoding="utf-8")
     source, target = fixture / "source 資料", fixture / "destination 資料"
     source.mkdir(); target.mkdir(); (source / "資料夾").mkdir()
     (source / "資料夾/測試.txt").write_text("A Unicode file path\n", encoding="utf-8")
@@ -250,5 +250,5 @@ output = args.output or (cache / f"{platform.system().lower()}-results.json")
 output.parent.mkdir(parents=True, exist_ok=True)
 output.write_text(json.dumps({"platform": platform.platform(), "engineSha256": hashlib.sha256(engine_path.read_bytes()).hexdigest(),
     "rcloneSha256": hashlib.sha256(rclone_path.read_bytes()).hexdigest(), "passed": len(records), "failed": 0,
-    "tests": records, "observedJobEvents": sum(v.get("type") == "jobUpdate" for v in events)}, indent=2) + "\n")
+    "tests": records, "observedJobEvents": sum(v.get("type") == "jobUpdate" for v in events)}, indent=2) + "\n", encoding="utf-8")
 print(f"{len(records)} passed; {output}")

@@ -13,7 +13,7 @@ p = argparse.ArgumentParser()
 p.add_argument("--swiftc", required=True)
 p.add_argument("--runtime", type=Path, required=True)
 args = p.parse_args()
-target = json.loads(subprocess.check_output([args.swiftc, "-print-target-info"]))
+target = json.loads(subprocess.check_output([args.swiftc, "-print-target-info"], encoding="utf-8"))
 roots = [Path(v).resolve() for v in target["paths"]["runtimeLibraryPaths"]]
 lib = args.runtime / "lib"
 lib.mkdir(exist_ok=True)
@@ -52,5 +52,5 @@ runpaths = re.findall(r"(?:RUNPATH|RPATH).*\[(.*?)\]", dynamic)
 if runpaths != ["$ORIGIN/lib"]:
     raise RuntimeError(f"The helper must use only its adjacent runtime libraries, found: {runpaths}")
 manifest["helperRunpath"] = runpaths[0]
-(args.runtime / "runtime-manifest.json").write_text(json.dumps(manifest, indent=2) + "\n")
+(args.runtime / "runtime-manifest.json").write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
 print(f"Bundled {len(manifest['libraries'])} Swift runtime libraries")

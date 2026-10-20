@@ -1,7 +1,7 @@
 {
   "version": "0.7.0",
   "file_count_excluding_manifest": 180,
-  "total_bytes_excluding_manifest": 6465471,
+  "total_bytes_excluding_manifest": 6465620,
   "files": {
     ".github/workflows/macos.yml": {
       "bytes": 7764,
@@ -200,12 +200,12 @@
       "sha256": "a3f1983d216ee5ad74c3e54922d232880c63e770a2b27c2329d263d1f5748637"
     },
     "Scripts/bundle-compat-runtime.py": {
-      "bytes": 2404,
-      "sha256": "89e71b31ad8fe9faa46ce690ac87b261ace1ee6bb4a9e09782b52b2feb87f2e0"
+      "bytes": 2440,
+      "sha256": "f2f67d86967c09bf594011f9d0409345a9c856bc4fc8ff7e2c48bc6e017ba935"
     },
     "Scripts/ci-compat-rclone.py": {
-      "bytes": 2517,
-      "sha256": "53409e839ca25319c4fe3f6cdc6836582021fd2e985db8dd7a514b96215280d8"
+      "bytes": 2524,
+      "sha256": "020e66f69dc00f29ba963631b10590b8300fe7a98c728cf34471651e1f5c7a42"
     },
     "Scripts/ci-rclone.sh": {
       "bytes": 1642,
@@ -224,12 +224,12 @@
       "sha256": "cdc5ed24b6b02b1da030452f43d989a9e43b337b97ec446cbb1ea6360f27dd46"
     },
     "Scripts/package-compat.py": {
-      "bytes": 1515,
-      "sha256": "9cd4633909a9bfddfcade144a481cb2db5c5feea6715e11f68d0d832668419c6"
+      "bytes": 1551,
+      "sha256": "e80ad75050bded236a4b5fa6c0639fd59d8a22b22cf9225bf9a85717fab2cd7c"
     },
     "Scripts/prepare-compat.py": {
-      "bytes": 3973,
-      "sha256": "1f9147d63d6e187dbf45d718ea2d19aff4d0aa6d87a90d8e51393311b875de32"
+      "bytes": 4007,
+      "sha256": "e198674993689888577087b3549ab874d5ec8a311ee4ef3e780035428530b3c8"
     },
     "Scripts/prepare-release.py": {
       "bytes": 4558,
@@ -240,8 +240,8 @@
       "sha256": "be3a7ed772a12054970ddccb4b50e6dcd929e584d766b2ae43f05400ef0327c9"
     },
     "Scripts/test-compat.py": {
-      "bytes": 13530,
-      "sha256": "d850c730cc619dba58d7b475ce8589b5bf78f3a22ab5733d387d289c967c966d"
+      "bytes": 13566,
+      "sha256": "593a5a0c5d30951cb3b63f0e657bf5ffa67d6dd087d964521dc0bb7f45918dc1"
     },
     "Scripts/test-mac.sh": {
       "bytes": 3206,

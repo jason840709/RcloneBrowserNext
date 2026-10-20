@@ -27,7 +27,7 @@ def main():
     headers = {'User-Agent': 'RcloneBrowserNext-CI/0.7.0'}
     checksum_request = urllib.request.Request(base + 'SHA256SUMS', headers=headers)
     with urllib.request.urlopen(checksum_request, timeout=60) as response:
-        sums = response.read().decode()
+        sums = response.read().decode("utf-8")
     matches = [line.split()[0] for line in sums.splitlines()
                if len(line.split()) == 2 and line.split()[1].lstrip('*') == filename]
     if len(matches) != 1:

@@ -20,9 +20,9 @@ destination = ROOT / "Distribution" / f"Rclone_Browser_Next_{version}_{suffix}"
 destination.parent.mkdir(exist_ok=True)
 shutil.copy2(candidates[0], destination)
 digest = hashlib.sha256(destination.read_bytes()).hexdigest()
-destination.with_suffix(destination.suffix + ".sha256").write_text(f"{digest}  {destination.name}\n")
+destination.with_suffix(destination.suffix + ".sha256").write_text(f"{digest}  {destination.name}\n", encoding="utf-8")
 receipt = {"version": version, "platform": args.platform, "file": destination.name,
            "bytes": destination.stat().st_size, "sha256": digest,
            "runtime": json.loads((args.cache / "runtime/runtime-manifest.json").read_text(encoding="utf-8-sig"))}
-(args.cache / f"package-{args.platform}.json").write_text(json.dumps(receipt, indent=2) + "\n")
+(args.cache / f"package-{args.platform}.json").write_text(json.dumps(receipt, indent=2) + "\n", encoding="utf-8")
 print(json.dumps({k: v for k, v in receipt.items() if k != "runtime"}, indent=2))
