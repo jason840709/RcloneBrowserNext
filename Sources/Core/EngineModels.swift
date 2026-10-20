@@ -421,7 +421,15 @@ struct EngineTransferRequest {
         if validateOperationalRules { try validateOperation() }
     }
     func validateOperation() throws {
-        guard mode != "sync" || selection.isEmpty else { throw EngineError("同步適用於整個目前目錄。請清除選取，或改用複製／移動。") }
+        guard mode != "sync" || selection.allSatisfy(\.isDir) else {
+            throw EngineError("同步時只能選取資料夾。請取消選取檔案，或改用複製／移動。")
+        }
+        // rclone applies ordinary filters to both sides. --delete-excluded
+        // deliberately bypasses destination filters, which would also bypass
+        // the selected-folder boundary and delete unselected destination data.
+        guard mode != "sync" || selection.isEmpty || !options.flag("deleteExcluded") else {
+            throw EngineError("選取資料夾同步時，不能啟用「刪除已排除的檔案」，以免刪除未選取的目的地內容。")
+        }
         guard mode != "sync" || !options.flag("noTraverse") else { throw EngineError("同步需要列出目的地，不能使用「不掃描目的地」。") }
         guard mode != "move" || !options.flag("updateOnly") else {
             throw EngineError("移動時，rclone 可能刪除因目的地較新而略過的來源。請關閉「略過較新」或改用複製。")
@@ -473,9 +481,11 @@ struct EngineTransferRequest {
             if o.flag(key) { result.append(flag) }
         }
         for (key, flag) in [("minSize", "--min-size"), ("maxSize", "--max-size"), ("minAge", "--min-age"), ("maxAge", "--max-age"),
-                            ("modifyWindow", "--modify-window"), ("connectTimeout", "--contimeout"), ("ioTimeout", "--timeout"), ("retrySleep", "--retries-sleep")] {
+                            ("connectTimeout", "--contimeout"), ("ioTimeout", "--timeout"), ("retrySleep", "--retries-sleep")] {
             if !o.text(key).isEmpty { result.append("\(flag)=\(o.text(key))") }
         }
+        let modifyWindow = o.text("modifyWindow").isEmpty ? (EngineLocalTimePrecision.detect(for: self)?.duration ?? "") : o.text("modifyWindow")
+        if !modifyWindow.isEmpty { result.append("--modify-window=\(modifyWindow)") }
         if o.integer("maxDepth") >= 0 { result.append("--max-depth=\(o.integer("maxDepth"))") }
         result.append("--low-level-retries=\(o.integer("lowLevelRetries"))")
         if o.text("localHashPolicy") == "none" { result.append("--local-hashes=none") }
@@ -491,16 +501,76 @@ struct EngineTransferRequest {
     }
 }
 
+/// Rclone 1.75.2 probes a local backend's precision in the system temporary
+/// directory. That can differ from an attached destination volume. Use only
+/// known, actually mounted macOS filesystem formats to compensate; this reads
+/// metadata and never creates probe files or changes a saved request's options.
+struct EngineLocalTimePrecision {
+    let seconds: Double
+    let duration: String
+    let fileSystems: [String]
+
+    var message: String {
+        "偵測到本機檔案系統 \(fileSystems.joined(separator: ", "))，本次自動將修改時間容許誤差設為 \(duration)。同大小檔案在容差內修改可能不會重傳。"
+    }
+
+    static func precision(for fileSystem: String) -> (seconds: Double, duration: String)? {
+        switch fileSystem.lowercased() {
+        case "msdos": return (2, "2s")
+        case "hfs": return (1, "1s")
+        case "exfat": return (0.01, "10ms")
+        default: return nil // APFS and unknown formats retain rclone's precision.
+        }
+    }
+
+    static func detect(for request: EngineTransferRequest,
+                       fileSystem: (String) -> String? = EngineLocalTimePrecision.mountedFileSystem) -> EngineLocalTimePrecision? {
+        guard request.options.text("modifyWindow").isEmpty,
+              ["default", "modtime"].contains(request.options.text("comparison")) || request.options.flag("updateOnly") else { return nil }
+        let types = Set([request.source, request.destination].filter { $0.remote == nil }.compactMap { fileSystem($0.path)?.lowercased() })
+        let known = types.compactMap { type -> (String, Double, String)? in
+            guard let value = precision(for: type) else { return nil }
+            return (type, value.seconds, value.duration)
+        }
+        guard let maximum = known.max(by: { $0.1 < $1.1 }) else { return nil }
+        return EngineLocalTimePrecision(seconds: maximum.1, duration: maximum.2, fileSystems: known.map { $0.0 }.sorted())
+    }
+
+    static func mountedFileSystem(_ path: String) -> String? {
+        #if os(macOS)
+        var candidate = URL(fileURLWithPath: path).standardizedFileURL
+        while true {
+            var info = Darwin.statfs()
+            let result = candidate.path.withCString { Darwin.statfs($0, &info) }
+            if result == 0 {
+                return withUnsafeBytes(of: info.f_fstypename) { bytes in
+                    String(decoding: bytes.prefix { $0 != 0 }, as: UTF8.self)
+                }
+            }
+            // A destination may not exist yet. A permission or I/O error is not
+            // evidence that its ancestor uses the same filesystem, so only walk
+            // upward when the path (or one of its components) is absent.
+            guard errno == ENOENT || errno == ENOTDIR else { return nil }
+            let parent = candidate.deletingLastPathComponent()
+            guard parent.path != candidate.path else { return nil }
+            candidate = parent
+        }
+        #else
+        return nil
+        #endif
+    }
+}
+
 enum EngineStatistics {
     static var empty: [String: Any] {
         ["bytes": 0, "totalBytes": 0, "speed": 0, "eta": NSNull(), "transfers": 0, "totalTransfers": 0,
-         "checks": 0, "totalChecks": 0, "errors": 0, "deletes": 0, "elapsedTime": 0, "transferring": [[String: Any]](),
+         "checks": 0, "totalChecks": 0, "listed": 0, "errors": 0, "deletes": 0, "elapsedTime": 0, "transferring": [[String: Any]](),
          "speedKind": "rolling", "speedWindowSeconds": 0, "averageSpeed": 0, "filesPerSecond": 0, "etaSource": NSNull()]
     }
     static func parse(_ value: Any?, previous: [String: Any] = empty) -> [String: Any] {
         guard let raw = value as? [String: Any] else { return previous }
         var result = empty
-        for key in ["bytes", "totalBytes", "transfers", "totalTransfers", "checks", "totalChecks", "errors", "deletes", "elapsedTime"] {
+        for key in ["bytes", "totalBytes", "transfers", "totalTransfers", "checks", "totalChecks", "listed", "errors", "deletes", "elapsedTime"] {
             result[key] = EngineJSON.number(raw[key], fallback: EngineJSON.number(previous[key]))
         }
         result["speed"] = EngineJSON.number(raw["speed"])
@@ -610,8 +680,33 @@ struct EngineProgressWindow {
     }
 }
 
+/// Cancellation records describe the process lifecycle, not a promise that a
+/// storage provider has removed every partial object or multipart upload.
+struct EngineJobCancellation {
+    let requestedAt: String
+    var lastSignal: String?
+    var processExited = false
+    var forced: Bool { ["SIGTERM", "SIGKILL"].contains(lastSignal ?? "") }
+    var json: [String: Any] {
+        var value: [String: Any] = ["requestedAt": requestedAt, "forced": forced, "processExited": processExited]
+        if let lastSignal = lastSignal { value["lastSignal"] = lastSignal }
+        return value
+    }
+    init(requestedAt: String = EngineJSON.now()) { self.requestedAt = requestedAt }
+    init?(saved: Any?) {
+        guard let value = saved as? [String: Any], let requested = value["requestedAt"] as? String,
+              let exited = try? EngineJSON.bool(value["processExited"], "停止狀態") else { return nil }
+        let signal = value["lastSignal"] as? String
+        guard signal == nil || ["SIGINT", "SIGTERM", "SIGKILL"].contains(signal!) else { return nil }
+        requestedAt = requested; lastSignal = signal; processExited = exited
+    }
+}
+
 final class EngineJob {
     static let terminal: Set<String> = ["completed", "failed", "cancelled", "interrupted"]
+    // Unfinished requests must remain available after a restart, even if more
+    // than 200 jobs were queued or interrupted when the previous session ended.
+    static let automaticallyPrunable: Set<String> = ["completed", "failed", "cancelled"]
     let id: String
     let request: EngineTransferRequest
     var status: String
@@ -624,6 +719,8 @@ final class EngineJob {
     var error: String?
     var exitCode: Int32?
     var command: String
+    var cancellation: EngineJobCancellation?
+    var report: [String: Any]?
     var json: [String: Any] {
         var value: [String: Any] = ["id": id, "request": request.json, "status": status, "createdAt": createdAt,
                                   "stats": stats, "logs": logs, "command": command]
@@ -631,6 +728,8 @@ final class EngineJob {
         if let endedAt = endedAt { value["endedAt"] = endedAt }
         if let error = error { value["error"] = error }
         if let exitCode = exitCode { value["exitCode"] = Int(exitCode) }
+        if let cancellation = cancellation { value["cancellation"] = cancellation.json }
+        if let report = report { value["report"] = report }
         return value
     }
     init(request: EngineTransferRequest, command: String) {
@@ -645,7 +744,7 @@ final class EngineJob {
         request = try EngineTransferRequest(savedRequest, validateOperationalRules: false)
         createdAt = try EngineJSON.text(saved["createdAt"], "建立時間")
         let previous = try EngineJSON.text(saved["status"], "工作狀態")
-        guard Self.terminal.contains(previous) || ["queued", "running", "cancelling"].contains(previous) else { throw EngineError("工作狀態格式不正確。") }
+        guard Self.terminal.contains(previous) || ["queued", "running", "cancelling", "paused"].contains(previous) else { throw EngineError("工作狀態格式不正確。") }
         status = Self.terminal.contains(previous) ? previous : "interrupted"
         stats = EngineStatistics.parse(saved["stats"])
         logs = (saved["logs"] as? [[String: Any]] ?? []).suffix(250).map {
@@ -654,6 +753,8 @@ final class EngineJob {
             if let object = $0["object"] as? String { line["object"] = String(object.prefix(16000)) }; return line
         }
         command = saved["command"] as? String ?? ""
+        cancellation = EngineJobCancellation(saved: saved["cancellation"])
+        report = EngineTransferReport.normalizedSummary(saved["report"])
         startedAt = saved["startedAt"] as? String; endedAt = saved["endedAt"] as? String; error = saved["error"] as? String
         if let code = saved["exitCode"] as? NSNumber { exitCode = code.int32Value }
         if status != previous {

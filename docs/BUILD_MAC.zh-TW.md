@@ -1,4 +1,4 @@
-# 在 Mac 建立 Rclone Browser Next 0.5.0
+# 在 Mac 建立 Rclone Browser Next
 
 這份交付包包含 Swift 來源、已建好的介面、圖示、測試與建置腳本。它會在你的 Mac 直接產生 `.app`，rclone 與 App 分開。一般建置只使用這台 Mac 已有的 Apple 工具，不下載 Electron、Node.js、npm、Go、Homebrew、SwiftPM 套件或其他執行環境。
 

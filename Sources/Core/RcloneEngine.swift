@@ -26,7 +26,19 @@ final class RcloneEngine {
     private var jobOrder: [String] = []
     private var tasks: [String: EngineTask] = [:]
     private var active: [String: EngineActiveJob] = [:]
+    private var transferReports: [String: EngineTransferReport] = [:]
     private var captureChildren: [UUID: Process] = [:]
+    private struct StopRequest {
+        let jobID: String?
+        var timers: [DispatchWorkItem]
+    }
+    private var stoppingChildren: [ObjectIdentifier: StopRequest] = [:]
+    // This is an app responsiveness policy, not a guarantee made by rclone.
+    // Its first exit signal runs atexit handlers; a second signal can interrupt
+    // those handlers, so the full cleanup grace belongs after the first SIGINT.
+    private static let interruptGrace: TimeInterval = 10
+    private static let terminateGrace: TimeInterval = 2
+    private static let stopWaitLimit: TimeInterval = 15
     private var operationCount = 0
     private var maintenance = false
     private var configurationChanging = false
@@ -54,8 +66,15 @@ final class RcloneEngine {
         settings = (try? Self.validateSettings(Self.migrateSettings(savedSettings), defaults: settings)) ?? settings
         environment = Self.blankEnvironment(configPath: settings["configPath"] as? String ?? "")
         let savedJobs = EngineStorage.readJSON(stateDirectory.appendingPathComponent("jobs.json"), fallback: [[String: Any]]())
+        var clearedSuccessfulIDs: [String] = []
         for raw in (savedJobs as? [[String: Any]] ?? []) {
-            if let job = try? EngineJob(saved: raw), jobs[job.id] == nil { jobs[job.id] = job; jobOrder.append(job.id) }
+            if let job = try? EngineJob(saved: raw), jobs[job.id] == nil {
+                // Successful history belongs to the session that completed it.
+                // Failed and unfinished requests stay available for inspection
+                // or an explicit retry; opening the app never reruns them.
+                if job.status == "completed" { clearedSuccessfulIDs.append(job.id); continue }
+                jobs[job.id] = job; jobOrder.append(job.id)
+            }
         }
         let savedTasks = EngineStorage.readJSON(stateDirectory.appendingPathComponent("tasks.json"), fallback: [[String: Any]]())
         for raw in (savedTasks as? [[String: Any]] ?? []).prefix(1000) {
@@ -65,11 +84,12 @@ final class RcloneEngine {
             if item.pathExtension == "filter", EngineJSON.validID(item.deletingPathExtension().lastPathComponent) { try? FileManager.default.removeItem(at: item) }
         }
         try persist()
+        removeOwnedLogs(clearedSuccessfulIDs.filter { jobs[$0] == nil })
     }
 
     static func defaultSettings(directory: URL) -> [String: Any] {
-        ["rclonePath": "", "rcloneDirectory": directory.path, "configPath": "", "language": "system", "theme": "purple-dark",
-         "autoCheckUpdates": true, "skippedRcloneVersion": "", "settingsRevision": 0, "settingsSchemaVersion": 5,
+        ["rclonePath": "", "rcloneDirectory": directory.path, "configPath": "", "language": "system", "theme": "purple-dark", "interfaceScale": 100,
+         "autoCheckUpdates": true, "skippedRcloneVersion": "", "settingsRevision": 0, "settingsSchemaVersion": 6,
          "paneColumnWidths": [String: Any](), "defaultTransferOptions": EngineTransferOptions.defaults,
          "hiddenBuiltinPresets": [String](),
          "maxConcurrentJobs": 0, "proxyMode": "system", "httpProxy": "", "httpsProxy": "", "noProxy": "",
@@ -126,7 +146,7 @@ final class RcloneEngine {
             workspace["options"] = EngineTransferOptions.preservingLegacySnapshot(options)
             raw["savedWorkspace"] = workspace
         }
-        raw["settingsSchemaVersion"] = 5
+        raw["settingsSchemaVersion"] = 6
         return raw
     }
 
@@ -235,6 +255,7 @@ final class RcloneEngine {
         case "retryJob": return try retryJob(text(0, "工作編號"))
         case "listJobs": return listJobs()
         case "clearFinishedJobs": try clearFinishedJobs(); return NSNull()
+        case "clearJobs": return try clearJobs(argument(0))
         case "saveTask": return try saveTask(name: text(0, "作業名稱"), value: argument(1), id: arguments.count > 2 && !(arguments[2] is NSNull) ? text(2, "作業編號") : nil)
         case "deleteTask": try deleteTask(text(0, "作業編號")); return NSNull()
         case "listTasks": return listTasks()
@@ -243,6 +264,8 @@ final class RcloneEngine {
             guard let password = try argument(0) as? String else { throw EngineError("密碼格式不正確。") }
             try unlockConfig(password); return NSNull()
         case "getLogPath", "exportLog": return try getLogPath(text(0, "工作編號"))
+        case "getJobReport": return try getJobReport(text(0, "工作編號"), query: arguments.count > 1 ? argument(1) : [String: Any]())
+        case "getJobReportPath": return try getJobReportPath(text(0, "工作編號"), format: arguments.count > 1 ? text(1, "報告格式") : "jsonl")
         case "exportTasks": return ["format": "rclone-browser-next-tasks", "version": 1, "tasks": listTasks()] as [String: Any]
         case "importTasks": return try importTasks(argument(0))
         default: throw EngineError("不支援的操作：\(method)")
@@ -302,7 +325,8 @@ final class RcloneEngine {
     /// Drain both pipes independently; neither output stream can block the child.
     private func runProcess(_ arguments: [String], binary: String? = nil, timeout: TimeInterval? = 120,
                             maximum: Int = 64 * 1024 * 1024, activeJob: EngineActiveJob? = nil,
-                            lines: ((String) -> Void)? = nil, checked: Bool = true) throws -> EngineProcessResult {
+                            lines: ((String) -> Void)? = nil, stdoutLines: ((String, Bool) -> Void)? = nil,
+                            checked: Bool = true) throws -> EngineProcessResult {
         let executable = try binary ?? resolvedRclonePath()
         let process = Process()
         process.executableURL = URL(fileURLWithPath: executable)
@@ -314,11 +338,16 @@ final class RcloneEngine {
         let token = UUID(), buffers = EngineProcessOutput(maximum: maximum)
         try stateLock.holding {
             guard !closing, !maintenance else { throw EngineError(closing ? "程式正在關閉。" : "rclone 正在更新。") }
+            guard activeJob?.cancel != true else { throw EngineError("已取消。") }
+            if let failure = activeJob?.failure { throw EngineError(failure) }
             captureChildren[token] = process; activeJob?.child = process
         }
         defer {
             stateLock.holding {
                 captureChildren.removeValue(forKey: token)
+                let key = ObjectIdentifier(process)
+                for item in stoppingChildren[key]?.timers ?? [] { item.cancel() }
+                stoppingChildren.removeValue(forKey: key)
                 if activeJob?.child === process { activeJob?.child = nil }
             }
             try? outputPipe.fileHandleForReading.close(); try? errorPipe.fileHandleForReading.close()
@@ -338,27 +367,31 @@ final class RcloneEngine {
             DispatchQueue.global(qos: .utility).async {
                 defer { drains.leave() }
                 var pending = Data()
+                let consume: ((String, Bool) -> Void)?
+                if !stderr, let stdoutLines = stdoutLines { consume = stdoutLines }
+                else if let lines = lines { consume = { line, _ in lines(line) } }
+                else { consume = nil }
                 do {
                     // FileHandle.read(upToCount:) may wait to fill the requested
                     // count on a pipe. POSIX read returns the bytes available now,
                     // so one-second rclone statistics reach the UI immediately.
                     while let bytes = try readPipeChunk(file) {
-                        if let consume = lines {
+                        if let consume = consume {
                             pending.append(bytes)
                             while let newline = pending.firstIndex(of: 10) {
-                                consume(String(decoding: pending.prefix(upTo: newline), as: UTF8.self))
+                                consume(String(decoding: pending.prefix(upTo: newline), as: UTF8.self), true)
                                 pending.removeSubrange(...newline)
                             }
                             if pending.count > 2 * 1024 * 1024 {
-                                buffers.fail("rclone 單行輸出過大，工作已停止。"); Self.kill(process, signal: SIGKILL); pending.removeAll()
+                                buffers.fail("rclone 單行輸出過大，工作已停止。"); self.requestStop(process); pending.removeAll()
                             }
-                        } else if !buffers.append(bytes, stderr: stderr) { Self.kill(process, signal: SIGKILL) }
+                        } else if !buffers.append(bytes, stderr: stderr) { self.requestStop(process) }
                     }
-                    if !pending.isEmpty { lines?(String(decoding: pending, as: UTF8.self)) }
-                } catch { buffers.fail("無法讀取 rclone 輸出：\(error.localizedDescription)"); Self.kill(process, signal: SIGKILL) }
+                    if !pending.isEmpty { consume?(String(decoding: pending, as: UTF8.self), false) }
+                } catch { buffers.fail("無法讀取 rclone 輸出：\(error.localizedDescription)"); self.requestStop(process) }
             }
         }
-        if stateLock.holding({ activeJob?.cancel == true || closing }) { Self.stop(process) }
+        if stateLock.holding({ activeJob?.cancel == true || activeJob?.failure != nil || closing }) { requestStop(process) }
         process.waitUntilExit()
         drains.wait()
         if let failure = buffers.failure { throw EngineError(failure) }
@@ -370,10 +403,46 @@ final class RcloneEngine {
     private static func kill(_ child: Process, signal: Int32) {
         if child.isRunning { _ = DarwinOrGlibcKill(child.processIdentifier, signal) }
     }
-    private static func stop(_ child: Process) {
-        kill(child, signal: SIGTERM)
-        DispatchQueue.global(qos: .utility).asyncAfter(deadline: .now() + 2) { kill(child, signal: SIGKILL) }
+    private func requestStop(_ child: Process) {
+        let key = ObjectIdentifier(child)
+        let started: (Bool, String?) = stateLock.holding {
+            guard child.isRunning, stoppingChildren[key] == nil else { return (false, nil) }
+            let id = active.first { $0.value.child === child }?.key
+            if let id = id, let job = jobs[id] {
+                if job.cancellation == nil { job.cancellation = EngineJobCancellation() }
+                job.cancellation?.lastSignal = "SIGINT"
+            }
+            let terminate = DispatchWorkItem { [weak self, weak child] in
+                guard let self = self, let child = child else { return }
+                self.escalateStop(child, signal: SIGTERM, name: "SIGTERM")
+            }
+            let kill = DispatchWorkItem { [weak self, weak child] in
+                guard let self = self, let child = child else { return }
+                self.escalateStop(child, signal: SIGKILL, name: "SIGKILL")
+            }
+            stoppingChildren[key] = StopRequest(jobID: id, timers: [terminate, kill])
+            DispatchQueue.global(qos: .utility).asyncAfter(deadline: .now() + Self.interruptGrace, execute: terminate)
+            DispatchQueue.global(qos: .utility).asyncAfter(deadline: .now() + Self.interruptGrace + Self.terminateGrace, execute: kill)
+            Self.kill(child, signal: SIGINT)
+            return (true, id)
+        }
+        if started.0, let id = started.1 { notify(id, immediate: true) }
     }
+
+    private func escalateStop(_ child: Process, signal: Int32, name: String) {
+        let id: String? = stateLock.holding {
+            guard let request = stoppingChildren[ObjectIdentifier(child)], child.isRunning else { return nil }
+            if let id = request.jobID, let job = jobs[id] {
+                job.cancellation?.lastSignal = name
+                job.error = Self.forcedStopMessage
+            }
+            Self.kill(child, signal: signal)
+            return request.jobID
+        }
+        if let id = id { notify(id, immediate: true) }
+    }
+    private static let cancelledMessage = "工作已停止。已完成的檔案變更不會復原；未完成檔案或分段是否清除，取決於 rclone 與目的端，請查看記錄。"
+    private static let forcedStopMessage = "rclone 未在寬限時間內停止，已送出強制停止訊號。目的端可能留有未完成檔案或分段，請檢查目的端。"
     private static func processError(_ stderr: Data, code: Int32) -> String {
         let lines = String(decoding: stderr, as: UTF8.self).split(separator: "\n").suffix(8).map { line -> String in
             if let object = try? EngineJSON.object(Data(line.utf8)) as? [String: Any] { return object["msg"] as? String ?? object["error"] as? String ?? String(line) }
@@ -462,8 +531,15 @@ final class RcloneEngine {
         return (a["name"] as? String ?? "").localizedStandardCompare(b["name"] as? String ?? "") == .orderedAscending
     }
 
-    private func listRaw(_ endpoint: EngineEndpoint, extra: [String] = [], activeJob: EngineActiveJob? = nil) throws -> [[String: Any]] {
-        let output = try runProcess(["lsjson", "--no-mimetype", "--ask-password=false", "--use-json-log"] + extra + ["--", endpoint.argument], activeJob: activeJob)
+    private func listRaw(_ endpoint: EngineEndpoint, extra: [String] = [], activeJob: EngineActiveJob? = nil,
+                         allowMissingDirectory: Bool = false) throws -> [[String: Any]] {
+        let output = try runProcess(["lsjson", "--no-mimetype", "--ask-password=false", "--use-json-log"] + extra + ["--", endpoint.argument],
+                                    activeJob: activeJob, checked: false)
+        // rclone's DirNotFound exit status is 3. Only the destination-side
+        // selection pre-scan may treat that as empty; authorization, connection,
+        // filter and partial-listing errors must stop before any sync is run.
+        if allowMissingDirectory && output.exitCode == 3 { return [] }
+        guard output.exitCode == 0 else { throw EngineError(Self.processError(output.stderr, code: output.exitCode)) }
         guard let array = try EngineJSON.object(output.stdout) as? [[String: Any]] else { throw EngineError("rclone 未回傳有效的目錄清單。") }
         return array
     }
@@ -598,19 +674,26 @@ final class RcloneEngine {
         let complex = !request.selection.isEmpty && !request.options.includes.isEmpty
         var arguments = request.arguments(filterPath: complex ? "<精確選取清單>" : nil)
         if !complex, let index = arguments.firstIndex(of: "--") { arguments.insert(contentsOf: request.selectionFilterRules.map { "--filter=\($0)" }, at: index) }
+        if let index = arguments.firstIndex(of: "--") { arguments.insert("--combined=-", at: index) }
         if request.mode == "sync" {
             let limit = request.options.integer("maxDelete")
             warnings.append(limit < 0 ? "同步會刪除目的地中來源沒有的檔案；本次未設定刪除數量上限。"
                 : "同步會刪除目的地中來源沒有的檔案；本次最多刪除 \(limit) 個。超過上限前已刪除的檔案不會復原。")
+            if !request.selection.isEmpty { warnings.append("只同步來源選取的資料夾至目的地同名子資料夾；未選取的目的地內容不會變更。") }
         }
         if request.mode == "move" { warnings.append("移動會在傳送成功後刪除來源檔案。") }
         if request.mode == "sync", request.options.flag("deleteExcluded") { warnings.append("已啟用刪除排除項目：目的地中符合排除規則的檔案也會刪除。") }
         if request.mode == "sync", request.options.text("deleteMode") == "before" { warnings.append("目的地多餘檔案會在傳輸開始前刪除，後續傳輸失敗不會還原這些刪除。") }
         if request.options.text("comparison") == "none" { warnings.append("本次會重新傳送所有範圍內的檔案，即使目的地已有相同內容。") }
+        if let precision = EngineLocalTimePrecision.detect(for: request) { warnings.append(precision.message) }
         if request.options.text("localHashPolicy") == "none" { warnings.append("本機位置不讀取檔案內容計算雜湊。大小和修改時間皆未變的內容差異無法偵測。") }
         else if request.options.flag("ignoreChecksum") { warnings.append("已關閉傳送後的雜湊驗證；傳送前的雜湊比對仍依比對方式執行。") }
         if request.dryRun { warnings.append("預演不會變更檔案，傳輸統計為模擬結果。") }
-        if complex { warnings.append("選取項目與包含規則取交集，執行前會先掃描來源。") }
+        if complex {
+            warnings.append(request.mode == "sync"
+                ? "選取資料夾與包含規則取交集，執行前會先列出兩側檔名；只在目的地存在且符合規則的檔案也會納入同步刪除。"
+                : "選取項目與包含規則取交集，執行前會先掃描來源。")
+        }
         if request.source.remote != nil, request.destination.remote != nil, request.source.remote != request.destination.remote { warnings.append("不同連線也可能指向同一儲存空間，請確認兩側位置。") }
         return ["command": Self.displayCommand(try resolvedRclonePath(), configuredArguments(arguments)), "warnings": warnings]
     }
@@ -661,16 +744,29 @@ final class RcloneEngine {
         let request = job.request
         if !request.selection.isEmpty && !request.options.includes.isEmpty {
             try appLog(job, running: running, level: "info", message: "正在套用選取範圍與包含規則。")
-            let entries = try listRaw(request.source, extra: ["--recursive", "--no-modtime"] + request.options.filterRules.map { "--filter=\($0)" }, activeJob: running)
-            guard entries.count <= 250000 else { throw EngineError("選取清單超過 250,000 個項目，請縮小來源範圍。") }
-            rules = []
-            for entry in entries {
-                let relative = try EngineJSON.text(entry["Path"], "相對路徑", maximum: 32768)
-                guard !relative.isEmpty, !relative.hasPrefix("/"), !relative.split(separator: "/").contains("..") else { throw EngineError("遠端回傳不安全的相對路徑。") }
-                guard request.selection.contains(where: { relative == $0.name || $0.isDir && relative.hasPrefix($0.name + "/") }) else { continue }
-                rules.append("+ /" + EngineTransferRequest.escapeFilter(relative) + ((entry["IsDir"] as? Bool == true) ? "/" : ""))
+            // Rclone filter includes are OR rules. Source selection AND include
+            // patterns therefore need an exact allowlist. For sync, enumerate
+            // both sides: a source-only list would protect stale destination
+            // files instead of deleting them. No hashes or contents are read.
+            let endpoints = request.mode == "sync" ? [request.source, request.destination] : [request.source]
+            let flags = ["--recursive", "--no-modtime"] + request.options.filterRules.map { "--filter=\($0)" }
+            var allowed = Set<String>()
+            let selectedNames = Set(request.selection.map(\.name))
+            let selectedDirectories = Set(request.selection.filter(\.isDir).map(\.name))
+            for (index, endpoint) in endpoints.enumerated() {
+                let entries = try listRaw(endpoint, extra: flags, activeJob: running, allowMissingDirectory: index == 1)
+                guard entries.count <= 250000 else { throw EngineError("選取清單超過 250,000 個項目，請縮小來源範圍。") }
+                for entry in entries {
+                    let relative = try EngineJSON.text(entry["Path"], "相對路徑", maximum: 32768)
+                    let components = relative.split(separator: "/")
+                    guard !relative.isEmpty, !relative.hasPrefix("/"), !components.contains("..") else { throw EngineError("遠端回傳不安全的相對路徑。") }
+                    let top = components.first.map(String.init) ?? ""
+                    guard selectedNames.contains(relative) || (components.count > 1 && selectedDirectories.contains(top)) else { continue }
+                    allowed.insert("+ /" + EngineTransferRequest.escapeFilter(relative) + ((entry["IsDir"] as? Bool == true) ? "/" : ""))
+                    guard allowed.count <= 250000 else { throw EngineError("選取清單超過 250,000 個項目，請縮小來源範圍。") }
+                }
             }
-            rules.append("- **")
+            rules = allowed.sorted() + ["- **"]
         } else { rules = request.selectionFilterRules }
         if rules.isEmpty { return nil }
         let file = filterDirectory.appendingPathComponent(job.id + ".filter")
@@ -680,9 +776,16 @@ final class RcloneEngine {
 
     private func runJob(_ job: EngineJob, running: EngineActiveJob) {
         var filter: URL?
+        var report: EngineTransferReport?
+        var finalStatus = "failed"
+        defer { stateLock.holding { _ = transferReports.removeValue(forKey: job.id) } }
         do {
             let writer = try EngineLogWriter(directory: logDirectory, id: job.id)
             stateLock.holding { running.log = writer }
+            let reporter = try EngineTransferReport(directory: logDirectory, id: job.id)
+            report = reporter
+            let initialReport = reporter.summary
+            stateLock.holding { transferReports[job.id] = reporter; job.report = initialReport }
             try EngineStorage.validatePair(job.request)
             try requireEndpoints([job.request.source, job.request.destination], activeJob: running)
             if stateLock.holding({ running.cancel }) { throw EngineError("已取消。") }
@@ -692,34 +795,67 @@ final class RcloneEngine {
             }
             filter = try writeFilter(job, running: running)
             if stateLock.holding({ running.cancel }) { throw EngineError("已取消。") }
-            let args = job.request.arguments(filterPath: filter?.path)
+            var args = job.request.arguments(filterPath: filter?.path)
+            // Rclone recreates a named --combined file on each high-level
+            // retry. Its stdout stream instead lets us append every attempt to
+            // our own report without losing early comparisons or parsing JSON
+            // looking filenames as statistics.
+            if let index = args.firstIndex(of: "--") { args.insert("--combined=-", at: index) }
             let command = Self.displayCommand(try resolvedRclonePath(), configuredArguments(args))
             stateLock.holding { job.command = command }
+            if let precision = EngineLocalTimePrecision.detect(for: job.request) {
+                try appLog(job, running: running, level: "info", message: precision.message)
+            }
             try appLog(job, running: running, level: "info", message: job.request.dryRun ? "開始預演。" : "開始傳輸。")
             stateLock.holding { job.progress.start() }
-            let result = try runProcess(args, timeout: nil, activeJob: running, lines: { [self] line in consumeLine(line, job: job, running: running) }, checked: false)
+            let result = try runProcess(args, timeout: nil, activeJob: running,
+                                        lines: { [self] line in consumeLine(line, job: job, running: running) },
+                                        stdoutLines: { [self] line, terminated in consumeComparisonLine(line, terminated: terminated, report: reporter, job: job, running: running) }, checked: false)
             if let failure = stateLock.holding({ running.failure }) { throw EngineError(failure) }
             stateLock.holding {
                 job.exitCode = result.exitCode
                 if running.cancel {
-                    job.status = closing ? "interrupted" : "cancelled"; job.error = closing ? "程式關閉，工作已停止。" : nil
-                } else if result.exitCode == 0 { job.status = "completed"; job.error = nil }
-                else { job.status = "failed"; job.error = job.error ?? "rclone 結束代碼：\(result.exitCode)。請查看記錄。" }
+                    finalStatus = closing ? "interrupted" : "cancelled"
+                    if job.cancellation?.forced == true { job.error = Self.forcedStopMessage }
+                    else if closing { job.error = "程式關閉，工作已停止。" }
+                } else if result.exitCode == 0 { finalStatus = "completed"; job.error = nil }
+                else { finalStatus = "failed"; job.error = job.error ?? "rclone 結束代碼：\(result.exitCode)。請查看記錄。" }
             }
         } catch {
             stateLock.holding {
-                if running.cancel { job.status = closing ? "interrupted" : "cancelled"; job.error = closing ? "程式關閉，工作已停止。" : nil }
-                else { job.status = "failed"; job.error = error.localizedDescription }
+                if running.cancel {
+                    finalStatus = closing ? "interrupted" : "cancelled"
+                    if job.cancellation?.forced == true { job.error = Self.forcedStopMessage }
+                    else if closing { job.error = "程式關閉，工作已停止。" }
+                }
+                else { finalStatus = "failed"; job.error = error.localizedDescription }
             }
         }
+        if let report = report {
+            do {
+                try report.pollComparisons(final: true)
+                try report.flush()
+            } catch {
+                stateLock.holding {
+                    job.error = "逐檔報告無法完整保存：\(error.localizedDescription)"
+                    if finalStatus == "completed" { finalStatus = "failed" }
+                }
+            }
+            publishReport(report, job: job)
+        }
         stateLock.holding {
+            // Publish a terminal status only after both process pipes and the
+            // complete per-file report have drained. A finished row must not
+            // briefly show an incomplete report or zero completed throughput.
+            job.status = finalStatus
             job.endedAt = EngineJSON.now()
+            if running.cancel { job.cancellation?.processExited = true }
             job.stats = job.progress.finish(job.stats, completed: job.status == "completed")
         }
         do {
             let (message, level): (String, String) = stateLock.holding {
                 let text = job.status == "completed" ? (job.request.dryRun ? "預演完成，檔案未變更。" : "工作完成。")
-                    : job.status == "cancelled" ? "已取消。已完成的檔案變更不會復原。" : job.error ?? "工作已結束。"
+                    : job.status == "cancelled" ? Self.cancelledMessage : job.error ?? "工作已結束。"
                 return (text, job.status == "failed" ? "error" : "info")
             }
             try appLog(job, running: running, level: level, message: message)
@@ -741,8 +877,19 @@ final class RcloneEngine {
             let text = parsed == nil ? String(decoding: try EngineJSON.data(raw), as: UTF8.self) : line
             try running.log?.append(text)
         } catch {
-            let child = stateLock.holding { running.failure = "無法儲存記錄：\(error.localizedDescription)"; return running.child }
-            if let child = child { Self.kill(child, signal: SIGKILL) }; return
+            outputFailure("無法儲存記錄：\(error.localizedDescription)", job: job, running: running)
+            return
+        }
+        if let report = stateLock.holding({ transferReports[job.id] }) {
+            do {
+                try report.consume(raw, dryRun: job.request.dryRun)
+                if raw["stats"] != nil { try report.pollComparisons() }
+            } catch {
+                reportFailure(error, job: job, running: running)
+            }
+            if raw["stats"] != nil || ["error", "fatal", "alert", "emergency"].contains((raw["level"] as? String ?? "").lowercased()) {
+                publishReport(report, job: job)
+            }
         }
         stateLock.holding {
             if let stats = raw["stats"] as? [String: Any] {
@@ -759,6 +906,40 @@ final class RcloneEngine {
             }
         }
         notify(job.id)
+    }
+
+    private func consumeComparisonLine(_ line: String, terminated: Bool, report: EngineTransferReport, job: EngineJob, running: EngineActiveJob) {
+        do {
+            try report.consumeComparisonLine(line, terminated: terminated)
+        } catch { reportFailure(error, job: job, running: running) }
+        // Comparison output can contain hundreds of thousands of unchanged
+        // files. Its writer batches bytes; publish counters with the existing
+        // one-second stderr statistics or the final drain, not once per path.
+    }
+
+    private func publishReport(_ report: EngineTransferReport, job: EngineJob) {
+        let summary = report.summary
+        stateLock.holding {
+            // The two pipes drain concurrently. An earlier snapshot must not
+            // replace newer counters just because its callback acquired the
+            // state lock later; the report's append sequence is monotonic.
+            if EngineJSON.number(summary["eventCount"]) >= EngineJSON.number(job.report?["eventCount"]) { job.report = summary }
+        }
+    }
+
+    private func reportFailure(_ error: Error, job: EngineJob, running: EngineActiveJob) {
+        outputFailure("逐檔報告無法完整保存：\(error.localizedDescription)", job: job, running: running)
+    }
+
+    private func outputFailure(_ message: String, job: EngineJob, running: EngineActiveJob) {
+        let child = stateLock.holding { () -> Process? in
+            if running.failure == nil { running.failure = message }
+            if !EngineJob.terminal.contains(job.status) { job.status = "cancelling" }
+            return running.child
+        }
+        // Preserve rclone's own partial-upload cleanup path if a report cannot
+        // be written; never remove transfer destination files.
+        if let child = child { requestStop(child) }
     }
 
     private func appLog(_ job: EngineJob, running: EngineActiveJob?, level: String, message: String) throws {
@@ -792,13 +973,17 @@ final class RcloneEngine {
                     self.stateLock.holding { self.persistScheduled = false }
                     do { try self.persist() }
                     catch {
-                        self.stateLock.holding {
+                        let children: [Process] = self.stateLock.holding {
+                            var children: [Process] = []
                             for (id, running) in self.active {
-                                running.failure = "無法儲存工作狀態：\(error.localizedDescription)"
-                                if let child = running.child { Self.kill(child, signal: SIGKILL) }
+                                if running.failure == nil { running.failure = "無法儲存工作狀態：\(error.localizedDescription)" }
+                                if let child = running.child { children.append(child) }
                                 self.jobs[id]?.error = running.failure
+                                if let job = self.jobs[id], !EngineJob.terminal.contains(job.status) { job.status = "cancelling" }
                             }
+                            return children
                         }
+                        for child in children { self.requestStop(child) }
                     }
                 }
             }
@@ -809,16 +994,33 @@ final class RcloneEngine {
     private func listTasks() -> [[String: Any]] { stateLock.holding { tasks.values.sorted { $0.updatedAt > $1.updatedAt }.map(\.json) } }
 
     private func cancelJob(_ id: String) throws {
-        let running: EngineActiveJob? = try stateLock.holding {
+        let result: (EngineActiveJob?, Process?) = try stateLock.holding {
             guard let job = jobs[id] else { throw EngineError("找不到這項工作。") }
-            if EngineJob.terminal.contains(job.status) { return nil }
-            if job.status == "queued" { job.status = "cancelled"; job.endedAt = EngineJSON.now(); return nil }
-            guard let running = active[id] else { return nil }
-            running.cancel = true; job.status = "cancelling"; if let child = running.child { Self.stop(child) }; return running
+            let running = markCancellation(job)
+            return (running, running?.child)
         }
         notify(id, immediate: true)
-        running?.done.wait()
+        if let child = result.1 { requestStop(child) }
+        if let running = result.0, running.done.wait(timeout: .now() + Self.stopWaitLimit) == .timedOut {
+            try persist()
+            throw EngineError("rclone 尚未停止，工作仍保留。請查看工作狀態。")
+        }
         try persist()
+    }
+
+    /// Call while holding stateLock. Mark the whole chosen batch before sending
+    /// any signals, so pump() cannot start another chosen queued job meanwhile.
+    private func markCancellation(_ job: EngineJob) -> EngineActiveJob? {
+        guard !EngineJob.terminal.contains(job.status) else { return nil }
+        if job.status == "queued" {
+            job.status = closing ? "interrupted" : "cancelled"; job.endedAt = EngineJSON.now()
+            job.stats = EngineStatistics.finished(job.stats, completed: false)
+            return nil
+        }
+        guard let running = active[job.id] else { return nil }
+        running.cancel = true; job.status = "cancelling"
+        if job.cancellation == nil { job.cancellation = EngineJobCancellation() }
+        return running
     }
 
     private func retryJob(_ id: String) throws -> [String: Any] {
@@ -831,18 +1033,76 @@ final class RcloneEngine {
     }
 
     private func clearFinishedJobs() throws {
-        let ids = stateLock.holding { jobOrder.filter { id in jobs[id].map { EngineJob.terminal.contains($0.status) && active[id] == nil } ?? false } }
-        for id in ids {
-            for item in try FileManager.default.contentsOfDirectory(at: logDirectory, includingPropertiesForKeys: nil) {
-                let name = item.lastPathComponent
-                if name == id + ".jsonl" || name.hasPrefix(id + ".jsonl.") || name == id + ".export.jsonl" { try FileManager.default.removeItem(at: item) }
+        let ids = stateLock.holding { jobOrder.filter { id in jobs[id].map { EngineJob.terminal.contains($0.status) } ?? false } }
+        _ = try clearJobs(["ids": ids, "mode": "finished"])
+    }
+
+    private func clearJobs(_ value: Any) throws -> [String: Any] {
+        let raw = try EngineJSON.dictionary(value, "工作清理設定格式不正確。")
+        guard let rawIDs = raw["ids"] as? [String], rawIDs.count <= 10000,
+              rawIDs.allSatisfy(EngineJSON.validID), let mode = raw["mode"] as? String,
+              ["finished", "stop-and-clear"].contains(mode), Set(raw.keys).isSubset(of: ["ids", "mode"]) else {
+            throw EngineError("工作清理需要有效的工作編號與清理方式。")
+        }
+        var seen = Set<String>()
+        let ids = rawIDs.map { $0.lowercased() }.filter { seen.insert($0).inserted }
+        let snapshot: [(String, EngineJob, EngineActiveJob?, Process?)] = stateLock.holding {
+            ids.compactMap { id in
+                guard let job = jobs[id], !EngineJob.terminal.contains(job.status), mode == "stop-and-clear" else { return nil }
+                let running = markCancellation(job)
+                return (id, job, running, running?.child)
             }
         }
-        stateLock.holding {
-            for id in ids { jobs.removeValue(forKey: id); scheduledNotifications[id]?.cancel(); scheduledNotifications.removeValue(forKey: id) }
-            let deleted = Set(ids); jobOrder.removeAll { deleted.contains($0) }
+        let finishing: [EngineActiveJob] = stateLock.holding {
+            ids.compactMap { id in
+                guard jobs[id].map({ EngineJob.terminal.contains($0.status) }) == true else { return nil }
+                return active[id]
+            }
         }
-        try persist()
+        for (id, _, _, _) in snapshot { notify(id, immediate: true) }
+        for (_, _, _, child) in snapshot { if let child = child { requestStop(child) } }
+        let deadline = DispatchTime.now() + Self.stopWaitLimit
+        // A terminal status can appear briefly while its final log is flushing.
+        // Let that worker finish before removing history, without signalling it.
+        for running in finishing { _ = running.done.wait(timeout: deadline) }
+        for (_, _, running, _) in snapshot { if let running = running { _ = running.done.wait(timeout: deadline) } }
+
+        let result: [String: Any] = try storageLock.holding {
+            try stateLock.holding {
+                let retained = ids.filter { id in jobs[id].map { !EngineJob.terminal.contains($0.status) || active[id] != nil } ?? false }
+                let retainedSet = Set(retained)
+                // Already-removed IDs are reported as removed too, making a
+                // repeated confirmation safe and allowing the UI to discard a
+                // stale row without affecting a newly-created UUID.
+                let removed = ids.filter { !retainedSet.contains($0) }
+                let removedSet = Set(removed)
+                let newOrder = jobOrder.filter { !removedSet.contains($0) }
+                // Commit metadata before removing memory entries or owned logs.
+                // A storage failure preserves the visible history for retry.
+                try EngineStorage.atomicJSON(newOrder.compactMap { jobs[$0]?.json }, to: stateDirectory.appendingPathComponent("jobs.json"))
+                for id in removed {
+                    jobs.removeValue(forKey: id)
+                    scheduledNotifications[id]?.cancel(); scheduledNotifications.removeValue(forKey: id)
+                }
+                jobOrder = newOrder
+                return ["removedIds": removed, "retainedIds": retained,
+                        "stoppedIds": snapshot.filter { EngineJob.terminal.contains($0.1.status) }.map { $0.0 },
+                        "forcedStopIds": snapshot.filter { $0.1.cancellation?.forced == true }.map { $0.0 }]
+            }
+        }
+        removeOwnedLogs(result["removedIds"] as? [String] ?? [])
+        return result
+    }
+
+    /// Only app-owned log paths are removed. Transfer destination files and
+    /// backend temporary objects are exclusively rclone's responsibility.
+    private func removeOwnedLogs(_ ids: [String]) {
+        for id in ids where EngineJSON.validID(id) {
+            for suffix in [".jsonl", ".jsonl.1", ".jsonl.2", ".jsonl.3", ".jsonl.4", ".export.jsonl"] {
+                try? FileManager.default.removeItem(at: logDirectory.appendingPathComponent(id + suffix))
+            }
+            try? EngineTransferReport.remove(directory: logDirectory, id: id)
+        }
     }
 
     private func saveTask(name: String, value: Any, id: String?) throws -> [String: Any] {
@@ -905,20 +1165,23 @@ final class RcloneEngine {
         let language = try EngineJSON.text(merged["language"], "語言")
         var theme = try EngineJSON.text(merged["theme"], "外觀")
         theme = ["dark": "blue-dark", "light": "blue-light", "system": "purple-dark"][theme] ?? theme
-        guard ["system", "zh-TW", "en", "ja"].contains(language), ["purple-dark", "purple-light", "blue-dark", "blue-light"].contains(theme) else {
+        guard ["system", "zh-TW", "en", "ja"].contains(language), ["purple-dark", "purple-light", "blue-dark", "blue-light", "green-dark", "green-light"].contains(theme) else {
             throw EngineError("語言或外觀設定不正確。")
         }
         output["language"] = language; output["theme"] = theme
+        let interfaceScale = try EngineJSON.integer(merged["interfaceScale"], "介面比例", 80...125)
+        guard [80, 90, 100, 110, 125].contains(interfaceScale) else { throw EngineError("介面比例只能選擇 80%、90%、100%、110% 或 125%。") }
+        output["interfaceScale"] = interfaceScale
         output["autoCheckUpdates"] = try EngineJSON.bool(merged["autoCheckUpdates"], "啟動時檢查更新")
         for key in ["showStatusItem", "notifyOnCompletion", "showHiddenFiles", "showFolderIcons", "showFileIcons", "alternatingRows"] {
             output[key] = try EngineJSON.bool(merged[key], "介面設定")
         }
         output["skippedRcloneVersion"] = try EngineJSON.text(merged["skippedRcloneVersion"], "略過版本", maximum: 128)
         output["settingsRevision"] = try EngineJSON.integer(merged["settingsRevision"], "設定版本", 0...9007199254740990)
-        output["settingsSchemaVersion"] = 5
+        output["settingsSchemaVersion"] = 6
         output["maxConcurrentJobs"] = try EngineJSON.integer(merged["maxConcurrentJobs"], "同時執行的工作數", 0...128)
-        guard let hidden = merged["hiddenBuiltinPresets"] as? [String], hidden.count <= 3,
-              Set(hidden).isSubset(of: ["local-nas", "nas-cloud", "local-cloud"]) else {
+        guard let hidden = merged["hiddenBuiltinPresets"] as? [String], hidden.count <= 6,
+              Set(hidden).isSubset(of: ["local-nas", "nas-cloud", "local-cloud", "local-local", "cloud-cloud", "cloud-local"]) else {
             throw EngineError("內建方案設定格式不正確。")
         }
         output["hiddenBuiltinPresets"] = Array(Set(hidden)).sorted()
@@ -1085,14 +1348,44 @@ final class RcloneEngine {
         return try writer?.exportPath() ?? EngineLogWriter.exportPath(directory: logDirectory, id: id)
     }
 
+    private func getJobReport(_ id: String, query: Any) throws -> [String: Any] {
+        let parameters = try EngineJSON.dictionary(query, "逐檔報告查詢格式不正確。")
+        guard Set(parameters.keys).isSubset(of: ["category", "cursor", "limit"]) else { throw EngineError("逐檔報告查詢格式不正確。") }
+        let category = try EngineJSON.text(parameters["category"] ?? "all", "報告分類")
+        guard ["all", "success", "errors", "skipped", "comparison"].contains(category) else { throw EngineError("逐檔報告分類不正確。") }
+        let cursor = try EngineJSON.integer(parameters["cursor"] ?? 0, "報告位置", 0...9000000000000000)
+        let limit = try EngineJSON.integer(parameters["limit"] ?? 100, "每頁筆數", 1...200)
+        let writer: EngineTransferReport? = try stateLock.holding {
+            guard EngineJSON.validID(id), jobs[id] != nil else { throw EngineError("找不到這項工作的記錄。") }
+            return transferReports[id]
+        }
+        // A page is an explicit UI request, never a directory scan or a poll of
+        // transfer files. Flush only app-owned report buffers before reading it.
+        try writer?.flushVisible()
+        var page = try EngineTransferReport.page(directory: logDirectory, id: id, category: category, cursor: Int64(cursor), limit: limit)
+        if let writer = writer { page["summary"] = writer.summary }
+        else if let summary = stateLock.holding({ jobs[id]?.report }) { page["summary"] = summary }
+        return page
+    }
+
+    private func getJobReportPath(_ id: String, format: String) throws -> String {
+        guard ["jsonl", "comparison"].contains(format) else { throw EngineError("逐檔報告格式不正確。") }
+        let writer: EngineTransferReport? = try stateLock.holding {
+            guard EngineJSON.validID(id), jobs[id] != nil else { throw EngineError("找不到這項工作的記錄。") }
+            return transferReports[id]
+        }
+        if let writer = writer { return try writer.exportPath(format: format) }
+        return try EngineTransferReport.exportPath(directory: logDirectory, id: id, format: format)
+    }
+
     private func persist() throws {
         try storageLock.holding {
             let values: ([String: Any], [[String: Any]], [[String: Any]], [String]) = stateLock.holding {
-                // Keep the 200 most recently ended jobs. Pending jobs and active
-                // processes are never evicted, and history cannot block a new
-                // transfer. Saved tasks live in their own independent collection.
+                // Keep the 200 most recent completed/failed/cancelled jobs.
+                // Interrupted requests, pending jobs and active processes are
+                // never evicted. Saved tasks have an independent collection.
                 let completed = jobOrder.enumerated().filter { _, id in
-                    active[id] == nil && jobs[id].map { EngineJob.terminal.contains($0.status) } == true
+                    active[id] == nil && jobs[id].map { EngineJob.automaticallyPrunable.contains($0.status) } == true
                 }.sorted {
                     let first = jobs[$0.element]!, second = jobs[$1.element]!
                     let firstEnd = first.endedAt ?? first.createdAt, secondEnd = second.endedAt ?? second.createdAt
@@ -1112,11 +1405,7 @@ final class RcloneEngine {
             try EngineStorage.atomicJSON(values.2, to: stateDirectory.appendingPathComponent("tasks.json"))
             // Log retention is best-effort after committing history. Failure to
             // remove an old log must never cancel an unrelated running transfer.
-            for id in values.3 {
-                for suffix in [".jsonl", ".jsonl.1", ".jsonl.2", ".jsonl.3", ".jsonl.4", ".export.jsonl"] {
-                    try? FileManager.default.removeItem(at: logDirectory.appendingPathComponent(id + suffix))
-                }
-            }
+            removeOwnedLogs(values.3)
         }
     }
 
@@ -1125,12 +1414,12 @@ final class RcloneEngine {
             closing = true
             for item in scheduledNotifications.values { item.cancel() }; scheduledNotifications.removeAll()
             for job in jobs.values {
-                if let running = active[job.id] { running.cancel = true }
+                if active[job.id] != nil { _ = markCancellation(job) }
                 else if job.status == "queued" { job.status = "interrupted"; job.endedAt = EngineJSON.now(); job.error = "程式關閉，排隊工作未執行。" }
             }
             return Array(captureChildren.values)
         }
-        for child in children { Self.stop(child) }
+        for child in children { requestStop(child) }
         let running = stateLock.holding { Array(active.values) }
         for item in running { item.done.wait() }
         stateLock.holding { configPassword = nil }

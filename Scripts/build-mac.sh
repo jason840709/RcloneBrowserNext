@@ -60,6 +60,8 @@ done
 [[ "${#RBN_MAC_SOURCES[@]}" -gt 0 ]] || rbn_fail '來源包缺少 Sources/Mac 的 Swift 檔案。' 2
 for RBN_REQUIRED_FILE in "$RBN_PROJECT_ROOT/Resources/Info.plist" \
   "$RBN_PROJECT_ROOT/Resources/AppIcon.icns" \
+  "$RBN_PROJECT_ROOT/Resources/AppIcon-blue.icns" \
+  "$RBN_PROJECT_ROOT/Resources/AppIcon-green.icns" \
   "$RBN_PROJECT_ROOT/Resources/Web/index.html"; do
   [[ -s "$RBN_REQUIRED_FILE" && ! -L "$RBN_REQUIRED_FILE" ]] || rbn_fail "來源包缺少必要檔案：$RBN_REQUIRED_FILE" 2
 done
@@ -99,6 +101,8 @@ printf '目標版本：macOS %s 以上\n' "$RBN_MINIMUM_MACOS"
 # newly built product. Do not clear quarantine on the source folder or system.
 /bin/cp -X "$RBN_PROJECT_ROOT/Resources/Info.plist" "$RBN_STAGE_APP/Contents/Info.plist"
 /bin/cp -X "$RBN_PROJECT_ROOT/Resources/AppIcon.icns" "$RBN_STAGE_APP/Contents/Resources/AppIcon.icns"
+/bin/cp -X "$RBN_PROJECT_ROOT/Resources/AppIcon-blue.icns" "$RBN_STAGE_APP/Contents/Resources/AppIcon-blue.icns"
+/bin/cp -X "$RBN_PROJECT_ROOT/Resources/AppIcon-green.icns" "$RBN_STAGE_APP/Contents/Resources/AppIcon-green.icns"
 /bin/cp -R -X "$RBN_PROJECT_ROOT/Resources/Web" "$RBN_STAGE_APP/Contents/Resources/Web"
 if [[ -f "$RBN_PROJECT_ROOT/LICENSE" && ! -L "$RBN_PROJECT_ROOT/LICENSE" ]]; then
   /bin/cp -X "$RBN_PROJECT_ROOT/LICENSE" "$RBN_STAGE_APP/Contents/Resources/LICENSE.txt"

@@ -16,8 +16,8 @@ Next 由 Jason Chen 獨立發布。上述致謝不表示原作者參與、認可
 ## 程式與視覺資源
 
 - 本專案程式：[MIT License](../LICENSE)。
-- 應用圖示：Jason Chen 提供的 v2 圖示，包含修正後的蛇眼睛；首頁與 App 均使用此版本。
-- 目前首頁截圖：0.5.0 正式前端在測試環境中產生的畫面，使用示意帳號及路徑，不包含使用者的私人檔案資料，也不是原生 macOS 視窗截圖。
+- 應用圖示：Jason Chen 提供的 v2 圖示，包含修正後的蛇眼睛；首頁與 App 均使用此版本。藍、綠變體沿用相同的幾何圖形與各尺寸光學調整，只改配色；生成來源位於 `WebSource/assets/icons` 與 `WebSource/tools/generate-theme-icons.py`。
+- 目前首頁截圖：正式前端在測試環境中產生的中、英文畫面，使用示意帳號及路徑，不包含使用者的私人檔案資料，也不是原生 macOS 視窗截圖。
 - 0.4.0 舊版截圖留作版本參考，不代表目前介面。
 - 前端套件：[正式 Web 聲明](../Resources/Web/THIRD_PARTY_NOTICES.txt) 與 [開發來源聲明](../WebSource/THIRD_PARTY_NOTICES.txt)。
 

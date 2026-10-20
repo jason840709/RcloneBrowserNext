@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="1024" height="1024" viewBox="0 0 1024 1024" role="img" aria-labelledby="title desc">
+<title id="title">Rclone Browser Next — 三重對稱粉紫蛇圖示</title>
+<desc id="desc">單一向量蛇形連同眼睛與規則鱗片，旋轉零、一百二十、二百四十度；背景及環內皆透明。</desc>
+<defs>
+<path id="body" d="M 188 375 C 181 290 211 207 270 143 C 330 78 409 41 492 36 C 577 29 660 59 721 120 C 779 179 810 260 808 344 C 807 420 781 489 731 536 C 709 557 681 570 654 584 C 637 593 624 606 611 608 C 597 611 574 595 567 582 C 561 571 568 545 573 520 C 577 500 575 474 585 453 C 597 430 619 414 637 397 C 657 377 667 357 666 335 C 664 273 610 224 547 213 C 485 202 427 220 393 266 C 376 289 369 319 369 353 C 309 347 248 355 188 375 Z"/>
+<clipPath id="body-clip"><use xlink:href="#body"/></clipPath>
+<g id="canonical-snake" stroke-linecap="round" stroke-linejoin="round">
+<use xlink:href="#body"/>
+<use xlink:href="#body" fill="none" stroke="currentColor" stroke-width="16.0"/>
+<g id="eyes" fill="currentColor" stroke="none">
+<path d="M 612.544 469.785 C 597.810 487.431 608.282 508.729 598.568 534.289 C 620.665 517.074 624.660 493.356 612.544 469.785 Z"/>
+<path d="M 705.970 517.307 C 693.047 541.325 667.278 539.442 648.047 556.612 C 659.886 522.723 682.005 521.731 705.970 517.307 Z"/>
+</g></g></defs>
+<g id="icon" transform="translate(66.4 41.3) scale(0.9)">
+<use id="snake-light" xlink:href="#canonical-snake" transform="rotate(0 500.0 580.0)" fill="#D6C9E7" color="#3E2D50" stroke="#68517C" stroke-width="0"/>
+<use id="snake-medium" xlink:href="#canonical-snake" transform="rotate(120 500.0 580.0)" fill="#AD91C2" color="#3E2D50" stroke="#59416C" stroke-width="0"/>
+<use id="snake-dark" xlink:href="#canonical-snake" transform="rotate(240 500.0 580.0)" fill="#7D6391" color="#352440" stroke="#432E54" stroke-width="0"/>
+</g>
+</svg>

@@ -19,7 +19,7 @@ rbn_start_log test
 # Every suite has its own @main. Keep each executable separate and use only
 # Apple's already-installed tools. All compiled tests and data stay here.
 RBN_TEST_RUN="$(/usr/bin/mktemp -d "$RBN_CACHE_ROOT/tests/run.XXXXXX")"
-RBN_TEST_SUITES=(CoreTests UpdaterTests ToolsTests NativeMessagesTests FinderDropTests AppReleaseTests)
+RBN_TEST_SUITES=(CoreTests UpdaterTests ToolsTests NativeMessagesTests FinderDropTests AppReleaseTests TransferReportTests)
 for RBN_TEST_SUITE in "${RBN_TEST_SUITES[@]}"; do
   RBN_TEST_SOURCE="$RBN_PROJECT_ROOT/Tests/$RBN_TEST_SUITE.swift"
   [[ -s "$RBN_TEST_SOURCE" && ! -L "$RBN_TEST_SOURCE" ]] || rbn_fail "來源包缺少測試檔案：$RBN_TEST_SOURCE" 2
@@ -40,4 +40,24 @@ for RBN_TEST_SUITE in "${RBN_TEST_SUITES[@]}"; do
   /usr/bin/codesign --verify --strict "$RBN_TEST_RUN/$RBN_TEST_SUITE"
   "$RBN_TEST_RUN/$RBN_TEST_SUITE" "$RBN_TEST_ENGINE" "$RBN_SUITE_WORK"
 done
+
+# Native zoom and event coordinates need the actual macOS WebKit engine. This
+# small local document uses no network, test framework, or extra dependency.
+RBN_NATIVE_SUITE=MacInterfaceTests
+RBN_NATIVE_SOURCE="$RBN_PROJECT_ROOT/Tests/$RBN_NATIVE_SUITE.swift"
+[[ -s "$RBN_NATIVE_SOURCE" && ! -L "$RBN_NATIVE_SOURCE" ]] || rbn_fail "來源包缺少測試檔案：$RBN_NATIVE_SOURCE" 2
+printf '\n測試：%s\n' "$RBN_NATIVE_SUITE"
+"$RBN_SWIFTC" -swift-version 5 -parse-as-library -O \
+  -no-toolchain-stdlib-rpath \
+  -module-name "RcloneBrowserNext$RBN_NATIVE_SUITE" \
+  -target "$RBN_TARGET_ARCH-apple-macosx$RBN_MINIMUM_MACOS" \
+  -sdk "$RBN_SDK" \
+  -module-cache-path "$SWIFT_MODULECACHE_PATH" \
+  -Xcc "-fmodules-cache-path=$CLANG_MODULE_CACHE_PATH" \
+  "$RBN_PROJECT_ROOT/Sources/Mac/RcloneWebView.swift" "$RBN_NATIVE_SOURCE" \
+  -framework Foundation -framework AppKit -framework WebKit \
+  -o "$RBN_TEST_RUN/$RBN_NATIVE_SUITE"
+/usr/bin/codesign --force --sign - --timestamp=none "$RBN_TEST_RUN/$RBN_NATIVE_SUITE"
+/usr/bin/codesign --verify --strict "$RBN_TEST_RUN/$RBN_NATIVE_SUITE"
+"$RBN_TEST_RUN/$RBN_NATIVE_SUITE" "$RBN_PROJECT_ROOT/Resources"
 printf '\n測試資料與執行結果保留在：%s\n' "$RBN_TEST_RUN"

@@ -1,0 +1,419 @@
+{
+  "version": "0.6.0",
+  "recorded_at_utc": "2026-10-20T12:19:43.957998+00:00",
+  "core": {
+    "verified_at_utc": "2026-10-20T12:13:36.680671+00:00",
+    "compile_exit": 0,
+    "compile_seconds": 49.776,
+    "compile_warnings": 0,
+    "platform": "Linux x86_64, Swift 6.0.3, rclone 1.75.2",
+    "test_exit": 0,
+    "test_seconds": 42.27,
+    "summary": [
+      "RESULT: 56 passed, 0 failed, 0 skipped"
+    ],
+    "passed": 56,
+    "failed": 0,
+    "skipped": 0,
+    "benchmark": [
+      "BENCHMARK: 10000 counter snapshots 0.085641 seconds; peak bound 64 samples"
+    ],
+    "source_sha256": {
+      "Sources/Core/AppReleaseChecker.swift": "7359feab9b081d65ea37422837898e94a3b1c9d312a45787ce621b65ab816350",
+      "Sources/Core/EngineModels.swift": "919d7c835d9da69ef93e9149e6dc2dfbe5e1b910f1a5b280f4a46e12de38d12e",
+      "Sources/Core/EngineStorage.swift": "5eb0d943b00c045a20e005479f28e38a06d4f29679c582622dc2f4860229b293",
+      "Sources/Core/FinderDrop.swift": "823f46456e89a5c1672e8b5b61f64dca17e94b75a957017a4e3c081047c29fee",
+      "Sources/Core/LanguageResolver.swift": "35c1eb275e9eda6458af756e9fd3502d459c81a2647df6458f4b51d68beaff4c",
+      "Sources/Core/NativeMessages.swift": "81d40dbdd566eff586103c06710a91918ab999a76f3e903bf2cde0ca59734c0e",
+      "Sources/Core/RcloneEngine.swift": "481fdf574691d6cdbba37b625d04d2410c91d1b63f046e4b6a5743bac8b9253a",
+      "Sources/Core/RcloneTools.swift": "093bf6e73c861a6d7976b23f4bd6c541483255aa25e8fc220f18f4255cc53dba",
+      "Sources/Core/RcloneUpdater.swift": "616ccbb4ee8bd85e0a8fd36ee6eb04e7ae5bcecf1c023c22c09b221ac7be221d",
+      "Sources/Core/TransferReport.swift": "d082b039071f20ee35e8955c9b2fd4a88aec5c9ca3a99613aceb52bb1844ebcd",
+      "Tests/CoreTests.swift": "a4afaeee5cd029c4c2d77fa6678c35cba156bd59b5d8460e0aee73570303e5d5"
+    },
+    "owned_source_sha256": {
+      "Sources/Core/EngineModels.swift": "919d7c835d9da69ef93e9149e6dc2dfbe5e1b910f1a5b280f4a46e12de38d12e",
+      "Sources/Core/RcloneEngine.swift": "481fdf574691d6cdbba37b625d04d2410c91d1b63f046e4b6a5743bac8b9253a",
+      "Tests/CoreTests.swift": "a4afaeee5cd029c4c2d77fa6678c35cba156bd59b5d8460e0aee73570303e5d5"
+    },
+    "source_unchanged": true,
+    "tests": [
+      "local browsing and file operations work without rclone",
+      "unsafe paths, flags and sync selections are rejected",
+      "all comparison modes and transfer controls produce bounded shell-free arguments",
+      "automatic modification tolerance uses known local volume precision and preserves explicit options and remote semantics",
+      "system language resolves Chinese variants and Japanese consistently with bootstrap",
+      "0.4 migration removes the old default queue limit once and preserves explicit choices",
+      "0.5 upgrades legacy global defaults once while retaining saved task and workspace snapshots",
+      "hidden built-in presets persist independently of transfers and reject unrecognized values",
+      "remembered workspace round-trips every option atomically without selecting files or starting jobs",
+      "location discovery exposes available folders and mounted-volume metadata without creating folders",
+      "rclone network settings validate real flags and preserve independent nested patches",
+      "settings migrate old themes and preserve language, path, skip and both pane widths across patches",
+      "0.6 interface scale and green themes persist independently and reject unsupported values atomically",
+      "startup clears only successful history while preserving failed and unfinished requests and their logs",
+      "more than 200 interrupted requests survive startup and shutdown independently of ended-history retention",
+      "ID-scoped history clearing is validated, repeatable and preserves history when disk replacement fails",
+      "concurrent settings patches are serialized and failed persistence never publishes a partial change",
+      "same, ancestor and symlink-overlapping local endpoints are rejected",
+      "JSON statistics keep unknown ETA and growing scan totals",
+      "native-copy JSON with zero rclone speed produces rolling throughput and ETA without disabling acceleration",
+      "rolling rate uses the most recent minute, handles a full stall, and bounds memory under repeated updates",
+      "statistics recover from counter resets and missing elapsed fields without negative rates or clock spikes",
+      "tiny-file ETA uses completed file counts and finished history retains an overall byte rate",
+      "saved tasks import atomically with new identities; restart never starts jobs",
+      "editing saved tasks preserves identity and the full request including direction and selection",
+      "legacy move-update tasks remain visible with an error and retain their original choices after restart",
+      "an unresponsive process stays cancelling until escalation confirms exit and retains a forced-stop diagnostic",
+      "maintenance excludes rclone calls but permits local browsing",
+      "real rclone networking honors loopback binding, user agent, TPS pacing and per-task overrides",
+      "unlimited scheduling is immediate and 200 ended jobs never block or evict active jobs or saved tasks",
+      "running a saved task as a dry run preserves the saved request and its direction",
+      "a confirmed full request keeps its deletion limit and filters after global defaults change",
+      "five comparison choices and explicit retransfer make distinct real copy decisions",
+      "NAS local-hash policy detects same-size newer changes and skips unchanged repeat without forcing size-only",
+      "actual engine argv avoids NAS-content read with local-hashes none; ignore-checksum alone still reads",
+      "sync honors before, during and after deletion plus explicit delete-excluded",
+      "real min/max size, age and depth filters restrict both local and alias-backed transfers",
+      "skip existing preserves source moves; skip newer is copy-only; no-update-modtime preserves unchanged dates",
+      "choosing an engine waits for an in-flight operation and refreshes its environment in the same save",
+      "updater commit and concurrent appearance patches cannot clear the selected engine or restore a skipped version",
+      "manual proxy context, safe global options and persisted transfer defaults use the selected process context",
+      "real copies cover local/local, local/remote, remote/local and remote/remote endpoints",
+      "real dry run changes no files; literal special names copy precisely",
+      "selected folders intersect include/exclude rules without widening",
+      "selected-folder sync mirrors same-name child folders and preserves every unselected destination scope",
+      "selected sync combines includes with both source and destination paths so stale matching files are deleted",
+      "selected sync includes safely create a missing destination without treating other listing failures as empty",
+      "repeated sync transfers zero unchanged bytes and tolerates explicit timestamp precision without using size-only",
+      "independent per-file reports preserve early errors, all retries and paginated successes beyond the ordinary log tail",
+      "real sync previews deletion, obeys max-delete and preserves exclusions",
+      "real move and remote alias rename preserve empty folders",
+      "stale selections fail instead of copying the whole source",
+      "real rate-limited jobs report speed/ETA; queue=2; cancel and maintenance are exclusive",
+      "real SIGINT removes its manual-copy partial while preserving completed files and any previous destination version",
+      "bulk stop uses confirmation IDs atomically and never starts cancelled queued jobs or erases newer jobs",
+      "config passwords stay in memory; inherited RCLONE flags cannot change transfer semantics"
+    ],
+    "cancellation_evidence": {
+      "forced_supervisor": {
+        "status": "cancelled",
+        "exitCode": 9,
+        "cancellation": {
+          "forced": true,
+          "lastSignal": "SIGKILL",
+          "processExited": true,
+          "requestedAt": "2026-10-20T12:11:16Z"
+        }
+      },
+      "manual_copy_new_destination": {
+        "status": "cancelled",
+        "exitCode": 130,
+        "cancellation": {
+          "forced": false,
+          "lastSignal": "SIGINT",
+          "processExited": true,
+          "requestedAt": "2026-10-20T12:11:52Z"
+        }
+      },
+      "manual_copy_previous_destination": {
+        "status": "cancelled",
+        "exitCode": 130,
+        "cancellation": {
+          "forced": false,
+          "lastSignal": "SIGINT",
+          "processExited": true,
+          "requestedAt": "2026-10-20T12:11:54Z"
+        }
+      }
+    },
+    "contracts": {
+      "settingsSchemaVersion": 6,
+      "interfaceScale": {
+        "default": 100,
+        "accepted": [
+          80,
+          90,
+          100,
+          110,
+          125
+        ]
+      },
+      "newThemes": [
+        "green-dark",
+        "green-light"
+      ],
+      "startup_history": "Remove completed only; queued/running/cancelling/paused become interrupted without starting work; failed/cancelled/interrupted are retained.",
+      "automatic_retention": "Retain all interrupted requests independently; limit completed/failed/cancelled history to the latest 200 entries.",
+      "clearJobs": {
+        "request": {
+          "ids": "confirmation-time UUID snapshot",
+          "mode": [
+            "finished",
+            "stop-and-clear"
+          ]
+        },
+        "result": [
+          "removedIds",
+          "retainedIds",
+          "stoppedIds",
+          "forcedStopIds"
+        ],
+        "removes_destination_files": false
+      },
+      "cancellation": {
+        "first_signal": "SIGINT",
+        "interrupt_grace_seconds": 10,
+        "second_signal": "SIGTERM",
+        "terminate_grace_seconds": 2,
+        "last_signal": "SIGKILL",
+        "api_wait_limit_seconds": 15,
+        "cleanup_guaranteed": false
+      },
+      "hiddenBuiltinPresets": [
+        "local-nas",
+        "nas-cloud",
+        "local-cloud",
+        "local-local",
+        "cloud-cloud",
+        "cloud-local"
+      ],
+      "selected_sync": {
+        "source_selection": "Folders only; destination paths are same-name child folders; unselected destination scopes stay untouched.",
+        "selection_delete_excluded": "Rejected before process launch.",
+        "ordinary_filter": "Anchored, literal selected scopes followed by exclude-all, applied to both endpoints.",
+        "selection_with_includes": "A bounded metadata listing from both endpoints supplies the union of matching selected paths; this permits deletion of stale destination-only matches.",
+        "source_destination_union_limit": 250000,
+        "missing_destination": "Only rclone exit 3 (directory not found) is accepted as empty."
+      },
+      "automatic_modify_window": {
+        "manual_value_precedence": true,
+        "saved_blank_value_retained": true,
+        "actual_macos_filesystem_metadata": true,
+        "mapping": {
+          "msdos": "2s",
+          "hfs": "1s",
+          "exfat": "10ms"
+        },
+        "both_local_endpoints": "Choose the maximum known precision; find nearest existing ancestor for a missing target.",
+        "unmapped_apfs_smbfs_unknown": "Leave rclone native precision unchanged.",
+        "no_probe_file": true,
+        "no_automatic_size_only": true,
+        "no_clone_disabled": true,
+        "limitation": "A same-size change inside the chosen time tolerance may be skipped; macOS statfs branch awaits Mac CI execution."
+      },
+      "transfer_report": {
+        "rclone_arguments": [
+          "--use-json-log",
+          "--stats=1s",
+          "--combined=-"
+        ],
+        "comparison_input": "Separate stdout callback appends raw output across retries; stderr remains JSON logs/stats.",
+        "pagination": {
+          "categories": [
+            "all",
+            "success",
+            "errors",
+            "skipped",
+            "comparison"
+          ],
+          "limit_max": 200,
+          "cursor": "byte offset; complete line boundaries"
+        },
+        "export_formats": [
+          "jsonl",
+          "comparison"
+        ],
+        "export_snapshot": true,
+        "summary": "Event counts remain separate from rclone file counters; skippedFiles and failedFiles are unknown (null), not computed from checks.",
+        "per_comparison_notify": false,
+        "comparison_summary_frequency": "Existing stderr statistics about once per second and final pipe drain; explicit page reads use the writer snapshot.",
+        "write_failure": "Report, raw-log and persistence failures request graceful stop rather than directly killing the rclone child.",
+        "raw_line_limit": "Incomplete or malformed combined lines remain in raw export and are counted as a parsing limitation."
+      }
+    },
+    "scope": {
+      "real_rclone_manual_copy_test": true,
+      "force_signal_test_uses_controlled_unresponsive_process": true,
+      "production_apfs_acceleration_disabled": false,
+      "physical_nas_or_live_cloud_test": false,
+      "macos_gui_test": false,
+      "real_rclone_selected_folder_sync_test": true,
+      "real_rclone_repeat_sync_test": true,
+      "real_rclone_report_retry_test": true,
+      "timestamp_quantization_is_simulated": true,
+      "actual_external_volume_filesystem_test": false,
+      "copy_aliases_are_local_fixtures": true
+    },
+    "repeat_sync_evidence": {
+      "changedTransfers": 1,
+      "quantizedBytes": 0,
+      "unchangedBytes": 0,
+      "window": "10ms"
+    },
+    "report_evidence": {
+      "errorRecords": 6,
+      "exportedRecords": 855,
+      "pages": 4,
+      "status": "failed",
+      "successUniquePaths": 281,
+      "summary": {
+        "available": true,
+        "candidateEvents": 283,
+        "comparisonComplete": true,
+        "comparisonErrorEvents": 2,
+        "comparisonEvents": 568,
+        "comparisonMalformed": 0,
+        "comparisonPendingBytes": 0,
+        "copiedEvents": 281,
+        "deletedEvents": 0,
+        "errorEvents": 4,
+        "eventCount": 855,
+        "failedFiles": null,
+        "formatVersion": 1,
+        "informationEvents": 2,
+        "matchedEvents": 281,
+        "missingSourceEvents": 2,
+        "movedEvents": 0,
+        "plannedEvents": 0,
+        "skippedEvents": 0,
+        "skippedFiles": null,
+        "successEvents": 281,
+        "unattributedErrors": 2
+      }
+    },
+    "success": true
+  },
+  "transfer_report": {
+    "passed": 15,
+    "failed": 0,
+    "skipped": 0,
+    "source_sha256": {
+      "Sources/Core/TransferReport.swift": "d082b039071f20ee35e8955c9b2fd4a88aec5c9ca3a99613aceb52bb1844ebcd",
+      "Tests/TransferReportTests.swift": "ee811e8f354b0874d3ae780b7b8e56e92118042760bf9d924f6eecbd232e7947"
+    },
+    "tests": [
+      "Comparison candidates never count as completed transfers",
+      "Successful copy and later move-source deletion failure remain separate",
+      "Retries retain error evidence and do not pretend events are unique files",
+      "JSONL preserves quotes, Unicode and literal newlines in reported filenames",
+      "Dry Run actions are planned and statistics never create file rows",
+      "Unknown comparison lines and an incomplete tail are visible without invented paths",
+      "Reported paths cannot trigger file operations",
+      "Filesystem and global errors remain visible without a fake filename",
+      "Page cursors retain stable row boundaries and enforce small pages",
+      "Saved summaries allow known finite counters and keep uncertain counts unknown",
+      "Legacy or queued jobs without a ledger return an unavailable empty page",
+      "Both export formats are immutable snapshots while the live job grows",
+      "Static JSON export omits a crash-truncated final JSON record",
+      "Cleanup removes only owned reports and snapshots; readers reject symlinks",
+      "Real rclone copy, repeat sync and delete produce honest checks and separate outcomes"
+    ],
+    "benchmark": {
+      "bytes": 78582245,
+      "files": {
+        "job.comparison.log": 3678890,
+        "job.report.comparison.jsonl": 24967785,
+        "job.report.errors.jsonl": 0,
+        "job.report.jsonl": 24967785,
+        "job.report.skipped.jsonl": 24967785,
+        "job.report.success.jsonl": 0
+      },
+      "note": "Synthetic local report path only; not a NAS throughput measurement or performance gate.",
+      "records": 100000,
+      "recordsPerSecond": 64005.03007842092,
+      "seconds": 1.5623772050021216,
+      "summary": {
+        "available": true,
+        "candidateEvents": 0,
+        "comparisonComplete": true,
+        "comparisonErrorEvents": 0,
+        "comparisonEvents": 100000,
+        "comparisonMalformed": 0,
+        "comparisonPendingBytes": 0,
+        "copiedEvents": 0,
+        "deletedEvents": 0,
+        "errorEvents": 0,
+        "eventCount": 100000,
+        "failedFiles": null,
+        "formatVersion": 1,
+        "informationEvents": 0,
+        "matchedEvents": 100000,
+        "missingSourceEvents": 0,
+        "movedEvents": 0,
+        "plannedEvents": 0,
+        "skippedEvents": 0,
+        "skippedFiles": null,
+        "successEvents": 0,
+        "unattributedErrors": 0
+      }
+    }
+  },
+  "web": {
+    "stats": {
+      "startTime": "2026-10-20T12:10:08.621Z",
+      "duration": 165663.117,
+      "expected": 140,
+      "skipped": 0,
+      "unexpected": 0,
+      "flaky": 0
+    },
+    "unique_cases": 140,
+    "verification": "WebSource/tests/verification.json",
+    "scope": "Production file:// bundle with a synthetic native host; Linux browser, not hardware mouse or a live NAS."
+  },
+  "mac_release_gate": {
+    "architectures": [
+      "arm64",
+      "x86_64"
+    ],
+    "core_suites": [
+      "CoreTests",
+      "UpdaterTests",
+      "ToolsTests",
+      "NativeMessagesTests",
+      "FinderDropTests",
+      "AppReleaseTests",
+      "TransferReportTests"
+    ],
+    "native_suite": "MacInterfaceTests",
+    "require_all_jobs_success": true,
+    "mac_runtime_claimed_in_this_local_record": false,
+    "workflow": ".github/workflows/macos.yml"
+  },
+  "scope": {
+    "actual_user_external_volume": false,
+    "physical_nas": false,
+    "live_cloud": false,
+    "synthetic_report_benchmark_is_end_to_end_throughput": false
+  },
+  "verified_product_sha256": {
+    "Sources/Core/AppReleaseChecker.swift": "7359feab9b081d65ea37422837898e94a3b1c9d312a45787ce621b65ab816350",
+    "Sources/Core/EngineModels.swift": "919d7c835d9da69ef93e9149e6dc2dfbe5e1b910f1a5b280f4a46e12de38d12e",
+    "Sources/Core/EngineStorage.swift": "5eb0d943b00c045a20e005479f28e38a06d4f29679c582622dc2f4860229b293",
+    "Sources/Core/FinderDrop.swift": "823f46456e89a5c1672e8b5b61f64dca17e94b75a957017a4e3c081047c29fee",
+    "Sources/Core/LanguageResolver.swift": "35c1eb275e9eda6458af756e9fd3502d459c81a2647df6458f4b51d68beaff4c",
+    "Sources/Core/NativeMessages.swift": "81d40dbdd566eff586103c06710a91918ab999a76f3e903bf2cde0ca59734c0e",
+    "Sources/Core/RcloneEngine.swift": "481fdf574691d6cdbba37b625d04d2410c91d1b63f046e4b6a5743bac8b9253a",
+    "Sources/Core/RcloneTools.swift": "093bf6e73c861a6d7976b23f4bd6c541483255aa25e8fc220f18f4255cc53dba",
+    "Sources/Core/RcloneUpdater.swift": "616ccbb4ee8bd85e0a8fd36ee6eb04e7ae5bcecf1c023c22c09b221ac7be221d",
+    "Sources/Core/TransferReport.swift": "d082b039071f20ee35e8955c9b2fd4a88aec5c9ca3a99613aceb52bb1844ebcd",
+    "Sources/Mac/AppMain.swift": "d2928531ef882cc87a271c96d8c94ea40a827199f4c0a9a604cdb50a6d9f2d43",
+    "Sources/Mac/RcloneWebView.swift": "1acde21ab11889db1ff425fd55a4e7bba6bb8969a2918e6c549b76fed66126d9",
+    "Tests/AppReleaseTests.swift": "dd034a8dd0e0d02b257fc0af606c4f01b4c5c77f2f67a2393e72559df69eefae",
+    "Tests/CoreTests.swift": "a4afaeee5cd029c4c2d77fa6678c35cba156bd59b5d8460e0aee73570303e5d5",
+    "Tests/FinderDropTests.swift": "6ef88a57f8d807d3886e8c240338484f98bf3988f5ac1da4252b3708da97d314",
+    "Tests/MacInterfaceTests.swift": "f216d583e93b6c68c7d151bae1251e7955e7b0ec4d76786d496e4bd374a7dbb9",
+    "Tests/NativeMessagesTests.swift": "d2888ac9c71157f4e0e776a6d8fb44b97cb93dd7a426b56ff15326b2e86a047d",
+    "Tests/ToolsTests.swift": "1178f755426433aa47bc10f600e939d8105be510518806eec53e01b38db2ab98",
+    "Tests/TransferReportTests.swift": "ee811e8f354b0874d3ae780b7b8e56e92118042760bf9d924f6eecbd232e7947",
+    "Tests/UpdaterTests.swift": "89bd5c9b7270f6089abb2d2617e1da15faf83902075dff541df2d2ed46a43fbf",
+    "Resources/Web/THIRD_PARTY_NOTICES.txt": "401a52547c510b5c231c69f9077b192e2759d282e68f74d13339922f9d9e8552",
+    "Resources/Web/app.js": "156a10e241290ac09f87de757879fc57fa90c14b1e4619ba5da1baa01c6ad7af",
+    "Resources/Web/favicon-blue.svg": "36a26990d1dd782a5f6c0561e2870fa4e71064a1f42f72bf149e401e817f3591",
+    "Resources/Web/favicon-green.svg": "c86f66312b4b934795e3aef424c4e77dfb5c0863c75857831968492e5ef4ec75",
+    "Resources/Web/favicon.svg": "5dcf6bb2e77fc4f5670743c49e42e2f107812f56459bf32d30ae9ca021383a1a",
+    "Resources/Web/index.html": "6d64e8836f8ea3c2cdfb0bd3f4e214da93f633390ecbb6512949e65a94801411",
+    "Resources/Web/style.css": "5bb187fbcb339abbde8ac6f2f5d43ff2f0d7f4784109fd2d6f62d3b35bed91ed"
+  }
+}

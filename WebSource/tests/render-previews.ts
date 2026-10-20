@@ -1,102 +1,49 @@
-import {chromium,expect} from '@playwright/test';
+import {chromium,expect,type Page} from '@playwright/test';
 import {installHostFixture} from './native-fixture.ts';
 import {translator} from '../renderer/i18n.ts';
+import type {ResolvedLanguage,Theme} from '../shared/types.ts';
 import {pathToFileURL} from 'node:url';
 import path from 'node:path';
-import {mkdir,writeFile} from 'node:fs/promises';
-const out=path.resolve(process.env.RBN_PREVIEW_OUTPUT || '.build-cache/qa05');
+import {mkdir,writeFile,copyFile} from 'node:fs/promises';
+const out=path.resolve(process.env.RBN_PREVIEW_OUTPUT || '.build-cache/qa06-final-previews');
+const appURL=pathToFileURL(path.resolve('../Resources/Web/index.html')).href;
 await mkdir(out,{recursive:true});
 const browser=await chromium.launch({executablePath:process.env.RBN_TEST_BROWSER,headless:true,ignoreDefaultArgs:['--hide-scrollbars']});
-const errors:string[]=[];
-const paletteTokens:Record<string,Record<string,string>>={};
-for(const theme of ['purple-light','purple-dark','blue-light','blue-dark'] as const){
- const page=await browser.newPage({viewport:{width:1440,height:900},reducedMotion:'reduce'});
- page.on('pageerror',error=>errors.push(`${theme}: ${error.message}`));
- await installHostFixture(page,{cleanPreview:true,job:true,settings:{theme,autoCheckUpdates:false}});
- await page.goto(pathToFileURL(path.resolve('../Resources/Web/index.html')).href);
- await page.getByTestId('left-pane').locator('.file-name').first().waitFor();
- await page.getByTestId('right-pane').locator('.file-name').first().waitFor();
- await page.evaluate(()=>document.fonts.ready);
- await page.screenshot({path:path.join(out,`clean-preview-${theme}.png`),animations:'disabled'});
- await page.setViewportSize({width:1060,height:680});await page.screenshot({path:path.join(out,`clean-preview-${theme}-1060.png`),animations:'disabled'});await page.setViewportSize({width:1440,height:900});
- paletteTokens[theme]=await page.evaluate(()=>Object.fromEntries(['text','muted','faint','bg','toolbar','surface','row-stripe','accent','accent-hover','accent-pressed','accent-foreground','accent-soft','accent-soft-text','border','success','success-bg','error','error-bg','warning','warning-bg'].map(key=>[key,(() => { const context=document.createElement('canvas').getContext('2d')!;context.fillStyle=getComputedStyle(document.documentElement).getPropertyValue('--'+key).trim();return context.fillStyle; })()])));
- if(theme==='purple-dark'){
-  const t=translator('zh-TW');
-  await page.setViewportSize({width:1060,height:680});
-  await page.locator('.options-button').click();
-  const d=page.locator('.options-dialog');await d.getByRole('button',{name:t('sync'),exact:true}).click();await d.getByTestId('transfer-comparison').selectOption('nas');await d.getByLabel(t('deleteMode'),{exact:true}).selectOption('during');
-  await page.screenshot({path:path.join(out,'options-nas-sync-1060.png'),animations:'disabled'});
-  for(const [key,name]of [['transferPerformance','options-transfer-1060'],['filtersTab','options-filters-1060']]as const){await d.getByRole('button',{name:t(key),exact:true}).click();await page.screenshot({path:path.join(out,name+'.png'),animations:'disabled'});}
-  await d.getByRole('button',{name:t('cancel'),exact:true}).click();await page.locator('.workspace-title > .icon-button').click();await page.screenshot({path:path.join(out,'settings-general-1060.png'),animations:'disabled'});
-  await page.locator('.settings-dialog').getByRole('button',{name:t('network'),exact:true}).click();await page.getByRole('radio',{name:t('proxyManual')}).check();await page.screenshot({path:path.join(out,'settings-network-1060.png'),animations:'disabled'});
-  await page.locator('.network-options-section').scrollIntoViewIfNeeded();await page.screenshot({path:path.join(out,'settings-rclone-connections-1060.png'),animations:'disabled'});
-  await page.locator('.settings-dialog').getByRole('button',{name:t('appearance'),exact:true}).click();await page.locator('.theme-option.swatch-purple-dark').click();await page.locator('.settings-dialog select').selectOption('ja');await page.screenshot({path:path.join(out,'settings-japanese-1060.png'),animations:'disabled'});
- }
- if(theme==='purple-light'){
-  await page.evaluate(()=>{const w=window as any;const template=structuredClone(w.__fixture.job.request);w.__fixture.bootstrap.tasks=[['NAS 每日備份','sync'],['研究資料歸檔','copy'],['照片移至封存','move']].map(([name,mode],index)=>({id:`preview-task-${index}`,name,createdAt:'2026-10-20T08:00:00Z',updatedAt:'2026-10-20T08:00:00Z',request:{...template,mode,direction:'lr',options:{...template.options,comparison:index===0?'size':'default'},source:{remote:null,path:index===0?'/Users/test/Documents':'/Users/test/Pictures'},destination:{remote:index===0?'lab-nas':'research-drive',path:'Archive'},selection:[]}}));w.__rbnEvent({type:'configurationChanged'});});
-  await page.locator('.main-nav button').last().click();await page.locator('.task-table tbody tr').first().waitFor();
-  await page.screenshot({path:path.join(out,'tasks-list-1440.png'),animations:'disabled'});
-  const t=translator('zh-TW');await page.getByRole('button',{name:t('editTask'),exact:true}).click();
-  await page.setViewportSize({width:1060,height:680});await page.screenshot({path:path.join(out,'task-editor-locations-1060.png'),animations:'disabled'});
-  const editor=page.locator('.task-editor-dialog');await editor.getByRole('button',{name:t('modeAndComparison'),exact:true}).click();
-  await page.screenshot({path:path.join(out,'task-editor-comparison-1060.png'),animations:'disabled'});
-  await editor.getByTestId('transfer-comparison').selectOption('default');
-  await editor.getByRole('button',{name:t('comparison')+' — '+t('infoLabel'),exact:true}).click();
-  await page.getByRole('tooltip').waitFor();await page.screenshot({path:path.join(out,'comparison-tooltip-1060.png'),animations:'disabled'});
- }
+const errors:string[]=[];const palettes:Record<string,Record<string,string>>={};const geometry:any[]=[];const fonts:any[]=[];
+const themes:Theme[]=['purple-dark','purple-light','blue-dark','blue-light','green-dark','green-light'];
+async function scene(page:Page,language:ResolvedLanguage,theme:Theme,scale=100){
+ page.on('pageerror',error=>errors.push(`${theme} ${language}: ${error.message}`));
+ await installHostFixture(page,{cleanPreview:true,job:true,settings:{language,theme,interfaceScale:scale,autoCheckUpdates:false,initialLocations:{left:{remote:null,path:'/Users/test/Documents'},right:{remote:'research-drive',path:'Archive'}}}});
+ await page.goto(appURL);await page.getByTestId('left-pane').locator('.file-name').first().waitFor();await page.getByTestId('right-pane').locator('.file-name').first().waitFor();
+ await page.evaluate(language=>{const w=window as any,f=w.__fixture;let sequence=0;const record=(status:string,action:string,name:string,message:string,evidence='json-log')=>({sequence:++sequence,time:'2026-10-20T12:00:16Z',status,action,path:`Archive/${name}`,message,evidence,size:67108864});
+  f.reports['fixture-job']=[...Array.from({length:4},(_,i)=>record('success','copy',`research-part-${i+1}.zip`,'Copied (new)')),...Array.from({length:12},(_,i)=>record('matched','match',`archived-note-${i+1}.pdf`,'依目前比對或略過規則，不需複製。','comparison')),...Array.from({length:12},(_,i)=>record('candidate','missing-destination',`research-part-${i+5}.zip`,'目的地缺少此檔案。','comparison'))];
+  const j=structuredClone(f.job);j.request={...j.request,mode:'sync',options:{...j.request.options,transfers:7,checkers:10},label:language==='en'?'Documents backup':language==='ja'?'書類のバックアップ':'文件備份'};j.command='rclone sync /Users/test/Documents research-drive:Archive --transfers 7 --checkers 10 --local-hashes=none --use-json-log';j.stats={...j.stats,bytes:268435456,totalBytes:1073741824,speed:16777216,speedKind:'rolling',speedWindowSeconds:16,averageSpeed:16777216,eta:48,transfers:4,totalTransfers:16,checks:12,totalChecks:12,listed:28,errors:0,elapsedTime:16,transferring:[{name:'research-part-5.zip',size:67108864,bytes:0,percentage:0,speed:16777216,speedAvg:16777216,eta:4}]};j.report=f.summarizeReport(j.id);j.logs=[{time:'2026-10-20T12:00:16Z',level:'info',message:'Copied (new)',object:'Archive/research-part-4.zip'}];j.createdAt='2026-10-20T12:00:00Z';j.startedAt='2026-10-20T12:00:00Z';f.bootstrap.jobs=[j];w.__rbnEvent({type:'jobUpdate',data:j});
+ },language);
+ const t=translator(language);await page.getByTestId('operation-picker').click();await page.getByRole('menuitemradio',{name:new RegExp('^'+t('presetLocalCloud'))}).click();const toast=page.locator('.floating-notice');if(await toast.count())await toast.getByRole('button',{name:t('close'),exact:true}).click();await expect(toast).toHaveCount(0);await page.evaluate(()=>document.fonts.ready);
+}
+async function still(page:Page,name:string){await page.mouse.move(4,4);await page.screenshot({path:path.join(out,`${name}.png`),animations:'disabled'});geometry.push({name,viewport:page.viewportSize(),...(await page.evaluate(()=>({pageOverflow:document.documentElement.scrollWidth>innerWidth,selectedReportTabs:document.querySelectorAll('.report-tabs button[aria-pressed="true"]').length})))});}
+for(const theme of themes){
+ const page=await browser.newPage({viewport:{width:1440,height:900},reducedMotion:'reduce'});await scene(page,'zh-TW',theme);await still(page,`theme-${theme}`);
+ palettes[theme]=await page.evaluate(()=>Object.fromEntries(['text','muted','faint','bg','toolbar','surface','row-stripe','accent','accent-hover','accent-pressed','accent-foreground','accent-soft','accent-soft-text','border','success','success-bg','error','error-bg','warning','warning-bg'].map(key=>{const context=document.createElement('canvas').getContext('2d')!;context.fillStyle=getComputedStyle(document.documentElement).getPropertyValue('--'+key).trim();return[key,context.fillStyle]})));
+ if(theme==='purple-dark')await copyFile(path.join(out,'theme-purple-dark.png'),path.join(out,'main-zh-TW.png'));
  await page.close();
 }
-// Revision 0.5 review states use the same production bundle and fictional host.
-// Wait for completed opacity transitions so exported stills do not show mid-motion text.
-for(const theme of ['purple-dark','purple-light'] as const){
- const t=translator('zh-TW');
- const page=await browser.newPage({viewport:{width:1440,height:900},reducedMotion:'reduce'});
- page.on('pageerror',error=>errors.push(`${theme} critical: ${error.message}`));
- await installHostFixture(page,{cleanPreview:true,settings:{theme,autoCheckUpdates:false}});
- await page.goto(pathToFileURL(path.resolve('../Resources/Web/index.html')).href);
- await page.getByTestId('right-pane').locator('.file-name').first().waitFor();
- await page.evaluate(()=>document.fonts.ready);
- await page.locator('.main-nav button').last().click();
- await expect(page.locator('.tasks-page .status-card')).toBeVisible();
- await page.screenshot({path:path.join(out,`critical-empty-tasks-${theme}.png`),animations:'disabled'});
- await page.locator('.main-nav button').first().click();
- await page.evaluate(()=>{(window as any).__fixture.listingError='rclone 執行失敗：雲端帳號的登入授權已過期。\n請從「帳號設定（Config）」重新登入，再重試。';});
- await page.getByTestId('right-pane').getByRole('button',{name:t('refresh'),exact:true}).click();
- await expect(page.getByTestId('right-pane').locator('.status-card-error')).toBeVisible();
- await page.screenshot({path:path.join(out,`critical-error-card-${theme}.png`),animations:'disabled'});
- await page.evaluate(()=>{(window as any).__fixture.listingError='';});
- await page.getByTestId('right-pane').getByRole('button',{name:t('retry'),exact:true}).click();
- await page.getByTestId('right-pane').locator('.file-name').first().waitFor();
- await page.getByRole('button',{name:t('rememberWorkspace'),exact:true}).click();
- await page.mouse.move(0,0);
- const toast=page.locator('.floating-notice');
- await expect(toast).toHaveCSS('opacity','1');
- await page.screenshot({path:path.join(out,`critical-floating-toast-${theme}.png`),animations:'disabled'});
- await toast.getByRole('button',{name:t('close'),exact:true}).click();await expect(toast).toHaveCount(0);
- await page.getByTestId('operation-picker').click();
- await expect(page.locator('.operation-menu')).toBeVisible();
- await page.screenshot({path:path.join(out,`critical-preset-menu-${theme}.png`),animations:'disabled'});
- await page.keyboard.press('Escape');
- const pane=page.getByTestId('left-pane');
- await pane.getByRole('button',{name:t('newTab'),exact:true}).click();
- const pathInput=page.getByLabel(`${t('left')} ${t('path')}`,{exact:true});
- await pathInput.fill('/Users/test/Documents/Research');await pathInput.press('Enter');
- await pane.locator('.file-name').first().waitFor();await page.mouse.move(0,0);
- await page.screenshot({path:path.join(out,`critical-connected-tabs-${theme}.png`),animations:'disabled'});
- await page.setViewportSize({width:1060,height:680});
- await page.screenshot({path:path.join(out,`critical-connected-tabs-${theme}-1060.png`),animations:'disabled'});
- await page.getByTestId('right-pane').locator('.location-select select').selectOption('lab-nas');
- await page.getByTestId('right-pane').locator('.file-name').first().waitFor();
- await page.getByTestId('operation-picker').click();
- await page.getByRole('menuitemradio',{name:new RegExp('^'+t('presetLocalNAS'))}).click();
- await expect(page.locator('.floating-notice')).toHaveCSS('opacity','1');
- await page.locator('.floating-notice').getByRole('button',{name:t('close'),exact:true}).click();await expect(page.locator('.floating-notice')).toHaveCount(0);
- await page.locator('.options-button').click();
- await page.screenshot({path:path.join(out,`critical-nas-options-${theme}-1060.png`),animations:'disabled'});
- await page.close();
+for(const language of ['zh-TW','en']as const){
+ const page=await browser.newPage({viewport:{width:1440,height:900},reducedMotion:'reduce'});await scene(page,language,'purple-dark');const t=translator(language);
+ if(language==='en')await still(page,'main-en');
+ const client=await page.context().newCDPSession(page);await client.send('DOM.enable');await client.send('CSS.enable');const doc=await client.send('DOM.getDocument');for(const selector of ['.brand','.workspace-title h1','.file-name span','.path-form input']){const {nodeId}=await client.send('DOM.querySelector',{nodeId:doc.root.nodeId,selector});fonts.push({language,selector,...await client.send('CSS.getPlatformFontsForNode',{nodeId})});}await client.detach();
+ await page.getByRole('button',{name:t('rememberWorkspace'),exact:true}).click();const toast=page.locator('.floating-notice');await expect(toast).toHaveCSS('opacity','1');await still(page,`floating-toast-${language}`);await toast.getByRole('button',{name:t('close'),exact:true}).click();await expect(toast).toHaveCount(0);
+ await page.getByTestId('operation-picker').click();await still(page,`six-presets-${language}`);await page.keyboard.press('Escape');await page.locator('.main-nav button').nth(1).click();await page.locator('.job-details summary').click();await page.locator('.report-entry').first().waitFor();await still(page,`report-summary-${language}`);
+ await page.locator('.report-tabs button').nth(1).click();await page.locator('.report-entry').first().waitFor();await still(page,`report-comparison-${language}`);
+ await page.evaluate(()=>{const w=window as any,f=w.__fixture;f.reports['fixture-job'].push({sequence:29,time:'2026-10-20T12:00:17Z',status:'error',action:'copy',path:'Archive/research-part-5.zip',message:'Permission denied: the sample destination folder is read-only.',evidence:'json-log'},{sequence:30,time:'2026-10-20T12:00:18Z',status:'error',action:'operation',message:'Sample storage service unavailable. A retry is scheduled.',evidence:'json-log'});const j=structuredClone(f.bootstrap.jobs[0]);j.stats.errors=2;j.report=f.summarizeReport(j.id);f.bootstrap.jobs=[j];w.__rbnEvent({type:'jobUpdate',data:j});});
+ await page.locator('.report-tabs button').last().click();await expect(page.locator('.report-entry-error')).toHaveCount(2);await still(page,`report-errors-${language}`);await page.setViewportSize({width:848,height:544});await page.locator('.job-report').scrollIntoViewIfNeeded();await still(page,`report-errors-${language}-125`);await page.close();
 }
-await writeFile(path.join(out,'palette-tokens.json'),JSON.stringify(paletteTokens,null,2)+'\n');
-await writeFile(path.join(out,'PREVIEWS.txt'),'These images show the production file:// interface with deterministic, clearly fictional test data. No cloud transfer, NAS transfer, mount or native macOS execution is represented. Preview-only data filtering is confined to tests/native-fixture.ts. The shipped app includes no demonstration filesystem or injected fixture.\n');
-await browser.close();
-if(errors.length)throw new Error(errors.join('\n'));
-console.log(`Created all four themes, settings, tasks, tooltips and revision 0.5 critical-state previews in ${out}.`);
+for(const theme of ['green-dark','green-light']as const){
+ const page=await browser.newPage({viewport:{width:848,height:544},reducedMotion:'reduce'});await scene(page,'zh-TW',theme,125);const t=translator('zh-TW');await page.getByTestId('left-pane').getByRole('checkbox',{name:`${t('selected')} Documents`,exact:true}).check();await still(page,`main-${theme}-125`);
+ await page.locator('.workspace-title > .icon-button').click();const preferences=page.locator('.settings-dialog');await preferences.getByRole('button',{name:t('appearance'),exact:true}).click();await still(page,`settings-${theme}-125`);await preferences.locator('.dialog-footer button').last().click();
+ await page.locator('.options-button').click();const options=page.locator('.options-dialog');await still(page,`transfer-${theme}-125`);await options.getByRole('button',{name:t('transferPerformance'),exact:true}).click();await still(page,`performance-${theme}-125`);await options.getByRole('button',{name:t('cancel'),exact:true}).click();
+ await page.getByRole('button',{name:t('saveTask'),exact:true}).click();const editor=page.locator('.task-editor-dialog');await editor.getByLabel(t('taskName'),{exact:true}).fill('文件資料夾備份');await still(page,`task-editor-${theme}-125`);await editor.getByRole('button',{name:t('save'),exact:true}).click();await page.locator('.main-nav button').last().click();await page.locator('.task-table tbody tr').first().waitFor();if(await page.locator('.floating-notice').count())await page.locator('.floating-notice').getByRole('button',{name:t('close'),exact:true}).click();await still(page,`tasks-${theme}-125`);await page.close();
+}
+await writeFile(path.join(out,'palette-tokens.json'),JSON.stringify(palettes,null,2)+'\n');await writeFile(path.join(out,'geometry.json'),JSON.stringify(geometry,null,2)+'\n');await writeFile(path.join(out,'fonts.json'),JSON.stringify(fonts,null,2)+'\n');
+await writeFile(path.join(out,'PREVIEWS.txt'),'Production file:// resources, deterministic fictional host data. Six themes and both English/Traditional Chinese main screens use the same scenario: 4 of 16 transfers complete, 256 MiB of 1 GiB, 16 MiB/s and 48 seconds estimated remaining; four completion records and twelve comparison-skip records. Error-review variants add two explicit error records and two rclone errors. These are interface examples, not actual cloud/NAS transfer or native macOS screenshots. Minimum-scale images use the CSS viewport 848×544 that corresponds to a 1060×680 native window at 125% pageZoom. The production app uses no fixture or downloaded development browser.\n');
+await browser.close();if(errors.length)throw new Error(errors.join('\n'));if(geometry.some(item=>item.pageOverflow||item.selectedReportTabs>1))throw new Error('Preview geometry reported overflow or multiple selected report tabs');console.log(`Created six-theme, bilingual-main, compact and per-file-report previews in ${out}.`);

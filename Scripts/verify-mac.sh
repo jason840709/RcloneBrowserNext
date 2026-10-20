@@ -25,7 +25,7 @@ esac
 RBN_VERIFY_PLIST="$RBN_VERIFY_APP/Contents/Info.plist"
 RBN_VERIFY_BINARY="$RBN_VERIFY_APP/Contents/MacOS/$RBN_EXECUTABLE"
 [[ -s "$RBN_VERIFY_PLIST" && -x "$RBN_VERIFY_BINARY" ]] || rbn_fail 'App 缺少 Info.plist 或可執行的主程式。' 2
-for RBN_VERIFY_RESOURCE in Resources/Web/index.html Resources/AppIcon.icns; do
+for RBN_VERIFY_RESOURCE in Resources/Web/index.html Resources/AppIcon.icns Resources/AppIcon-blue.icns Resources/AppIcon-green.icns; do
   [[ -s "$RBN_VERIFY_APP/Contents/$RBN_VERIFY_RESOURCE" ]] || rbn_fail "App 缺少資源：$RBN_VERIFY_RESOURCE" 2
 done
 for RBN_FORBIDDEN_RESOURCE in Frameworks Resources/rclone Resources/app.asar; do

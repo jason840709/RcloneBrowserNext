@@ -14,18 +14,19 @@ import { EmptyState, IconButton, Notice } from './components';
 export type FileAction = 'newFolder' | 'rename' | 'remove' | 'size';
 interface PaneContext {
   selected: Set<string>;
+  checkWidth: number;
   widths: PaneColumnWidths;
   focused: string;
   onSelect(item: FileEntry, event: MouseEvent): void;
   onOpen(item: FileEntry): void;
   onKey(event: KeyboardEvent, item: FileEntry, index: number): void;
-  onFocus(name: string): void;
+  onFocus(item: FileEntry): void;
 }
 const tableComponents: TableComponents<FileEntry, PaneContext> = {
-  Table: ({ context, children, ...props }) => <table {...props} className="file-table" style={{width: '100%', minWidth: 36 + (context?.widths.name || 180) + (context?.widths.size || 86) + (context?.widths.modified || 164)}}><colgroup><col style={{width: 36}}/><col style={{width: context?.widths.name}}/><col style={{width: context?.widths.size}}/><col style={{width: context?.widths.modified}}/><col className="row-fill"/></colgroup>{children}</table>,
+  Table: ({ context, children, ...props }) => <table {...props} className="file-table" style={{width: '100%', minWidth: (context?.checkWidth || 14) + (context?.widths.name || 180) + (context?.widths.size || 86) + (context?.widths.modified || 164)}}><colgroup><col style={{width: context?.checkWidth || 14}}/><col style={{width: context?.widths.name}}/><col style={{width: context?.widths.size}}/><col style={{width: context?.widths.modified}}/><col className="row-fill"/></colgroup>{children}</table>,
   TableRow: ({ item, context, ...props }) => <tr {...props} data-row-parity={Number(props['data-index']) % 2} data-selected={context?.selected.has(item.name) || undefined}
     tabIndex={context?.focused === item.name ? 0 : -1} aria-selected={context?.selected.has(item.name)}
-    onFocus={() => context?.onFocus(item.name)}
+    onFocus={() => context?.onFocus(item)}
     onClick={event => context?.onSelect(item, event)}
     onDoubleClick={() => context?.onOpen(item)}
     onKeyDown={event => context?.onKey(event, item, Number(props['data-index']))}/>,
@@ -44,6 +45,9 @@ export default function BrowserPane({ side, browser, remotes, locations, home, t
   {side: 'left' | 'right'; browser: BrowserState; remotes: RemoteInfo[]; locations: LocalLocation[]; home: string; t: Translate; language: ResolvedLanguage;
     active: boolean; isSource: boolean; disabled: boolean; remoteAvailable: boolean; onActivate(): void; onFileAction(action: FileAction): void; onError(message: string): void; columnWidths?: PaneColumnWidths; onColumnWidths(widths: PaneColumnWidths): void; preferences: Settings; onToolAction(action: ToolAction): void}) {
   const { endpoint, entries, selection, loading, error } = browser;
+  const fileSelection = isSource ? selection : browser.focusedEntry ? [browser.focusedEntry] : [];
+  const checkWidth = isSource ? 36 : 14;
+  useEffect(() => { if (!isSource) browser.clearSelections(); }, [isSource, browser.clearSelections]);
   const navigationDisabled = disabled || Boolean(endpoint.remote && !remoteAvailable);
   const [query, setQuery] = useState('');
   const [showHidden, setShowHidden] = useState(preferences.showHiddenFiles);
@@ -56,7 +60,7 @@ export default function BrowserPane({ side, browser, remotes, locations, home, t
   const [paneWidth, setPaneWidth] = useState(450);
   const [dragWidths, setDragWidths] = useState<PaneColumnWidths | null>(null);
   const dragging = useRef<{column: keyof PaneColumnWidths; startX: number; widths: PaneColumnWidths; pointerId: number; latest: PaneColumnWidths} | null>(null);
-  const widths: PaneColumnWidths = dragWidths || columnWidths || {name: Math.max(120, paneWidth - 16 - 36 - 82 - 158), size: 82, modified: 158};
+  const widths: PaneColumnWidths = dragWidths || columnWidths || {name: Math.max(120, paneWidth - 16 - checkWidth - 82 - 158), size: 82, modified: 158};
   useEffect(() => {
     const element = sectionRef.current;
     if (!element) return;
@@ -68,7 +72,7 @@ export default function BrowserPane({ side, browser, remotes, locations, home, t
   const columnLimits = {name: [120,1600], size: [76,400], modified: [150,500]} as const;
   const clampWidth = (key: keyof PaneColumnWidths, width: number) => Math.round(Math.max(columnLimits[key][0], Math.min(columnLimits[key][1], width)));
   const commitWidths = (value: PaneColumnWidths) => { setDragWidths(value); onColumnWidths(value); };
-  const resetWidths = () => commitWidths({name: Math.max(120, paneWidth - 16 - 36 - 82 - 158), size: 82, modified: 158});
+  const resetWidths = () => commitWidths({name: Math.max(120, paneWidth - 16 - checkWidth - 82 - 158), size: 82, modified: 158});
   const onResizeStart = (event: PointerEvent<HTMLButtonElement>, column: keyof PaneColumnWidths) => {
     if (dragging.current || event.button !== 0) return;
     event.preventDefault(); event.stopPropagation();
@@ -96,7 +100,7 @@ export default function BrowserPane({ side, browser, remotes, locations, home, t
   const rememberedPaths = useRef<Record<string, string>>({});
   rememberedPaths.current[endpoint.remote || ''] = endpoint.path;
   useEffect(() => { setPathDraft(null); setQuery(''); setFocused(''); anchor.current = null; }, [endpoint.remote, endpoint.path, browser.activeTab]);
-  const selected = useMemo(() => new Set(selection.map(item => item.name)), [selection]);
+  const selected = useMemo(() => new Set(isSource ? selection.map(item => item.name) : []), [selection, isSource]);
   const filtered = useMemo(() => entries.filter(entry => (showHidden || !entry.name.startsWith('.')) && entry.name.toLocaleLowerCase().includes(query.toLocaleLowerCase()))
     .sort((a, b) => {
       if (a.isDir !== b.isDir) return a.isDir ? -1 : 1;
@@ -111,8 +115,9 @@ export default function BrowserPane({ side, browser, remotes, locations, home, t
   const navigate = useCallback((target: typeof endpoint) => {
     setPathDraft(null); setQuery(''); setFocused(''); anchor.current = null; browser.navigate(target);
   }, [browser.navigate]);
-  const toggle = (item: FileEntry) => browser.setSelection(selected.has(item.name) ? selection.filter(x => x.name !== item.name) : [...selection, { name: item.name, isDir: item.isDir }]);
+  const toggle = (item: FileEntry) => { if (isSource) browser.setSelection(selected.has(item.name) ? selection.filter(x => x.name !== item.name) : [...selection, { name: item.name, isDir: item.isDir }]); };
   const selectVisible = () => {
+    if (!isSource) return;
     const remaining = selection.filter(item => !visibleNames.has(item.name));
     browser.setSelection(allSelected ? remaining : [...remaining, ...filtered.map(item => ({name: item.name, isDir: item.isDir}))]);
   };
@@ -123,10 +128,12 @@ export default function BrowserPane({ side, browser, remotes, locations, home, t
     virtuoso.current?.scrollIntoView({index: next, behavior: 'auto', done: () => sectionRef.current?.querySelector<HTMLElement>(`tr[data-index="${next}"]`)?.focus()});
   };
   const context: PaneContext = {
-    selected, widths, focused: visibleNames.has(focused) ? focused : filtered[0]?.name || '', onFocus: setFocused,
+    selected, widths, checkWidth, focused: visibleNames.has(focused) ? focused : filtered[0]?.name || '', onFocus: item => { setFocused(item.name); browser.setFocusedEntry({name:item.name,isDir:item.isDir}); },
     onOpen: item => { if (item.isDir && !navigationDisabled) navigate(childEndpoint(endpoint, item.name)); },
     onSelect: (item, event) => {
       if ((event.target as HTMLElement).closest('input,button')) return;
+      setFocused(item.name);browser.setFocusedEntry({name:item.name,isDir:item.isDir});
+      if (!isSource) return;
       const index = filtered.findIndex(x => x.name === item.name);
       if (event.shiftKey && anchor.current !== null) {
         const start = Math.min(anchor.current, index), end = Math.max(anchor.current, index);
@@ -156,11 +163,11 @@ export default function BrowserPane({ side, browser, remotes, locations, home, t
     if (modifier && event.key.toLowerCase() === 'r') { event.preventDefault(); browser.reload(); }
     const editing = (event.target as HTMLElement).closest('input,textarea,select');
     if (editing) return;
-    if (modifier && event.key.toLowerCase() === 'a') { event.preventDefault(); browser.setSelection(filtered.map(item => ({name: item.name, isDir: item.isDir}))); }
+    if (modifier && event.key.toLowerCase() === 'a') { event.preventDefault(); if (isSource) browser.setSelection(filtered.map(item => ({name: item.name, isDir: item.isDir}))); }
     if ((modifier && event.key === 'ArrowUp') || event.key === 'Backspace') { event.preventDefault(); event.stopPropagation(); setPathDraft(null); browser.up(); }
   };
 
-  return <section ref={sectionRef} className={`browser-pane ${active ? 'pane-active' : ''} ${preferences.alternatingRows ? 'striped-rows' : ''}`} aria-label={`${t(side)} ${t('files')}`} data-testid={`${side}-pane`} data-pane-side={side}
+  return <section ref={sectionRef} className={`browser-pane ${active ? 'pane-active' : ''} ${preferences.alternatingRows ? 'striped-rows' : ''} ${isSource ? 'source-pane' : 'destination-pane'}`} aria-label={`${t(side)} ${t('files')}`} data-testid={`${side}-pane`} data-pane-side={side}
     onFocusCapture={onActivate} onPointerDown={onActivate} onKeyDownCapture={onKeyDown}>
     <header className="pane-heading"><span className="pane-side">{t(side)}</span><span className={`role-tag ${isSource ? 'source-tag' : ''}`}>{t(isSource ? 'source' : 'destination')}</span></header>
     <div className="pane-tabs" role="tablist" aria-label={`${t(side)} ${t('locationTabs')}`}>{browser.tabs.map(tab => <div key={tab.id} className={`pane-tab ${tab.id === browser.activeTab ? 'active' : ''}`}><button type="button" role="tab" aria-selected={tab.id === browser.activeTab} title={endpointText(tab.endpoint)} onClick={() => browser.switchTab(tab.id)} onKeyDown={event => { if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') { event.preventDefault(); const index = browser.tabs.findIndex(item => item.id === tab.id); const next = browser.tabs[(index + (event.key === 'ArrowRight' ? 1 : browser.tabs.length - 1)) % browser.tabs.length]; browser.switchTab(next.id); requestAnimationFrame(() => sectionRef.current?.querySelector<HTMLButtonElement>('[role="tab"][aria-selected="true"]')?.focus()); } }}>{tab.endpoint.remote ? <Cloud size={13}/> : <HardDrives size={13}/>}<span>{endpointName(tab.endpoint)}</span></button>{browser.tabs.length > 1 && <button type="button" className="tab-close" aria-label={`${t('closeTab')} ${endpointName(tab.endpoint)}`} onClick={() => browser.closeTab(tab.id)}><X size={11}/></button>}</div>)}<IconButton title={t('newTab')} disabled={browser.tabs.length >= 12} onClick={browser.newTab}><Plus size={15}/></IconButton></div>
@@ -180,23 +187,23 @@ export default function BrowserPane({ side, browser, remotes, locations, home, t
       <div className="search-field"><MagnifyingGlass size={15}/><input aria-label={`${t(side)} ${t('search')}`} placeholder={t('search')} value={query} onChange={event => setQuery(event.target.value)} spellCheck={false}/>{query && <button type="button" onClick={() => setQuery('')} aria-label={t('clearSelection')}><X size={12}/></button>}</div>
       {!endpoint.remote && <IconButton title={t('chooseFolder')} onClick={chooseLocal} disabled={disabled}><FolderOpen size={18}/></IconButton>}
       <IconButton title={t('newFolder')} onClick={() => onFileAction('newFolder')} disabled={navigationDisabled || browser.pathDirty || loading || Boolean(error)}><FolderPlus size={18}/></IconButton>
-      <PaneMenu t={t} remote={Boolean(endpoint.remote)} selectedCount={selection.length} selectedDirectory={selection[0]?.isDir || false} disabled={navigationDisabled || browser.pathDirty || loading || Boolean(error)} onAction={onToolAction} onResetColumns={resetWidths}/>
+      <PaneMenu t={t} remote={Boolean(endpoint.remote)} selectedCount={fileSelection.length} selectedDirectory={fileSelection[0]?.isDir || false} disabled={navigationDisabled || browser.pathDirty || loading || Boolean(error)} onAction={onToolAction} onResetColumns={resetWidths}/>
       <IconButton title={t(showHidden ? 'hideHidden' : 'showHidden')} aria-pressed={showHidden} onClick={() => setShowHidden(!showHidden)}>{showHidden ? <Eye size={18}/> : <EyeSlash size={18}/>}</IconButton>
     </div>
-    {browser.missingSelection && <Notice kind="warning">{t('missingSelection')} <button type="button" className="text-button" onClick={() => browser.setSelection([])}>{t('clearSelection')}</button></Notice>}
+    {isSource && browser.missingSelection && <Notice kind="warning">{t('missingSelection')} <button type="button" className="text-button" onClick={() => browser.setSelection([])}>{t('clearSelection')}</button></Notice>}
     <div className="file-list" data-empty={Boolean(error) || !filtered.length || undefined} aria-busy={loading}>
       {loading && entries.length === 0 ? <div className="file-loading" role="status"><span>{t('loadingFolder')}</span>{[0, 1, 2, 3, 4, 5].map(i => <div className="skeleton-row" key={i}><i/><span/><small/></div>)}</div> : error ?
         <EmptyState compact kind="error" icon={endpoint.remote ? <Cloud size={30}/> : <FolderOpen size={30}/>} title={t('cannotBrowse')} action={<button type="button" onClick={browser.reload}>{t('retry')}</button>}>{error}</EmptyState> : filtered.length === 0 ?
         <EmptyState compact icon={query ? <MagnifyingGlass size={32}/> : <FolderOpen size={34} weight="duotone"/>} title={t(query || entries.length > 0 ? 'noMatches' : 'emptyFolder')}>{t(query || entries.length > 0 ? 'noMatchesHint' : 'emptyFolderHint')}</EmptyState> :
         <TableVirtuoso ref={virtuoso} data={filtered} components={tableComponents} context={context} fixedItemHeight={37} overscan={200} onScroll={event => { const element = event.currentTarget as HTMLElement; element.closest<HTMLElement>('.file-list')?.style.setProperty('--stripe-offset', `${33 - element.scrollTop % 74}px`); }}
           computeItemKey={(_index, item) => item.name}
-          fixedHeaderContent={() => <tr><th scope="col" className="check-cell"><input type="checkbox" aria-label={`${t(side)} ${t('selectAll')}`} checked={allSelected} ref={element => { if (element) element.indeterminate = someSelected && !allSelected; }} onChange={selectVisible}/></th><th scope="col" aria-sort={sort.key === 'name' ? sort.ascending ? 'ascending' : 'descending' : 'none'}>{sortHeader('name', t('name'))}{resizeHandle('name', t('name'))}</th><th scope="col" className="numeric" aria-sort={sort.key === 'size' ? sort.ascending ? 'ascending' : 'descending' : 'none'}>{sortHeader('size', t('size'))}{resizeHandle('size', t('size'))}</th><th scope="col" aria-sort={sort.key === 'modified' ? sort.ascending ? 'ascending' : 'descending' : 'none'}>{sortHeader('modified', t('modified'))}{resizeHandle('modified', t('modified'))}</th><th scope="col" className="row-fill" aria-label=""/></tr>}
-          itemContent={(_index, entry) => <><td className="check-cell"><input type="checkbox" aria-label={`${t('selected')} ${entry.name}`} checked={selected.has(entry.name)} onChange={() => toggle(entry)} onClick={event => event.stopPropagation()}/></td><td><div className="file-name" title={entry.name}>{(entry.isDir ? preferences.showFolderIcons : preferences.showFileIcons) && <EntryIcon entry={entry}/>}<span>{entry.name}</span>{entry.isLink && <span className="link-marker">↗</span>}</div></td><td className="numeric muted">{entry.isDir ? '—' : formatBytes(entry.size)}</td><td className="date-cell muted" title={formatDate(entry.modified, language)}>{formatDate(entry.modified, language)}</td><td className="row-fill" aria-hidden="true"/></>}/>
+          fixedHeaderContent={() => <tr><th scope="col" className="check-cell" aria-hidden={!isSource || undefined}>{isSource && <input type="checkbox" aria-label={`${t(side)} ${t('selectAll')}`} checked={allSelected} ref={element => { if (element) element.indeterminate = someSelected && !allSelected; }} onChange={selectVisible}/>}</th><th scope="col" aria-sort={sort.key === 'name' ? sort.ascending ? 'ascending' : 'descending' : 'none'}>{sortHeader('name', t('name'))}{resizeHandle('name', t('name'))}</th><th scope="col" className="numeric" aria-sort={sort.key === 'size' ? sort.ascending ? 'ascending' : 'descending' : 'none'}>{sortHeader('size', t('size'))}{resizeHandle('size', t('size'))}</th><th scope="col" aria-sort={sort.key === 'modified' ? sort.ascending ? 'ascending' : 'descending' : 'none'}>{sortHeader('modified', t('modified'))}{resizeHandle('modified', t('modified'))}</th><th scope="col" className="row-fill" aria-label=""/></tr>}
+          itemContent={(_index, entry) => <><td className="check-cell" aria-hidden={!isSource || undefined}>{isSource && <input type="checkbox" aria-label={`${t('selected')} ${entry.name}`} checked={selected.has(entry.name)} onChange={() => toggle(entry)} onClick={event => event.stopPropagation()}/>}</td><td><div className="file-name" title={entry.name}>{(entry.isDir ? preferences.showFolderIcons : preferences.showFileIcons) && <EntryIcon entry={entry}/>}<span>{entry.name}</span>{entry.isLink && <span className="link-marker">↗</span>}</div></td><td className="numeric muted">{entry.isDir ? '—' : formatBytes(entry.size)}</td><td className="date-cell muted" title={formatDate(entry.modified, language)}>{formatDate(entry.modified, language)}</td><td className="row-fill" aria-hidden="true"/></>}/>
       }
     </div>
     <footer className="pane-footer">
-      <div className="selection-summary" title={hiddenSelection ? t('hiddenSelection') : endpointText(endpoint)}><span>{filtered.length.toLocaleString()} {t('items')}</span>{selection.length > 0 && <><span className="dot-separator">·</span><button type="button" className="text-button" onClick={() => browser.setSelection([])} title={t('clearSelection')}>{t('selected')} {selection.length}{hiddenSelection ? ' *' : ''}<X size={11}/></button></>}</div>
-      <div className="pane-file-actions"><IconButton title={t('rename')} disabled={navigationDisabled || browser.pathDirty || selection.length !== 1 || loading || browser.missingSelection} onClick={() => onFileAction('rename')}><PencilSimple size={15}/></IconButton><IconButton title={t('remove')} disabled={navigationDisabled || browser.pathDirty || selection.length === 0 || loading || browser.missingSelection} onClick={() => onFileAction('remove')}><Trash size={15}/></IconButton><IconButton title={t('folderSize')} disabled={navigationDisabled || browser.pathDirty || loading || Boolean(error)} onClick={() => onFileAction('size')}><ChartBar size={15}/></IconButton></div>
+      <div className="selection-summary" title={hiddenSelection ? t('hiddenSelection') : endpointText(endpoint)}><span>{filtered.length.toLocaleString()} {t('items')}</span>{isSource && selection.length > 0 && <><span className="dot-separator">·</span><button type="button" className="text-button" onClick={() => browser.setSelection([])} title={t('clearSelection')}>{t('selected')} {selection.length}{hiddenSelection ? ' *' : ''}<X size={11}/></button></>}</div>
+      <div className="pane-file-actions"><IconButton title={t('rename')} disabled={navigationDisabled || browser.pathDirty || fileSelection.length !== 1 || loading || (isSource && browser.missingSelection)} onClick={() => onFileAction('rename')}><PencilSimple size={15}/></IconButton><IconButton title={t('remove')} disabled={navigationDisabled || browser.pathDirty || fileSelection.length === 0 || loading || (isSource && browser.missingSelection)} onClick={() => onFileAction('remove')}><Trash size={15}/></IconButton><IconButton title={t('folderSize')} disabled={navigationDisabled || browser.pathDirty || loading || Boolean(error)} onClick={() => onFileAction('size')}><ChartBar size={15}/></IconButton></div>
     </footer>
   </section>;
 }

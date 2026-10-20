@@ -1,13 +1,14 @@
 export type ResolvedLanguage = 'zh-TW' | 'en' | 'ja';
 export type Language = ResolvedLanguage | 'system';
-export type Theme = 'purple-dark' | 'purple-light' | 'blue-dark' | 'blue-light';
+export type Theme = 'purple-dark' | 'purple-light' | 'blue-dark' | 'blue-light' | 'green-dark' | 'green-light';
+export type InterfaceScale = 80 | 90 | 100 | 110 | 125;
 export interface Endpoint { remote: string | null; path: string }
 export interface RemoteInfo { name: string; type: string; group?: 'cloud' | 'network' | 'other' }
 export interface LocalLocation { id: string; name: string; path: string; kind: 'home' | 'desktop' | 'documents' | 'downloads' | 'pictures' | 'music' | 'movies' | 'volumes' | 'volume'; group: 'local' | 'network'; isRemovable?: boolean }
 export interface FileEntry { name: string; path: string; size: number; modified: string; isDir: boolean; isLink?: boolean }
 export interface FinderDrop { source: Endpoint; selection: Selection[]; x: number; y: number }
 export interface Selection { name: string; isDir: boolean }
-export type BuiltinPresetID = 'local-nas' | 'nas-cloud' | 'local-cloud';
+export type BuiltinPresetID = 'local-nas' | 'nas-cloud' | 'local-cloud' | 'local-local' | 'cloud-cloud' | 'cloud-local';
 export type TransferMode = 'copy' | 'sync' | 'move';
 export interface TransferOptions {
   transfers: number; checkers: number; bandwidth: string; comparison: 'default' | 'checksum' | 'modtime' | 'size' | 'checksum-only' | 'none';
@@ -30,14 +31,32 @@ export interface TransferFile { name: string; size: number; bytes: number; perce
 export interface TransferStats {
   bytes: number; totalBytes: number; speed: number; eta: number | null; transfers: number; totalTransfers: number;
   speedKind?: 'rolling' | 'overall'; speedWindowSeconds?: number; averageSpeed?: number; filesPerSecond?: number; etaSource?: 'bytes' | 'files' | null;
-  checks: number; totalChecks: number; errors: number; deletes: number; elapsedTime: number; transferring: TransferFile[];
+  checks: number; totalChecks: number; listed?: number; errors: number; deletes: number; elapsedTime: number; transferring: TransferFile[];
 }
 export type JobStatus = 'queued' | 'running' | 'cancelling' | 'completed' | 'failed' | 'cancelled' | 'interrupted';
 export interface LogEntry { time: string; level: string; message: string; object?: string; size?: number }
 export interface Job {
   id: string; request: TransferRequest; status: JobStatus; createdAt: string; startedAt?: string; endedAt?: string;
   stats: TransferStats; logs: LogEntry[]; error?: string; exitCode?: number | null; command: string;
+  cancellation?: {requestedAt: string; lastSignal?: 'SIGINT' | 'SIGTERM' | 'SIGKILL'; forced: boolean; processExited: boolean};
+  report?: JobReportSummary;
 }
+export type JobReportCategory = 'all'|'success'|'errors'|'skipped'|'comparison';
+export interface JobReportSummary {
+  available: boolean; formatVersion: number; eventCount: number; successEvents: number;
+  copiedEvents: number; movedEvents: number; deletedEvents: number; errorEvents: number;
+  unattributedErrors: number; plannedEvents: number; informationEvents: number;
+  comparisonEvents: number; matchedEvents: number; skippedEvents?: number; candidateEvents: number;
+  missingSourceEvents: number; comparisonErrorEvents: number; comparisonMalformed: number;
+  comparisonPendingBytes: number; comparisonComplete: boolean; skippedFiles: null; failedFiles: null;
+}
+export interface JobReportItem {
+  sequence: number; time: string; status: string; action: string; path?: string;
+  message: string; size?: number; objectType?: string; evidence?: string;
+}
+export interface JobReportPage {available: boolean; items: JobReportItem[]; nextCursor: number|null; summary?: JobReportSummary}
+export interface ClearJobsRequest {ids: string[]; mode: 'finished' | 'stop-and-clear'}
+export interface ClearJobsResult {removedIds: string[]; retainedIds: string[]; stoppedIds: string[]; forcedStopIds: string[]}
 export interface SavedTask { validationError?: string; id: string; name: string; request: TransferRequest; createdAt: string; updatedAt: string }
 export interface PaneColumnWidths { name: number; size: number; modified: number }
 export type MenuAction = {action: 'settings' | 'help' | 'configureRemotes' | 'about' | 'checkAppUpdates' | 'checkForUpdates'} | {action: 'language'; language: Language};
@@ -45,6 +64,7 @@ export interface SavedWorkspace { left: Endpoint; right: Endpoint; direction: 'l
 export interface NetworkOptions { bindMode: 'auto' | 'ipv4' | 'ipv6' | 'address'; bindAddress: string; connectTimeout: string; ioTimeout: string; tpsLimit: number; tpsBurst: number; userAgent: string; disableHTTP2: boolean }
 export interface Settings {
   rcloneDirectory: string; rclonePath: string; configPath: string; language: Language; theme: Theme;
+  interfaceScale: InterfaceScale;
   autoCheckUpdates: boolean; skippedRcloneVersion: string;
   streamPlayerPath: string; streamPlayerArguments: string[];
   showStatusItem: boolean; notifyOnCompletion: boolean; showHiddenFiles: boolean; showFolderIcons: boolean; showFileIcons: boolean; alternatingRows: boolean;
@@ -94,6 +114,9 @@ export interface AppAPI {
   retryJob(id: string): Promise<Job | null>;
   listJobs(): Promise<Job[]>;
   clearFinishedJobs(): Promise<void>;
+  clearJobs(request: ClearJobsRequest): Promise<ClearJobsResult>;
+  getJobReport(id: string, options: {category: JobReportCategory; cursor?: number; limit?: number}): Promise<JobReportPage>;
+  exportJobReport(id: string, format?: 'jsonl'|'comparison'): Promise<string|null>;
   saveTask(name: string, request: TransferRequest, id?: string): Promise<SavedTask>;
   deleteTask(id: string): Promise<void>;
   listTasks(): Promise<SavedTask[]>;

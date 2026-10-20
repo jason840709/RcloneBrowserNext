@@ -18,6 +18,8 @@ final class BrowserAppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegat
     private var appReleaseChecker: RBNAppReleaseChecker!
     private var toolsManager: RcloneTools!
     private var statusItem: NSStatusItem?
+    private var themeIcons = [String: NSImage]()
+    private var currentIconFamily: String?
     private var notificationRequested = false
     private var notifiedJobs = Set<String>()
     private var webRoot: URL!
@@ -48,9 +50,9 @@ final class BrowserAppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegat
 
     private let permittedMethods: Set<String> = [
         "bootstrap", "list", "mkdir", "rename", "remove", "size", "chooseFolder", "chooseFile",
-        "previewTransfer", "startTransfer", "cancelJob", "retryJob", "listJobs", "clearFinishedJobs",
+        "previewTransfer", "startTransfer", "cancelJob", "retryJob", "listJobs", "clearFinishedJobs", "clearJobs",
         "saveTask", "deleteTask", "listTasks", "saveSettings", "unlockConfig", "configureRemotes",
-        "openExternal", "exportLog", "exportTasks", "importTasks", "checkForUpdates", "checkAppUpdates", "showAbout",
+        "openExternal", "exportLog", "getJobReport", "exportJobReport", "exportTasks", "importTasks", "checkForUpdates", "checkAppUpdates", "showAbout",
         "directoryTree", "exportFileList", "publicLink", "startMount", "startStream",
         "listToolSessions", "stopToolSession", "copyText"
     ]
@@ -81,7 +83,6 @@ final class BrowserAppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegat
             appReleaseChecker = try RBNAppReleaseChecker(repository: RBNProject.repository)
 
             guard let resources = Bundle.main.resourceURL else { throw EngineError("App 缺少資源資料夾。請重新建置。") }
-            NSApp.applicationIconImage = NSImage(contentsOf: resources.appendingPathComponent("AppIcon.icns"))
             webRoot = resources.appendingPathComponent("Web", isDirectory: true).resolvingSymlinksInPath().standardizedFileURL
             indexURL = webRoot.appendingPathComponent("index.html")
             guard fm.fileExists(atPath: indexURL.path) else { throw EngineError("App 缺少介面檔案。請重新建置。") }
@@ -90,15 +91,14 @@ final class BrowserAppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegat
             configuration.websiteDataStore = .nonPersistent()
             configuration.preferences.javaScriptCanOpenWindowsAutomatically = false
             configuration.userContentController.add(self, name: "rclone")
-            configuration.userContentController.addUserScript(WKUserScript(
-                source: "window.__rbnNativeHistory = true;", injectionTime: .atDocumentStart, forMainFrameOnly: true))
             let browserView = RcloneWebView(frame: .zero, configuration: configuration)
             browserView.acceptsHistoryNavigation = { [weak self] in
                 guard let self = self else { return false }
                 return self.pageReady && !self.terminationStarted && self.isBundledDocument(self.webView?.url)
             }
-            browserView.onHistoryNavigation = { [weak self] direction, point in
-                self?.sendEvent(type: "navigateHistory", data: ["direction": direction, "x": point.x, "y": point.y])
+            browserView.onHistoryNavigation = { [weak self] direction, point, eventTime in
+                self?.sendEvent(type: "navigateHistory", data: ["direction": direction, "x": point.x, "y": point.y,
+                                                               "eventTime": eventTime])
             }
             browserView.acceptsFileDrop = { [weak self] in
                 guard let self = self else { return false }
@@ -210,6 +210,7 @@ final class BrowserAppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegat
 
     @objc private func showAbout() {
         let alert = NSAlert()
+        alert.icon = NSApp.applicationIconImage
         alert.messageText = "Rclone Browser Next \(RBNProject.version)"
         alert.informativeText = local("作者：Jason Chen\n\n雙面板 rclone 檔案工具\n使用 macOS AppKit 與 WebKit，rclone 由外部安裝位置提供。\n\nMIT License",
                                      "Author: Jason Chen\n\nA dual-pane rclone file manager.\nUses macOS AppKit and WebKit with a separate rclone installation.\n\nMIT License",
@@ -235,9 +236,11 @@ final class BrowserAppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegat
 
     private func applyInterfacePreferences() {
         let settings = engine.settingsSnapshot()
+        let zoom = CGFloat(settings["interfaceScale"] as? Int ?? 100) / 100
+        if abs(webView.pageZoom - zoom) > 0.0001 { webView.pageZoom = zoom }
         if settings["showStatusItem"] as? Bool == true {
             if statusItem == nil { statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength) }
-            if let iconURL = Bundle.main.resourceURL?.appendingPathComponent("AppIcon.icns"), let icon = NSImage(contentsOf: iconURL) {
+            if let icon = NSApp.applicationIconImage?.copy() as? NSImage {
                 icon.size = NSSize(width: 19, height: 19); statusItem?.button?.image = icon
             }
             statusItem?.button?.toolTip = "Rclone Browser Next"
@@ -420,10 +423,24 @@ final class BrowserAppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegat
     }
 
     private func applyAppearance() {
-        switch engine.settingsSnapshot()["theme"] as? String {
-        case "dark", "blue-dark", "purple-dark": NSApp.appearance = NSAppearance(named: .darkAqua)
-        case "light", "blue-light", "purple-light": NSApp.appearance = NSAppearance(named: .aqua)
+        let theme = engine.settingsSnapshot()["theme"] as? String ?? "purple-dark"
+        switch theme {
+        case "dark", "blue-dark", "purple-dark", "green-dark": NSApp.appearance = NSAppearance(named: .darkAqua)
+        case "light", "blue-light", "purple-light", "green-light": NSApp.appearance = NSAppearance(named: .aqua)
         default: NSApp.appearance = nil
+        }
+        let family = theme.hasPrefix("green-") ? "green" : (theme.hasPrefix("blue-") || ["dark", "light"].contains(theme) ? "blue" : "purple")
+        guard family != currentIconFamily else { return }
+        if themeIcons[family] == nil, let resources = Bundle.main.resourceURL {
+            let filename = family == "purple" ? "AppIcon.icns" : "AppIcon-\(family).icns"
+            themeIcons[family] = NSImage(contentsOf: resources.appendingPathComponent(filename))
+                ?? NSImage(contentsOf: resources.appendingPathComponent("AppIcon.icns"))
+        }
+        if let icon = themeIcons[family] {
+            // This changes the running app and Dock only. Do not modify the
+            // signed bundle or the Finder icon when a user changes themes.
+            NSApp.applicationIconImage = icon
+            currentIconFamily = family
         }
     }
 
@@ -531,6 +548,21 @@ final class BrowserAppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegat
             let id = try EngineJSON.text(argument(0), "工作編號")
             guard let source = try engine.invoke("getLogPath", arguments: [id]) as? String else { throw EngineError("找不到工作記錄。") }
             guard let destination = saveFile(defaultName: "rclone-\(id).jsonl") else { return NSNull() }
+            try copyExport(source: URL(fileURLWithPath: source), destination: destination)
+            return destination.path
+        case "exportJobReport":
+            let id = try EngineJSON.text(argument(0), "工作編號")
+            let format = try EngineJSON.text(argument(1) ?? "jsonl", "匯出格式")
+            guard ["jsonl", "comparison"].contains(format) else { throw EngineError("匯出格式不正確。") }
+            let filename = format == "comparison" ? "rclone-\(id)-comparison.txt" : "rclone-\(id)-report.jsonl"
+            guard let destination = saveFile(defaultName: filename) else { return NSNull() }
+            guard let source = try engine.invoke("getJobReportPath", arguments: [id, format]) as? String else {
+                throw EngineError("找不到工作記錄。")
+            }
+            // The engine returns a closed, immutable export snapshot, never
+            // the live ledger. Release it after either a successful or failed
+            // copy; the original report remains with the job.
+            defer { try? FileManager.default.removeItem(atPath: source) }
             try copyExport(source: URL(fileURLWithPath: source), destination: destination)
             return destination.path
         case "exportTasks":
@@ -796,7 +828,7 @@ final class BrowserAppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegat
               url.port == nil || url.port == 443, let host = url.host?.lowercased() else { return false }
         if host == "rclone.org" || host == "downloads.rclone.org" { return true }
         guard host == "github.com" else { return false }
-        return ["/kapitainsky/RcloneBrowser", "/downer08tutti/RcloneBrowser2", "/rclone/rclone", "/" + RBNProject.repository].contains {
+        return ["/kapitainsky/RcloneBrowser", "/rclone/rclone", "/" + RBNProject.repository].contains {
             url.path == $0 || url.path.hasPrefix($0 + "/")
         }
     }

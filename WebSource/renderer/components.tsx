@@ -7,7 +7,7 @@ export function IconButton({ title, children, className = '', ...props }: Button
   return <button type="button" title={title} aria-label={props['aria-label'] || title} className={`icon-button ${className}`} {...props}>{children}</button>;
 }
 
-export function Dialog({ title, children, onClose, className = '', t }: PropsWithChildren<{title: string; onClose(): void; className?: string; t: Translate}>) {
+export function Dialog({ title, children, onClose, className = '', t, dismissible = true }: PropsWithChildren<{title: string; onClose(): void; className?: string; t: Translate; dismissible?: boolean}>) {
   const ref = useRef<HTMLDialogElement>(null);
   const titleId = useId();
   const closeRef = useRef(onClose);
@@ -18,9 +18,9 @@ export function Dialog({ title, children, onClose, className = '', t }: PropsWit
     return () => { if (dialog?.open) dialog.close(); };
   }, []);
   return <dialog ref={ref} className={`dialog ${className}`} aria-labelledby={titleId}
-    onCancel={event => { event.preventDefault(); closeRef.current(); }}
-    onClick={event => { if (event.target === event.currentTarget) { const rect = event.currentTarget.getBoundingClientRect(); if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) closeRef.current(); } }}>
-    <header className="dialog-header"><h2 id={titleId}>{title}</h2><IconButton title={t('close')} onClick={onClose}><X size={18}/></IconButton></header>
+    onCancel={event => { event.preventDefault(); if (dismissible) closeRef.current(); }}
+    onClick={event => { if (dismissible && event.target === event.currentTarget) { const rect = event.currentTarget.getBoundingClientRect(); if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) closeRef.current(); } }}>
+    <header className="dialog-header"><h2 id={titleId}>{title}</h2><IconButton title={t('close')} disabled={!dismissible} onClick={onClose}><X size={18}/></IconButton></header>
     {children}
   </dialog>;
 }
@@ -55,7 +55,7 @@ export function FloatingNotice({ message, kind = 'success', serial = 0, onClose 
     return () => { cancelAnimationFrame(frame); clearTimeout(timer.current); clearTimeout(finish.current); };
   }, [message, kind, serial]);
   if (!message) return <span ref={anchor} hidden aria-hidden="true"/>;
-  return <><span ref={anchor} hidden aria-hidden="true"/>{createPortal(<div className="app-notice floating-notice" data-visible={visible} onPointerEnter={() => clearTimeout(timer.current)} onPointerLeave={schedule} onFocusCapture={() => clearTimeout(timer.current)} onBlurCapture={schedule}><Notice kind={kind} onClose={dismiss}>{message}</Notice></div>, container)}</>;
+  return <><span ref={anchor} hidden aria-hidden="true"/>{createPortal(<div className={`app-notice floating-notice floating-${kind}`} data-visible={visible} onPointerEnter={() => clearTimeout(timer.current)} onPointerLeave={schedule} onFocusCapture={() => clearTimeout(timer.current)} onBlurCapture={schedule}><Notice kind={kind} onClose={dismiss}>{message}</Notice></div>, container)}</>;
 }
 
 export function InfoTooltip({ text, label, descriptionId }: {text: string; label?: string; descriptionId?: string}) {

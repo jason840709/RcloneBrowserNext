@@ -1,6 +1,6 @@
 # 掛載 SMB / NAS 的檔案比較：原因、選項與驗證
 
-## 已確認的原因
+## 為什麼比較可能讀回 NAS 內容
 
 Finder 掛載的 SMB 路徑，例如 `/Volumes/NAS/Backup`，對 rclone 是 local filesystem backend。local backend 的 `Object.Hash()` 需要開啟並讀取檔案內容來計算雜湊；如果檔案在 SMB 磁碟上，這些讀取會經由網路。
 
@@ -25,6 +25,25 @@ rclone 的預設比較先看大小與修改時間。兩者相同時通常能直�
 此 profile 不需要再加 `--ignore-checksum`，因為已沒有共同 local hash 可供傳前或傳後校驗。切換到雜湊比較會退出 NAS 模式；核心拒絕同時停用 local 雜湊又要求雜湊比較的設定，避免 checksum 模式默默退化成大小比較。
 
 原始碼依據：[local `Hashes()`](https://github.com/rclone/rclone/blob/v1.75.2/backend/local/local.go)、[hash parser 的 `none`](https://github.com/rclone/rclone/blob/v1.75.2/fs/hash/hash.go)。當日官網亦列出 [`--local-hashes`](https://rclone.org/local/#local-hashes)；實際 none 語義以固定版本 source 及下述 CLI 實測核對。
+
+### 外接磁碟的重複傳輸與時間精度
+
+停用本機雜湊後，rclone 需要靠大小與修改時間判斷：兩者相同便略過；修改時間超出容差時，沒有共同雜湊可再確認內容，因此可能重新傳輸。[官方比較選項](https://rclone.org/docs/#modify-window-duration)
+
+另外，v1.75.2 的 local 後端 `readPrecision()` 在系統暫存資料夾建立檔案測量精度。若系統磁碟和外接磁碟的格式不同，這個值不一定代表真正的目的磁碟。高精度來源複製到會量化時間的目的端後，下一次便可能再次被判成不同。這是從固定版本來源找到的可能原因，不能單憑磁碟名稱或一條指令判定使用者的磁碟就是 exFAT。[實作與來源依據](RESEARCH_0.6.0.md)
+
+時間容許誤差留白時，Next 會用 macOS 的卷資訊查詢實際檔案系統，按下列已知精度取兩端的較大值：
+
+| 本機卷格式 | 自動容差 |
+|---|---|
+| FAT（`msdos`） | 2 秒 |
+| HFS／HFS+（`hfs`） | 1 秒 |
+| exFAT（`exfat`） | 10 毫秒 |
+| APFS、未知格式、掛載的 SMB | 保留 rclone 原本的判斷，不任意放寬 |
+
+這個查詢只讀取卷資訊，不會建立探測檔或讀取檔案內容。目的資料夾尚未存在時，會查詢最近的既有父資料夾；權限或 I/O 錯誤不會被當成另一種格式。手動輸入的容差優先，直接使用 SMB 等 rclone 遠端時，也保留各後端本身的精度處理。
+
+這仍是大小與時間比較，並非完整內容驗證。同大小的檔案若在容差內快速修改，可能被略過；正在持續寫入的來源檔案，也可能在兩次執行間真的有變動。App 會在指令預覽與紀錄中列出自動容差，再配合逐檔比對紀錄，讓使用者查清楚哪些檔案被判定需要傳輸。不要用 `--ignore-times`、`--refresh-times` 或關閉來源變更檢查來掩蓋原因。
 
 ### 一般比較與內容完整性驗證
 

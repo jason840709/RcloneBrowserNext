@@ -1,7 +1,7 @@
 import type { AppAPI, Job, UpdateStatus, MenuAction, ToolSession, FinderDrop } from '../shared/types';
 
 type Reply = { id: string; result?: unknown; error?: string | { message?: string } | null };
-type HistoryNavigation = {direction: 'back'|'forward'; x: number; y: number};
+type HistoryNavigation = {direction: 'back'|'forward'; x: number; y: number; eventTime?: number};
 type NativeEvent = { type: 'jobUpdate'; data: Job } | { type: 'updateStatus'; data: UpdateStatus } | { type: 'configurationChanged'; data?: unknown } | {type: 'menuAction'; data: MenuAction} | {type: 'toolSessionUpdate'; data: ToolSession} | {type: 'finderDrop'; data: FinderDrop} | {type: 'navigateHistory'; data: HistoryNavigation};
 type Pending = { resolve(value: unknown): void; reject(reason: Error): void; timer: ReturnType<typeof setTimeout> };
 
@@ -31,8 +31,8 @@ export function installNativeBridge(): void {
   const limits: Record<string, number> = {
     bootstrap: 90_000, directoryTree: 180_000, exportFileList: 900_000, publicLink: 600_000, startMount: 600_000, startStream: 600_000, list: 120_000, size: 300_000,
     chooseFolder: 600_000, chooseFile: 600_000,
-    startTransfer: 600_000, retryJob: 600_000, remove: 600_000,
-    exportLog: 600_000, exportTasks: 600_000, importTasks: 600_000,
+    startTransfer: 600_000, retryJob: 600_000, remove: 600_000, clearJobs: 180_000,
+    exportLog: 600_000, exportTasks: 600_000, importTasks: 600_000, exportJobReport: 600_000,
     configureRemotes: 120_000, checkForUpdates: 300_000, checkAppUpdates: 120_000,
   };
   const call = <T>(method: string, ...input: unknown[]): Promise<T> => new Promise((resolve, reject) => {
@@ -90,6 +90,9 @@ export function installNativeBridge(): void {
     startTransfer: request => call('startTransfer', request), cancelJob: id => call('cancelJob', id),
     retryJob: id => call('retryJob', id), listJobs: () => call('listJobs'),
     clearFinishedJobs: () => call('clearFinishedJobs'),
+    clearJobs: request => call('clearJobs', request),
+    getJobReport: (id, options) => call('getJobReport', id, options),
+    exportJobReport: (id, format = 'jsonl') => call('exportJobReport', id, format),
     saveTask: (name, request, id) => call('saveTask', name, request, id), deleteTask: id => call('deleteTask', id),
     listTasks: () => call('listTasks'), saveSettings: settings => call('saveSettings', settings),
     unlockConfig: password => call('unlockConfig', password), configureRemotes: () => call('configureRemotes'),

@@ -1,8 +1,10 @@
+import { useHistoryNavigation } from './useHistoryNavigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ArrowLeft, ArrowRight, ArrowsLeftRight, FolderOpen, ListBullets, BookBookmark, GearSix, CaretDown, SlidersHorizontal,
   FloppyDisk, TerminalWindow, Play, Eye, CheckCircle, WarningCircle, ArrowSquareOut, X, Cloud, HardDrives, ChartBar } from '@phosphor-icons/react';
 import { DEFAULT_OPTIONS, type Bootstrap, type CommandPreview, type Endpoint, type Job, type SavedTask, type Settings, type SettingsPatch, type TransferMode, type TransferOptions, type TransferRequest, type UpdateStatus, type ToolSession, type AppUpdateResult, type ResolvedLanguage, type BuiltinPresetID } from '../shared/types';
 import OperationPicker from './OperationPicker';
+import { themeIcon } from './appearance';
 import {presetOptions, presetLabel, presetSummary, recommendedPreset} from './presets';
 import BrowserPane, { type FileAction } from './BrowserPane';
 import Jobs, { jobIsActive } from './Jobs';
@@ -18,7 +20,7 @@ import { endpointEqual, endpointName, endpointText, errorMessage, formatBytes, v
 
 type Modal = 'options' | 'settings' | 'saveTask' | 'preview' | 'help' | 'appUpdate' | null;
 type FileDialog = { kind: Exclude<FileAction, 'remove'>; side: 'left'|'right'; endpoint: Endpoint; oldName?: string; isDir?: boolean };
-const initialSettings: Settings = { rcloneDirectory: '', rclonePath: '', configPath: '', language: 'system', theme: 'purple-dark', autoCheckUpdates: true, skippedRcloneVersion: '', paneColumnWidths: {}, defaultTransferOptions: DEFAULT_OPTIONS, maxConcurrentJobs: 0, proxyMode: 'system', httpProxy: '', httpsProxy: '', noProxy: '', defaultRcloneOptions: [], initialLocations: {}, savedWorkspace: null, networkOptions: {bindMode: 'auto', bindAddress: '', connectTimeout: '1m', ioTimeout: '5m', tpsLimit: 0, tpsBurst: 1, userAgent: '', disableHTTP2: false}, settingsRevision: 0, settingsSchemaVersion: 5, hiddenBuiltinPresets: [], streamPlayerPath: '', streamPlayerArguments: ['-'], showStatusItem: false, notifyOnCompletion: false, showHiddenFiles: true, showFolderIcons: true, showFileIcons: true, alternatingRows: true };
+const initialSettings: Settings = { rcloneDirectory: '', rclonePath: '', configPath: '', language: 'system', theme: 'purple-dark', interfaceScale: 100, autoCheckUpdates: true, skippedRcloneVersion: '', paneColumnWidths: {}, defaultTransferOptions: DEFAULT_OPTIONS, maxConcurrentJobs: 0, proxyMode: 'system', httpProxy: '', httpsProxy: '', noProxy: '', defaultRcloneOptions: [], initialLocations: {}, savedWorkspace: null, networkOptions: {bindMode: 'auto', bindAddress: '', connectTimeout: '1m', ioTimeout: '5m', tpsLimit: 0, tpsBurst: 1, userAgent: '', disableHTTP2: false}, settingsRevision: 0, settingsSchemaVersion: 6, hiddenBuiltinPresets: [], streamPlayerPath: '', streamPlayerArguments: ['-'], showStatusItem: false, notifyOnCompletion: false, showHiddenFiles: true, showFolderIcons: true, showFileIcons: true, alternatingRows: true };
 function mergeSettings(base: Settings, patch: SettingsPatch): Settings {
   return {...base, ...patch,
     paneColumnWidths: {...base.paneColumnWidths, ...patch.paneColumnWidths},
@@ -70,6 +72,7 @@ export default function App() {
   const left = useBrowser();
   const right = useBrowser();
   const observedStatuses = useRef(new Map<string, Job['status']>());
+  const clearedJobIds = useRef(new Set<string>());
   const language = settings.language === 'system' ? systemLanguage.current : settings.language;
   const t = translator(language);
   const source = direction === 'lr' ? left : right;
@@ -82,6 +85,7 @@ export default function App() {
   const showError = useCallback((message: string) => { setError(message); setNotice(''); setNoticeSerial(value => value + 1); }, []);
   const showNotice = useCallback((message: string) => { setNotice(message); setError(''); setNoticeSerial(value => value + 1); }, []);
   const upsertJob = useCallback((job: Job) => {
+    if (clearedJobIds.current.has(job.id)) return;
     const previous = observedStatuses.current.get(job.id);
     const previousTerminal = previous !== undefined && !['queued', 'running', 'cancelling'].includes(previous);
     // A late IPC return must not replace a newer completion event with an older queued/running snapshot.
@@ -90,14 +94,18 @@ export default function App() {
     setJobs(old => {
       const exists = old.some(item => item.id === job.id);
       const next = exists ? old.map(item => item.id === job.id ? job : item) : [job, ...old];
-      const retained = new Set(next.filter(item => !jobIsActive(item)).sort((a,b) => (b.endedAt || b.createdAt).localeCompare(a.endedAt || a.createdAt)).slice(0,200).map(item => item.id));
-      return next.filter(item => jobIsActive(item) || retained.has(item.id));
+      const retained = new Set(next.filter(item => !jobIsActive(item) && item.status !== 'interrupted').sort((a,b) => (b.endedAt || b.createdAt).localeCompare(a.endedAt || a.createdAt)).slice(0,200).map(item => item.id));
+      return next.filter(item => jobIsActive(item) || item.status === 'interrupted' || retained.has(item.id));
     });
     if (!job.request.dryRun && !jobIsActive(job) && !previousTerminal) {
       // Failed or cancelled transfers can also have copied/deleted files. Refresh once on termination, never on each statistics update.
       left.reload(); right.reload();
     }
   }, [left.reload, right.reload]);
+  const removeClearedJobs = useCallback((ids: string[]) => {
+    for (const id of ids) { clearedJobIds.current.add(id); observedStatuses.current.delete(id); }
+    setJobs(old => old.filter(job => !clearedJobIds.current.has(job.id)));
+  }, []);
   const fetchBootstrap = useCallback(async (initial = false, reloadLocations = true) => {
     const sequence = ++bootstrapSequence.current;
     const epoch = settingsEpoch.current;
@@ -110,7 +118,7 @@ export default function App() {
       if (data.settings.language === 'system' && data.resolvedLanguage) systemLanguage.current = data.resolvedLanguage;
       settingsRef.current = data.settings;
       for (const job of data.jobs) observedStatuses.current.set(job.id, job.status);
-      setBootstrap(data); setSettings(data.settings); setJobs(data.jobs); setTasks(data.tasks); setStartupError('');
+      setBootstrap(data); setSettings(data.settings); setJobs(data.jobs.filter(job => !clearedJobIds.current.has(job.id))); setTasks(data.tasks); setStartupError('');
       if (initial) {
         const workspace = data.settings.savedWorkspace;
         setOptions(structuredClone(workspace?.options || data.settings.defaultTransferOptions));
@@ -209,6 +217,8 @@ export default function App() {
   }, [bootstrap, loadBootstrap]);
   useEffect(() => {
     document.documentElement.dataset.theme = settings.theme;
+    const favicon = document.querySelector<HTMLLinkElement>('link[rel="icon"]');
+    if (favicon) favicon.href = themeIcon(settings.theme);
     document.documentElement.lang = language === 'zh-TW' ? 'zh-Hant' : language;
   }, [settings.theme, language]);
   useEffect(() => {
@@ -225,6 +235,7 @@ export default function App() {
       const target = targetSide === 'left' ? left : right;
       if (target.error || target.loading || (!target.endpoint.remote && !target.endpoint.path) || endpointEqual(drop.source, target.endpoint)) { showError(t('finderDropBlocked')); return; }
       const origin = targetSide === 'left' ? right : left;
+      left.clearSelections(); right.clearSelections();
       origin.navigate(drop.source, drop.selection);
       setDirection(targetSide === 'left' ? 'rl' : 'lr');
       setMode('copy'); setLoadedTask(null); setOptions(old => ({...old, deleteExcluded: false}));
@@ -232,29 +243,14 @@ export default function App() {
     });
   }, [bridgeAvailable, modal, fileDialog, toolTarget, ready, pendingSettings, left, right, busy, fileBusy, t, showError, showNotice]);
 
-  useEffect(() => {
-    const navigateHistory = (direction: 'back'|'forward', x?: number, y?: number) => {
-      if (page !== 'files' || modal || fileDialog || toolTarget || fileBusy || document.querySelector('dialog[open]')) return;
-      const underPointer = typeof x === 'number' && typeof y === 'number' ? document.elementFromPoint(x, y)?.closest<HTMLElement>('[data-pane-side]')?.dataset.paneSide : undefined;
-      const side = underPointer === 'left' || underPointer === 'right' ? underPointer : activePane;
-      const pane = side === 'left' ? left : right;
-      if (pane.endpoint.remote && !ready) return;
-      setActivePane(side); if (direction === 'back') pane.back(); else pane.forward();
-    };
-    const native = (event: Event) => { const detail = (event as CustomEvent).detail; if (detail?.direction === 'back' || detail?.direction === 'forward') navigateHistory(detail.direction, detail.x, detail.y); };
-    const sideButton = (event: globalThis.MouseEvent) => {
-      if (event.button !== 3 && event.button !== 4) return;
-      event.preventDefault(); event.stopImmediatePropagation();
-      if (event.type === 'mouseup' && !window.__rbnNativeHistory) navigateHistory(event.button === 3 ? 'back' : 'forward', event.clientX, event.clientY);
-    };
-    const key = (event: globalThis.KeyboardEvent) => {
-      if (!(event.metaKey || event.ctrlKey) || !['[', ']'].includes(event.key) || (event.target as HTMLElement).closest('input,textarea,select,[contenteditable="true"]')) return;
-      event.preventDefault(); navigateHistory(event.key === '[' ? 'back' : 'forward');
-    };
-    window.addEventListener('rbn:navigate-history', native); window.addEventListener('keydown', key);
-    for (const type of ['mousedown','mouseup','auxclick']) document.addEventListener(type, sideButton as EventListener, true);
-    return () => {window.removeEventListener('rbn:navigate-history', native); window.removeEventListener('keydown', key); for (const type of ['mousedown','mouseup','auxclick']) document.removeEventListener(type, sideButton as EventListener, true);};
-  }, [page, modal, fileDialog, toolTarget, fileBusy, activePane, ready, left.back, left.forward, left.endpoint.remote, right.back, right.forward, right.endpoint.remote]);
+  useHistoryNavigation((direction, x, y) => {
+    if (page !== 'files' || modal || fileDialog || toolTarget || fileBusy || document.querySelector('dialog[open]')) return;
+    const underPointer = typeof x === 'number' && typeof y === 'number' ? document.elementFromPoint(x, y)?.closest<HTMLElement>('[data-pane-side]')?.dataset.paneSide : undefined;
+    const side = underPointer === 'left' || underPointer === 'right' ? underPointer : activePane;
+    const pane = side === 'left' ? left : right;
+    if (pane.endpoint.remote && !ready) return;
+    setActivePane(side); if (direction === 'back') pane.back(); else pane.forward();
+  });
   const applyPreset = (id: BuiltinPresetID) => { setOptions(presetOptions(id)); setMode('sync'); setActivePreset(id); setLoadedTask(null); showNotice(`${t('presetApplied')} ${t(presetLabel(id))}`); };
   const hidePreset = (id: BuiltinPresetID) => { if (activePreset === id) setActivePreset(null); void saveSettings({hiddenBuiltinPresets: [...new Set([...(settingsRef.current.hiddenBuiltinPresets || []), id])]}).catch(reason => showError(errorMessage(reason))); };
   const restorePresets = async () => { await saveSettings({hiddenBuiltinPresets: []}); };
@@ -262,7 +258,7 @@ export default function App() {
 
   const blocked = pendingSettings > 0 ? t('confirmingSettings') : !ready ? t('unavailable') : source.pathDirty || destination.pathDirty ? t('uncommittedPath') : (!source.endpoint.path && !source.endpoint.remote) || (!destination.endpoint.path && !destination.endpoint.remote) ? t('selectLocation') :
     endpointEqual(source.endpoint, destination.endpoint) ? t('sameEndpoint') : source.missingSelection ? t('missingSelection') :
-    mode === 'move' && options.updateOnly ? t('moveNewerHint') : mode === 'sync' && source.selection.length > 0 ? t('syncSelection') : source.error || destination.error ? t('cannotBrowse') : '';
+    mode === 'move' && options.updateOnly ? t('moveNewerHint') : mode === 'sync' && source.selection.some(item => !item.isDir) ? t('syncSelection') : mode === 'sync' && source.selection.length > 0 && options.deleteExcluded ? t('syncSelectionDeleteExcluded') : source.error || destination.error ? t('cannotBrowse') : '';
   const transferDisabled = Boolean(blocked) || busy || source.loading || destination.loading;
   const run = async (dryRun: boolean) => {
     if (transferDisabled) return;
@@ -288,6 +284,7 @@ export default function App() {
     setTasks(await window.rclone.listTasks()); setModal(null); setEditingTask(null);
     if (page === 'files') {
       const reverse = next.direction === 'rl';
+      left.clearSelections(); right.clearSelections();
       left.navigate(reverse ? next.destination : next.source, reverse ? [] : next.selection);
       right.navigate(reverse ? next.source : next.destination, reverse ? next.selection : []);
       setDirection(next.direction || 'lr'); setMode(next.mode); setOptions(structuredClone(next.options)); setLoadedTask(result);
@@ -306,14 +303,16 @@ export default function App() {
   };
   const fileAction = async (side: 'left'|'right', kind: FileAction) => {
     const browser = side === 'left' ? left : right;
+    const selection = (direction === 'lr' ? side === 'left' : side === 'right') ? browser.selection : browser.focusedEntry ? [browser.focusedEntry] : [];
     if (browser.pathDirty) { showError(t('uncommittedPath')); return; }
+    if ((kind === 'rename' && selection.length !== 1) || (kind === 'remove' && selection.length === 0)) return;
     if (kind === 'remove') {
       setFileBusy(true);
-      try { const removed = await window.rclone.remove(browser.endpoint, browser.selection); if (removed) { browser.setSelection([]); browser.reload(); showNotice(t('removed')); } } catch (reason) { showError(errorMessage(reason)); } finally { setFileBusy(false); }
+      try { const removed = await window.rclone.remove(browser.endpoint, selection); if (removed) { browser.setSelection([]); browser.setFocusedEntry(null); browser.reload(); showNotice(t('removed')); } } catch (reason) { showError(errorMessage(reason)); } finally { setFileBusy(false); }
       return;
     }
-    setFileError(''); setSizeResult(null); setFileName(kind === 'rename' ? browser.selection[0]?.name || '' : '');
-    setFileDialog({kind, side, endpoint: {...browser.endpoint}, ...(kind === 'rename' ? {oldName: browser.selection[0]?.name, isDir: browser.selection[0]?.isDir} : {})});
+    setFileError(''); setSizeResult(null); setFileName(kind === 'rename' ? selection[0]?.name || '' : '');
+    setFileDialog({kind, side, endpoint: {...browser.endpoint}, ...(kind === 'rename' ? {oldName: selection[0]?.name, isDir: selection[0]?.isDir} : {})});
     if (kind === 'size') {
       const id = ++sizeGeneration.current; setFileBusy(true);
       try { const size = await window.rclone.size(browser.endpoint); if (sizeGeneration.current === id) setSizeResult(size); } catch (reason) { if (sizeGeneration.current === id) setFileError(errorMessage(reason)); } finally { if (sizeGeneration.current === id) setFileBusy(false); }
@@ -327,12 +326,17 @@ export default function App() {
       if (fileDialog.kind === 'newFolder') await window.rclone.mkdir(fileDialog.endpoint, fileName);
       else await window.rclone.rename(fileDialog.endpoint, fileDialog.oldName!, fileName, Boolean(fileDialog.isDir));
       const browser = fileDialog.side === 'left' ? left : right;
-      browser.setSelection([]); browser.reload(); setFileDialog(null); showNotice(t(fileDialog.kind === 'newFolder' ? 'folderCreated' : 'renamed'));
+      browser.setSelection([]); browser.setFocusedEntry(null); browser.reload(); setFileDialog(null); showNotice(t(fileDialog.kind === 'newFolder' ? 'folderCreated' : 'renamed'));
     } catch (reason) { setFileError(errorMessage(reason)); } finally { setFileBusy(false); }
   };
+  const changeDirection = (next: 'lr'|'rl') => {
+    if (next === direction) return;
+    left.clearSelections(); right.clearSelections(); setDirection(next); setLoadedTask(null);
+  };
   const swap = () => {
-    const a = {...left.endpoint}, selectedA = [...left.selection];
-    left.navigate(right.endpoint, right.selection); right.navigate(a, selectedA);
+    const a = {...left.endpoint};
+    left.clearSelections(); right.clearSelections();
+    left.navigate(right.endpoint); right.navigate(a); setLoadedTask(null);
   };
   const upsertToolSession = useCallback((session: ToolSession) => setToolSessions(old => { const existing = old.find(item => item.id === session.id); if (existing && existing.status !== 'running' && session.status === 'running') return old; return existing ? old.map(item => item.id === session.id ? session : item) : [session, ...old]; }), []);
   useEffect(() => {
@@ -346,7 +350,8 @@ export default function App() {
     const browser = side === 'left' ? left : right;
     if (browser.pathDirty) { showError(t('uncommittedPath')); return; }
     const endpoint = {...browser.endpoint};
-    const item = browser.selection[0] ? {...browser.selection[0]} : undefined;
+    const selection = (direction === 'lr' ? side === 'left' : side === 'right') ? browser.selection : browser.focusedEntry ? [browser.focusedEntry] : [];
+    const item = selection[0] ? {...selection[0]} : undefined;
     try {
       await saveQueue.current;
       if (action === 'exportCSV' || action === 'exportTXT') {
@@ -366,7 +371,7 @@ export default function App() {
 
   return <div className={`app-shell platform-${bootstrap.environment.platform}`}>
     <header className="app-toolbar">
-      <ApplicationMenu t={t} language={settings.language} onSettings={() => setModal('settings')} onHelp={() => setModal('help')} onConfigure={() => void configureAccounts().catch(reason => showError(errorMessage(reason)))} onLanguage={language => void saveSettings({language}).catch(reason => showError(errorMessage(reason)))} onAbout={showAbout} onEngineUpdate={() => void checkEngineUpdates()} onAppUpdate={() => void checkAppUpdates()}/>
+      <ApplicationMenu t={t} language={settings.language} theme={settings.theme} onSettings={() => setModal('settings')} onHelp={() => setModal('help')} onConfigure={() => void configureAccounts().catch(reason => showError(errorMessage(reason)))} onLanguage={language => void saveSettings({language}).catch(reason => showError(errorMessage(reason)))} onAbout={showAbout} onEngineUpdate={() => void checkEngineUpdates()} onAppUpdate={() => void checkAppUpdates()}/>
       <nav className="main-nav" aria-label={t('mainNavigation')}>{([{key: 'files', icon: <FolderOpen size={17}/>}, {key: 'jobs', icon: <ListBullets size={18}/>}, {key: 'tasks', icon: <BookBookmark size={17}/>} ] as const).map(item => <button type="button" key={item.key} className={page === item.key ? 'active' : ''} aria-current={page === item.key ? 'page' : undefined} onClick={() => setPage(item.key)}>{item.icon}{t(item.key)}{item.key === 'jobs' && activeJobs > 0 && <span className="count-badge">{activeJobs}</span>}</button>)}</nav>
       <div className="app-toolbar-actions"/>
     </header>
@@ -375,18 +380,18 @@ export default function App() {
     <main className={`app-main page-${page}`}>
       {page === 'files' && <div className="workspace"><div className="workspace-heading"><div className="workspace-title"><h1>{t('files')}</h1><button type="button" className="account-setup-button" onClick={() => void configureAccounts().catch(reason => showError(errorMessage(reason)))} disabled={!ready || pendingSettings > 0}><TerminalWindow size={16}/>{t('configLabel')}</button><IconButton title={t('settings')} onClick={() => setModal('settings')}><GearSix size={19}/></IconButton><div className="button-with-info remember-workspace"><button type="button" disabled={pendingSettings > 0 || left.pathDirty || right.pathDirty || left.loading || right.loading || Boolean(left.error || right.error)} onClick={() => void rememberWorkspace().catch(reason => showError(errorMessage(reason)))}><FloppyDisk size={16}/>{t('rememberWorkspace')}</button><InfoTooltip label={t('rememberWorkspace')} text={t('rememberWorkspaceHint')}/></div></div>{loadedTask && <div className="loaded-task"><BookBookmark size={14}/><span>{t('loadedTask')}：{loadedTask.name}</span><IconButton title={t('close')} onClick={() => setLoadedTask(null)}><X size={13}/></IconButton></div>}<button type="button" className="text-button" onClick={() => openSaveTask()} disabled={source.missingSelection}><FloppyDisk size={15}/>{t('saveTask')}</button></div>
         <div className="browser-grid"><BrowserPane side="left" browser={left} remotes={bootstrap.remotes} locations={bootstrap.localLocations || []} home={bootstrap.home} t={t} language={language} active={activePane === 'left'} isSource={direction === 'lr'} disabled={fileBusy} remoteAvailable={ready} onToolAction={action => void toolAction('left', action)} preferences={settings} columnWidths={settings.paneColumnWidths.left} onColumnWidths={widths => void saveSettings({paneColumnWidths: {left: widths}}).catch(reason => showError(errorMessage(reason)))} onActivate={() => setActivePane('left')} onFileAction={kind => void fileAction('left', kind)} onError={showError}/>
-          <aside className="transfer-controls" aria-label={t('options')}><div className="transfer-controls-top"><h2>{t('direction')}</h2><div className="direction-picker"><button type="button" aria-label={t('leftToRight')} className={direction === 'lr' ? 'selected' : ''} aria-pressed={direction === 'lr'} onClick={() => setDirection('lr')}><span>{t('left')}</span><ArrowRight size={19}/><span>{t('right')}</span></button><button type="button" aria-label={t('rightToLeft')} className={direction === 'rl' ? 'selected' : ''} aria-pressed={direction === 'rl'} onClick={() => setDirection('rl')}><span>{t('left')}</span><ArrowLeft size={19}/><span>{t('right')}</span></button></div><div className="field"><div className="field-label-row"><span className="field-label">{t('operation')}</span><InfoTooltip label={t('operation')} text={t(mode === 'sync' ? 'syncDetail' : mode === 'move' ? 'moveDetail' : 'copyDetail')}/></div><OperationPicker mode={mode} preset={activePreset} hidden={settings.hiddenBuiltinPresets || []} t={t} onPreset={applyPreset} onHide={hidePreset} onMode={next => { if (next === 'move' && options.updateOnly) showNotice(t('moveNewerHint')); setActivePreset(null); setMode(next); setOptions(old => ({...old, ...(next === 'sync' ? {noTraverse: false} : {deleteExcluded: false}), ...(next === 'move' ? {updateOnly: false} : {})})); }}/></div><p className={`operation-hint ${mode !== 'copy' ? 'caution' : ''}`}>{t(mode === 'copy' ? 'copyHint' : mode === 'sync' ? 'syncHint' : 'moveHint')}</p>{activePreset && <p className="preset-active-summary">{t(presetSummary(activePreset))}</p>}</div>
-            <div className="transfer-route"><div><span>{t('source')}</span><strong title={endpointText(source.endpoint)}>{source.endpoint.remote ? <Cloud size={13}/> : <HardDrives size={13}/>}<span>{endpointName(source.endpoint)}</span></strong></div><ArrowDownIndicator/><div><span>{t('destination')}</span><strong title={endpointText(destination.endpoint)}>{destination.endpoint.remote ? <Cloud size={13}/> : <HardDrives size={13}/>}<span>{endpointName(destination.endpoint)}</span></strong></div><p className="scope-summary">{source.selection.length > 0 ? `${t('selected')} ${source.selection.length} ${t('items')}` : t('wholeFolder')}</p><button type="button" className="text-button swap-button" onClick={swap} disabled={left.loading || right.loading}><ArrowsLeftRight size={13}/>{t('swap')}</button></div>
+          <aside className="transfer-controls" aria-label={t('options')}><div className="transfer-controls-top"><h2>{t('direction')}</h2><div className="direction-picker"><button type="button" aria-label={t('leftToRight')} className={direction === 'lr' ? 'selected' : ''} aria-pressed={direction === 'lr'} onClick={() => changeDirection('lr')}><span>{t('left')}</span><ArrowRight size={19}/><span>{t('right')}</span></button><button type="button" aria-label={t('rightToLeft')} className={direction === 'rl' ? 'selected' : ''} aria-pressed={direction === 'rl'} onClick={() => changeDirection('rl')}><span>{t('left')}</span><ArrowLeft size={19}/><span>{t('right')}</span></button></div><div className="field"><div className="field-label-row"><span className="field-label">{t('operation')}</span><InfoTooltip label={t('operation')} text={t(mode === 'sync' ? 'syncDetail' : mode === 'move' ? 'moveDetail' : 'copyDetail')}/></div><OperationPicker mode={mode} preset={activePreset} hidden={settings.hiddenBuiltinPresets || []} t={t} onPreset={applyPreset} onHide={hidePreset} onMode={next => { if (next === 'move' && options.updateOnly) showNotice(t('moveNewerHint')); setActivePreset(null); setMode(next); setOptions(old => ({...old, ...(next === 'sync' ? {noTraverse: false} : {deleteExcluded: false}), ...(next === 'move' ? {updateOnly: false} : {})})); }}/></div><p className={`operation-hint ${mode !== 'copy' ? 'caution' : ''}`}>{t(mode === 'copy' ? 'copyHint' : mode === 'sync' ? 'syncHint' : 'moveHint')}</p>{activePreset && <p className="preset-active-summary">{t(presetSummary(activePreset))}</p>}</div>
+            <div className="transfer-route"><div><span>{t('source')}</span><strong title={endpointText(source.endpoint)}>{source.endpoint.remote ? <Cloud size={13}/> : <HardDrives size={13}/>}<span>{endpointName(source.endpoint)}</span></strong></div><ArrowDownIndicator/><div><span>{t('destination')}</span><strong title={endpointText(destination.endpoint)}>{destination.endpoint.remote ? <Cloud size={13}/> : <HardDrives size={13}/>}<span>{endpointName(destination.endpoint)}</span></strong></div><div className="scope-summary"><span>{source.selection.length > 0 ? `${t('selected')} ${source.selection.length} ${t('items')}` : t('wholeFolder')}</span>{source.selection.length > 0 && <InfoTooltip label={t('selectionScope')} text={t('selectedTransferHint')}/>}</div><button type="button" className="text-button swap-button" onClick={swap} disabled={left.loading || right.loading}><ArrowsLeftRight size={13}/>{t('swap')}</button></div>
             <div className="transfer-controls-bottom"><button type="button" className="options-button" onClick={() => setModal('options')}><SlidersHorizontal size={17}/>{t('options')}</button><div className="options-mini"><span>{t('atOnce')} {options.transfers}</span><span>{options.bandwidth || '∞'} {options.bandwidth ? 'B/s' : ''}</span></div>{blocked && ready && <p className="transfer-block" role="status">{blocked}{mode === 'sync' && source.selection.length > 0 && <button type="button" className="text-button" onClick={() => source.setSelection([])}>{t('clearSelection')}</button>}</p>}<button type="button" className="dry-run-button" title={t('dryRunHint')} disabled={transferDisabled} onClick={() => run(true)}><Eye size={16}/>{t('dryRun')}</button><button type="button" className={`primary start-button ${mode !== 'copy' ? 'caution-primary' : ''}`} disabled={transferDisabled} onClick={() => run(false)}><Play size={15} weight="fill"/>{busy ? t('starting') : t(mode === 'copy' ? 'startCopy' : mode === 'sync' ? 'startSync' : 'startMove')}</button><button type="button" className="text-button command-button" disabled={!ready || busy} onClick={openPreview}><TerminalWindow size={12}/>{t('commandPreview')}</button></div>
           </aside>
           <BrowserPane side="right" browser={right} remotes={bootstrap.remotes} locations={bootstrap.localLocations || []} home={bootstrap.home} t={t} language={language} active={activePane === 'right'} isSource={direction === 'rl'} disabled={fileBusy} remoteAvailable={ready} onToolAction={action => void toolAction('right', action)} preferences={settings} columnWidths={settings.paneColumnWidths.right} onColumnWidths={widths => void saveSettings({paneColumnWidths: {right: widths}}).catch(reason => showError(errorMessage(reason)))} onActivate={() => setActivePane('right')} onFileAction={kind => void fileAction('right', kind)} onError={showError}/>
         </div>
-        <Jobs jobs={jobs} t={t} language={language} compact expanded={jobsExpanded} onExpanded={setJobsExpanded} onViewAll={() => setPage('jobs')} onJobsChange={setJobs} onError={showError} onNotice={showNotice} onRetry={upsertJob}/>
+        <Jobs jobs={jobs} t={t} language={language} compact expanded={jobsExpanded} onExpanded={setJobsExpanded} onViewAll={() => setPage('jobs')} onJobsCleared={removeClearedJobs} onError={showError} onNotice={showNotice} onRetry={upsertJob}/>
       </div>}
-      {page === 'jobs' && <div className="jobs-page-layout"><Jobs jobs={jobs} t={t} language={language} onJobsChange={setJobs} onError={showError} onNotice={showNotice} onRetry={upsertJob}/><ToolSessions sessions={toolSessions} t={t} language={language} onError={showError}/></div>}
+      {page === 'jobs' && <div className="jobs-page-layout"><Jobs jobs={jobs} t={t} language={language} onJobsCleared={removeClearedJobs} onError={showError} onNotice={showNotice} onRetry={upsertJob}/><ToolSessions sessions={toolSessions} t={t} language={language} onError={showError}/></div>}
       {page === 'tasks' && <Tasks tasks={tasks} t={t} language={language} available={ready && pendingSettings === 0} onEdit={editTask} onRun={runTask} onTasksChange={setTasks} onSaveCurrent={() => openSaveTask(true)} onError={showError} onNotice={showNotice}/>}
     </main>
-    <footer className="app-statusbar"><div><span className={`status-dot ${ready ? 'ready' : ''}`}/><span>{ready ? `rclone ${bootstrap.environment.version.replace(/^rclone\s+/i, '')}` : t('notReady')}</span></div><span className="statusbar-center" role={updateStatus?.message ? 'status' : undefined}>{updateStatus?.message || `${bootstrap.remotes.length} ${t('remoteCount')}`}</span><span className="statusbar-version">0.5.0</span></footer>
+    <footer className="app-statusbar"><div><span className={`status-dot ${ready ? 'ready' : ''}`}/><span>{ready ? `rclone ${bootstrap.environment.version.replace(/^rclone\s+/i, '')}` : t('notReady')}</span></div><span className="statusbar-center" role={updateStatus?.message ? 'status' : undefined}>{updateStatus?.message || `${bootstrap.remotes.length} ${t('remoteCount')}`}</span><span className="statusbar-version">0.6.0</span></footer>
 
     {toolTarget && <ToolDialog target={toolTarget} t={t} onClose={() => setToolTarget(null)} onSession={session => { upsertToolSession(session); setPage('jobs'); }}/> }
     {modal === 'options' && <TransferOptionsDialog options={options} mode={mode} recommendation={currentRecommendation} hiddenPresets={settings.hiddenBuiltinPresets || []} onRestorePresets={restorePresets} defaults={settings.defaultTransferOptions} t={t} onClose={() => setModal(null)} onSave={(next, nextMode) => { setOptions(next); setMode(nextMode); setActivePreset(null); setError(''); setNotice(''); setModal(null); }} onSaveDefaults={async next => { await saveSettings({defaultTransferOptions: next}); }}/>}

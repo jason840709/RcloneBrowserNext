@@ -8,12 +8,12 @@
   <img src="docs/images/intro-en.svg" alt="A dual-pane rclone app for Mac. Choose local folders, NAS or cloud storage on either side." width="560">
 </p>
 
-![Rclone Browser Next 0.5.0: dark purple folder panes with direction, operation and Dry Run controls in the middle](docs/images/main-dark.png)
+![Rclone Browser Next: dark purple folder panes with direction, operation and Dry Run controls in the middle](docs/images/main-dark-en.png)
 
-*0.5.0 interface preview with example files and paths.*
+*Preview rendered by the app's frontend, using example files and paths.*
 
 <p align="center">
-  <a href="https://github.com/jason840709/RcloneBrowserNext/releases/tag/v0.5.0">Download 0.5.0</a> ·
+  <a href="https://github.com/jason840709/RcloneBrowserNext/releases/latest">Download</a> ·
   <a href="README.md">繁體中文</a> ·
   <a href="README.zh-TW.md">User guide (Traditional Chinese)</a> ·
   <a href="https://github.com/jason840709/RcloneBrowserNext/issues">Report an issue</a>
@@ -32,7 +32,7 @@ He wanted to keep its graphical workflows while improving Mac compatibility and 
 **The original app's default workflow focuses on uploads and downloads between local and cloud storage.** Next makes both locations independent, bringing local-to-local and cloud-to-cloud transfers into the same workflow.
 rclone still performs the transfers; the change is how the interface lets you set them up.
 
-## What is different?
+## How it differs from Rclone Browser 1.8
 
 ### Choose either location freely
 
@@ -49,7 +49,7 @@ Direct cloud-to-cloud copying depends on backend support. Transfers between diff
 ### Apple Silicon support, using system components
 
 The app uses Swift, AppKit and macOS's built-in WebKit, with Apple Silicon and Intel builds. rclone is installed separately in the folder you choose.
-Disk usage for the 0.5.0 apps built in CI is approximately **2.50 MiB for Apple Silicon / 2.55 MiB for Intel**, excluding rclone. [Build and validation record](docs/VALIDATION.zh-TW.md)
+Using the system's interface components keeps a separate browser engine out of the app bundle. [Architecture and build guide](docs/DEVELOPMENT.md)
 
 ### Tabs, tasks and transfer history
 
@@ -57,12 +57,15 @@ Dry Run and Tasks carry forward important features from the original app. Next p
 
 - **Folder tabs:** each pane keeps its own tabs and navigation history, including back and forward with mouse side buttons.
 - **Previews and saved tasks:** inspect proposed actions with Dry Run; save a setup as a Task to run, preview, edit or delete later.
-- **Backup presets:** choose Computer → NAS, NAS → Cloud or Computer → Cloud, then adjust comparison and exclusion rules as needed.
+- **Backup presets:** choose from six common combinations of local folders, NAS and cloud storage, then adjust comparison and exclusion rules as needed.
 - **Remember workspace:** restore both folders and transfer settings at the next launch, without starting a job automatically.
 - **Progress and notices:** see average speed, estimated time and percentages to one decimal place; temporary notices float above the interface without moving the layout.
-- **Themes and languages:** dark purple, light purple, dark blue and light blue; Traditional Chinese, English and Japanese, with a system-language option.
+- **Job history:** see checked and required-transfer counts separately, with per-file skip, completion and error reports. Stop, retry or clear jobs; a stopping job remains visible until rclone actually exits.
+- **Themes and languages:** six themes, with dark and light versions of purple, blue and green, plus five interface sizes; Traditional Chinese, English and Japanese, with a system-language option.
 
 Sync is one-way: **the source is the reference, only the destination changes, and extra destination files may be deleted.** Comparison, exclusion and skip rules still affect the scope. Use a preview before running. [Full user guide](README.zh-TW.md)
+
+NAS presets compare size and modification time without computing local hashes by default. This reduces the need to read whole NAS files back just for comparison, at the cost of local content-hash verification. You can adjust the options; the [NAS comparison guide](docs/NAS_COMPARISON.zh-TW.md) explains the tradeoffs.
 
 ### Separate rclone and app updates
 
@@ -73,14 +76,12 @@ A separate “Check Rclone Next updates” action checks this project's releases
 
 Requires **macOS 13 or later**. Local builds use an existing **Xcode or Apple Command Line Tools** installation.
 
-1. Download the local build package from the [0.5.0 release](https://github.com/jason840709/RcloneBrowserNext/releases/tag/v0.5.0) and extract the complete folder.
+1. Download the local build package from the [latest release](https://github.com/jason840709/RcloneBrowserNext/releases/latest) and extract the complete folder.
 2. Double-click `Build-on-Mac.command`. It creates and opens the app in the same folder.
 3. Choose the **rclone installation location** in Settings, using an existing engine or downloading it into your selected folder. Add remotes through **Account setup (Config)**, choose both locations and run a preview.
 
 The build does not install developer tools, Homebrew, Node.js or rclone. Build caches and outputs stay inside the project folder.
 App bundles use an **ad-hoc signature**, without Developer ID signing or Apple notarization. If Gatekeeper blocks a download, follow the [Mac build guide](docs/BUILD_MAC.zh-TW.md).
-
-Version 0.5.0 has passed macOS CI builds and tests on Apple Silicon and Intel. The validation record describes the tested scope and remaining real-world checks.
 
 ## Documentation and feedback
 

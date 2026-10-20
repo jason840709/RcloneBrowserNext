@@ -1,10 +1,11 @@
 import { useEffect, useRef } from 'react';
 import { CaretDown, GearSix, TerminalWindow, Question, Check, ArrowClockwise, Info } from '@phosphor-icons/react';
-import type { Language } from '../shared/types';
+import type { Language, Theme } from '../shared/types';
 import type { Translate } from './i18n';
+import { themeIcon } from './appearance';
 
-export default function ApplicationMenu({t, language, onSettings, onHelp, onConfigure, onLanguage, onAbout, onEngineUpdate, onAppUpdate}: {
-  t: Translate; language: Language; onSettings(): void; onHelp(): void; onConfigure(): void; onLanguage(language: Language): void; onAbout(): void; onEngineUpdate(): void; onAppUpdate(): void;
+export default function ApplicationMenu({t, language, theme, onSettings, onHelp, onConfigure, onLanguage, onAbout, onEngineUpdate, onAppUpdate}: {
+  t: Translate; language: Language; theme: Theme; onSettings(): void; onHelp(): void; onConfigure(): void; onLanguage(language: Language): void; onAbout(): void; onEngineUpdate(): void; onAppUpdate(): void;
 }) {
   const root = useRef<HTMLDetailsElement>(null);
   const trigger = useRef<HTMLElement>(null);
@@ -26,7 +27,7 @@ export default function ApplicationMenu({t, language, onSettings, onHelp, onConf
       items[index]?.focus();
     }
   }}>
-    <summary ref={trigger} className="brand" aria-label={t('appMenu')} aria-haspopup="menu"><img className="app-mark" src="favicon.svg" alt=""/><span>Rclone Browser <strong>Next</strong></span><CaretDown size={13}/></summary>
+    <summary ref={trigger} className="brand" aria-label={t('appMenu')} aria-haspopup="menu"><img className="app-mark" src={themeIcon(theme)} alt=""/><span>Rclone Browser <strong>Next</strong></span><CaretDown size={13}/></summary>
     <div className="application-menu-content" role="menu" aria-label={t('appMenu')}>
       <button type="button" role="menuitem" onClick={() => select(onAbout)}><Info size={18}/>{t('aboutApp')}</button>
       <div className="menu-separator" role="separator"/>

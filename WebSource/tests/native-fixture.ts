@@ -27,7 +27,7 @@ export async function installHostFixture(page: Page, options: {
   };
   const bootstrap: Bootstrap = {
     environment: { version: available ? 'v1.75.2' : '', rclonePath: available ? '/Users/test/Engine/rclone' : '', configPath: '/Users/test/.config/rclone/rclone.conf', platform: 'darwin', arch: 'arm64', available },
-    settings: { rcloneDirectory: '/Users/test/Engine', rclonePath: '', configPath: '', language: 'zh-TW', theme: 'purple-light', autoCheckUpdates: true, skippedRcloneVersion: '', settingsRevision: 0, settingsSchemaVersion: 5, hiddenBuiltinPresets: [], savedWorkspace: null, networkOptions: {bindMode: 'auto', bindAddress: '', connectTimeout: '1m', ioTimeout: '5m', tpsLimit: 0, tpsBurst: 1, userAgent: '', disableHTTP2: false}, paneColumnWidths: {}, defaultTransferOptions: DEFAULT_OPTIONS, maxConcurrentJobs: 0, proxyMode: 'system', httpProxy: '', httpsProxy: '', noProxy: '', defaultRcloneOptions: [], initialLocations: {}, streamPlayerPath: '', streamPlayerArguments: ['-'], showStatusItem: false, notifyOnCompletion: false, showHiddenFiles: true, showFolderIcons: true, showFileIcons: true, alternatingRows: true, ...options.settings },
+    settings: { rcloneDirectory: '/Users/test/Engine', rclonePath: '', configPath: '', language: 'zh-TW', theme: 'purple-light', interfaceScale: 100, autoCheckUpdates: true, skippedRcloneVersion: '', settingsRevision: 0, settingsSchemaVersion: 6, hiddenBuiltinPresets: [], savedWorkspace: null, networkOptions: {bindMode: 'auto', bindAddress: '', connectTimeout: '1m', ioTimeout: '5m', tpsLimit: 0, tpsBurst: 1, userAgent: '', disableHTTP2: false}, paneColumnWidths: {}, defaultTransferOptions: DEFAULT_OPTIONS, maxConcurrentJobs: 0, proxyMode: 'system', httpProxy: '', httpsProxy: '', noProxy: '', defaultRcloneOptions: [], initialLocations: {}, streamPlayerPath: '', streamPlayerArguments: ['-'], showStatusItem: false, notifyOnCompletion: false, showHiddenFiles: true, showFolderIcons: true, showFileIcons: true, alternatingRows: true, ...options.settings },
     resolvedLanguage: options.settings?.language === 'system' ? (options.preferredLanguage?.startsWith('ja') ? 'ja' : options.preferredLanguage?.startsWith('zh') ? 'zh-TW' : 'en') : options.settings?.language || 'zh-TW',
     home: '/Users/test', localLocations: [{id: 'home', name: 'test', path: '/Users/test', kind: 'home', group: 'local'}, ...(['desktop','documents','downloads','pictures','music','movies'] as const).map(kind => ({id: kind, name: kind, path: `/Users/test/${kind[0].toUpperCase()}${kind.slice(1)}`, kind, group: 'local' as const})), {id: 'volumes', name: 'Volumes', path: '/Volumes', kind: 'volumes', group: 'local'}, {id: 'test-nas-volume', name: 'Media Backup', path: '/Volumes/Media Backup', kind: 'volume', group: 'network'}], remotes: [{ name: 'research-drive', type: 'drive', group: 'cloud' }, { name: 'lab-nas', type: 'sftp', group: 'network' }, { name: 'web-storage', type: 'webdav', group: 'other' }],
     jobs: options.job ? [job] : [], tasks: [],
@@ -36,17 +36,30 @@ export async function installHostFixture(page: Page, options: {
     const win = window as any;
     const state = {
       bootstrap, job, preferredLanguage, appStatus, started: 0, calls: [] as {id: string; method: string; args: any[]}[],
-      chosenFolder, chosenExecutable, manualStatus, listingError: '', delays: {} as Record<string, number[]>, rejectSave: false, manualErrorOnce: false, toolSessions: [] as any[],
+      reports: {} as Record<string, any[]>, reportOverrides: {} as Record<string, any>, reportError: '',
+      chosenFolder, chosenExecutable, manualStatus, listingError: '', bulkStopDelay: 350, forcedStopIds: [] as string[], bulkRetainIds: [] as string[], bulkError: '', delays: {} as Record<string, number[]>, rejectSave: false, manualErrorOnce: false, toolSessions: [] as any[],
     };
     win.__fixture = state;
+    const englishPreview = cleanPreview && bootstrap.resolvedLanguage === 'en';
+    if (englishPreview) {job.stats.transferring[0].name='Research archive.zip';job.logs[0].object='Research archive.zip';}
     const files = [
       { name: '.hidden.txt', path: '.hidden.txt', size: 12, modified: '2025-01-01T01:00:00Z', isDir: false },
       { name: 'Documents', path: 'Documents', size: -1, modified: '2026-10-18T14:00:00Z', isDir: true },
-      { name: '照片與影片', path: '照片與影片', size: -1, modified: '2026-10-17T08:30:00Z', isDir: true },
+      { name: englishPreview?'Photos and Videos':'照片與影片', path: englishPreview?'Photos and Videos':'照片與影片', size: -1, modified: '2026-10-17T08:30:00Z', isDir: true },
       { name: unusualName, path: unusualName, size: 2048, modified: '2026-10-18T12:00:00Z', isDir: false },
-      ...Array.from({length: fileCount}, (_, index) => ({ name: `研究紀錄 ${String(index + 1).padStart(2, '0')}.pdf`, path: `研究紀錄 ${index + 1}.pdf`, size: (index + 1) * 1048576, modified: '2026-10-18T11:42:00Z', isDir: false })),
+      ...Array.from({length: fileCount}, (_, index) => ({ name: `${englishPreview?'Research notes':'研究紀錄'} ${String(index + 1).padStart(2, '0')}.pdf`, path: `${englishPreview?'Research notes':'研究紀錄'} ${index + 1}.pdf`, size: (index + 1) * 1048576, modified: '2026-10-18T11:42:00Z', isDir: false })),
     ].filter(entry => !cleanPreview || (entry.name !== unusualName && !entry.name.startsWith('.')));
-    const handle = (method: string, args: any[]) => {
+    const summarizeReport = (id: string) => {
+      const records = state.reports[id];
+      if (!records) return undefined;
+      const count = (match: (item: any) => boolean) => records.filter(match).length;
+      return {available:true,formatVersion:1,eventCount:records.length,
+        successEvents:count(item=>item.status==='success'),copiedEvents:count(item=>item.status==='success'&&item.action==='copy'),movedEvents:count(item=>item.status==='success'&&item.action==='move'),deletedEvents:count(item=>item.status==='success'&&item.action==='delete'),
+        errorEvents:count(item=>item.status==='error'),unattributedErrors:count(item=>item.status==='error'&&!item.path),plannedEvents:count(item=>item.status==='planned'),informationEvents:count(item=>item.status==='info'),
+        comparisonEvents:count(item=>item.evidence==='comparison'),matchedEvents:count(item=>item.status==='matched'),skippedEvents:count(item=>item.status==='skipped'),candidateEvents:count(item=>item.status==='candidate'),missingSourceEvents:count(item=>item.action==='missing-source'),comparisonErrorEvents:count(item=>item.status==='comparison-error'),comparisonMalformed:0,comparisonPendingBytes:0,comparisonComplete:true,skippedFiles:null,failedFiles:null,...state.reportOverrides[id]};
+    };
+    (state as any).summarizeReport=summarizeReport;
+    const handle = async (method: string, args: any[]) => {
       switch (method) {
         case 'bootstrap': return state.bootstrap;
         case 'list':
@@ -69,6 +82,7 @@ export async function installHostFixture(page: Page, options: {
           }
           if ('language' in patch) { const preferred = state.preferredLanguage.toLowerCase().split(/[-_]/)[0]; state.bootstrap.resolvedLanguage = patch.language === 'system' ? preferred === 'zh' ? 'zh-TW' : preferred === 'ja' ? 'ja' : 'en' : patch.language; }
           state.bootstrap.environment.settingsRevision = state.bootstrap.settings.settingsRevision;
+          if ('interfaceScale' in patch && win.__testNativeScale) await win.__testNativeScale(state.bootstrap.settings.interfaceScale);
           return state.bootstrap.environment;
         }
         case 'checkForUpdates': {
@@ -84,7 +98,7 @@ export async function installHostFixture(page: Page, options: {
           state.bootstrap.settings.settingsRevision += 1; state.bootstrap.environment.settingsRevision = state.bootstrap.settings.settingsRevision;
           return {status: state.manualStatus, currentVersion: '1.75.2', latestVersion: '1.76.0', path: state.bootstrap.environment.rclonePath};
         }
-        case 'checkAppUpdates': return {status: state.appStatus, current: '0.5.0', latest: state.appStatus === 'available' ? '0.6.0' : undefined, releaseURL: 'https://github.com/jason840709/RcloneBrowserNext/releases/latest'};
+        case 'checkAppUpdates': return {status: state.appStatus, current: '0.6.0', latest: state.appStatus === 'available' ? '0.7.0' : undefined, releaseURL: 'https://github.com/jason840709/RcloneBrowserNext/releases/latest'};
         case 'showAbout': return null;
         case 'listToolSessions': return state.toolSessions;
         case 'directoryTree': return {text: `${args[0].remote || '/Users/test'}\n├── Documents\n└── 照片與影片`, truncated: false};
@@ -100,6 +114,20 @@ export async function installHostFixture(page: Page, options: {
           if (session) {session.status = 'stopped'; win.__rbnEvent?.({type: 'toolSessionUpdate', data: structuredClone(session)});}
           return null;
         }
+        case 'getJobReport': {
+          if(state.reportError) throw new Error(state.reportError);
+          const [id,query]=args;
+          const records=state.reports[id];
+          if(!records) return {available:false,items:[],nextCursor:null};
+          const all=records.filter(item=>query.category==='all'||query.category==='success'&&item.status==='success'||query.category==='errors'&&['error','comparison-error'].includes(item.status)||query.category==='skipped'&&['matched','skipped'].includes(item.status)||query.category==='comparison'&&item.evidence==='comparison');
+          let offset=0;
+          const positions=all.map(item=>{const start=offset;offset+=new TextEncoder().encode(JSON.stringify(item)+'\n').length;return start;});
+          const cursor=query.cursor||0,start=cursor===offset?all.length:positions.indexOf(cursor);
+          if(start<0)throw new Error('Invalid report cursor');
+          const items=all.slice(start,start+Math.min(query.limit||100,200));
+          return {available:true,items,nextCursor:start+items.length<all.length?positions[start+items.length]:null,summary:summarizeReport(id)};
+        }
+        case 'exportJobReport': return args[1]==='comparison'?'/Users/test/transfer.comparison.txt':'/Users/test/transfer.report.jsonl';
         case 'listJobs': return state.bootstrap.jobs;
         case 'listTasks': return state.bootstrap.tasks;
         case 'previewTransfer': return {command: 'rclone copy source destination --use-json-log', warnings: []};
@@ -114,6 +142,31 @@ export async function installHostFixture(page: Page, options: {
           state.bootstrap.tasks = [task]; return task;
         }
         case 'clearFinishedJobs': state.bootstrap.jobs = state.bootstrap.jobs.filter(item => ['queued', 'running', 'cancelling'].includes(item.status)); return null;
+        case 'clearJobs': {
+          if (state.bulkError) throw new Error(state.bulkError);
+          const selected = new Set(args[0].ids);
+          const targets = state.bootstrap.jobs.filter(item => selected.has(item.id));
+          const stoppedIds: string[] = [], removedIds: string[] = [], retainedIds: string[] = [];
+          if (args[0].mode === 'stop-and-clear') {
+            for (const item of targets) if (['queued','running','cancelling'].includes(item.status) && !state.bulkRetainIds.includes(item.id)) {
+              stoppedIds.push(item.id); item.status = 'cancelling';
+              item.cancellation = {requestedAt: '2026-10-20T10:00:00Z', lastSignal: 'SIGINT', forced: false, processExited: false};
+              win.__rbnEvent?.({type: 'jobUpdate', data: structuredClone(item)});
+            }
+            if (stoppedIds.length) await new Promise(resolve => setTimeout(resolve, state.bulkStopDelay));
+            for (const item of targets) if (stoppedIds.includes(item.id)) {
+              item.status = 'cancelled'; item.cancellation = {...item.cancellation!, processExited: true, forced: state.forcedStopIds.includes(item.id), lastSignal: state.forcedStopIds.includes(item.id) ? 'SIGKILL' : 'SIGINT'};
+              win.__rbnEvent?.({type: 'jobUpdate', data: structuredClone(item)});
+            }
+          }
+          for (const item of targets) {
+            if (['queued','running','cancelling'].includes(item.status) || state.bulkRetainIds.includes(item.id)) retainedIds.push(item.id);
+            else removedIds.push(item.id);
+          }
+          state.bootstrap.jobs = state.bootstrap.jobs.filter(item => !removedIds.includes(item.id));
+          return {removedIds, retainedIds, stoppedIds, forcedStopIds: stoppedIds.filter(id => state.forcedStopIds.includes(id))};
+        }
+
         case 'deleteTask': state.bootstrap.tasks = state.bootstrap.tasks.filter(item => item.id !== args[0]); return null;
         case 'exportLog': case 'exportTasks': return '/Users/test/Export.txt';
         case 'importTasks': return state.bootstrap.tasks;
@@ -125,8 +178,8 @@ export async function installHostFixture(page: Page, options: {
       state.calls.push(structuredClone(message));
       const delay = state.delays[message.method]?.shift() ?? 2;
       const bootstrapSnapshot = message.method === 'bootstrap' ? structuredClone(state.bootstrap) : null;
-      setTimeout(() => {
-        try { win.__rbnReply?.({id: message.id, result: bootstrapSnapshot || structuredClone(handle(message.method, message.args))}); }
+      setTimeout(async () => {
+        try { win.__rbnReply?.({id: message.id, result: bootstrapSnapshot || structuredClone(await handle(message.method, message.args))}); }
         catch (error) { win.__rbnReply?.({id: message.id, error: {message: error instanceof Error ? error.message : String(error)}}); }
       }, delay);
     }}}};

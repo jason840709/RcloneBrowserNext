@@ -8,12 +8,12 @@
   <img src="docs/images/intro-zh-TW.svg" alt="給 Mac 的雙面板 rclone 圖形介面。本機、NAS、雲端，左右自由選。" width="560">
 </p>
 
-![Rclone Browser Next 0.5.0：深紫雙面板主畫面，中央提供方向、操作方式與 Dry Run](docs/images/main-dark.png)
+![Rclone Browser Next：黑紫雙面板主畫面，中央提供方向、操作方式與 Dry Run](docs/images/main-dark.png)
 
-*0.5.0 介面預覽，使用示意檔案與路徑。*
+*由介面程式產生的預覽，使用示意檔案與路徑。*
 
 <p align="center">
-  <a href="https://github.com/jason840709/RcloneBrowserNext/releases/tag/v0.5.0">下載 0.5.0</a> ·
+  <a href="https://github.com/jason840709/RcloneBrowserNext/releases/latest">下載</a> ·
   <a href="README.en.md">English</a> ·
   <a href="README.zh-TW.md">使用手冊</a> ·
   <a href="https://github.com/jason840709/RcloneBrowserNext/issues">回報問題</a>
@@ -24,7 +24,7 @@
 Rclone Browser Next 是由 **Jason Chen** 開發的 macOS [rclone](https://rclone.org/) 圖形介面。
 左右兩邊都能選擇本機資料夾、雲端空間或 NAS／伺服器，再從中央選擇方向，複製、移動或同步檔案。
 
-## 為什麼做這個版本？
+## 為什麼做 Next？
 
 Jason 在自己的 Mac 上遇過舊版 Rclone Browser 的安裝相容性問題；搭配現行 rclone 使用時，速度和剩餘時間的顯示也不可靠。
 他因此希望保留原版的圖形操作流程，同時改善 Mac 相容性和傳輸資訊。
@@ -32,7 +32,7 @@ Jason 在自己的 Mac 上遇過舊版 Rclone Browser 的安裝相容性問題�
 **原版的預設工作流程側重本地與雲端之間的上傳、下載。** Next 讓左右位置都能自由選擇，把本機對本機、雲端對雲端也放進同一套操作流程。
 實際傳輸仍由 rclone 執行；這裡擴充的是介面上的操作方式。
 
-## 主要差異
+## 與 Rclone Browser 1.8 的差異
 
 ### 左右位置都能自由選
 
@@ -49,7 +49,7 @@ Jason 在自己的 Mac 上遇過舊版 Rclone Browser 的安裝相容性問題�
 ### 支援 Apple Silicon，使用 Mac 內建元件
 
 App 使用 Swift／AppKit 與 macOS 內建 WebKit，支援 Apple Silicon 與 Intel；rclone 獨立安裝在你選的資料夾。
-0.5.0 經 CI 建置的 App，磁碟用量約為 **2.50 MiB（Apple Silicon）／2.55 MiB（Intel）**，不含外部 rclone。[建置與驗證記錄](docs/VALIDATION.zh-TW.md)
+安裝包使用系統已有的介面元件，不需要把另一套瀏覽器引擎放進 App。[架構與建置說明](docs/DEVELOPMENT.md)
 
 ### 分頁、作業與傳輸記錄
 
@@ -57,12 +57,15 @@ Dry Run 和 Tasks 是延續原版的重要功能。Next 把它們與雙面板放
 
 - **資料夾分頁：** 左右各自保留分頁與瀏覽歷史，可用滑鼠側鍵返回、前進。
 - **預演與儲存作業：** 先用 Dry Run 查看預計動作；常用設定存成 Task，之後可執行、預演、編輯或刪除。
-- **常用備份方案：** 提供電腦 → NAS、NAS → 雲端、電腦 → 雲端，可再調整比對與排除規則。
+- **常用備份方案：** 提供本機、NAS 與雲端的六種常用方案，可再調整比對與排除規則。
 - **記住工作環境：** 下次開啟時還原左右資料夾與傳輸設定，不會自動開始工作。
 - **進度與提示：** 顯示平均速度、剩餘時間與一位小數的百分比；短暫通知懸浮顯示，不推動原本版面。
-- **外觀與語言：** 深紫、淺紫、深藍、淺藍四種主題；繁體中文、English、日本語，支援跟隨系統語言。
+- **工作記錄：** 分開顯示已檢查與需傳輸的數量，並提供逐檔略過、完成和錯誤報告。可停止、重試或清除工作；停止中的狀態會保留到 rclone 真正結束。
+- **外觀與語言：** 黑紫、淺紫、黑藍、淺藍、黑綠、淺綠六種主題，搭配五段介面大小；繁體中文、English、日本語，支援跟隨系統語言。
 
 同步採單向方式：**以來源為準，只修改目標，並可能刪除目標中多出的檔案。** 比對、排除與略過規則仍會影響範圍；執行前可先預演。[完整操作說明](README.zh-TW.md)
+
+NAS 方案預設依大小與修改時間比對、不計算本機雜湊，可以減少為了比對而讀回整份 NAS 檔案的流量；代價是少了本機端的內容雜湊校驗。選項仍可調整，[NAS 比對說明](docs/NAS_COMPARISON.zh-TW.md) 列出各種情境的取捨。
 
 ### rclone 與 App 分開更新
 
@@ -73,14 +76,12 @@ App 另有「檢查 Rclone Next 更新」，查詢本專案的正式 Release，�
 
 需要 **macOS 13 以上**。本機建置使用 Mac 已有的 **Xcode 或 Apple Command Line Tools**。
 
-1. 到 [0.5.0 發布頁](https://github.com/jason840709/RcloneBrowserNext/releases/tag/v0.5.0) 下載本機建置包，完整解壓縮。
+1. 到 [最新發布頁](https://github.com/jason840709/RcloneBrowserNext/releases/latest) 下載本機建置包，完整解壓縮。
 2. 雙擊 `Build-on-Mac.command`，在同一個資料夾產生並開啟 App。
 3. 在設定選擇 **rclone 安裝位置**，使用既有引擎或下載到所選資料夾；透過 **帳號設定（Config）** 加入遠端連線，再選好左右位置並預演。
 
 建置不會自行安裝開發工具、Homebrew、Node.js 或 rclone；編譯快取與產物留在專案資料夾。
 App 採 **ad-hoc 本機簽章**，尚未取得 Developer ID 簽章與 Apple 公證；若下載後遭到 Gatekeeper 阻擋，請依 [Mac 建置說明](docs/BUILD_MAC.zh-TW.md) 操作。
-
-0.5.0 已通過 Apple Silicon 與 Intel 的 macOS CI 建置及測試。實際測試範圍與尚未實測的環節列在驗證記錄中。
 
 ## 文件與回報
 

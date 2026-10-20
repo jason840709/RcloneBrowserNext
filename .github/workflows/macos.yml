@@ -1,4 +1,4 @@
-name: macOS build and core tests
+name: macOS build and tests
 
 on:
   push:
@@ -43,7 +43,7 @@ jobs:
         run: |
           /bin/bash Scripts/build-mac.sh --no-launch
           /bin/bash Scripts/verify-mac.sh
-      - name: Run core tests with real rclone
+      - name: Run core and native interface tests with real rclone
         run: /bin/bash Scripts/test-mac.sh "$GITHUB_WORKSPACE/.build-cache/ci-engine/rclone"
       - name: Retain locally signed builds and checksums
         uses: actions/upload-artifact@v7

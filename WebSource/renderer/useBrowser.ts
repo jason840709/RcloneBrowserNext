@@ -6,6 +6,7 @@ export function useBrowser() {
   const [endpoint, setEndpoint] = useState<Endpoint>({ remote: null, path: '' });
   const [entries, setEntries] = useState<FileEntry[]>([]);
   const [selection, setSelectionState] = useState<Selection[]>([]);
+  const [focusedEntry, setFocusedEntry] = useState<Selection | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [missingSelection, setMissingSelection] = useState(false);
@@ -32,6 +33,11 @@ export function useBrowser() {
     setSelectionState(next);
     setMissingSelection(false);
   }, []);
+  const clearSelections = useCallback(() => {
+    for (const tab of tabState.current.values()) tab.selection = [];
+    setSelection([]);
+    setFocusedEntry(null);
+  }, [setSelection]);
   const load = useCallback(async (target: Endpoint, wanted: Selection[]) => {
     const id = ++generation.current;
     setLoading(true); setError('');
@@ -39,6 +45,7 @@ export function useBrowser() {
       const result = await window.rclone.list(target);
       if (id !== generation.current) return;
       setEntries(result);
+      setFocusedEntry(current => current && result.some(entry => entry.name === current.name && entry.isDir === current.isDir) ? current : null);
       const missing = selectionRef.current.some(item => !result.some(entry => entry.name === item.name && entry.isDir === item.isDir));
       // Keep missing selections visible as an error. Never silently expand a saved selection to a whole-folder operation.
       setMissingSelection(missing);
@@ -55,7 +62,7 @@ export function useBrowser() {
       future.current = [];
     }
     endpointRef.current = target;
-    setEndpoint(target); setSelection(wanted); setEntries([]); setPathDirty(false);
+    setEndpoint(target); setSelection(wanted); setFocusedEntry(null); setEntries([]); setPathDirty(false);
     setCanBack(history.current.length > 0); setCanForward(future.current.length > 0);
     tabState.current.set(activeTabRef.current, {endpoint: target, selection: wanted, history: history.current, future: future.current});
     publishTabs();
@@ -99,7 +106,7 @@ export function useBrowser() {
     tabState.current.delete(id);
     publishTabs();
   }, [switchTab, publishTabs]);
-  return { tabs, activeTab, newTab, switchTab, closeTab, endpoint, entries, selection, loading, error, missingSelection, pathDirty, canBack, canForward, navigate, reload, back, forward, up, setSelection, setPathDirty };
+  return { tabs, activeTab, newTab, switchTab, closeTab, endpoint, entries, selection, focusedEntry, loading, error, missingSelection, pathDirty, canBack, canForward, navigate, reload, back, forward, up, setSelection, clearSelections, setFocusedEntry, setPathDirty };
 }
 
 export type BrowserState = ReturnType<typeof useBrowser>;

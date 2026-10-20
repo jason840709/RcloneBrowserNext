@@ -9,7 +9,7 @@ final class RcloneWebView: WKWebView {
     var acceptsFileDrop: (() -> Bool)?
     var onFileDrop: (([URL], CGPoint) -> Void)?
     var acceptsHistoryNavigation: (() -> Bool)?
-    var onHistoryNavigation: ((String, CGPoint) -> Void)?
+    var onHistoryNavigation: ((String, CGPoint, TimeInterval) -> Void)?
     private var historyEventMonitor: Any?
 
     override init(frame: CGRect, configuration: WKWebViewConfiguration) {
@@ -27,20 +27,46 @@ final class RcloneWebView: WKWebView {
         // responder chain reaches this view. A local monitor handles only this
         // window; it needs no global input or Accessibility permission.
         historyEventMonitor = NSEvent.addLocalMonitorForEvents(matching: [.otherMouseDown, .otherMouseUp]) { [weak self] event in
-            guard let self = self, let window = self.window,
-                  event.window === window, window.attachedSheet == nil,
-                  NSApp.modalWindow == nil, self.acceptsHistoryNavigation?() == true,
-                  event.buttonNumber == 3 || event.buttonNumber == 4 else { return event }
-            let location = self.convert(event.locationInWindow, from: nil)
-            guard self.bounds.contains(location) else { return event }
-            if event.type == .otherMouseDown {
-                let point = CGPoint(x: location.x, y: self.isFlipped ? location.y : self.bounds.height - location.y)
-                self.onHistoryNavigation?(event.buttonNumber == 3 ? "back" : "forward", point)
-            }
-            // Consume both phases so WebKit cannot navigate the bundled page
-            // or send a second DOM auxiliary-click for the same press.
-            return nil
+            self?.handleHistoryEvent(event) == true ? nil : event
         }
+    }
+
+    override func otherMouseDown(with event: NSEvent) {
+        if !handleHistoryEvent(event) { super.otherMouseDown(with: event) }
+    }
+
+    override func otherMouseUp(with event: NSEvent) {
+        if !handleHistoryEvent(event) { super.otherMouseUp(with: event) }
+    }
+
+    private func handleHistoryEvent(_ event: NSEvent) -> Bool {
+        guard let window = window, window.attachedSheet == nil,
+              NSApp.modalWindow == nil, acceptsHistoryNavigation?() == true,
+              event.type == .otherMouseDown || event.type == .otherMouseUp,
+              event.buttonNumber == 3 || event.buttonNumber == 4 else { return false }
+        let location: CGPoint
+        if event.window === window {
+            location = convert(event.locationInWindow, from: nil)
+        } else if event.window == nil, window.isKeyWindow, NSApp.isActive {
+            // Some mouse drivers deliver auxiliary events without a window.
+            // Handle those only while this app owns the key window and the
+            // pointer is actually inside its content; never monitor globally.
+            location = convert(window.convertPoint(fromScreen: NSEvent.mouseLocation), from: nil)
+        } else {
+            return false
+        }
+        guard bounds.contains(location) else { return false }
+        if event.type == .otherMouseDown {
+            // Match this physical press with a possible WebKit DOM fallback.
+            // Epoch milliseconds avoid dropping a second fast press merely
+            // because it has the same direction as the first one.
+            let eventTime = (Date().timeIntervalSince1970 - ProcessInfo.processInfo.systemUptime + event.timestamp) * 1000
+            onHistoryNavigation?(event.buttonNumber == 3 ? "back" : "forward",
+                                 documentPoint(from: location), eventTime)
+        }
+        // Consume both phases so WebKit cannot navigate the bundled page or
+        // generate a second auxiliary click for a press already handled here.
+        return true
     }
 
     func stopHistoryMonitoring() {
@@ -63,9 +89,18 @@ final class RcloneWebView: WKWebView {
               let urls = sender.draggingPasteboard.readObjects(forClasses: [NSURL.self],
                 options: [.urlReadingFileURLsOnly: true]) as? [URL], !urls.isEmpty else { return false }
         let location = convert(sender.draggingLocation, from: nil)
-        let point = CGPoint(x: location.x, y: isFlipped ? location.y : bounds.height - location.y)
+        let point = documentPoint(from: location)
         onFileDrop?(urls, point)
         return true
+    }
+
+    /// Native events use view points, while elementFromPoint expects CSS pixels.
+    /// Keep Finder drops and mouse history in the correct pane at every zoom level.
+    func documentPoint(from location: CGPoint) -> CGPoint {
+        let zoom = pageZoom.isFinite && pageZoom > 0 ? pageZoom : 1
+        let x = location.x - bounds.minX
+        let y = isFlipped ? location.y - bounds.minY : bounds.maxY - location.y
+        return CGPoint(x: x / zoom, y: y / zoom)
     }
 
     private func dropOperation(_ sender: NSDraggingInfo) -> NSDragOperation {

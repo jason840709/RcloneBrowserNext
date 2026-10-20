@@ -64,7 +64,7 @@ test('new default sync choices are unlimited, during-transfer deletion, and size
   await d.getByRole('button',{name:t('apply'),exact:true}).click();await page.locator('.dry-run-button').click();const request=(await calls(page,'startTransfer')).at(-1).args[0];expect(request).toMatchObject({mode:'sync',dryRun:true,options:{maxDelete:-1,deleteMode:'during',comparison:'default',localHashPolicy:'none'}});
 });
 
-for(const [id,label,transfers,checkers]of [['local-nas','presetLocalNAS',1,10],['nas-cloud','presetNASCloud',1,10],['local-cloud','presetLocalCloud',4,8]]as const) {
+for(const [id,label,transfers,checkers]of [['local-nas','presetLocalNAS',1,10],['nas-cloud','presetNASCloud',7,10],['local-cloud','presetLocalCloud',7,10]]as const) {
  test(`${id} preset keeps locations, resets skip rules, uses explicit single-direction sync and never auto-runs`,async({page})=>{
   await open(page,{settings:{autoCheckUpdates:false,defaultTransferOptions:{...DEFAULT_OPTIONS,skipExisting:true,updateOnly:true,comparison:'checksum',exclude:['*.private'],maxDelete:9}}});
   const left=await page.getByLabel(`${t('left')} ${t('path')}`,{exact:true}).inputValue();const right=await page.getByLabel(`${t('right')} ${t('path')}`,{exact:true}).inputValue();
@@ -90,11 +90,11 @@ test('native side buttons navigate the pane under the pointer and preserve indep
   await nativeHistory(page,'left','back');await navigate(page,'left','/Users/test/D');await expect(pane.getByRole('button',{name:t('forward'),exact:true})).toBeDisabled();await nativeHistory(page,'left','forward');await expect(page.getByLabel(`${t('left')} ${t('path')}`,{exact:true})).toHaveValue('/Users/test/D');expect(errors).toEqual([]);
 });
 
-test('DOM side-button fallback fires once, native guard prevents duplicates, and a dialog blocks navigation', async ({page}) => {
+test('DOM side-button fallback fires once despite a legacy native flag, and a dialog blocks navigation', async ({page}) => {
   await open(page);await navigate(page,'left','/Users/test/A');await navigate(page,'left','/Users/test/B');
   const dispatch=async(button:number)=>page.getByTestId('left-pane').evaluate((pane,button)=>{const r=pane.getBoundingClientRect();return ['mousedown','mouseup','auxclick'].map(type=>{const e=new MouseEvent(type,{button,clientX:r.x+30,clientY:r.y+50,bubbles:true,cancelable:true});pane.dispatchEvent(e);return e.defaultPrevented;});},button);
   expect(await dispatch(3)).toEqual([true,true,true]);await expect(page.getByLabel(`${t('left')} ${t('path')}`,{exact:true})).toHaveValue('/Users/test/A');await dispatch(4);await expect(page.getByLabel(`${t('left')} ${t('path')}`,{exact:true})).toHaveValue('/Users/test/B');
-  await page.evaluate(()=>{window.__rbnNativeHistory=true;});await dispatch(3);await expect(page.getByLabel(`${t('left')} ${t('path')}`,{exact:true})).toHaveValue('/Users/test/B');
+  await page.evaluate(()=>{window.__rbnNativeHistory=true;});await dispatch(3);await expect(page.getByLabel(`${t('left')} ${t('path')}`,{exact:true})).toHaveValue('/Users/test/A');await dispatch(4);await expect(page.getByLabel(`${t('left')} ${t('path')}`,{exact:true})).toHaveValue('/Users/test/B');
   await page.locator('.options-button').click();await nativeHistory(page,'left','back');await expect(page.getByLabel(`${t('left')} ${t('path')}`,{exact:true})).toHaveValue('/Users/test/B');await page.locator('.options-dialog').getByRole('button',{name:t('cancel'),exact:true}).click();
   await nativeHistory(page,'left','back');await expect(page.getByLabel(`${t('left')} ${t('path')}`,{exact:true})).toHaveValue('/Users/test/A');
 });

@@ -1,136 +1,93 @@
-# Rclone Browser Next 0.5.0 驗證記錄
+# Rclone Browser Next 0.6.0 驗證記錄
 
-驗證日期：2026-10-20 UTC。本記錄對應 0.5.0 的 Swift 來源、正式 Web 資源與本機建置腳本；先前版本的執行結果不列入本次通過數。
+驗證日期：2026-10-20 UTC。本頁只將本輪實際執行的結果列為通過，沒有沿用 0.5.0 的通過數。
 
 ## 結果與範圍
 
-**Linux 六套 Swift 測試共 101 項通過；介面有 86 個不同案例通過。Apple Silicon 與 Intel 的 macOS CI 也已完成，各為 100 項通過、0 失敗、1 項略過。** 不同平台執行同一批案例，分開列出，沒有加總成更多不同的測試。
+本輪 Linux 的 **CoreTests 56 項、TransferReportTests 15 項**通過，全部沒有失敗或略過。正式介面的 **140 個不同案例在同一次完整執行中全部通過**，沒有失敗、略過或 flaky。Core 編譯及測試前後核對來源 SHA，確認測試期間沒有變更。
 
-Linux 各套取本輪最後一次成功執行的結果，初次測試和後續修正回歸不重複計數。Core 與另外五套測試核對的是同一份最終 Core 產品來源；Linux 全部無失敗、略過或編譯警告。macOS 的略過原因與既有 API 警告見下方 CI 記錄。正式介面的執行組成、測試資料與交付資源雜湊保留在 JSON 記錄。
-
-Swift 環境是 Linux x86_64、Swift 6.0.3（Swift 5 語言模式），使用經官方校驗值核對的 rclone v1.75.2。測試只使用獨立暫存檔案、alias 遠端與 loopback HTTP 回應，沒有接觸日常備份、真實 NAS 或雲端帳號。
-
-| 測試套件 | 通過 | 主要範圍 |
-| --- | ---: | --- |
-| CoreTests | 43 | 真實傳輸、完整作業與環境、schema 5 遷移、60 秒速度估算、NAS 旗標、網路參數、佇列及確認快照 |
-| UpdaterTests | 20 | rclone 版本、校驗、備份／替換／復原、代理與失敗後重試 |
-| ToolsTests | 12 | 目錄樹、清單匯出、串流、停止與失敗清理 |
-| NativeMessagesTests | 13 | 三語原生提示，保留檔名、路徑與後端診斷 |
-| FinderDropTests | 5 | 檔案 URL、來源範圍、類型與符號連結驗證 |
-| AppReleaseTests | 8 | App 正式版比較、回應邊界、來源限制、未發布與代理錯誤 |
-
-[驗證摘要 JSON](verification/0.5.0.json) 保留各套退出碼、來源雜湊與測試範圍。[SOURCE_MANIFEST.json](../SOURCE_MANIFEST.json) 可核對交付包內各檔案的大小與 SHA-256；manifest 本身不自我雜湊。
-
-## 核心：真正執行的行為
-
-CoreTests 會啟動真正的 rclone，驗證結果與檔案內容，並非只檢查指令文字。
-
-- 本機到本機、本機到 alias、alias 到本機、alias 到 alias 的複製。alias 指向測試目錄，不能代替各家雲端服務的相容性測試。
-- 原版 Compare 選項、全部重傳與 NAS 配置，包含同大小但內容變更、第二次備份、修改時間與略過檔案。
-- 用 Linux inotify 觀察目的檔案開啟／讀取，驗證 `--local-hashes none` 可避免單純為 local 雜湊讀回內容。測試在獨立的 `/tmp` fixture 執行，沒有放寬「不讀取目的端內容」的判斷。條件與限制見 [NAS 比對](NAS_COMPARISON.zh-TW.md)。
-- 同步三種刪除時機、刪除上限（包括 `-1` 不限）、排除規則、大小／日期／深度篩選與勾選範圍。Dry Run 確認來源及目的端沒有檔案變動。
-- 移動、重新命名、保留空目錄、略過已存在檔案，以及拒絕可能誤刪來源的 Move 與 skip-newer 組合。
-- 特殊檔名逐字傳入 argv；拒絕重疊來源／目標、失效選取與會不當擴大範圍的參數。
-- 真實限速工作產生速度與 ETA；未知 ETA 保持未知。驗證佇列、取消、更新維護互斥，預設不限制同時執行的工作。
-- 舊版預設工作上限 2 一次性遷移為不限，明確選用的其他上限仍保留；新版 schema 的值 2 不會再被當作舊預設清除。
-- 完整儲存／編輯／還原傳輸 request 與啟動環境；`savedWorkspace` 不會自行啟動傳輸。系統語言依第一順位的系統語言解析。
-- rclone 來源 IP、連線／閒置逾時、TPS、User-Agent 與 HTTP/2 參數；Task 自己的明確設定優先，空白逾時沿用全域值。
-- 設定 partial patch 依序保存、失敗回復、位置切換與查詢互斥，更新與外觀設定交錯時不清空引擎路徑。
-
-回歸包含實際同步的確認快照案例：確認前解析完整 request，確認期間變更全域刪除上限與排除規則，最後執行仍必須使用原確認快照。結果保留被排除檔案，按確認的刪除規則處理 obsolete 檔案。
-
-0.5 新增／調整的驗證包含：
-
-- 新起始值是 `maxDelete=-1`、`deleteMode=during`、`localHashPolicy=none`。舊全域預設只遷移一次；已儲存作業與工作環境保留原本參數，稀疏的舊記錄也先補回舊預設，不因升級擴大刪除範圍。
-- 本機→NAS 方案實際使用單檔傳輸、10 個檢查工作及 `--multi-thread-streams=0`。隱藏方案資料只接受三個已知 ID，去除重複並限制長度。
-- rclone 回報 `speed=0`、`eta=null` 但容量持續增加時，仍可由既有統計估算速度與 ETA。測試涵蓋停滯、同秒取樣、缺少 elapsed、計數重設、不合法數值、只剩檔案數的 ETA 與完成後平均速度。
-- 單一工作的速度視窗最多保留 64 個數值樣本。10,000 次純數值更新的 Linux 微型測試約 0.068 秒；這不含每檔資料列，不能當作 Mac、NAS 或整體傳輸效能實測。
-- `--local-hashes=none` 的已存在檔案若修改時間不同，可能直接重傳；`--no-update-modtime` 不被誤認成停用本機雜湊的替代方案。
-
-Linux inotify 只驗證該測試條件下的本機後端讀取。在 Mac 執行時此案例會明確略過；不能把預期通過數當成實際 Mac 結果。
-
-## 更新器與輔助工具
-
-引擎更新器測試版本排序、SHA-256 公開向量與校驗檔解析、暫時失敗恢復、同程序再次檢查、Mach-O 架構與最低 macOS 版本。檔案案例涵蓋原子替換、備份、替換後失敗還原、還原失敗如實回報、首次安裝失敗不留殘缺執行檔、備份符號連結防護及自有備份數量。
-
-App 更新器獨立檢查配置專案的 GitHub 正式版，涵蓋數值版本比較、拒絕 draft／prerelease／不完整 JSON、512 KiB 大小界限、禁止轉址、下載頁必須屬於同一專案、HTTP 錯誤及失敗後再試。404 回報沒有可取得的正式版本，不把它當成「已經是最新版」。
-
-原生更新使用 macOS URLSession 的代理設定。手動 HTTP CONNECT 與 SOCKS5 保留支援；代理位址本身若以 `https://` 開頭，目前會在建立連線前明確拒絕，避免把 HTTPS-to-proxy 悄悄當成普通 HTTP 代理。rclone 傳輸不受這項原生限制影響。
-
-**沒有在 Mac 下載並替換真實使用中的 rclone，也未實測 Mac 的 HTTP CONNECT、SOCKS 握手或代理 DNS 行為。** 下載回應與 Mac 執行檔標頭使用可控制的 fixture。
-
-ToolsTests 使用真正的 rclone 驗證有上限的目錄樹、CSV／TXT 匯出、失敗保留既有報告與符號連結防護。串流以 `rclone cat` 傳送固定內容到測試播放器程序，核對完整位元組，並驗證停止與錯誤清理。公開連結只驗證回應解析與 URL 限制；掛載只驗證參數契約。沒有建立真實雲端分享連結、啟動 FUSE 掛載、操作播放器 GUI 或驗證 Mac 卸載。
-
-## 介面、四種配色與語言
-
-TypeScript 型別檢查與正式建置通過。Playwright 從 `file://` 載入交付用的 `Resources/Web`，透過測試專用 native host fixture 回覆訊息。正式 App 沒有範例帳號、假檔案系統或模擬傳輸。
-
-第一次完整執行 81 個案例，78 個通過；另外 3 個案例仍預期舊的比對提示、舊版本 fixture 或不正確的速度小數。更正測試預期後，對這 3 個案例及 5 個新增案例補驗，8 個全部通過。兩次執行之間的正式資源未改動；總計 78＋3＋5＝86 個不同案例，不把重跑重複計數。
-
-回歸涵蓋三種語言、四種主題與 1060 × 680／1440 × 900 兩種尺寸，也驗證設定即時套用、失敗恢復、Config 刷新、Compare／同步細項、位置／分頁／選取隔離、欄寬保存、鍵盤選單及減少動態效果。保留並重新驗證的既有範圍：
-
-- 系統語言解析；手動選定語言優先。
-- 完整作業編輯、Run／Dry Run、另存新作業與移除。
-- 記住雙面板與傳輸選項後重啟，修改預設資料夾不被舊工作環境蓋回。
-- 修改作業來源時清除舊來源選取並提示，只改目標則保留有效來源選取。
-- 網路 structured patch 即時保存，失敗不留下半套介面狀態。
-- 四種配色的實際 PNG 像素檢查：縮短各欄後，斑馬紋仍延伸到右側剩餘空間，並填滿清單下方。
-- 說明提示可由滑鼠與鍵盤叫出；未發布版本不提供無效下載入口。
-
-80 組指定前景／背景色配對檢查通過。這是限定配色 token 的測量，不是完整 WCAG 或 VoiceOver 認證。人工另檢視四種主題、窄視窗、作業編輯器、設定與 tooltip 的邊框、分隔線及文字間距。
-
-0.5 的新案例包括整張錯誤卡片、空作業頁、懸浮通知不改變版面及自動關閉、三種方案與隱藏／還原、單向同步說明、新預設、各分頁歷史與側鍵橋接、合併導覽列、連續分頁底色、速度／ETA／小數百分比及大目錄更新成本。瀏覽器 fixture 測試原生事件訊息契約，不能代替實體滑鼠在 WKWebView 中的操作。
-
-詳細執行數字、補驗原因與範圍見 [Web 驗證記錄](../WebSource/tests/VERIFICATION.zh-TW.md) 及其 [JSON](../WebSource/tests/verification.json)。測試預覽只供檢查，不納入 App 或發行包。
-
-App 的 `.icns` 與介面 SVG 圖示維持使用者提供的 v2，SHA-256 與來源相符，沒有重新繪製。
-
-## macOS CI：雙架構建置、簽章與整合測試
-
-[GitHub Actions run 39408177020](https://github.com/jason840709/RcloneBrowserNext/actions/runs/39408177020) 對應來源 commit `36aef715a687b83657e5f99707cacc0c8dcc9f51`。2026-10-20，Apple Silicon、Intel 與 Release 三個工作全部完成並成功；[0.5.0 Release](https://github.com/jason840709/RcloneBrowserNext/releases/tag/v0.5.0) 已產生完整原生 App 與本機建置包。
-
-| 測試套件 | Apple Silicon | Intel |
+| 驗證 | 本輪結果 | 使用環境 |
 | --- | --- | --- |
-| CoreTests | 42 通過、1 略過 | 42 通過、1 略過 |
-| UpdaterTests | 20 通過 | 20 通過 |
-| ToolsTests | 12 通過 | 12 通過 |
-| NativeMessagesTests | 13 通過 | 13 通過 |
-| FinderDropTests | 5 通過 | 5 通過 |
-| AppReleaseTests | 8 通過 | 8 通過 |
-| **各架構合計** | **100 通過、0 失敗、1 略過** | **100 通過、0 失敗、1 略過** |
+| CoreTests | 56 通過，0 失敗，0 略過 | Linux x86_64、Swift 6.0.3、真實 rclone 1.75.2 |
+| TransferReportTests | 15 通過，0 失敗，0 略過 | 同上；獨立報告與真實 rclone 回歸 |
+| 正式 Web 介面 | 140 通過，0 失敗，0 略過 | Linux Chrome，載入正式 file:// bundle |
+| TypeScript 與正式建置 | 通過 | 鎖定的 WebSource 依賴 |
+| 指定配色組合 | 120／120 通過 | 六種主題的色彩 token 對比檢查 |
+| 原生 Mac 發布門檻 | 兩架構各自完成建置、簽章、七套 Core 與 MacInterfaceTests 才發布 | GitHub Actions 的 macos-15／macos-15-intel |
 
-略過的是使用 Linux inotify 的檔案讀取監測，macOS 不提供這個 API；其他可攜的 NAS 比對與傳輸案例仍實際執行。兩架構使用 macOS 15.7.9、Apple Swift 6.1.2 與 rclone 1.75.2，App 最低系統為 macOS 13.0。
+最後一列是自動發布的必要條件，不是 Linux 執行結果。各次 Mac 工作的實際退出碼與套件數字見 [Actions](https://github.com/jason840709/RcloneBrowserNext/actions)。本頁的發布後更新會補上對應 run 與實際記錄；來源包保留製作時的驗證範圍。
 
-- 原生 Apple SDK 編譯與連結成功，產物分別驗證為 `arm64` 及 `x86_64`，版本為 0.5.0、build 50。
-- 完整資源裝入後才建立 ad-hoc 簽章；兩個架構各兩次通過 `codesign` 檢查，包含 `valid on disk` 與 `satisfies its Designated Requirement`。
-- App 磁碟用量由 `du -sk` 測得為 **2.50 MiB（Apple Silicon）／2.55 MiB（Intel）**，不含獨立安裝的 rclone。它與 ZIP 大小、檔案邏輯位元組數是不同的測量。
-- 兩架構各有一項既有 `NSWorkspace.openFile(_:withApplication:)` 棄用警告，位於 `Sources/Mac/AppMain.swift:850`；沒有編譯錯誤。
-- 10,000 次進度數值快照，在 arm64 runner 為 0.090273 秒、Intel runner 為 0.171147 秒，最多保留 64 個樣本。這是 CI 微型量測，不能推論使用者 Mac 或實體 NAS 的整體傳輸效能。
+[本輪本機驗證 JSON](verification/0.6.0.json) 保留結果、來源雜湊與測試界線。[SOURCE_MANIFEST.json](../SOURCE_MANIFEST.json) 用來核對來源包；manifest 本身不自我雜湊。測試只使用獨立暫存目錄、alias 遠端、loopback 回應與示意介面資料，沒有使用日常備份或真實雲端帳號。
 
-完整結果與原生主程式 SHA-256 見 [macOS CI JSON](verification/0.5.0-macos-ci.json)。Mac 的實際結果與前述 Linux 的 101 項分開保存；本頁後續文件排版更新沒有改動該 commit 的產品來源或已發布原生 ZIP。
+## 重複同步與來源選取
 
-### 仍需要實際使用環境確認的範圍
+CoreTests 會真正啟動 rclone，核對傳輸結果及檔案內容。
 
-CI 使用 `--no-launch` 建置，沒有操作互動 GUI，也沒有連線到使用者的實體 NAS 或雲端帳號。Cmd-Q、AppKit 選單、WKWebView、Finder 拖放、Terminal Config、系統通知、選單列與掛載仍需在實際桌面環境確認。ad-hoc 簽章完整性驗證不等於 Developer ID 簽章或 Apple 公證，也不保證瀏覽器下載後可直接通過 Gatekeeper。
+- 相同資料第二次同步，`unchangedBytes=0`，沒有重傳未變更的檔案。
+- 模擬 10ms 修改時間量化後，再次同步 `quantizedBytes=0`；同大小檔案若內容及修改時間已更新，正確重新傳輸 1 個檔案。
+- 來源只選取資料夾的同步，在傳輸前、傳輸時、傳輸後三種刪除時機都保留未選取的目標範圍。
+- 選取資料夾搭配包含規則時，雙端符合規則的名稱聯集允許刪除範圍內的過期目的檔案。排除項目與未選範圍仍保留。只有明確的目錄不存在會被視為空目的端；其他讀取錯誤會停止。
+- 檔案或混合選取不允許 Sync；選取範圍搭配「刪除排除項目」也會在啟動前拒絕。
+- 真實 local／alias 四種端點組合、Copy／Sync／Move、Dry Run、全部比較方式、排除規則、刪除上限、特殊檔名及完整 Task 還原持續涵蓋在回歸中。
 
-滑鼠側鍵使用視窗內的 AppKit 事件監聽：按下時傳入左右面板座標、消耗同一側鍵的按下與放開事件，避免 WebKit 重複導航；原生或 HTML 對話框開啟時不操作歷史。監聽器在換視窗與離開時清理。已核對原生編譯、事件訊息契約及前端歷史行為，尚未用實體滑鼠或廠商自訂驅動程式驗證。
+macOS 的自動時間容差依實際 `statfs` 結果處理已知 FAT、HFS+、exFAT 精度。Linux 可以驗證映射與明確 10ms 模擬，不能證明使用者外接硬碟的實際格式或行為。Mac suite 另有不存在目的路徑的既有父目錄解析檢查；不會建立探測檔，也不把掛載 SMB 當成某個已知固定精度。
 
-整合時保留了作者儲存庫的 Clang module cache 修正，以及兩個 APFS 測試 fixture 的串流設定；後者只影響測試，不會停用一般操作中的 APFS 複製加速。發布流程只有在兩個 Mac 工作成功且版本尚未存在時才建立 Release，既有附件不被後續文件修改取代。
+Linux inotify 的既有測試監看目的檔案讀取，用來檢查 `--local-hashes=none` 在受控情境下避免內容雜湊讀取。Mac 沒有 inotify，該案例會明確略過；這不代表其他 Mac NAS 參數或實際傳輸案例也略過。詳見 [NAS 比對](NAS_COMPARISON.zh-TW.md)。
 
-### 下載與本機建置
+## 工作清理與停止
 
-Release 提供 Apple Silicon、Intel 原生 App，以及完整 **Mac 本機建置包**。`Build-on-Mac.command` 使用 Mac 既有的 Apple 開發工具，編譯來源、裝入完整資源、建立 ad-hoc 本機簽章並驗證。一般建置不安裝額外工具、不下載 Web 開發依賴、不關閉 Gatekeeper；編譯快取與產物放在同一專案資料夾。
+- schema 6 驗證五段縮放、六主題與六個已知方案 ID。啟動清除成功完成的工作；未完成工作成為中斷狀態，不自動執行。
+- 超過 200 筆中斷工作仍完整保留。一般已結束歷史上限不會淘汰等待中、執行中或中斷工作，也不會阻止新增傳輸。
+- 批次清除固定確認時的 UUID 清單，不會觸及其後新增的工作；先保存歷史，再清除 App 自己的紀錄檔。保存失敗時保留記錄。
+- 真實 rclone 的一般手動複製中斷測試，兩案例均由 SIGINT 結束，實際 exit 130，沒有升級訊號。未完成暫存檔移除，先前完成的檔案保留；若目的端本來有舊版本，舊版本保留。
+- 受控的不回應程序用來驗證寬限後升級到 SIGKILL，實際 exit 9；直到程序真正退出才成為已取消，並留下強制停止診斷。
+- 同批停止先處理目標工作狀態，避免取消過程讓原本排隊的目標工作突然開始。
 
-## 自行重跑
+手動複製 fixture 會明確停用系統 clone，以便在傳輸中途觀察可控的 partial 檔案；**產品沒有停用 APFS clone**。這組測試不能推論 Mac 系統複製、SMB 或每一家雲端後端都能清理所有未完成上傳。App 不根據報告猜測路徑並刪除目的檔案。研究與後端限制見 [0.6.0 原碼分析](RESEARCH_0.6.0.md)。
 
-一般使用者只需本機建置。要驗證自己的 Mac，可再執行：
+## 逐檔報告與統計
 
-```bash
-/bin/bash "/來源包路徑/Build-on-Mac.command" --no-launch
-/bin/bash "/來源包路徑/Verify-App.command"
-/bin/bash "/來源包路徑/Test-on-Mac.command" "/rclone資料夾/rclone"
-```
+獨立的 15 項 TransferReportTests，加上 Core 的整合案例，涵蓋以下結果：
 
-六套測試使用專案內的獨立資料。不提供相容 rclone 時，需要引擎的項目會標示略過；不要把這種結果當成本次 101 項完整通過。Web 重跑方式在 [Tests/Web](../Tests/Web/README.md)，屬於選用開發流程，一般 Mac 建置不下載 Node.js、測試瀏覽器或字型。
+- 真實 rclone 的第一次傳輸、再次同步零重傳、同步刪除及重試紀錄；Checks 和略過事件各自保存。
+- Core 整合案例包含 **281 個成功檔案、281 次 matched 比對、6 條錯誤紀錄與 855 個全量事件**。成功清單分四頁取得全部 281 檔，不受一般 log 的 250 筆尾端限制。
+- `--combined=-` 的原始輸出保留兩次 attempt，避免高階重試重新建立具名報告而丟失先前資料。
+- 比對候選不冒充傳輸成功；先複製成功、後刪除來源失敗的 Move，兩個動作分開記錄。Dry Run 不產生真正成功事件。
+- 有檔名的錯誤與工作層級錯誤分開；重試後的早期錯誤仍可查閱。未提供檔名時不猜測。
+- 換行、引號及 Unicode 檔名使用標準 JSON 編碼。無法可靠解析的比對行留在原始輸出並回報限制，不拿來執行檔案操作。
+- 上千筆分頁、執行中固定快照、最後半筆 JSON 排除、唯讀分頁、符號連結拒絕與 UUID 範圍清理。
+- 正式介面分開呈現已傳輸、需傳輸、Checks、略過紀錄與錯誤；既有工作缺少逐檔報告時顯示不可取得，仍能查原始紀錄。
 
-原版功能與目前保留差異列在 [功能對照](FEATURE_MATRIX.zh-TW.md)。檔案體積、介面截圖與測試數量都不能單獨代表完整功能等價。
+同一檔案可能在重試時留下多個事件，因此略過及錯誤事件數不是不重複的最終檔案數。`failedFiles`、`skippedFiles` 在無法可靠得知時維持 `null`。比對結果中的 `=` 也可能來自略過規則，不保證內容相同。
+
+### 低負擔的實際範圍
+
+進度沿用每秒 JSON stats，最多保留 64 個數值樣本，估算最近一分鐘的平均速率與剩餘時間。10,000 次數值快照在本輪 Linux 測試約 **0.086 秒**。報告使用既有比對輸出，不啟動額外的內容掃描、雜湊或逐檔 UI 更新。
+
+100,000 筆合成略過事件的報告寫入量測為 **1.562 秒**，約 64,005 事件／秒。各分類 ledger 與原始輸出共寫入 78,582,245 bytes；這包含為分類查閱保留的多份索引紀錄，不等於記憶體用量。緩衝與分頁有界限，但完整歷史仍會佔磁碟空間。成功工作在下次啟動清理；需要長期保存時應先匯出。
+
+這些是數值估算與本機報告路徑的獨立基準，不能當成整個 App 零負擔、Mac CPU 或實體 NAS 滿速保證。
+
+## 介面、語言、配色與圖示
+
+正式 file:// bundle 的 140 個案例在同一輪完整執行通過，包括既有 86 個案例、第一批 26 個 0.6 案例與本輪追加 28 個案例。測試原生橋接回應使用 fixture，正式 App 沒有假檔案或模擬帳號。
+
+回歸與人工畫面檢查涵蓋繁中、English、日本語，六種主題，五段縮放設定，以及最小原生視窗 1060 × 680 在 125% 時的等效內容尺寸。另檢查設定、傳輸選項、作業編輯器、錯誤分頁、實際可見通知與捲軸。120 組指定色彩配對全部通過，這不是完整 WCAG 或 VoiceOver 認證。
+
+- 目標端沒有傳輸勾選框；目標檔案操作焦點與來源傳輸選取分離。切換方向或交換兩端時清除所有分頁的舊選取。
+- Native-first、DOM-first、長按、連續側鍵與單獨 auxclick 情境，都驗證前後導覽與單次事件配對。
+- 整塊捲軸軌道不透出斑馬紋；一般介面文字不可拖曳選取，可編輯欄位、路徑和紀錄保留可複製行為。
+- 通知不改變原版面，可手動關閉並自動收起；本文穿透滑鼠，關閉按鈕仍可操作。
+- 十萬筆檔案 fixture 的進度更新不重排整份清單、不額外要求目錄清單；報告按需分頁，沒有每秒報告輪詢。
+
+正式繁中與英文 README 截圖使用各自語言的 UI，內容為一致的示意資料。預覽不包含使用者的帳號、路徑或上傳截圖。v2 紫色圖示維持原檔；藍、綠版由同一 SVG 幾何重新套色，保留眼睛修正。
+
+完整 UI 結果與正式資源 SHA 見 [Web 驗證記錄](../WebSource/tests/VERIFICATION.zh-TW.md) 及其 [JSON](../WebSource/tests/verification.json)。
+
+## macOS 驗證範圍
+
+發布 workflow 在 Apple Silicon 與 Intel 各自使用 Apple SDK 建置，完成資源後建立 ad-hoc 簽章，執行 `codesign --verify --strict`，再跑 CoreTests、UpdaterTests、ToolsTests、NativeMessagesTests、FinderDropTests、AppReleaseTests、TransferReportTests。任一架構失敗都不會發布版本。
+
+另有原生 `MacInterfaceTests`，載入實際 WKWebView 的本機測試文件，檢查五段 `pageZoom`、原生到 DOM 的兩側座標對應，以及三個 ICNS 的 AppKit 解碼與 runtime 設定。這比 Linux 語法檢查多了真正的 WebKit 執行，但它不是完整的真人 GUI 操作。
+
+實體滑鼠與驅動、Finder 拖放、Cmd-Q 對話框、Terminal Config、系統通知、真實代理連線、SMB、FUSE 及雲端分段取消仍取決於實際使用環境。App 的 ad-hoc 簽章不是 Apple Developer ID 簽章或公證；下載後的 Gatekeeper 體驗另見 [Mac 建置說明](BUILD_MAC.zh-TW.md)。

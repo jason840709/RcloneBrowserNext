@@ -235,6 +235,15 @@ private final class CoreTestSuite {
             try rejects("integer used as boolean") { _ = try EngineTransferOptions(["updateOnly": 1]) }
             let from = try folder("validation-from"), to = try folder("validation-to")
             try rejects("sync accepted selected files") { _ = try EngineTransferRequest(request(from, to, mode: "sync", selection: [["name": "one", "isDir": false]])) }
+            let folders = [["name": "one[1]", "isDir": true], ["name": "two", "isDir": true]] as [[String: Any]]
+            let scoped = try EngineTransferRequest(request(from, to, mode: "sync", selection: folders))
+            try expect(scoped.selection.count == 2 && scoped.selectionFilterRules.suffix(3) == ["+ /one\\[1\\]/**", "+ /two/**", "- **"], "selected-folder sync lost its anchored boundary")
+            try rejects("delete-excluded bypassed selected sync destination boundaries") {
+                _ = try EngineTransferRequest(request(from, to, mode: "sync", selection: folders, options: ["deleteExcluded": true]))
+            }
+            try rejects("mixed folder/file sync was accepted") {
+                _ = try EngineTransferRequest(request(from, to, mode: "sync", selection: folders + [["name": "file.txt", "isDir": false]]))
+            }
             let escaped = EngineTransferRequest.escapeFilter(" a[1]*?{b}\\ ")
             try expect(escaped == "[ ]a\\[1\\]\\*\\?\\{b\\}\\\\[ ]", "literal filter escaping")
         }
@@ -275,6 +284,35 @@ private final class CoreTestSuite {
             }
         }
 
+        test("automatic modification tolerance uses known local volume precision and preserves explicit options and remote semantics") {
+            let from = try folder("precision/source"), to = try folder("precision/destination")
+            let base = try EngineTransferRequest(request(from, to, mode: "sync"))
+            var observed: [String] = []
+            let mixed = EngineLocalTimePrecision.detect(for: base) { path in observed.append(path); return path == from.path ? "hfs" : "exfat" }
+            try expect(Set(observed) == Set([from.path, to.path]) && mixed?.duration == "1s", "precision did not account for both source and destination")
+            let fat = EngineLocalTimePrecision.detect(for: base) { $0 == from.path ? "apfs" : "msdos" }
+            let exfat = EngineLocalTimePrecision.detect(for: base) { $0 == from.path ? "apfs" : "exfat" }
+            try expect(fat?.duration == "2s" && exfat?.duration == "10ms", "known attached-volume precision was not applied")
+            try expect(EngineLocalTimePrecision.detect(for: base, fileSystem: { _ in "apfs" }) == nil, "APFS precision was unnecessarily loosened")
+            try expect(EngineLocalTimePrecision.detect(for: base, fileSystem: { _ in "unknown-fs" }) == nil, "unknown filesystem precision was guessed")
+            for comparison in ["size", "none", "checksum", "checksum-only"] {
+                let value = try EngineTransferRequest(request(from, to, options: ["comparison": comparison, "localHashPolicy": "default"]))
+                try expect(EngineLocalTimePrecision.detect(for: value, fileSystem: { _ in "msdos" }) == nil, "irrelevant comparison was assigned an automatic modification window")
+            }
+            let manual = try EngineTransferRequest(request(from, to, options: ["modifyWindow": "0"]))
+            var consulted = false
+            try expect(EngineLocalTimePrecision.detect(for: manual, fileSystem: { _ in consulted = true; return "msdos" }) == nil && !consulted, "automatic precision overrode the user's manual zero window")
+            try expect(manual.arguments().contains("--modify-window=0"), "manual precision did not reach rclone")
+            let remote = try EngineTransferRequest(request(from, to, sourceRemote: "one", destinationRemote: "two"))
+            try expect(EngineLocalTimePrecision.detect(for: remote, fileSystem: { _ in consulted = true; return "msdos" }) == nil && !consulted, "remote precision was replaced with a local-volume assumption")
+            try expect(base.options.text("modifyWindow").isEmpty, "automatic precision mutated the saved task options")
+            #if os(macOS)
+            let missing = to.appendingPathComponent("not-created/nested")
+            try expect(EngineLocalTimePrecision.mountedFileSystem(missing.path) == EngineLocalTimePrecision.mountedFileSystem(to.path), "missing destination did not use its nearest existing ancestor volume")
+            try expect(!FileManager.default.fileExists(atPath: missing.path), "volume precision discovery created a probe or destination folder")
+            #endif
+        }
+
         test("system language resolves Chinese variants and Japanese consistently with bootstrap") {
             for language in ["zh", "zh-TW", "zh-Hant-TW", "zh-Hans-CN", "zh_CN", "ZH_hk"] {
                 try expect(RBNLanguageResolver.resolve("system", preferredLanguages: [language]) == "zh-TW", "Chinese system language \(language)")
@@ -311,7 +349,7 @@ private final class CoreTestSuite {
                 try EngineStorage.atomicJSON(previous, to: state.appendingPathComponent("settings.json"))
                 let engine = try RcloneEngine(stateDirectory: state, defaultRcloneDirectory: area.appendingPathComponent("rclone"))
                 let settings = engine.settingsSnapshot()
-                try expect(settings["settingsSchemaVersion"] as? Int == 5 && settings["maxConcurrentJobs"] as? Int == expected, "wrong limit migration")
+                try expect(settings["settingsSchemaVersion"] as? Int == 6 && settings["maxConcurrentJobs"] as? Int == expected, "wrong limit migration")
                 try expect(settings["language"] as? String == "en" && settings["theme"] as? String == "blue-light" && settings["skippedRcloneVersion"] as? String == "v99.1.0", "migration changed independent preferences")
                 if schema == 0 {
                     let network = settings["networkOptions"] as! [String: Any]
@@ -376,12 +414,15 @@ private final class CoreTestSuite {
             _ = try engine.invoke("saveSettings", arguments: [["hiddenBuiltinPresets": ["nas-cloud", "local-nas", "local-nas"]]])
             try expect(engine.settingsSnapshot()["hiddenBuiltinPresets"] as? [String] == ["local-nas", "nas-cloud"], "preset hide choices did not normalize")
             try expect(try EngineJSON.data(engine.settingsSnapshot()["defaultTransferOptions"]!) == EngineJSON.data(original), "hiding presets changed transfer choices")
-            for invalid: Any in [["custom-script"], ["local-nas", "nas-cloud", "local-cloud", "local-nas"], "local-nas", [1]] {
+            for invalid: Any in [["custom-script"], ["local-nas", "nas-cloud", "local-cloud", "local-local", "cloud-cloud", "cloud-local", "local-nas"], "local-nas", [1]] {
                 try rejects("invalid preset identifier accepted") { _ = try engine.invoke("saveSettings", arguments: [["hiddenBuiltinPresets": invalid]]) }
             }
             engine.shutdown()
             let reopened = try RcloneEngine(stateDirectory: area.appendingPathComponent("state"), defaultRcloneDirectory: area.appendingPathComponent("Tools/rclone")); defer { reopened.shutdown() }
             try expect(reopened.settingsSnapshot()["hiddenBuiltinPresets"] as? [String] == ["local-nas", "nas-cloud"], "hidden presets were lost on restart")
+            let allPresets = ["local-nas", "nas-cloud", "local-cloud", "local-local", "cloud-cloud", "cloud-local"]
+            _ = try reopened.invoke("saveSettings", arguments: [["hiddenBuiltinPresets": allPresets]])
+            try expect(reopened.settingsSnapshot()["hiddenBuiltinPresets"] as? [String] == allPresets.sorted(), "new built-in presets could not be hidden")
             _ = try reopened.invoke("saveSettings", arguments: [["hiddenBuiltinPresets": [String]()]])
             try expect(reopened.settingsSnapshot()["hiddenBuiltinPresets"] as? [String] == [], "restore did not clear hidden presets")
         }
@@ -513,6 +554,113 @@ private final class CoreTestSuite {
             }
         }
 
+        test("0.6 interface scale and green themes persist independently and reject unsupported values atomically") {
+            let area = try folder("settings-scale"), state = try folder("settings-scale/state")
+            try EngineStorage.atomicJSON(["settingsSchemaVersion": 5, "language": "ja", "theme": "blue-light",
+                                          "defaultTransferOptions": EngineTransferOptions.defaults], to: state.appendingPathComponent("settings.json"))
+            let engine = try RcloneEngine(stateDirectory: state, defaultRcloneDirectory: area.appendingPathComponent("rclone"))
+            defer { engine.shutdown() }
+            try expect(engine.settingsSnapshot()["interfaceScale"] as? Int == 100, "legacy settings did not acquire default scale")
+            for scale in [80, 90, 100, 110, 125] {
+                _ = try engine.invoke("saveSettings", arguments: [["interfaceScale": scale]])
+                _ = try engine.invoke("saveSettings", arguments: [["theme": scale == 125 ? "green-light" : "green-dark"]])
+                let snapshot = engine.settingsSnapshot()
+                try expect(snapshot["interfaceScale"] as? Int == scale && snapshot["language"] as? String == "ja", "theme patch changed scale or language")
+            }
+            let before = try EngineJSON.data(engine.settingsSnapshot())
+            for invalid: Any in [79, 81, 95, 126, 90.5, "100", true, NSNull()] {
+                try rejects("invalid scale accepted: \(invalid)") { _ = try engine.invoke("saveSettings", arguments: [["interfaceScale": invalid]]) }
+                try expect(try EngineJSON.data(engine.settingsSnapshot()) == before, "invalid scale changed settings or revision")
+            }
+            engine.shutdown()
+            let restarted = try RcloneEngine(stateDirectory: state, defaultRcloneDirectory: area.appendingPathComponent("rclone"))
+            defer { restarted.shutdown() }
+            try expect(restarted.settingsSnapshot()["interfaceScale"] as? Int == 125 && restarted.settingsSnapshot()["theme"] as? String == "green-light", "scale or green theme lost after restart")
+            try expect(restarted.settingsSnapshot()["settingsSchemaVersion"] as? Int == 6, "settings schema was not upgraded")
+        }
+
+        test("startup clears only successful history while preserving failed and unfinished requests and their logs") {
+            let from = try folder("restart-history/source"), to = try folder("restart-history/destination")
+            let area = try folder("restart-history-engine"), state = try folder("restart-history-engine/state"), logs = try folder("restart-history-engine/state/logs")
+            let statuses = ["completed", "failed", "cancelled", "interrupted", "queued", "running", "cancelling", "paused"]
+            let saved = try statuses.map { status -> EngineJob in
+                let job = EngineJob(request: try EngineTransferRequest(request(from, to)), command: "restart fixture")
+                job.status = status; job.error = status == "failed" ? "fixture transfer failed" : nil
+                try file(logs, job.id + ".jsonl", Data(status.utf8))
+                return job
+            }
+            try EngineStorage.atomicJSON(saved.map(\.json), to: state.appendingPathComponent("jobs.json"))
+            let engine = try RcloneEngine(stateDirectory: state, defaultRcloneDirectory: area.appendingPathComponent("rclone"))
+            defer { engine.shutdown() }
+            let jobs = try engine.invoke("listJobs", arguments: []) as! [[String: Any]]
+            try expect(jobs.count == 7 && !engine.hasActiveJobs, "startup removed unfinished history or restarted work")
+            try expect(!jobs.contains { $0["id"] as? String == saved[0].id }, "completed history remained after startup")
+            for (index, old) in saved.enumerated() where index > 0 {
+                let current = try job(engine, old.id)
+                let expected = EngineJob.terminal.contains(old.status) ? old.status : "interrupted"
+                try expect(current["status"] as? String == expected, "unfinished status mislabeled for \(old.status)")
+                try expect(FileManager.default.fileExists(atPath: logs.appendingPathComponent(old.id + ".jsonl").path), "unfinished log was removed")
+            }
+            try expect(try job(engine, saved[1].id)["error"] as? String == "fixture transfer failed", "failed diagnostic was lost")
+            try expect(!FileManager.default.fileExists(atPath: logs.appendingPathComponent(saved[0].id + ".jsonl").path), "completed owned log was not cleared")
+            let persisted = try EngineJSON.object(Data(contentsOf: state.appendingPathComponent("jobs.json"))) as! [[String: Any]]
+            try expect(persisted.count == 7 && !persisted.contains { $0["status"] as? String == "completed" }, "startup history cleanup was not persisted")
+        }
+
+        test("more than 200 interrupted requests survive startup and shutdown independently of ended-history retention") {
+            let from = try folder("unfinished-retention/source"), to = try folder("unfinished-retention/destination")
+            let area = try folder("unfinished-retention-engine"), state = try folder("unfinished-retention-engine/state")
+            let statuses = ["interrupted", "queued", "running", "cancelling", "paused"]
+            let unfinished = try (0..<205).map { index -> EngineJob in
+                let job = EngineJob(request: try EngineTransferRequest(request(from, to)), command: "unfinished request fixture")
+                job.status = statuses[index % statuses.count]; return job
+            }
+            let ended = try (0..<202).map { index -> EngineJob in
+                let job = EngineJob(request: try EngineTransferRequest(request(from, to)), command: "ended request fixture")
+                job.status = index % 2 == 0 ? "failed" : "cancelled"
+                job.endedAt = ISO8601DateFormatter().string(from: Date(timeIntervalSince1970: Double(1600000000 + index)))
+                return job
+            }
+            try EngineStorage.atomicJSON((unfinished + ended).map(\.json), to: state.appendingPathComponent("jobs.json"))
+            let engine = try RcloneEngine(stateDirectory: state, defaultRcloneDirectory: area.appendingPathComponent("rclone"))
+            defer { engine.shutdown() }
+            let rows = try engine.invoke("listJobs", arguments: []) as! [[String: Any]]
+            let unfinishedIDs = Set(unfinished.map(\.id))
+            try expect(rows.count == 405 && rows.filter { $0["status"] as? String == "interrupted" }.count == 205 && !engine.hasActiveJobs, "retention discarded or restarted an unfinished request")
+            try expect(unfinishedIDs.isSubset(of: Set(rows.compactMap { $0["id"] as? String })), "an unfinished UUID was evicted")
+            try expect(!rows.contains { $0["id"] as? String == ended[0].id || $0["id"] as? String == ended[1].id }, "ordinary terminal history no longer follows its 200-record policy")
+            engine.shutdown()
+            let persisted = try EngineJSON.object(Data(contentsOf: state.appendingPathComponent("jobs.json"))) as! [[String: Any]]
+            try expect(persisted.count == 405 && unfinishedIDs.isSubset(of: Set(persisted.compactMap { $0["id"] as? String })), "shutdown re-applied the terminal limit to unfinished history")
+        }
+
+        test("ID-scoped history clearing is validated, repeatable and preserves history when disk replacement fails") {
+            let from = try folder("clear-history/source"), to = try folder("clear-history/destination")
+            let area = try folder("clear-history-engine"), state = try folder("clear-history-engine/state"), logs = try folder("clear-history-engine/state/logs")
+            let saved = try ["failed", "cancelled", "interrupted"].map { status -> EngineJob in
+                let job = EngineJob(request: try EngineTransferRequest(request(from, to)), command: "clear fixture")
+                job.status = status; try file(logs, job.id + ".jsonl", Data(status.utf8)); return job
+            }
+            try EngineStorage.atomicJSON(saved.map(\.json), to: state.appendingPathComponent("jobs.json"))
+            let engine = try RcloneEngine(stateDirectory: state, defaultRcloneDirectory: area.appendingPathComponent("rclone"))
+            defer { engine.shutdown() }
+            _ = try engine.invoke("saveTask", arguments: ["keep saved task", request(from, to)])
+            for invalid: [String: Any] in [["ids": ["../invalid"], "mode": "stop-and-clear"], ["ids": [saved[0].id], "mode": "all"], ["ids": [saved[0].id], "mode": "finished", "cancelAll": true]] {
+                try rejects("unsafe bulk cleanup accepted") { _ = try engine.invoke("clearJobs", arguments: [invalid]) }
+            }
+            let jobsPath = state.appendingPathComponent("jobs.json"), original = try Data(contentsOf: jobsPath)
+            try FileManager.default.removeItem(at: jobsPath); try FileManager.default.createDirectory(at: jobsPath, withIntermediateDirectories: false)
+            try rejects("cleanup claimed a failed metadata write succeeded") { _ = try engine.invoke("clearJobs", arguments: [["ids": [saved[0].id], "mode": "finished"]]) }
+            try expect(try job(engine, saved[0].id)["status"] as? String == "failed" && FileManager.default.fileExists(atPath: logs.appendingPathComponent(saved[0].id + ".jsonl").path), "failed clear lost history or logs")
+            try FileManager.default.removeItem(at: jobsPath); try original.write(to: jobsPath)
+            let result = try engine.invoke("clearJobs", arguments: [["ids": [saved[0].id, saved[0].id], "mode": "finished"]]) as! [String: Any]
+            try expect(result["removedIds"] as? [String] == [saved[0].id] && (result["stoppedIds"] as? [String])?.isEmpty == true, "clear did not deduplicate IDs or stopped unrelated work")
+            try expect((try engine.invoke("listJobs", arguments: []) as! [[String: Any]]).count == 2, "ID clear deleted unrelated history")
+            _ = try engine.invoke("clearJobs", arguments: [["ids": [saved[0].id], "mode": "stop-and-clear"]])
+            _ = try engine.invoke("clearFinishedJobs", arguments: [])
+            try expect((try engine.invoke("listJobs", arguments: []) as! [[String: Any]]).isEmpty && (try engine.invoke("listTasks", arguments: []) as! [[String: Any]]).count == 1, "legacy finished clear changed saved tasks or retained ended rows")
+        }
+
         test("concurrent settings patches are serialized and failed persistence never publishes a partial change") {
             let engine = try self.engine("settings-concurrent", useRclone: false); defer { engine.shutdown() }
             let results = TestConcurrentResults(), group = DispatchGroup()
@@ -552,11 +700,15 @@ private final class CoreTestSuite {
 
         test("JSON statistics keep unknown ETA and growing scan totals") {
             let first: [String: Any] = ["bytes": 1024, "totalBytes": 2048, "speed": 512, "eta": NSNull(), "totalTransfers": 2,
+                                       "checks": 12, "totalChecks": 40, "listed": 65, "transfers": 1, "errors": 2,
                                        "transferring": [["name": "file.bin", "size": 2048, "bytes": 1024, "speed": 512, "speedAvg": 500, "eta": NSNull()]]]
             let a = EngineStatistics.parse(first)
             try expect(a["eta"] is NSNull, "unknown ETA became zero")
             let b = EngineStatistics.parse(["bytes": 1536, "totalBytes": 8192, "totalTransfers": 7, "eta": 13, "speed": -1], previous: a)
             try expect(EngineJSON.number(b["totalBytes"]) == 8192 && EngineJSON.number(b["totalTransfers"]) == 7, "scan totals did not grow")
+            for (key, count) in [("checks", 12), ("totalChecks", 40), ("listed", 65), ("transfers", 1), ("errors", 2)] {
+                try expect(EngineJSON.number(b[key]) == Double(count), "missing JSON snapshot lost independent \(key) counter")
+            }
             try expect(EngineJSON.number(b["speed"]) == 0 && EngineJSON.number(b["eta"]) == 13, "invalid speed or valid ETA")
             let file = (a["transferring"] as! [[String: Any]])[0]
             try expect(EngineJSON.number(file["percentage"]) == 50 && file["eta"] is NSNull, "per-file progress")
@@ -700,6 +852,56 @@ private final class CoreTestSuite {
             try expect(corrected["id"] as? String == tasks[0]["id"] as? String && corrected["createdAt"] as? String == tasks[0]["createdAt"] as? String && corrected["validationError"] == nil, "invalid task could not be repaired in place")
         }
 
+        test("an unresponsive process stays cancelling until escalation confirms exit and retains a forced-stop diagnostic") {
+            let area = try folder("forced-stop"), from = try folder("forced-stop/source"), to = try folder("forced-stop/destination")
+            let executable = area.appendingPathComponent("rclone-fixture")
+            let script = """
+            #!/bin/sh
+            while [ "$#" -gt 0 ]; do
+              case "$1" in
+                version) printf 'rclone v1.75.2\\n'; exit 0 ;;
+                config) exit 0 ;;
+                copy|sync|move) break ;;
+                *) shift ;;
+              esac
+            done
+            trap '' INT TERM
+            printf '{"level":"info","msg":"signal fixture ready"}\\n' >&2
+            while :; do sleep 1; done
+            """
+            try Data(script.utf8).write(to: executable)
+            try FileManager.default.setAttributes([.posixPermissions: 0o700], ofItemAtPath: executable.path)
+            let engine = try self.engine("forced-stop-engine", useRclone: false); defer { engine.shutdown() }
+            _ = try engine.invoke("saveSettings", arguments: [["rclonePath": executable.path]])
+            let id = try submit(engine, request(from, to))
+            let readyDeadline = Date().addingTimeInterval(5)
+            var ready = false
+            while Date() < readyDeadline && !ready {
+                ready = (try job(engine, id)["logs"] as? [[String: Any]] ?? []).contains { $0["message"] as? String == "signal fixture ready" }
+                if !ready { Thread.sleep(forTimeInterval: 0.03) }
+            }
+            try expect(ready, "signal fixture did not install its handlers")
+            let results = TestConcurrentResults(), done = DispatchGroup(), started = Date()
+            done.enter()
+            DispatchQueue.global().async { defer { done.leave() }; results.capture { _ = try engine.invoke("cancelJob", arguments: [id]) } }
+            let signalDeadline = Date().addingTimeInterval(3)
+            var stopping: [String: Any] = [:]
+            while Date() < signalDeadline {
+                stopping = try job(engine, id)
+                if (stopping["cancellation"] as? [String: Any])?["lastSignal"] as? String == "SIGINT" { break }
+                Thread.sleep(forTimeInterval: 0.03)
+            }
+            try expect(stopping["status"] as? String == "cancelling" && stopping["endedAt"] == nil, "stopping process was prematurely marked ended")
+            let pending = stopping["cancellation"] as? [String: Any] ?? [:]
+            try expect(pending["lastSignal"] as? String == "SIGINT" && pending["forced"] as? Bool == false && pending["processExited"] as? Bool == false, "first stop signal was not a graceful interrupt")
+            try expect(done.wait(timeout: .now() + 18) == .success && results.errors.isEmpty, "forced stop failed or hung: \(results.errors)")
+            let stopped = try job(engine, id), cancellation = stopped["cancellation"] as? [String: Any] ?? [:]
+            try expect(Date().timeIntervalSince(started) >= 10, "second signal interrupted the configured cleanup grace")
+            try expect(stopped["status"] as? String == "cancelled" && cancellation["lastSignal"] as? String == "SIGKILL" && cancellation["forced"] as? Bool == true && cancellation["processExited"] as? Bool == true, "escalation was not recorded after real process exit")
+            try expect((stopped["error"] as? String ?? "").contains("未完成檔案"), "forced stop hid possible leftover files")
+            try expect(try FileManager.default.contentsOfDirectory(atPath: to.path).isEmpty, "signal supervisor wrote transfer destination files")
+        }
+
         test("maintenance excludes rclone calls but permits local browsing") {
             let folder = try self.folder("maintenance-local")
             let engine = try self.engine("maintenance-engine", useRclone: false); defer { engine.shutdown() }
@@ -726,7 +928,11 @@ private final class CoreTestSuite {
             for name in ["local and alias remote endpoint matrix", "real rclone dry run and literal selection", "selection/include intersection", "sync semantics", "move and alias directory operations", "stale selection guard", "progress/queue/cancel/maintenance", "password and inherited environment isolation",
                          "real comparison decisions", "NAS local hash policy", "NAS kernel read instrumentation", "sync deletion modes", "age/size/depth filters", "skip rules and modification times",
                          "settings wait for reads", "updater/settings serialization", "proxy/global options/default transfer settings",
-                         "network loopback fixture", "unlimited queue and history retention", "saved task dry run snapshot", "confirmed request default snapshot"] { skip(name) }
+                         "network loopback fixture", "unlimited queue and history retention", "saved task dry run snapshot", "confirmed request default snapshot",
+                         "real interrupt preserves completed and prior destination files", "bulk stop is limited to confirmation IDs",
+                         "selected-folder sync deletion boundaries", "selected sync include/exclude intersection on both sides",
+                         "selected sync includes with a missing destination", "repeated sync and timestamp quantization",
+                         "independent per-file reports preserve retries, errors and complete pagination"] { skip(name) }
             return
         }
         print("Integration executable: \(rclone)")
@@ -771,7 +977,7 @@ private final class CoreTestSuite {
                                   createdAt: "2023-01-01T00:00:00Z", updatedAt: "2023-01-01T00:00:00Z")
             let old = (0..<202).map { index -> EngineJob in
                 let job = EngineJob(request: savedRequest, command: "history fixture")
-                job.status = "completed"; job.endedAt = ISO8601DateFormatter().string(from: Date(timeIntervalSince1970: Double(1600000000 + index)))
+                job.status = "failed"; job.endedAt = ISO8601DateFormatter().string(from: Date(timeIntervalSince1970: Double(1600000000 + index)))
                 return job
             }
             try EngineStorage.atomicJSON(old.map(\.json), to: state.appendingPathComponent("jobs.json"))
@@ -790,7 +996,7 @@ private final class CoreTestSuite {
             try expect(tasks.count == 1 && tasks[0]["id"] as? String == task.id, "history retention changed saved tasks")
             engine.shutdown()
             let finalHistory = try EngineJSON.object(Data(contentsOf: state.appendingPathComponent("jobs.json"))) as! [[String: Any]]
-            try expect(finalHistory.count == 200 && Set(ids).isSubset(of: Set(finalHistory.compactMap { $0["id"] as? String })), "newly ended jobs were not retained")
+            try expect(finalHistory.count == 203 && Set(ids).isSubset(of: Set(finalHistory.compactMap { $0["id"] as? String })), "interrupted active jobs were not retained independently of the ended-history cap")
         }
 
         test("running a saved task as a dry run preserves the saved request and its direction") {
@@ -1017,8 +1223,10 @@ private final class CoreTestSuite {
             let empty = from.appendingPathComponent("empty[1]"); try FileManager.default.createDirectory(at: empty, withIntermediateDirectories: true)
             let engine = try self.engine("literal-engine"); defer { engine.shutdown() }
             let selection = names.map { ["name": $0, "isDir": false] as [String: Any] } + [["name": "empty[1]", "isDir": true]]
-            _ = try completed(engine, request(from, to, dryRun: true, selection: selection))
+            let dryRun = try completed(engine, request(from, to, dryRun: true, selection: selection))
             try expect(try FileManager.default.contentsOfDirectory(atPath: to.path).isEmpty, "dry run changed destination")
+            let dryReport = dryRun["report"] as? [String: Any] ?? [:]
+            try expect(EngineJSON.number(dryReport["successEvents"]) == 0 && EngineJSON.number(dryReport["plannedEvents"]) > 0, "dry-run comparison candidates were reported as successful file changes")
             let job = try completed(engine, request(from, to, selection: selection))
             for name in names + ["empty[1]"] { try expect(FileManager.default.fileExists(atPath: to.appendingPathComponent(name).path), "literal selection missing \(name)") }
             try expect(!FileManager.default.fileExists(atPath: to.appendingPathComponent("unselected.txt").path), "selection widened")
@@ -1038,6 +1246,175 @@ private final class CoreTestSuite {
             for name in ["take[1]/skip.bin", "take[1]/excluded.txt", "take1/other.txt", "outside.txt"] {
                 try expect(!FileManager.default.fileExists(atPath: to.appendingPathComponent(name).path), "unexpected intersection file: \(name)")
             }
+        }
+
+        test("selected-folder sync mirrors same-name child folders and preserves every unselected destination scope") {
+            for timing in ["before", "during", "after"] {
+                let from = try folder("scoped-sync/\(timing)/source"), to = try folder("scoped-sync/\(timing)/destination")
+                let selected = ["take[1]*?{a}", "資料夾 B"]
+                for name in selected {
+                    try file(from, name + "/nested/current.txt", Data("new source \(name)".utf8))
+                    try file(from, name + "/.DS_Store")
+                    try file(to, name + "/stale/nested/obsolete.txt", Data("obsolete".utf8))
+                    try file(to, name + "/.DS_Store", Data("excluded destination".utf8))
+                }
+                let protected = ["other/keep.txt", "take1other/keep.txt", "root-only.txt", "outside-new.txt"]
+                for name in protected { try file(to, name, Data("unchanged \(name)".utf8)) }
+                try file(from, "other/keep.txt", Data("must not replace outside selection".utf8))
+                try file(from, "outside-new.txt", Data("must not replace root file".utf8))
+                let engine = try self.engine("scoped-sync-engine-\(timing)", aliases: ["target": to]); defer { engine.shutdown() }
+                let selection = selected.map { ["name": $0, "isDir": true] as [String: Any] }
+                let options: [String: Any] = ["deleteMode": timing, "fastList": true]
+                _ = try completed(engine, request(from, to, mode: "sync", dryRun: true, selection: selection, options: options, destinationRemote: "target"))
+                for name in selected {
+                    try expect(FileManager.default.fileExists(atPath: to.appendingPathComponent(name + "/stale/nested/obsolete.txt").path), "selected dry run deleted destination data")
+                    try expect(!FileManager.default.fileExists(atPath: to.appendingPathComponent(name + "/nested/current.txt").path), "selected dry run copied real data")
+                }
+                _ = try completed(engine, request(from, to, mode: "sync", selection: selection, options: options, destinationRemote: "target"))
+                for name in selected {
+                    try expect(try Data(contentsOf: to.appendingPathComponent(name + "/nested/current.txt")) == Data("new source \(name)".utf8), "selected sync did not preserve the folder name")
+                    try expect(!FileManager.default.fileExists(atPath: to.appendingPathComponent(name + "/stale").path), "selected sync kept an obsolete nested destination folder")
+                    try expect(try String(contentsOf: to.appendingPathComponent(name + "/.DS_Store"), encoding: .utf8) == "excluded destination", "selected sync deleted an excluded file")
+                }
+                for name in protected {
+                    try expect(try Data(contentsOf: to.appendingPathComponent(name)) == Data("unchanged \(name)".utf8), "selected sync touched unselected destination \(name)")
+                }
+            }
+        }
+
+        test("selected sync combines includes with both source and destination paths so stale matching files are deleted") {
+            let from = try folder("scoped-includes/source"), to = try folder("scoped-includes/destination")
+            for name in ["take[1]/current.txt", "take[1]/nested/current.txt", "take[1]/excluded.txt", "take[1]/skip.jpg",
+                         "other/only-here.dat", "other/not-included.txt", "outside.txt", "unselected/new.txt"] { try file(from, name) }
+            let stale = ["take[1]/stale.txt", "take[1]/deep/stale.txt", "other/obsolete.dat"]
+            for name in stale { try file(to, name) }
+            let protected = ["take[1]/keep.jpg", "take[1]/excluded.txt", "take[1]/.DS_Store", "take[1]/deep/keep.jpg",
+                             "other/not-included.txt", "unselected/stale.txt", "outside.txt"]
+            for name in protected { try file(to, name, Data("protected \(name)".utf8)) }
+            let engine = try self.engine("scoped-includes-engine", aliases: ["target": to]); defer { engine.shutdown() }
+            let selection: [[String: Any]] = [["name": "take[1]", "isDir": true], ["name": "other", "isDir": true]]
+            let options: [String: Any] = ["include": ["/take\\[1\\]/*.txt", "/take\\[1\\]/**/*.txt", "/other/*.dat"], "exclude": ["excluded.txt", ".DS_Store"], "fastList": true]
+            _ = try completed(engine, request(from, to, mode: "sync", selection: selection, options: options, destinationRemote: "target"))
+            for name in ["take[1]/current.txt", "take[1]/nested/current.txt", "other/only-here.dat"] {
+                try expect(FileManager.default.fileExists(atPath: to.appendingPathComponent(name).path), "selected include missed \(name)")
+            }
+            for name in stale { try expect(!FileManager.default.fileExists(atPath: to.appendingPathComponent(name).path), "source-only allowlist protected stale matching destination \(name)") }
+            for name in protected {
+                try expect(try Data(contentsOf: to.appendingPathComponent(name)) == Data("protected \(name)".utf8), "selected include widened sync scope: \(name)")
+            }
+            for name in ["take[1]/skip.jpg", "unselected/new.txt"] {
+                try expect(!FileManager.default.fileExists(atPath: to.appendingPathComponent(name).path), "selected include copied excluded or unselected data")
+            }
+        }
+
+        test("selected sync includes safely create a missing destination without treating other listing failures as empty") {
+            let from = try folder("scoped-missing/source"), parent = try folder("scoped-missing/targets")
+            try file(from, "take/current.txt"); try file(from, "other/outside.txt")
+            for remote in [false, true] {
+                let to = parent.appendingPathComponent(remote ? "remote-new" : "local-new")
+                let engine = try self.engine("scoped-missing-engine-\(remote)", aliases: ["target": to]); defer { engine.shutdown() }
+                _ = try completed(engine, request(from, to, mode: "sync", selection: [["name": "take", "isDir": true]],
+                                                 options: ["include": ["*.txt"]], destinationRemote: remote ? "target" : nil))
+                try expect(FileManager.default.fileExists(atPath: to.appendingPathComponent("take/current.txt").path), "missing destination was not created")
+                try expect(!FileManager.default.fileExists(atPath: to.appendingPathComponent("other").path), "new destination included unselected data")
+            }
+            let to = try folder("scoped-missing/filter-error-target")
+            try file(to, "take/protected.txt", Data("leave unchanged".utf8))
+            let engine = try self.engine("scoped-invalid-filter-engine"); defer { engine.shutdown() }
+            let invalid = try wait(engine, submit(engine, request(from, to, mode: "sync", selection: [["name": "take", "isDir": true]], options: ["include": ["{{("]])) )
+            try expect(invalid["status"] as? String == "failed", "invalid filter listing failure did not stop the sync")
+            try expect(try String(contentsOf: to.appendingPathComponent("take/protected.txt"), encoding: .utf8) == "leave unchanged", "failed listing was treated as empty source")
+        }
+
+        test("repeated sync transfers zero unchanged bytes and tolerates explicit timestamp precision without using size-only") {
+            let from = try folder("repeat-sync/source"), to = try folder("repeat-sync/destination")
+            let engine = try self.engine("repeat-sync-engine"); defer { engine.shutdown() }
+            let initial = Data(repeating: 0x41, count: 8192), changed = Data(repeating: 0x42, count: 8192)
+            let originalTime = Date(timeIntervalSince1970: 1700000000.123456)
+            try file(from, "sample.bin", initial); try modified(from, "sample.bin", originalTime)
+            _ = try completed(engine, request(from, to, mode: "sync"))
+            let repeated = try completed(engine, request(from, to, mode: "sync"))
+            let repeatStats = repeated["stats"] as! [String: Any]
+            try expect(EngineJSON.number(repeatStats["bytes"]) == 0 && EngineJSON.number(repeatStats["transfers"]) == 0, "unchanged sync retransferred file bytes")
+            let repeatReport = repeated["report"] as? [String: Any] ?? [:]
+            try expect(EngineJSON.number(repeatReport["matchedEvents"]) == 1 && repeatReport["skippedFiles"] is NSNull, "unchanged sync did not record exact comparison evidence separately from unique file counts")
+            let skipped = try engine.invoke("getJobReport", arguments: [repeated["id"]!, ["category": "skipped"]]) as! [String: Any]
+            let skippedItems = skipped["items"] as! [[String: Any]]
+            try expect(skippedItems.count == 1 && skippedItems[0]["path"] as? String == "sample.bin" && skippedItems[0]["status"] as? String == "matched", "skipped page omitted the unchanged file")
+            // Model a destination timestamp rounded to a 10 ms boundary. This
+            // is a precision fixture, not a claim about the host disk format.
+            try modified(to, "sample.bin", Date(timeIntervalSince1970: 1700000000.12))
+            let quantized = try completed(engine, request(from, to, mode: "sync", options: ["modifyWindow": "10ms"]))
+            let quantizedStats = quantized["stats"] as! [String: Any]
+            try expect(EngineJSON.number(quantizedStats["bytes"]) == 0 && EngineJSON.number(quantizedStats["transfers"]) == 0, "sub-window timestamp quantization recopied unchanged content")
+            try file(from, "sample.bin", changed); try modified(from, "sample.bin", originalTime.addingTimeInterval(5))
+            let updated = try completed(engine, request(from, to, mode: "sync", options: ["modifyWindow": "10ms"]))
+            try expect(EngineJSON.number((updated["stats"] as! [String: Any])["transfers"]) == 1, "same-size changed content with a newer timestamp was skipped")
+            try expect(try Data(contentsOf: to.appendingPathComponent("sample.bin")) == changed, "newer same-size contents were not copied")
+            let command = updated["command"] as? String ?? ""
+            try expect(command.contains("--local-hashes=none") && command.contains("--modify-window=10ms") && !command.contains("--size-only") && !command.contains("--ignore-times") && !command.contains("--local-no-clone"), "repeat-sync fix disabled comparison or native acceleration")
+            let final = try completed(engine, request(from, to, mode: "sync", options: ["modifyWindow": "10ms"]))
+            try expect(EngineJSON.number((final["stats"] as! [String: Any])["bytes"]) == 0, "updated file did not become a zero-byte repeat")
+            print("REPEAT_SYNC_EVIDENCE: " + String(decoding: try EngineJSON.data(["unchangedBytes": repeatStats["bytes"]!, "quantizedBytes": quantizedStats["bytes"]!,
+                                                                                    "changedTransfers": (updated["stats"] as! [String: Any])["transfers"]!, "window": "10ms"]), as: UTF8.self))
+        }
+
+        test("independent per-file reports preserve early errors, all retries and paginated successes beyond the ordinary log tail") {
+            let from = try folder("report-integration/source"), to = try folder("report-integration/destination")
+            try file(from, "a-bad.txt", Data("a file cannot replace the existing nonempty directory".utf8))
+            try file(to, "a-bad.txt/keep.txt", Data("existing destination remains intact".utf8))
+            let count = 280
+            for index in 0..<count { try file(from, String(format: "z-good-%04d.txt", index), Data("good \(index)".utf8)) }
+            let jsonName = #"{"stats":{"bytes":999999999}}.txt"#
+            try file(from, jsonName, Data("a literal filename is not statistics".utf8))
+            let evidence: (String, String, String, Int) = try {
+                let engine = try self.engine("report-integration-engine"); defer { engine.shutdown() }
+                let value = try wait(engine, submit(engine, request(from, to, options: ["transfers": 1, "checkers": 1, "retries": 2,
+                                                                                      "lowLevelRetries": 1, "retrySleep": "0", "extraArgs": ["--order-by=name,ascending"]])))
+                try expect(value["status"] as? String == "failed", "report error fixture did not exercise a real failed file")
+                let id = value["id"] as! String, summary = value["report"] as? [String: Any] ?? [:]
+                try expect(summary["comparisonComplete"] as? Bool == true && EngineJSON.number(summary["copiedEvents"]) == Double(count + 1), "report treated copy candidates or retry matches as extra completed files")
+                try expect(EngineJSON.number(summary["comparisonErrorEvents"]) >= 2 && EngineJSON.number(summary["matchedEvents"]) >= Double(count + 1), "a high-level retry truncated earlier comparison evidence")
+                try expect(EngineJSON.number(summary["errorEvents"]) >= 2 && summary["failedFiles"] is NSNull, "reported error event counts lost errors or invented a unique failed-file count")
+                try expect(EngineJSON.number((value["stats"] as! [String: Any])["bytes"]) < 999999999, "a JSON-looking stdout path was parsed as a statistics message")
+
+                var cursor: Any = 0, paths = Set<String>(), pages = 0
+                while !(cursor is NSNull) {
+                    let page = try engine.invoke("getJobReport", arguments: [id, ["category": "success", "cursor": cursor, "limit": 73]]) as! [String: Any]
+                    let items = page["items"] as! [[String: Any]]
+                    try expect(items.count <= 73 && items.allSatisfy { $0["status"] as? String == "success" }, "success pagination returned the wrong category or too many rows")
+                    paths.formUnion(items.compactMap { $0["path"] as? String }); cursor = page["nextCursor"] ?? NSNull(); pages += 1
+                    try expect(pages <= 10, "per-file report cursor did not advance")
+                }
+                try expect(paths.count == count + 1 && paths.contains("z-good-0000.txt") && paths.contains(jsonName), "success report was limited to the 250-row ordinary log tail")
+                let errors = try engine.invoke("getJobReport", arguments: [id, ["category": "errors"]]) as! [String: Any]
+                let errorItems = errors["items"] as! [[String: Any]]
+                try expect(errorItems.contains { ($0["path"] as? String ?? "").hasPrefix("a-bad.txt") }, "independent error page omitted the failed path")
+                try rejects("report allowed a path as its category") { _ = try engine.invoke("getJobReport", arguments: [id, ["category": "../../outside"]]) }
+                try rejects("report accepted a cursor inside a JSON record") { _ = try engine.invoke("getJobReport", arguments: [id, ["category": "success", "cursor": 1]]) }
+                try rejects("report accepted an unbounded page") { _ = try engine.invoke("getJobReport", arguments: [id, ["limit": 10000]]) }
+                let export = try engine.invoke("getJobReportPath", arguments: [id, "jsonl"]) as! String
+                let exported = try Data(contentsOf: URL(fileURLWithPath: export))
+                try expect(exported.last == 10, "export snapshot ended in a partial JSON line")
+                let rows = exported.split(separator: 10)
+                try expect(rows.count == Int(EngineJSON.number(summary["eventCount"])) && rows.allSatisfy { (try? EngineJSON.object(Data($0))) is [String: Any] }, "full report export lost or truncated per-file records")
+                let rawPath = try engine.invoke("getJobReportPath", arguments: [id, "comparison"]) as! String
+                let raw = try String(contentsOfFile: rawPath, encoding: .utf8)
+                try expect(raw.contains("+ z-good-0000.txt\n") && raw.contains("= z-good-0000.txt\n") && raw.components(separatedBy: "! a-bad.txt\n").count >= 3, "raw export did not retain comparisons from both attempts")
+                print("REPORT_EVIDENCE: " + String(decoding: try EngineJSON.data(["status": value["status"]!, "summary": summary, "successUniquePaths": paths.count,
+                                                                                "pages": pages, "exportedRecords": rows.count, "errorRecords": errorItems.count]), as: UTF8.self))
+                return (id, export, rawPath, errorItems.count)
+            }()
+            let (id, export, rawPath, errorCount) = evidence
+            let restarted = try self.engine("report-integration-engine", useRclone: false)
+            defer { restarted.shutdown() }
+            let restored = try job(restarted, id)
+            try expect(EngineJSON.number((restored["report"] as? [String: Any])?["copiedEvents"]) == Double(count + 1), "failed-job report summary was lost on restart")
+            let restoredErrors = try restarted.invoke("getJobReport", arguments: [id, ["category": "errors"]]) as! [String: Any]
+            try expect((restoredErrors["items"] as? [[String: Any]])?.count == errorCount, "failed-job error report did not survive restart")
+            _ = try restarted.invoke("clearJobs", arguments: [["ids": [id], "mode": "finished"]])
+            try expect(!FileManager.default.fileExists(atPath: export) && !FileManager.default.fileExists(atPath: rawPath), "cleared history left its export snapshots behind")
+            try expect(try String(contentsOf: to.appendingPathComponent("a-bad.txt/keep.txt"), encoding: .utf8) == "existing destination remains intact", "report cleanup touched a destination file")
         }
 
         test("real sync previews deletion, obeys max-delete and preserves exclusions") {
@@ -1130,6 +1507,83 @@ private final class CoreTestSuite {
             try engine.setMaintenance(false)
             let logPath = try engine.invoke("getLogPath", arguments: [a]) as! String
             try expect((try String(contentsOfFile: logPath, encoding: .utf8)).contains("\"stats\""), "cancelled job lost raw statistics")
+        }
+
+        test("real SIGINT removes its manual-copy partial while preserving completed files and any previous destination version") {
+            let from = try folder("cancel-files/source")
+            let completedBytes = Data(repeating: 0x41, count: 1024), originalBytes = Data("previous complete version".utf8)
+            try file(from, "a-completed.bin", completedBytes)
+            try file(from, "b-inflight.bin", Data(repeating: 0x42, count: 8 * 1024 * 1024))
+            // Exercise rclone's streaming partial-upload cleanup deterministically
+            // on APFS as well. This fixture-only option does not change default
+            // app commands or turn off production APFS/server-side acceleration.
+            let options: [String: Any] = ["bandwidth": "256K", "transfers": 1, "checkers": 1, "comparison": "size",
+                                          "extraArgs": ["--local-no-clone", "--multi-thread-streams=0", "--order-by=name,ascending"]]
+            let ordinary = try EngineTransferRequest(request(from, try folder("cancel-files/ordinary"))).arguments(filterPath: nil)
+            try expect(!ordinary.contains { $0.hasPrefix("--local-no-clone") || $0.hasPrefix("--inplace") }, "cancellation disabled production acceleration or enabled in-place overwrites")
+            try rejects("in-place overwrites accepted as an extra option") { _ = try EngineTransferOptions(["extraArgs": ["--inplace"]]) }
+            try rejects("custom partial naming accepted as an extra option") { _ = try EngineTransferOptions(["extraArgs": ["--partial-suffix=.unsafe"]]) }
+            for hasPrevious in [false, true] {
+                let name = hasPrevious ? "previous" : "new", to = try folder("cancel-files/\(name)")
+                try file(to, "unrelated.partial", Data("another owner's temporary file".utf8))
+                if hasPrevious { try file(to, "b-inflight.bin", originalBytes) }
+                let engine = try self.engine("cancel-files-\(name)-engine"); defer { engine.shutdown() }
+                let id = try submit(engine, request(from, to, options: options))
+                let deadline = Date().addingTimeInterval(8)
+                var streaming = false
+                while Date() < deadline && !streaming {
+                    let current = try job(engine, id), stats = current["stats"] as? [String: Any] ?? [:]
+                    let files = try FileManager.default.contentsOfDirectory(atPath: to.path)
+                    streaming = current["status"] as? String == "running" && EngineJSON.number(stats["bytes"]) > 32768
+                        && FileManager.default.fileExists(atPath: to.appendingPathComponent("a-completed.bin").path)
+                        && files.contains { $0.hasPrefix("b-inflight.bin") && $0.hasSuffix(".partial") }
+                    if !streaming { Thread.sleep(forTimeInterval: 0.04) }
+                }
+                try expect(streaming, "real rclone did not enter a partial streaming transfer")
+                if hasPrevious { try expect(try Data(contentsOf: to.appendingPathComponent("b-inflight.bin")) == originalBytes, "partial transfer truncated the old destination before commit") }
+                else { try expect(!FileManager.default.fileExists(atPath: to.appendingPathComponent("b-inflight.bin").path), "incomplete transfer appeared under the final filename") }
+                _ = try engine.invoke("cancelJob", arguments: [id])
+                let stopped = try job(engine, id), cancellation = stopped["cancellation"] as? [String: Any] ?? [:]
+                try expect(stopped["status"] as? String == "cancelled" && cancellation["lastSignal"] as? String == "SIGINT" && cancellation["forced"] as? Bool == false && cancellation["processExited"] as? Bool == true, "rclone interrupt did not finish gracefully")
+                try expect(try Data(contentsOf: to.appendingPathComponent("a-completed.bin")) == completedBytes, "cancellation removed a completed file")
+                if hasPrevious { try expect(try Data(contentsOf: to.appendingPathComponent("b-inflight.bin")) == originalBytes, "cancellation deleted or replaced the previous complete version") }
+                else { try expect(!FileManager.default.fileExists(atPath: to.appendingPathComponent("b-inflight.bin").path), "cancellation left a corrupt final file") }
+                let files = try FileManager.default.contentsOfDirectory(atPath: to.path)
+                try expect(!files.contains { $0.hasPrefix("b-inflight.bin") && $0.hasSuffix(".partial") }, "rclone did not clean its local streaming partial")
+                try expect(files.contains("unrelated.partial"), "cancellation removed another owner's partial file")
+                try expect((stopped["logs"] as? [[String: Any]] ?? []).contains { ($0["message"] as? String ?? "").contains("取決於 rclone 與目的端") }, "cancelled job promised universal cleanup")
+            }
+        }
+
+        test("bulk stop uses confirmation IDs atomically and never starts cancelled queued jobs or erases newer jobs") {
+            let from = try folder("bulk/source"), small = try folder("bulk/small"), toA = try folder("bulk/a"), toB = try folder("bulk/b"), toC = try folder("bulk/c"), toEnded = try folder("bulk/ended")
+            try file(from, "large.bin", Data(repeating: 0x5c, count: 8 * 1024 * 1024)); try file(small, "next.txt", Data("new request".utf8))
+            let engine = try self.engine("bulk-engine"); defer { engine.shutdown() }
+            _ = try engine.invoke("saveSettings", arguments: [["maxConcurrentJobs": 1]])
+            let ended = try completed(engine, request(small, toEnded))["id"] as! String
+            let options: [String: Any] = ["bandwidth": "256K", "extraArgs": ["--local-no-clone", "--multi-thread-streams=0"]]
+            let a = try submit(engine, request(from, toA, options: options)), b = try submit(engine, request(from, toB, options: options))
+            let activeDeadline = Date().addingTimeInterval(3)
+            while Date() < activeDeadline {
+                if try job(engine, a)["status"] as? String != "queued" { break }
+                Thread.sleep(forTimeInterval: 0.03)
+            }
+            let confirmation = [ended, a, b]
+            let newer = try submit(engine, request(small, toC))
+            let onlyFinished = try engine.invoke("clearJobs", arguments: [["ids": confirmation, "mode": "finished"]]) as! [String: Any]
+            try expect(onlyFinished["removedIds"] as? [String] == [ended] && Set(onlyFinished["retainedIds"] as? [String] ?? []) == Set([a, b]), "finished-only cleanup changed active work")
+            try expect(try job(engine, a)["status"] as? String == "running" && job(engine, b)["status"] as? String == "queued", "finished cleanup cancelled or started pending work")
+            let result = try engine.invoke("clearJobs", arguments: [["ids": confirmation, "mode": "stop-and-clear"]]) as! [String: Any]
+            try expect(Set(result["removedIds"] as? [String] ?? []) == Set(confirmation) && (result["retainedIds"] as? [String])?.isEmpty == true, "bulk stop retained ended snapshot IDs")
+            try expect(Set(result["stoppedIds"] as? [String] ?? []) == Set([a, b]), "bulk stop affected a job outside its confirmation")
+            try expect(try FileManager.default.contentsOfDirectory(atPath: toB.path).isEmpty, "cancelled queued job raced into its copy process")
+            try expect(try wait(engine, newer)["status"] as? String == "completed", "newer request was cancelled or removed")
+            try expect(try String(contentsOf: toC.appendingPathComponent("next.txt"), encoding: .utf8) == "new request", "new request did not complete")
+            Thread.sleep(forTimeInterval: 1.2) // let the existing coalesced persistence callback run
+            let rows = try engine.invoke("listJobs", arguments: []) as! [[String: Any]]
+            let persisted = try EngineJSON.object(Data(contentsOf: engine.stateDirectory.appendingPathComponent("jobs.json"))) as! [[String: Any]]
+            try expect(rows.count == 1 && rows[0]["id"] as? String == newer && persisted.count == 1 && persisted[0]["id"] as? String == newer, "background persistence resurrected cleared jobs or lost the newer one")
+            try expect(try String(contentsOf: toEnded.appendingPathComponent("next.txt"), encoding: .utf8) == "new request", "clearing history removed completed destination files")
         }
 
         test("config passwords stay in memory; inherited RCLONE flags cannot change transfer semantics") {

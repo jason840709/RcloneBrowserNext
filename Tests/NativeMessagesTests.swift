@@ -66,6 +66,7 @@ import Glibc
         }
 
         test("Only explicit field labels and missing-version status translate inside captures") {
+            try expect(RBNNativeStrings.translate("介面比例 必須介於 80 與 125。", language: "en"), "Interface scale must be between 80 and 125.")
             try expect(RBNNativeStrings.translate("平行傳輸數 必須介於 1 與 64。", language: "en"), "Parallel transfers must be between 1 and 64.")
             try expect(RBNNativeStrings.translate("欄寬 必須介於 76 與 400。", language: "ja"), "列幅は 76 から 400 の範囲で指定してください。")
             try expect(RBNNativeStrings.translate("設定檔必須使用絕對路徑。", language: "ja"), "設定ファイルには絶対パスを指定してください。")
