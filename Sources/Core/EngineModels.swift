@@ -541,7 +541,15 @@ struct EngineLocalTimePrecision {
         var candidate = URL(fileURLWithPath: path).standardizedFileURL
         while true {
             var info = Darwin.statfs()
-            let result = candidate.path.withCString { Darwin.statfs($0, &info) }
+            // The SDK's statfs type can shadow its same-named C function in
+            // Swift. Query the same metadata through a content-free descriptor.
+            let (result, errorCode) = candidate.path.withCString { name -> (Int32, Int32) in
+                let descriptor = Darwin.open(name, O_EVTONLY | O_CLOEXEC)
+                guard descriptor >= 0 else { return (-1, errno) }
+                defer { _ = Darwin.close(descriptor) }
+                let result = Darwin.fstatfs(descriptor, &info)
+                return (result, errno) // Preserve failure before close changes errno.
+            }
             if result == 0 {
                 return withUnsafeBytes(of: info.f_fstypename) { bytes in
                     String(decoding: bytes.prefix { $0 != 0 }, as: UTF8.self)
@@ -550,7 +558,7 @@ struct EngineLocalTimePrecision {
             // A destination may not exist yet. A permission or I/O error is not
             // evidence that its ancestor uses the same filesystem, so only walk
             // upward when the path (or one of its components) is absent.
-            guard errno == ENOENT || errno == ENOTDIR else { return nil }
+            guard errorCode == ENOENT || errorCode == ENOTDIR else { return nil }
             let parent = candidate.deletingLastPathComponent()
             guard parent.path != candidate.path else { return nil }
             candidate = parent

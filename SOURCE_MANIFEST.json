@@ -1,7 +1,7 @@
 {
   "version": "0.6.0",
   "file_count_excluding_manifest": 125,
-  "total_bytes_excluding_manifest": 5822872,
+  "total_bytes_excluding_manifest": 5825373,
   "files": {
     ".github/workflows/macos.yml": {
       "bytes": 3533,
@@ -104,8 +104,8 @@
       "sha256": "7359feab9b081d65ea37422837898e94a3b1c9d312a45787ce621b65ab816350"
     },
     "Sources/Core/EngineModels.swift": {
-      "bytes": 47890,
-      "sha256": "919d7c835d9da69ef93e9149e6dc2dfbe5e1b910f1a5b280f4a46e12de38d12e"
+      "bytes": 48427,
+      "sha256": "be04475fbead11e85f03dc13e9f0112bf5e151de76b829098b2f4e93824becc0"
     },
     "Sources/Core/EngineStorage.swift": {
       "bytes": 14683,
@@ -408,8 +408,8 @@
       "sha256": "79a81f1e868001a6cb26b86e709f5b110445001ee0e1f32b3bf797d0cdba9f2d"
     },
     "docs/DEVELOPMENT.md": {
-      "bytes": 16028,
-      "sha256": "b36f359c98904e833a4668944d16e949e83d58e21bd967339bef772921a18968"
+      "bytes": 16063,
+      "sha256": "f833451f4c1bf1d8ec9251a773fab9fe9dee2f6d6f69d1431499348ae750c59b"
     },
     "docs/FEATURE_MATRIX.zh-TW.md": {
       "bytes": 7764,
@@ -448,8 +448,8 @@
       "sha256": "5f60eb40242146280b1289069a569b25f4c26a39b195fd16434267817a5fddff"
     },
     "docs/VALIDATION.zh-TW.md": {
-      "bytes": 9942,
-      "sha256": "6ca9dced0d42af537854e985e8f85e2d382c12c7a9066de53522670f9449e76e"
+      "bytes": 10427,
+      "sha256": "d8c8503f6390b7026895dbeede9778d6f8612826a3dae5f9775c2bfd7305dad9"
     },
     "docs/archive/0.4.0/README.original.md": {
       "bytes": 5073,
@@ -500,8 +500,8 @@
       "sha256": "59ed567280853fa9e0fe9ad61c737c4c1c8cd24bfca4c7c60fca350d43e50d12"
     },
     "docs/verification/0.6.0.json": {
-      "bytes": 21127,
-      "sha256": "2c2c605a5d3103532e3e29bd4a8f234ac86d9cfc94be92d76bf799a507ba123b"
+      "bytes": 22571,
+      "sha256": "447b9462e5a546988cb5fb78ec4e77545517f62dbca8e379b638579c78c2d569"
     }
   }
 }

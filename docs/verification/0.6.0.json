@@ -415,5 +415,35 @@
     "Resources/Web/favicon.svg": "5dcf6bb2e77fc4f5670743c49e42e2f107812f56459bf32d30ae9ca021383a1a",
     "Resources/Web/index.html": "6d64e8836f8ea3c2cdfb0bd3f4e214da93f633390ecbb6512949e65a94801411",
     "Resources/Web/style.css": "5bb187fbcb339abbde8ac6f2f5d43ff2f0d7f4784109fd2d6f62d3b35bed91ed"
+  },
+  "mac_only_source_followup": {
+    "time_utc": "2026-10-20T12:31:43.229011+00:00",
+    "file": "Sources/Core/EngineModels.swift",
+    "before_sha256": "919d7c835d9da69ef93e9149e6dc2dfbe5e1b910f1a5b280f4a46e12de38d12e",
+    "after_sha256": "be04475fbead11e85f03dc13e9f0112bf5e151de76b829098b2f4e93824becc0",
+    "failed_ci_run": "39422459070",
+    "failed_ci_commit": "7b0cf053a2daabbd65bd40cd8173bb053021bdfd",
+    "change": "macOS-only statfs name collision: use O_EVTONLY | O_CLOEXEC descriptor with fstatfs; close in defer and preserve errno. Mapping and ancestor policy unchanged.",
+    "syntax": [
+      {
+        "arch": "arm64",
+        "exit_code": 0,
+        "output": "",
+        "scope": "Syntax parse only, not Darwin SDK type checking or execution."
+      },
+      {
+        "arch": "x86_64",
+        "exit_code": 0,
+        "output": "",
+        "scope": "Syntax parse only, not Darwin SDK type checking or execution."
+      }
+    ],
+    "api_sources": [
+      "https://developer.apple.com/library/archive/documentation/System/Conceptual/ManPages_iPhoneOS/man2/statfs.2.html",
+      "https://github.com/apple/darwin-xnu/blob/main/bsd/sys/fcntl.h"
+    ],
+    "linux_tests_repeated": false,
+    "mac_sdk_verification": "Await next real macOS CI run.",
+    "test_scope": "The earlier Linux receipts remain unmodified. This macOS-only source change is verified by the subsequent dual-architecture CI, not by another Linux run."
   }
 }

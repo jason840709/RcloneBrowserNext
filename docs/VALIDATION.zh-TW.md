@@ -30,7 +30,7 @@ CoreTests 會真正啟動 rclone，核對傳輸結果及檔案內容。
 - 檔案或混合選取不允許 Sync；選取範圍搭配「刪除排除項目」也會在啟動前拒絕。
 - 真實 local／alias 四種端點組合、Copy／Sync／Move、Dry Run、全部比較方式、排除規則、刪除上限、特殊檔名及完整 Task 還原持續涵蓋在回歸中。
 
-macOS 的自動時間容差依實際 `statfs` 結果處理已知 FAT、HFS+、exFAT 精度。Linux 可以驗證映射與明確 10ms 模擬，不能證明使用者外接硬碟的實際格式或行為。Mac suite 另有不存在目的路徑的既有父目錄解析檢查；不會建立探測檔，也不把掛載 SMB 當成某個已知固定精度。
+macOS 的自動時間容差依實際 `fstatfs` 結果處理已知 FAT、HFS+、exFAT 精度。Linux 可以驗證映射與明確 10ms 模擬，不能證明使用者外接硬碟的實際格式或行為。Mac suite 另有不存在目的路徑的既有父目錄解析檢查；不會建立探測檔，也不把掛載 SMB 當成某個已知固定精度。
 
 Linux inotify 的既有測試監看目的檔案讀取，用來檢查 `--local-hashes=none` 在受控情境下避免內容雜湊讀取。Mac 沒有 inotify，該案例會明確略過；這不代表其他 Mac NAS 參數或實際傳輸案例也略過。詳見 [NAS 比對](NAS_COMPARISON.zh-TW.md)。
 
@@ -85,6 +85,8 @@ Linux inotify 的既有測試監看目的檔案讀取，用來檢查 `--local-ha
 完整 UI 結果與正式資源 SHA 見 [Web 驗證記錄](../WebSource/tests/VERIFICATION.zh-TW.md) 及其 [JSON](../WebSource/tests/verification.json)。
 
 ## macOS 驗證範圍
+
+首輪 [Mac CI](https://github.com/jason840709/RcloneBrowserNext/actions/runs/39422459070) 在原生編譯時發現 Swift 對 `statfs` 結構與同名函式的解析衝突，沒有產生 Release。現行 macOS 分支改以 `O_EVTONLY` 開啟僅供事件／中繼資料的 descriptor，再呼叫 `fstatfs`，結束後關閉；沒有讀取內容或建立檔案。先前 Linux 測試的來源雜湊保留原記錄，這項 Mac 專屬修正另外列在 JSON，由後續 Mac CI 驗證。
 
 發布 workflow 在 Apple Silicon 與 Intel 各自使用 Apple SDK 建置，完成資源後建立 ad-hoc 簽章，執行 `codesign --verify --strict`，再跑 CoreTests、UpdaterTests、ToolsTests、NativeMessagesTests、FinderDropTests、AppReleaseTests、TransferReportTests。任一架構失敗都不會發布版本。
 
