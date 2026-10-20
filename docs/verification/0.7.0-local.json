@@ -1,0 +1,147 @@
+{
+  "release": "0.7.0",
+  "recordedAtUTC": "2026-10-20T15:16:55Z",
+  "verifiedAgainstCommit": "04905413b59c901737e07ac5819c5ec7196a9b42",
+  "environment": {
+    "os": "Linux x86_64",
+    "swift": "6.0.3",
+    "rclone": "1.75.2",
+    "web": "Chromium; production Web bundle and deterministic native bridge fixtures"
+  },
+  "suites": [
+    {
+      "name": "Web UI",
+      "passed": 163,
+      "failed": 0,
+      "skipped": 0,
+      "flaky": 0,
+      "startTime": "2026-10-20T15:01:11.525Z",
+      "durationSeconds": 200.8,
+      "typecheck": "passed",
+      "productionBuild": "passed",
+      "receipt": "WebSource/tests/verification.json",
+      "receiptSHA256": "d214679fb87241d16fbe7da3f8379c64ac0c0cbb4e25373ca5beb477e70bf418",
+      "rawResultSHA256": "d009871db1671fa53d1c72c1b1f4c39f6182f15243c1b49e7278c534411b3217",
+      "recordedSourcesAndBundleMatch": true
+    },
+    {
+      "name": "NativeMessagesTests",
+      "passed": 13,
+      "failed": 0,
+      "skipped": 0,
+      "exitCode": 0,
+      "sourceUnchangedDuringRun": true,
+      "rawResultSHA256": "fe51dc63192fae78884ea21e1e30ba1b36c8ab453b0d2176c184165705384718"
+    },
+    {
+      "name": "CoreTests",
+      "passed": 56,
+      "failed": 0,
+      "skipped": 0,
+      "exitCode": 0,
+      "sourceUnchangedDuringRun": true,
+      "rawResultSHA256": "a7b0c20e00e92fc7410b9777def5e55517edb0f6895d2af66394ae8105087639"
+    },
+    {
+      "name": "TransferReportTests",
+      "passed": 25,
+      "failed": 0,
+      "skipped": 0,
+      "rawResultSHA256": "63388ed8f1983153d9377af13a8f18bb5fe392c94b174fe047084522e88f114a",
+      "passedCases": [
+        "Symbolic links are skipped by default and preserved only by explicit choice",
+        "Exports retain the actual comparison settings and engine version without environment data",
+        "A large valid selection is split into bounded, reconstructable configuration records",
+        "Comparison candidates never count as completed transfers",
+        "Successful copy and later move-source deletion failure remain separate",
+        "Retries retain error evidence and do not pretend events are unique files",
+        "Growing-file retries separate completed bytes from failed size-verification bytes",
+        "A successful retry stays out of the error list and missing copy sizes stay explicit",
+        "Ignored links and special files are discoverable in skipped records",
+        "Cleanup failures are visible even when rclone logs them at info level",
+        "Size diagnostics reject malformed numbers and never reconstruct truncated names",
+        "Size-failure history remains bounded during large error sets",
+        "JSONL preserves quotes, Unicode and literal newlines in reported filenames",
+        "Dry Run actions are planned and statistics never create file rows",
+        "Unknown comparison lines and an incomplete tail are visible without invented paths",
+        "Reported paths cannot trigger file operations",
+        "Filesystem and global errors remain visible without a fake filename",
+        "Page cursors retain stable row boundaries and enforce small pages",
+        "Saved summaries allow known finite counters and keep uncertain counts unknown",
+        "Legacy or queued jobs without a ledger return an unavailable empty page",
+        "Both export formats are immutable snapshots while the live job grows",
+        "Static JSON export omits a crash-truncated final JSON record",
+        "Cleanup removes only owned reports and snapshots; readers reject symlinks",
+        "Real rclone copy, repeat sync and delete produce honest checks and separate outcomes",
+        "Real rclone preserves symbolic links locally and round-trips cloud-style link files"
+      ],
+      "stableDataFixture": {
+        "firstCopy": {
+          "transferredFiles": 2,
+          "matchedEvents": 1
+        },
+        "secondSync": {
+          "transferredFiles": 0,
+          "matchedEvents": 3,
+          "deletedEvents": 1
+        }
+      },
+      "linkFixture": "Local symbolic links are preserved; source-only and destination-only local links options model .rclonelink storage and restoration."
+    },
+    {
+      "name": "Linux compatibility helper smoke",
+      "passed": 8,
+      "failed": 0,
+      "platform": "Linux-6.18.55-x86_64-with-glibc2.39",
+      "engineSHA256": "c1a314a99ca0fee11df8f491d7986b4a4731d772a3324decb4276016be0d294a",
+      "rcloneSHA256": "ed7ab1f17876bb006c3df3949a3044959671afd9112362dacaa5dd1647735bc1",
+      "rawResultSHA256": "6c1a8f9271a0fc99c73f6057f5db6764628df61de0d1bda91d5ba475ff146b41",
+      "passedCases": [
+        "bootstrap, engine discovery and Unicode listing",
+        "account setup preserves its engine while appearance applies immediately",
+        "dry run reports planned work without changing files",
+        "copy preserves destination-only files",
+        "repeat sync skips unchanged files and removes destination extras",
+        "complete reports and task export/import",
+        "graceful cancellation cleans partials and preserves completed files",
+        "restart clears successful history and retains stopped jobs and tasks"
+      ],
+      "recordedSourcesMatch": true
+    }
+  ],
+  "sourceVerification": {
+    "coreRunRecordSHA256": "82d656f27f2db5a35c2be63e9c47cb94bebd55c06953ec06d29ae8b8d852c87a",
+    "compatibilitySourceRecordSHA256": "9e45909f9a3d618d5792ffb9ab806fb4f8c56fb0e9c1720e103a480cec865a68",
+    "recordedCoreAndCompatibilitySourcesMatch": true,
+    "sourceSHA256": {
+      "Sources/Compat/CompatMain.swift": "d0788788507341b43039ba1b83a0302fda2a3596b356d98fd592257c127a1229",
+      "Sources/Core/AppReleaseChecker.swift": "3dd69483bf84470ffaadfbc656866c79ec8c159dd436997b3c30a861412434d4",
+      "Sources/Core/EngineModels.swift": "24c6bb199a783bc20ec60b453c954df7ad672c179546f6d26bfb6a64a1646c5c",
+      "Sources/Core/EnginePlatform.swift": "fe5def19bc7036d86bc8f59a94242cfac8962515344789cfacc0d2f5d6729d4f",
+      "Sources/Core/EngineStorage.swift": "8c9260e66bdd44eba37e1c0ff854fcffddf7dcf5ae88030f5de9cfb17e4a35b1",
+      "Sources/Core/FinderDrop.swift": "823f46456e89a5c1672e8b5b61f64dca17e94b75a957017a4e3c081047c29fee",
+      "Sources/Core/LanguageResolver.swift": "35c1eb275e9eda6458af756e9fd3502d459c81a2647df6458f4b51d68beaff4c",
+      "Sources/Core/NativeBinary.swift": "8efff6f19faff01352d446962d3143be3267cb879d2ffe06773be8872b200304",
+      "Sources/Core/NativeMessages.swift": "ff2fff7155961b8e113eed847a176a1dfc0b75037d0b25188caa7caa210b3a19",
+      "Sources/Core/RcloneEngine.swift": "399984ed2bbd898f3f9bb075a25965f615183e7663b65ee5559e5fe42eda4666",
+      "Sources/Core/RcloneTools.swift": "175bdd70c0961cec248291ce01883430d2e51faf40a3001c4d6f2783137dd043",
+      "Sources/Core/RcloneUpdater.swift": "4af31e2b43bbd73d8f8d3189b114069a44c1cbe8928225ff468184ae6b6f04ed",
+      "Sources/Core/TransferReport.swift": "f9cc3ce16b7c7268cfe78b298ef4da66d1809c9df70115d1836a88c08b6b39c8",
+      "Tests/CoreTests.swift": "178c838aff140dd9a779e4866c74568e3152c088f9fef749382dc0616f59e586",
+      "Tests/NativeMessagesTests.swift": "510090441763897cec09a59908ce5036054102bd1269722e87d5f59c685867e3"
+    },
+    "webSourceAndBundleRecord": "WebSource/tests/verification.json"
+  },
+  "nativeCI": {
+    "status": "in_progress",
+    "workflowRunURL": "https://github.com/jason840709/RcloneBrowserNext/actions/runs/39446359319",
+    "sourceCommit": "04905413b59c901737e07ac5819c5ec7196a9b42",
+    "pendingCompleteResults": [
+      "macOS arm64",
+      "macOS x86_64",
+      "Windows x86_64",
+      "Linux x86_64"
+    ]
+  },
+  "testData": "Isolated local fixture directories, alias remotes, loopback responses and deterministic UI data."
+}

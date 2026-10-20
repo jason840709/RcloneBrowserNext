@@ -119,7 +119,8 @@ jobs:
       - name: Verify platform file operations
         run: |
           $rbnCore = Get-ChildItem Sources/Core/*.swift | Sort-Object Name | ForEach-Object { $_.FullName }
-          & swiftc -swift-version 5 @rbnCore Tests/PlatformTests.swift -o .build-cache/compat/runtime/platform-tests.exe
+          $rbnSdk = @('-sdk', $env:SDKROOT, '-I', (Join-Path $env:SDKROOT 'usr/lib/swift'), '-L', (Join-Path $env:SDKROOT 'usr/lib/swift/windows'))
+          & swiftc @rbnSdk -swift-version 5 @rbnCore Tests/PlatformTests.swift -o .build-cache/compat/runtime/platform-tests.exe
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           & ./.build-cache/compat/runtime/platform-tests.exe "$env:GITHUB_WORKSPACE/.build-cache/ci-engine/rclone.exe"
           exit $LASTEXITCODE

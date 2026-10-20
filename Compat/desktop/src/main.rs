@@ -141,7 +141,7 @@ fn emit(app: &AppHandle, value: &Value) {
 fn bundled_url(url: &tauri::Url) -> bool {
     ((url.scheme() == "tauri" && url.host_str() == Some("localhost")) ||
      (["http", "https"].contains(&url.scheme()) && url.host_str() == Some("tauri.localhost"))) &&
-        matches!(url.path(), "/" | "/index.html") && url.query().is_none()
+        matches!(url.path(), "" | "/" | "/index.html") && url.query().is_none()
 }
 
 fn arg_text(args: &[Value], index: usize) -> Result<String, String> {
@@ -552,7 +552,7 @@ fn main() {
 mod tests {
     use super::*;
     #[test] fn bundled_origin_is_exact() {
-        for url in ["tauri://localhost/index.html", "http://tauri.localhost/"] { assert!(bundled_url(&tauri::Url::parse(url).unwrap())); }
+        for url in ["tauri://localhost", "tauri://localhost/", "tauri://localhost/index.html", "http://tauri.localhost/"] { assert!(bundled_url(&tauri::Url::parse(url).unwrap())); }
         for url in ["https://example.com/", "http://tauri.localhost.evil/", "tauri://localhost/other.html", "file:///tmp/index.html"] { assert!(!bundled_url(&tauri::Url::parse(url).unwrap())); }
     }
     #[test] fn external_sites_are_scoped() {

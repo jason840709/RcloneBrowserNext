@@ -1,11 +1,11 @@
 {
   "version": "0.7.0",
-  "file_count_excluding_manifest": 179,
-  "total_bytes_excluding_manifest": 6453210,
+  "file_count_excluding_manifest": 180,
+  "total_bytes_excluding_manifest": 6464383,
   "files": {
     ".github/workflows/macos.yml": {
-      "bytes": 7608,
-      "sha256": "0cdb96aaea1ce3f26297f471e94a459ee9319183031fcb6bd587bd513e8d1c8d"
+      "bytes": 7764,
+      "sha256": "58a30766591070d8e52c107ae0f033c7cae5b19b2c12cb20b4c9ae82f3a5144a"
     },
     ".gitignore": {
       "bytes": 259,
@@ -48,8 +48,8 @@
       "sha256": "226a49b7cf2d7d642b465dc8780859614e4fcb8d95fcac42798f299c4a1e1d02"
     },
     "Compat/desktop/src/main.rs": {
-      "bytes": 41577,
-      "sha256": "7650e5c906f9eebe6c84b31f17ef3010adfb19400974a647160f1ccee7b66a2c"
+      "bytes": 41625,
+      "sha256": "b23323edd43451fef1ff0cca1dffe606997c4ef8aeacee313061778ec7cd5bdc"
     },
     "Compat/desktop/src/smoke.js": {
       "bytes": 1079,
@@ -140,8 +140,8 @@
       "sha256": "05da7724766b7df847e4d06e1b1124af6c7b655a7b16252fa7887cd014195308"
     },
     "README.zh-TW.md": {
-      "bytes": 20790,
-      "sha256": "ad5761b08b4c6c74545a4631c29bef49b60f08d1af75c0837b65e0abe1a2daf3"
+      "bytes": 20832,
+      "sha256": "1b1fc3cb257b7754714abdffd429f9b39e3bc7b0f5513a3157e8c9f347cc5213"
     },
     "Resources/AppIcon-blue.icns": {
       "bytes": 628142,
@@ -192,8 +192,8 @@
       "sha256": "41b9ce1ef55bf57ec08f48807c40a23bf090c937eedb9f2292f073e93c2084a1"
     },
     "Scripts/build-compat-windows.ps1": {
-      "bytes": 7338,
-      "sha256": "4af4fb8a2896e8b0c579c89decf0af162461a364352d78dbcc97ee34b492138a"
+      "bytes": 7755,
+      "sha256": "906f58b41cc7e0c7bddb85a2db4c8b72897a40ba63047d949fca275b224e13d9"
     },
     "Scripts/build-mac.sh": {
       "bytes": 6951,
@@ -336,8 +336,8 @@
       "sha256": "510090441763897cec09a59908ce5036054102bd1269722e87d5f59c685867e3"
     },
     "Tests/PlatformTests.swift": {
-      "bytes": 5666,
-      "sha256": "c5d8e284353de325eb796f1eb685b30576a11bd60ee3c1d875f9b5946273de7a"
+      "bytes": 6958,
+      "sha256": "7d56db0996284c9ef3e4ecf2714334223e90e3b5d5edb9509bc4e4cd33df1841"
     },
     "Tests/ToolsTests.swift": {
       "bytes": 17034,
@@ -636,8 +636,8 @@
       "sha256": "e98effcd5bc9fc3e558ca19d8f8347a23289f67eb7fc2ef6cf834a85165c38b6"
     },
     "docs/RELEASE_0.7.0.md": {
-      "bytes": 4086,
-      "sha256": "dc3d09e3938cbe58e087772cf8302a5dbe01df28fd2322e3b7c6d17065862e06"
+      "bytes": 4115,
+      "sha256": "8baaf66abd6c3888a6af651c58743c7e983f95f8a69bc137547aa2e815723733"
     },
     "docs/RESEARCH_0.5.0.md": {
       "bytes": 10720,
@@ -648,16 +648,16 @@
       "sha256": "37a7ee07d7fd6224d13212a4de9f987cc0f37d734dcb244390827196cd763537"
     },
     "docs/RESEARCH_0.7.0.md": {
-      "bytes": 3119,
-      "sha256": "3e56fbcca4844c517433a05bb4052a6e86a28331912e7ee39de94e733a7a1266"
+      "bytes": 3131,
+      "sha256": "de02d287e7cf39f6a85a9cd67c597e09ec8db2e003362f0faf8964442e8ac2c4"
     },
     "docs/USER_GUIDE.zh-TW.md": {
-      "bytes": 20741,
-      "sha256": "7bf01203f4e829897330aae2d67a5be33e6675cc1b953a6c5619bb8a4779e50e"
+      "bytes": 20783,
+      "sha256": "8eca5e72ede9871af4f1a35d7561aede169ff414c281f6a5a46b5b243bc0d06c"
     },
     "docs/VALIDATION.zh-TW.md": {
-      "bytes": 1418,
-      "sha256": "b90213cd23a04bc043c0d63c595fe628e7880cd946d7752f0fea3ff987f1c340"
+      "bytes": 2901,
+      "sha256": "ab8848b23b7c7c4c71fa1115799f43f89da37b740884312b5a253b609c879289"
     },
     "docs/VALIDATION_0.6.0.zh-TW.md": {
       "bytes": 12820,
@@ -718,6 +718,10 @@
     "docs/verification/0.6.0.json": {
       "bytes": 22571,
       "sha256": "447b9462e5a546988cb5fb78ec4e77545517f62dbca8e379b638579c78c2d569"
+    },
+    "docs/verification/0.7.0-local.json": {
+      "bytes": 7652,
+      "sha256": "9abca62b5ab2e58d7636f8fe7144613d58253b5501a4a939f5be6c8cea83df9a"
     }
   }
 }

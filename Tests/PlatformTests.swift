@@ -83,10 +83,27 @@ struct PlatformTests {
         }
         #endif
         if CommandLine.arguments.count > 1 && !CommandLine.arguments[1].isEmpty {
-            test("real rclone has the selected platform executable format") {
+            test("real rclone format and declared OS requirements are validated") {
                 let binary = URL(fileURLWithPath: CommandLine.arguments[1])
                 let os = ProcessInfo.processInfo.operatingSystemVersion
-                _ = try RBNNativeBinary.verify(binary, architecture: RcloneUpdater.hardwareArchitecture(), systemVersion: [os.majorVersion, os.minorVersion, os.patchVersion])
+                let architecture = RcloneUpdater.hardwareArchitecture()
+                let system = [os.majorVersion, os.minorVersion, os.patchVersion]
+                #if os(macOS)
+                // Inspect the official fixture's architecture and declared minimum first.
+                // A runnable CLI fixture can still declare a newer deployment target;
+                // the updater must continue to reject that installation on an older OS.
+                let minimum = try RBNNativeBinary.verify(binary, architecture: architecture, systemVersion: [65535, 255, 255])
+                let requirement = minimum.split(separator: ".").compactMap { Int($0) }
+                try check(requirement.count == 3, "Invalid declared minimum OS")
+                if system.lexicographicallyPrecedes(requirement) {
+                    try rejects { _ = try RBNNativeBinary.verify(binary, architecture: architecture, systemVersion: system) }
+                    print("INFO rclone declares macOS \(minimum); update eligibility correctly rejects this on \(os.majorVersion).\(os.minorVersion).\(os.patchVersion)")
+                } else {
+                    try check(try RBNNativeBinary.verify(binary, architecture: architecture, systemVersion: system) == minimum, "Compatible fixture rejected")
+                }
+                #else
+                _ = try RBNNativeBinary.verify(binary, architecture: architecture, systemVersion: system)
+                #endif
             }
         }
         print("RESULT \(passed) passed, \(failed) failed")

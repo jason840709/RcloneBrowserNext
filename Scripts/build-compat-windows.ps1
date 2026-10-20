@@ -9,6 +9,11 @@ $RbnRuntime = Join-Path $RbnCache 'runtime'
 New-Item -ItemType Directory -Force -Path $RbnRuntime, (Join-Path $RbnCache 'swift-module-cache') | Out-Null
 $RbnSwift = (Get-Command swiftc.exe -ErrorAction Stop).Source
 $RbnCl = (Get-Command cl.exe -ErrorAction Stop).Source
+if (-not (Test-Path Env:SDKROOT)) { throw 'The Windows Swift SDKROOT is not configured.' }
+# swiftc reads SDKROOT, but its Clang imports also need the SDK module path.
+# Keep each path as one argument, including installations under Program Files.
+$RbnSwiftSdkArgs = @('-sdk', $env:SDKROOT, '-I', (Join-Path $env:SDKROOT 'usr/lib/swift'),
+    '-L', (Join-Path $env:SDKROOT 'usr/lib/swift/windows'))
 $env:CARGO_HOME = Join-Path $RbnCache 'cargo'
 $env:CARGO_TARGET_DIR = Join-Path $RbnCache 'target'
 $env:npm_config_cache = Join-Path $RbnCache 'npm'
@@ -39,7 +44,7 @@ $RbnObject = Join-Path $RbnCache 'WindowsRcloneLauncher.obj'
 if ($LASTEXITCODE -ne 0) { throw 'The rclone process launcher did not compile.' }
 $RbnSources = @(Get-ChildItem -Path (Join-Path $RbnRoot 'Sources/Core/*.swift') -File | Sort-Object Name | ForEach-Object FullName)
 $RbnSources += Join-Path $RbnRoot 'Sources/Compat/CompatMain.swift'
-$RbnSwiftArgs = @('-swift-version','5','-O','-module-cache-path',(Join-Path $RbnCache 'swift-module-cache')) + $RbnSources + @('-o',(Join-Path $RbnRuntime 'rbn-engine.exe'))
+$RbnSwiftArgs = $RbnSwiftSdkArgs + @('-swift-version','5','-O','-module-cache-path',(Join-Path $RbnCache 'swift-module-cache')) + $RbnSources + @('-o',(Join-Path $RbnRuntime 'rbn-engine.exe'))
 & $RbnSwift @RbnSwiftArgs
 if ($LASTEXITCODE -ne 0) { throw 'The shared Swift engine did not compile.' }
 
