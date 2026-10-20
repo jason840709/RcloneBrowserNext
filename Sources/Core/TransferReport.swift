@@ -1,5 +1,4 @@
 import Foundation
-import CoreFoundation
 
 /// An append-only account of evidence emitted by rclone, not a second directory
 /// scan. Comparison decisions and successful operations deliberately remain
@@ -14,7 +13,7 @@ final class EngineTransferReport {
         init(_ raw: Any) throws {
             if raw is NSNull { self = .null }
             else if let number = raw as? NSNumber {
-                if CFGetTypeID(number) == CFBooleanGetTypeID() { self = .boolean(number.boolValue) }
+                if EngineJSON.isBoolean(number) { self = .boolean(number.boolValue) }
                 else if number.doubleValue.isFinite { self = .number(number.doubleValue) }
                 else { throw EngineError("傳輸設定格式不正確。") }
             } else if let text = raw as? String { self = .string(text) }
@@ -532,7 +531,7 @@ final class EngineTransferReport {
         return "operation"
     }
     private static func validCounter(_ value: Any?) -> Int64? {
-        guard let number = value as? NSNumber, CFGetTypeID(number) != CFBooleanGetTypeID(),
+        guard let number = value as? NSNumber, !EngineJSON.isBoolean(number),
               number.doubleValue.isFinite, number.doubleValue >= 0,
               number.doubleValue.rounded() == number.doubleValue,
               number.doubleValue <= 9_007_199_254_740_991 else { return nil }

@@ -1,5 +1,4 @@
 import Foundation
-import CoreFoundation
 #if canImport(FoundationNetworking)
 import FoundationNetworking
 #endif
@@ -66,8 +65,8 @@ final class RBNAppReleaseChecker {
             return RBNAppReleaseResult(status: .unpublished, current: installed, latest: nil, releaseURL: releasesURL)
         }
         guard let object = try? JSONSerialization.jsonObject(with: reply.data) as? [String: Any],
-              let draft = object["draft"] as? NSNumber, CFGetTypeID(draft) == CFBooleanGetTypeID(), !draft.boolValue,
-              let prerelease = object["prerelease"] as? NSNumber, CFGetTypeID(prerelease) == CFBooleanGetTypeID(), !prerelease.boolValue,
+              let draft = object["draft"] as? NSNumber, EngineJSON.isBoolean(draft), !draft.boolValue,
+              let prerelease = object["prerelease"] as? NSNumber, EngineJSON.isBoolean(prerelease), !prerelease.boolValue,
               let tag = object["tag_name"] as? String, let latest = Self.stableVersion(tag),
               let published = object["published_at"] as? String, ISO8601DateFormatter().date(from: published) != nil,
               let rawURL = object["html_url"] as? String, let releaseURL = URL(string: rawURL),

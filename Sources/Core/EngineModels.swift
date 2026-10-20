@@ -1,5 +1,7 @@
 import Foundation
+#if canImport(CoreFoundation)
 import CoreFoundation
+#endif
 #if canImport(Darwin)
 import Darwin
 #elseif os(Windows)
@@ -28,6 +30,16 @@ extension NSLock {
 }
 
 enum EngineJSON {
+    static func isBoolean(_ number: NSNumber) -> Bool {
+        #if os(Windows) && !canImport(CoreFoundation)
+        // Swift Foundation bridges Bool to two shared NSNumber instances.
+        // Identity keeps numeric 0 and 1 distinct from JSON false and true.
+        return number === NSNumber(value: false) || number === NSNumber(value: true)
+        #else
+        return CFGetTypeID(number) == CFBooleanGetTypeID()
+        #endif
+    }
+
     static func text(_ value: Any?, _ name: String, maximum: Int = 4096) throws -> String {
         guard let result = value as? String, result.utf8.count <= maximum,
               !result.unicodeScalars.contains(where: { $0.value < 32 || $0.value == 127 }) else {
@@ -38,7 +50,7 @@ enum EngineJSON {
 
     static func bool(_ value: Any?, _ name: String) throws -> Bool {
         guard let value = value, let number = value as? NSNumber,
-              CFGetTypeID(number) == CFBooleanGetTypeID() else {
+              isBoolean(number) else {
             throw EngineError("\(name) 必須為開啟或關閉。")
         }
         return number.boolValue
@@ -46,7 +58,7 @@ enum EngineJSON {
 
     static func integer(_ value: Any?, _ name: String, _ range: ClosedRange<Int>) throws -> Int {
         guard let value = value, let number = value as? NSNumber,
-              CFGetTypeID(number) != CFBooleanGetTypeID(), number.doubleValue.isFinite,
+              !isBoolean(number), number.doubleValue.isFinite,
               number.doubleValue.rounded() == number.doubleValue,
               number.doubleValue >= Double(range.lowerBound), number.doubleValue <= Double(range.upperBound) else {
             throw EngineError("\(name) 必須介於 \(range.lowerBound) 與 \(range.upperBound)。")
@@ -55,13 +67,13 @@ enum EngineJSON {
     }
 
     static func number(_ value: Any?, fallback: Double = 0) -> Double {
-        guard let number = value as? NSNumber, CFGetTypeID(number) != CFBooleanGetTypeID(),
+        guard let number = value as? NSNumber, !isBoolean(number),
               number.doubleValue.isFinite, number.doubleValue >= 0 else { return fallback }
         return number.doubleValue
     }
 
     static func seconds(_ value: Any?) -> Any {
-        guard let number = value as? NSNumber, CFGetTypeID(number) != CFBooleanGetTypeID(),
+        guard let number = value as? NSNumber, !isBoolean(number),
               number.doubleValue.isFinite, number.doubleValue >= 0 else { return NSNull() }
         return number.doubleValue
     }
@@ -196,7 +208,7 @@ struct EngineNetworkOptions {
         for (key, label) in [("connectTimeout", "連線逾時"), ("ioTimeout", "傳輸閒置逾時")] {
             output[key] = try EngineTransferOptions.durationValue(output[key], label: label)
         }
-        guard let rate = output["tpsLimit"] as? NSNumber, CFGetTypeID(rate) != CFBooleanGetTypeID(),
+        guard let rate = output["tpsLimit"] as? NSNumber, !EngineJSON.isBoolean(rate),
               rate.doubleValue.isFinite, (0...1000000).contains(rate.doubleValue) else {
             throw EngineError("每秒請求上限格式不正確。")
         }

@@ -1,6 +1,6 @@
 # Rclone Browser Next 0.7.0 驗證記錄
 
-以下為 0.7.0 已完成的本機驗證及四平台 CI 進度。過去版本的結果保留於 [0.6.0 驗證記錄](VALIDATION_0.6.0.zh-TW.md)，不計入本版通過數。
+以下為 0.7.0 已完成的本機驗證及四平台 CI 流程。過去版本的結果保留於 [0.6.0 驗證記錄](VALIDATION_0.6.0.zh-TW.md)。
 
 ## 已完成的本機驗證
 
@@ -14,7 +14,7 @@
 | TransferReportTests | 25／25 通過 | 比對與傳輸結果分列、重試事件、成功與失敗副本大小、報告匯出、第二次同步及符號連結 |
 | Linux 相容版 helper | 8／8 通過 | 啟動與檔案清單、預覽、複製、第二次同步、報告與工作匯入匯出、取消及重新啟動後的狀態 |
 
-Web 的型別檢查與正式建置也已通過；163 個案例沒有略過或重試。CoreTests、NativeMessagesTests 與 TransferReportTests 均為 0 失敗、0 略過。Core 與 NativeMessages 的執行紀錄確認測試期間原始碼未變動；整理本頁時，也已核對 Web、Core 與相容版 helper 的原始碼雜湊。
+Web 的型別檢查與正式建置也已通過；163 個案例沒有略過或重試。CoreTests、NativeMessagesTests 與 TransferReportTests 均為 0 失敗、0 略過。各組本機紀錄保存執行當時的原始碼雜湊與對應提交；後續跨平台修正由原生 CI 驗證。
 
 穩定資料回歸使用三個測試檔：第一次複製傳輸兩個檔案，第二次同步傳輸 **0 個檔案**，三個檔案均比對相符，並刪除一個僅存在於目標的測試檔。符號連結案例驗證本機連結保存，以及用本機後端模擬 `.rclonelink` 檔案的儲存與還原。
 
@@ -22,9 +22,9 @@ Web 的型別檢查與正式建置也已通過；163 個案例沒有略過或重
 
 ## 四平台 CI
 
-[本輪 GitHub Actions](https://github.com/jason840709/RcloneBrowserNext/actions/runs/39446359319) 的建置與測試仍在進行，以下項目待完整結果：
+[GitHub Actions](https://github.com/jason840709/RcloneBrowserNext/actions/workflows/macos.yml) 執行下列原生驗證。正式發布需要四個平台全部通過；各次執行結果保留於 Actions，發布後會在本頁登錄對應提交與結果。
 
-| 平台 | 待完成的驗證 |
+| 平台 | 原生驗證 |
 | --- | --- |
 | macOS arm64 | 原生編譯、完整 App 簽章檢查、八套 Swift 測試及 WKWebView 實測 |
 | macOS x86_64 | 原生編譯、完整 App 簽章檢查、八套 Swift 測試及 WKWebView 實測 |

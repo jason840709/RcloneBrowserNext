@@ -1,7 +1,7 @@
 {
   "version": "0.7.0",
   "file_count_excluding_manifest": 180,
-  "total_bytes_excluding_manifest": 6464383,
+  "total_bytes_excluding_manifest": 6465329,
   "files": {
     ".github/workflows/macos.yml": {
       "bytes": 7764,
@@ -256,12 +256,12 @@
       "sha256": "d0788788507341b43039ba1b83a0302fda2a3596b356d98fd592257c127a1229"
     },
     "Sources/Core/AppReleaseChecker.swift": {
-      "bytes": 8866,
-      "sha256": "3dd69483bf84470ffaadfbc656866c79ec8c159dd436997b3c30a861412434d4"
+      "bytes": 8814,
+      "sha256": "8b6cebcba75a48db9765f02d8a9bcf49f02400e37ecd1b97c1438f3c13796b20"
     },
     "Sources/Core/EngineModels.swift": {
-      "bytes": 49151,
-      "sha256": "24c6bb199a783bc20ec60b453c954df7ad672c179546f6d26bfb6a64a1646c5c"
+      "bytes": 49515,
+      "sha256": "46d2a94e8f1c2d8f8f4a31a0789322e99b2141af8126082b00b76de513f064f3"
     },
     "Sources/Core/EnginePlatform.swift": {
       "bytes": 11597,
@@ -300,8 +300,8 @@
       "sha256": "4af31e2b43bbd73d8f8d3189b114069a44c1cbe8928225ff468184ae6b6f04ed"
     },
     "Sources/Core/TransferReport.swift": {
-      "bytes": 35187,
-      "sha256": "f9cc3ce16b7c7268cfe78b298ef4da66d1809c9df70115d1836a88c08b6b39c8"
+      "bytes": 35136,
+      "sha256": "5982f8dca69c7b4cb2e7b2cb7b9c11a959fbda49062703e6b97192689934beaa"
     },
     "Sources/Mac/AppMain.swift": {
       "bytes": 73228,
@@ -336,8 +336,8 @@
       "sha256": "510090441763897cec09a59908ce5036054102bd1269722e87d5f59c685867e3"
     },
     "Tests/PlatformTests.swift": {
-      "bytes": 6958,
-      "sha256": "7d56db0996284c9ef3e4ecf2714334223e90e3b5d5edb9509bc4e4cd33df1841"
+      "bytes": 7792,
+      "sha256": "e9800cb61f4d6e677c9ea3ec92c53669946b53ba371539e94eab5452d7b2fc8f"
     },
     "Tests/ToolsTests.swift": {
       "bytes": 17034,
@@ -656,8 +656,8 @@
       "sha256": "8eca5e72ede9871af4f1a35d7561aede169ff414c281f6a5a46b5b243bc0d06c"
     },
     "docs/VALIDATION.zh-TW.md": {
-      "bytes": 2901,
-      "sha256": "ab8848b23b7c7c4c71fa1115799f43f89da37b740884312b5a253b609c879289"
+      "bytes": 2916,
+      "sha256": "2b6f1fcfe1c4097e39d5028d84faaeb2555f03feb29fcdaf09d03b66c5fdbd2e"
     },
     "docs/VALIDATION_0.6.0.zh-TW.md": {
       "bytes": 12820,
@@ -720,8 +720,8 @@
       "sha256": "447b9462e5a546988cb5fb78ec4e77545517f62dbca8e379b638579c78c2d569"
     },
     "docs/verification/0.7.0-local.json": {
-      "bytes": 7652,
-      "sha256": "9abca62b5ab2e58d7636f8fe7144613d58253b5501a4a939f5be6c8cea83df9a"
+      "bytes": 7488,
+      "sha256": "5c68f1d3578c550ec5e6c04c4a827b5f053e91d3ea47f4a47590a79e53d23256"
     }
   }
 }

@@ -133,15 +133,8 @@
     "webSourceAndBundleRecord": "WebSource/tests/verification.json"
   },
   "nativeCI": {
-    "status": "in_progress",
-    "workflowRunURL": "https://github.com/jason840709/RcloneBrowserNext/actions/runs/39446359319",
-    "sourceCommit": "04905413b59c901737e07ac5819c5ec7196a9b42",
-    "pendingCompleteResults": [
-      "macOS arm64",
-      "macOS x86_64",
-      "Windows x86_64",
-      "Linux x86_64"
-    ]
+    "workflowURL": "https://github.com/jason840709/RcloneBrowserNext/actions/workflows/macos.yml",
+    "finalResultsDocument": "docs/VALIDATION.zh-TW.md"
   },
   "testData": "Isolated local fixture directories, alias remotes, loopback responses and deterministic UI data."
 }

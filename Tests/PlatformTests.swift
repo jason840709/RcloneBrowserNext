@@ -25,6 +25,19 @@ struct PlatformTests {
     static func main() throws {
         let root = CommandLine.arguments.count > 2 ? URL(fileURLWithPath: CommandLine.arguments[2]) : FileManager.default.temporaryDirectory.appendingPathComponent("rbn-platform-" + UUID().uuidString)
         try EngineStorage.privateDirectory(root)
+        test("JSON booleans stay distinct from numeric values") {
+            let values = try JSONSerialization.jsonObject(with: Data("[false,true,0,1,0.0,-1]".utf8)) as! [NSNumber]
+            for (index, value) in values.enumerated() {
+                try check(EngineJSON.isBoolean(value) == (index < 2), "JSON type changed at index \(index)")
+                if index < 2 {
+                    try check(try EngineJSON.bool(value, "test") == (index == 1), "Boolean value changed")
+                    try rejects { _ = try EngineJSON.integer(value, "test", -1...1) }
+                } else {
+                    try rejects { _ = try EngineJSON.bool(value, "test") }
+                    try check(try EngineJSON.integer(value, "test", -1...1) == value.intValue, "Numeric value changed")
+                }
+            }
+        }
         test("Windows paths require an absolute drive or complete UNC share") {
             for path in ["C:/資料/備份", "D:\\Files\\Backup", "//server/share/folder", "\\\\server\\share", "C:/"] {
                 try check(EnginePlatform.absoluteLocalPath(path, windows: true), "Rejected \(path)")
