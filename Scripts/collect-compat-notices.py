@@ -20,7 +20,7 @@ def main() -> None:
     destination.mkdir(parents=True, exist_ok=True)
     metadata = json.loads(subprocess.check_output(
         ["cargo", "metadata", "--locked", "--offline", "--format-version", "1", "--filter-platform", args.target],
-        cwd=ROOT / "Compat/desktop", text=True))
+        cwd=ROOT / "Compat/desktop", text=True, encoding="utf-8"))
     index = []
     missing = []
     for package in sorted(metadata["packages"], key=lambda p: (p["name"], p["version"])):
@@ -52,7 +52,7 @@ def main() -> None:
                       "texts": [str((target / f.relative_to(source)).relative_to(destination)) for f in files]})
     if missing:
         raise RuntimeError("Add the original license texts for: " + ", ".join(missing))
-    (destination / "rust-packages.json").write_text(json.dumps(index, indent=2, ensure_ascii=False) + "\n")
+    (destination / "rust-packages.json").write_text(json.dumps(index, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     print(f"Retained original license notices for {len(index)} pinned Rust packages")
 
 

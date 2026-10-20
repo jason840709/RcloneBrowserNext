@@ -1,7 +1,7 @@
 {
   "version": "0.7.0",
   "file_count_excluding_manifest": 180,
-  "total_bytes_excluding_manifest": 6465367,
+  "total_bytes_excluding_manifest": 6465471,
   "files": {
     ".github/workflows/macos.yml": {
       "bytes": 7764,
@@ -212,8 +212,8 @@
       "sha256": "8a82c118e15e3d03adf6f219f38d4cdfa99802858922e5a916d1059a238cff53"
     },
     "Scripts/collect-compat-notices.py": {
-      "bytes": 2997,
-      "sha256": "dfdd9486417a43a27c915a0c15986a097024ad2398748174b3807637ea66f857"
+      "bytes": 3033,
+      "sha256": "a0291e320e83a97590e564750be8f98106b40003d5e86984f140cd3059b0ada0"
     },
     "Scripts/common-mac.sh": {
       "bytes": 4221,
@@ -236,8 +236,8 @@
       "sha256": "614d2d4c03825af99bb729ea4c78d16b7f01936843bd6f3a342d7a427494df12"
     },
     "Scripts/test-compat-ui.py": {
-      "bytes": 4614,
-      "sha256": "09c4d4243e9935db7d624310222524d1e2b21245a50ba7349ce893aa00ebcc88"
+      "bytes": 4682,
+      "sha256": "be3a7ed772a12054970ddccb4b50e6dcd929e584d766b2ae43f05400ef0327c9"
     },
     "Scripts/test-compat.py": {
       "bytes": 13530,

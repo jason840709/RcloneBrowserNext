@@ -27,7 +27,7 @@ def main() -> None:
     output.unlink(missing_ok=True)
     cache = ROOT / ".build-cache" / "compat"
     platform_name = "windows" if os.name == "nt" else "linux"
-    package = json.loads((cache / f"package-{platform_name}.json").read_text())
+    package = json.loads((cache / f"package-{platform_name}.json").read_text(encoding="utf-8"))
     installer = ROOT / "Distribution" / package["file"]
     digest = hashlib.sha256(installer.read_bytes()).hexdigest()
     if digest != package["sha256"]:
@@ -58,7 +58,7 @@ def main() -> None:
         environment.setdefault("WEBKIT_DISABLE_DMABUF_RENDERER", "1")
     process = subprocess.Popen([str(executable), "--smoke-ui", str(output)],
                                cwd=installed, env=environment, stdout=subprocess.PIPE,
-                               stderr=subprocess.STDOUT, text=True, errors="replace",
+                               stderr=subprocess.STDOUT, text=True, encoding="utf-8", errors="replace",
                                start_new_session=os.name != "nt")
     try:
         try:
@@ -72,14 +72,14 @@ def main() -> None:
             raise AssertionError(f"Native UI test timed out.\n{log[-12000:]}")
         if not output.is_file():
             raise AssertionError(f"The native UI did not write its receipt (exit {process.returncode}).\n{log[-12000:]}")
-        receipt = json.loads(output.read_text())
+        receipt = json.loads(output.read_text(encoding="utf-8"))
         receipt["installer"] = {"name": installer.name, "sha256": digest, "bytes": installer.stat().st_size}
         receipt["system"] = platform.platform()
         receipt["exitCode"] = process.returncode
         receipt["installedApp"] = str(executable.relative_to(installed))
         if log.strip():
             receipt["nativeLog"] = log[-12000:]
-        output.write_text(json.dumps(receipt, indent=2) + "\n")
+        output.write_text(json.dumps(receipt, indent=2) + "\n", encoding="utf-8")
         if not receipt.get("passed") or process.returncode != 0:
             raise AssertionError(json.dumps(receipt, indent=2))
         print(json.dumps(receipt, indent=2))
