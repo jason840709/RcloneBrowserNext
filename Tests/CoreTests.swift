@@ -964,9 +964,13 @@ private final class CoreTestSuite {
                     }
                 }
             }
-            let a = try submit(engine, request(from, toA, options: ["bandwidth": "512K"], sourceRemote: "testremote"))
-            let b = try submit(engine, request(from, toB, options: ["bandwidth": "512K"]))
-            let c = try submit(engine, request(from, toC, options: ["bandwidth": "512K"]))
+            // APFS clones finish without streaming bytes, so bandwidth limits
+            // cannot produce the progress events this test needs to observe.
+            // Force real byte copies only for this progress/cancellation fixture.
+            let progressOptions: [String: Any] = ["bandwidth": "512K", "extraArgs": ["--local-no-clone"]]
+            let a = try submit(engine, request(from, toA, options: progressOptions, sourceRemote: "testremote"))
+            let b = try submit(engine, request(from, toB, options: progressOptions))
+            let c = try submit(engine, request(from, toC, options: progressOptions))
             try expect(try job(engine, c)["status"] as? String == "queued", "third transfer did not queue")
             try rejects("maintenance started with running jobs") { try engine.setMaintenance(true) }
             var changed = engine.settingsSnapshot(); changed["rcloneDirectory"] = try folder("queue/new-tools").path; changed["rclonePath"] = ""

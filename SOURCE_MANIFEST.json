@@ -4,7 +4,7 @@
   "timezone": "Asia/Taipei",
   "scope": "GitHub publication; original test evidence preserved separately",
   "file_count_excluding_manifest": 91,
-  "total_bytes_excluding_manifest": 3490835,
+  "total_bytes_excluding_manifest": 3491403,
   "files": {
     ".github/workflows/macos.yml": {
       "bytes": 1409,
@@ -23,12 +23,12 @@
       "sha256": "f91c2bfcb1423973c04aab64fe1bddb1f40cd498562d4697b134c8b3a386544f"
     },
     "README.en.md": {
-      "bytes": 4369,
-      "sha256": "053bf1db0d6e3490ee5d36a809513827c2d626b4d5ea99b5d9af236ff169aa4c"
+      "bytes": 4424,
+      "sha256": "178ffb854df9ecab496efbbd341925a69dd1d17311ec903fd68aa83c1be951f6"
     },
     "README.md": {
-      "bytes": 6312,
-      "sha256": "3f5c9002295ec967d41a0dc10f61ffc2474968dbabcb5baed63063f7837a9c05"
+      "bytes": 6497,
+      "sha256": "5203aa4895f6e73e3332262a88e21a700d705be1f3a3983d465acc6ef3fb0ed5"
     },
     "README.zh-TW.md": {
       "bytes": 430,
@@ -135,8 +135,8 @@
       "sha256": "ce3d3c4e7e31748e4ab87bcbf8443c72c1177ee0db4ac6d306900a369a40e73c"
     },
     "Tests/CoreTests.swift": {
-      "bytes": 92460,
-      "sha256": "2f0c80ce9dc9a59ab01c6732975abbad08f16130f90df520d40423686625a7d6"
+      "bytes": 92788,
+      "sha256": "b3bdd3fabcb64ab5745b2ed89ecffd425fcdf59a045b0c8457f8881c62cabae3"
     },
     "Tests/FinderDropTests.swift": {
       "bytes": 4025,

@@ -2,29 +2,37 @@
 
 # Rclone Browser Next
 
-**A fresh rclone interface for today's Mac.** Native Apple Silicon builds, a redesigned dual-pane workspace, and local, cloud and NAS storage in one window.
+**A macOS rclone GUI with local-to-local and cloud-to-cloud transfers.** Choose local or cloud storage independently in each pane. Native Apple Silicon support and a redesigned dual-pane interface.
 
 [繁體中文](README.md) · [Download 0.4.0](https://github.com/jason840709/RcloneBrowserNext/releases/latest) · [User guide (繁體中文)](docs/USER_GUIDE.zh-TW.md) · [Development](docs/DEVELOPMENT.md)
 
 ![Rclone Browser Next 0.4.0 with two file panes, central transfer controls and a job queue; interface shown in Traditional Chinese](docs/assets/rclone-browser-next-macos.png)
 
-Browse two locations, check the direction, and copy, move or sync. Preview changes with Dry Run, follow jobs, and save repeatable tasks with their transfer options.
+Copy, move or sync in four combinations: local → local, local → cloud, cloud → local, and cloud → cloud. Mounted NAS paths and configured NAS/server remotes are also available.
 
 ## Why Next exists
 
-[rclone](https://rclone.org/) connects many storage services. [Rclone Browser](https://github.com/kapitainsky/RcloneBrowser) made those capabilities accessible through a desktop interface. Next builds on that idea with a new implementation focused on current Macs: native Apple Silicon builds and a workspace that keeps the source, destination and transfer controls together.
+[rclone](https://rclone.org/) connects many storage services. [Rclone Browser](https://github.com/kapitainsky/RcloneBrowser) made those capabilities accessible through a desktop interface. The original interface focused on uploads and downloads between local and cloud storage. Next makes both sides independently selectable, adding local-to-local and cloud-to-cloud workflows to the interface alongside native Apple Silicon support and a redesigned layout.
 
 Developed by **Jason Chen**, Next uses Swift, AppKit and the system WebKit, with a React interface. It does not bundle Electron, Chromium, Qt or the rclone executable.
 
-## What changes in daily use
+## Main improvements
 
-- **Native Mac builds:** macOS 13+, arm64 for Apple Silicon (including M1–M4) and x86_64 for Intel. The local build selects the hardware architecture.
-- **A redesigned workspace:** independent tabs and locations in each pane, search, editable paths and resizable columns. Direction and operation controls sit between the panes, with jobs below.
-- **Preview and reuse:** Dry Run, editable saved tasks, and workspace restoration that does not start transfers automatically.
-- **Appearance and language:** purple or blue accents on light or dark surfaces; Traditional Chinese, English and Japanese.
-- **NAS comparison choices:** compare mounted NAS files by size and modification time without local content hashing. Changes that preserve both size and time may be missed; see [comparison tradeoffs](docs/NAS_COMPARISON.zh-TW.md).
+### Local-to-local and cloud-to-cloud transfers
 
-The original Rclone Browser already offered jobs, tasks and dark mode. Next continues these ideas while rebuilding the Mac application and reorganizing the interface. It currently targets macOS, whereas the original project supports multiple platforms. See the [feature comparison](docs/FEATURE_MATRIX.zh-TW.md) for retained functions and differences.
+Choose either local or cloud storage in each pane. Use the same controls for local → local, local → cloud, cloud → local and cloud → cloud transfers. For example, copy a Mac folder to an external drive, or transfer files between two configured cloud locations.
+
+rclone performs the transfers. Server-side copying depends on backend support; cloud-to-cloud does not guarantee that data bypasses your Mac.
+
+### Apple Silicon support
+
+Build a native arm64 app for Apple Silicon Macs, including M1–M4, or x86_64 for Intel. Requires macOS 13 or later.
+
+### Redesigned dual-pane interface
+
+Independent tabs and locations in each pane, search, editable paths and resizable columns. Direction and operation controls sit between the panes, with jobs below. Purple or blue accents on light or dark surfaces; Traditional Chinese, English and Japanese.
+
+Dry Run and saved tasks are existing features carried forward, not claimed as new inventions in Next. See the [feature comparison](docs/FEATURE_MATRIX.zh-TW.md) for retained functions and differences.
 
 ## Get started
 

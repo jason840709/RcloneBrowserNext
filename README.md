@@ -1,7 +1,7 @@
 <p align="center"><img src="docs/assets/icon.png" width="112" alt="Rclone Browser Next icon"></p>
 <h1 align="center">Rclone Browser Next</h1>
-<p align="center"><strong>讓 rclone 的檔案管理，跟上現在的 Mac。</strong></p>
-<p align="center">Apple Silicon 原生建置 · 全新雙面板介面 · 本機、雲端與 NAS</p>
+<p align="center"><strong>支援本機對本機、雲端對雲端傳輸的 macOS rclone 圖形介面。</strong></p>
+<p align="center">Apple Silicon 原生支援 · 全新雙面板介面 · 四種傳輸組合</p>
 <p align="center">
   <a href="https://github.com/jason840709/RcloneBrowserNext/releases/latest">下載 0.4.0</a> ·
   <a href="README.en.md">English</a> ·
@@ -11,38 +11,40 @@
 
 ![Rclone Browser Next 0.4.0：深色雙面板介面，中央設定傳輸方向、操作方式與 Dry Run，下方顯示工作佇列](docs/assets/rclone-browser-next-macos.png)
 
-**Rclone Browser Next 是給 macOS 使用的 rclone 圖形介面。** 把本機資料夾、雲端空間或 NAS 放在左右兩側，確認方向，選擇複製、移動或同步，再開始傳輸。你可以在同一個視窗瀏覽檔案、預演變更、查看進度，並把常用設定存成作業。
+**Rclone Browser Next 是給 macOS 使用的 rclone 圖形介面。左右兩側都能自行選擇本機資料夾或雲端空間，支援本機對本機、本機對雲端、雲端對本機，以及雲端對雲端傳輸。** 也能選擇已掛載的 NAS 路徑或 rclone 設定的 NAS／伺服器連線，再依需要複製、移動或同步。
 
 ## 為什麼做這個版本
 
 [rclone](https://rclone.org/) 能連接許多儲存服務；[Rclone Browser](https://github.com/kapitainsky/RcloneBrowser) 則讓人透過圖形介面使用這些能力。這些前人的工作，是 Next 的出發點。
 
-我想延續這種使用方式，也希望它能更適合現在的 Mac：在 Apple Silicon 上原生執行，讓來源、目標和傳輸方向更容易核對，並重新整理每天會用到的操作。因此，Rclone Browser Next 以 Swift／AppKit 和 macOS 內建的 WebKit 建立新的應用程式與介面。
+原版的傳輸操作主要圍繞本機與雲端之間的上傳、下載。我希望左右兩側都能自由選擇位置，讓本機對本機、雲端對雲端也能直接從介面操作。同時，我重新設計介面，並以 Swift／AppKit 和 macOS 內建的 WebKit 建立支援 Apple Silicon 的 Mac 應用程式。
 
 — Jason Chen
 
 ## 這次改了什麼
 
-### 為 Apple Silicon 建置
+### 支援 Apple Silicon Mac（M1、M2、M3、M4）
 
 支援 **macOS 13 以上**。M1、M2、M3、M4 等 Apple Silicon Mac 可建立原生 arm64 App；也保留 Intel 的 x86_64 建置方式。本機建置會依硬體選擇架構，arm64 App 不需要透過 Rosetta 執行。
 
-### 從選位置到開始傳輸，都在眼前
+### 新增本機對本機、雲端對雲端傳輸
+
+左右兩側都能獨立選擇本機或雲端，不再將傳輸方向固定為本機上傳或下載到本機。
+
+| 傳輸組合 | 使用範例 |
+| --- | --- |
+| 本機 → 本機 | 從 Mac 資料夾複製到外接硬碟或已掛載的 NAS |
+| 本機 → 雲端 | 將 Mac 的資料上傳到雲端 |
+| 雲端 → 本機 | 將雲端資料下載到 Mac |
+| 雲端 → 雲端 | 在兩個已設定的雲端位置之間傳送資料 |
+
+原版介面主要提供本機與雲端之間的傳輸；Next 將本機對本機、雲端對雲端也納入同一套操作方式。這是介面對傳輸組合的擴充，實際傳輸由 rclone 執行；是否能由服務端直接複製，取決於後端支援，雲端對雲端不代表一定不經過這台 Mac。
+
+### 重新設計雙面板操作介面
 
 左右面板各自瀏覽資料夾，也各自保留分頁。中央把傳輸方向、複製／移動／同步、來源與目標摘要放在一起，讓你在按下開始前先確認「從哪裡，傳到哪裡」。
 
 搜尋、路徑列、檔案選取與可調整的欄寬，讓瀏覽更接近熟悉的檔案管理工具。下方工作佇列銜接傳輸進度與記錄；上方的「檔案／傳輸／作業」則讓你在不同工作之間切換。深淺兩種底色搭配紫色或藍色，共有四種外觀，並提供繁體中文、English、日本語。
-
-### 預演一次，常用設定留下來
-
-- **Dry Run 預演**：先查看 rclone 預計進行的動作，再決定是否正式執行。
-- **儲存作業**：保留來源、目標、操作和傳輸選項，下次可以編輯、預演或執行。
-- **記住工作環境**：重新開啟時還原兩側位置與傳輸設定，接續操作；還原本身不會啟動傳輸。
-- **NAS 比較選項**：針對掛載的 SMB／NAS，可選擇以大小與修改時間比較，避免只為計算本機雜湊而讀回完整檔案。它也可能漏掉大小、時間都沒變的內容修改，詳見 [NAS 比較說明](docs/NAS_COMPARISON.zh-TW.md)。
-
-### 用 Mac 已有的系統元件
-
-App 使用 Swift、AppKit 與系統 WebKit，介面以 React 建立。應用程式不另外打包 Electron、Chromium 或 Qt；rclone 也獨立安裝，方便沿用既有引擎與帳號設定。
 
 ## 與原版的關係
 
@@ -51,10 +53,11 @@ App 使用 Swift、AppKit 與系統 WebKit，介面以 React 建立。應用程�
 | 平台 | macOS、Windows、Linux／BSD | 目前專注 macOS 13 以上 |
 | 應用程式架構 | C++／Qt | Swift／AppKit＋系統 WebKit，React 介面 |
 | Mac 架構 | 舊版 Mac 發行方式 | 依硬體建立 arm64 或 x86_64 App |
+| 傳輸組合 | 介面主要提供本機 → 雲端、雲端 → 本機 | 左右位置獨立選擇，另可操作本機 → 本機、雲端 → 雲端 |
 | 日常操作 | Remotes、Jobs、Tasks | 參考這些流程，重新安排成雙面板、中央傳輸控制與工作佇列 |
 | 傳輸引擎 | rclone | 同樣使用獨立的 rclone |
 
-Next 的重點是 Mac 架構支援與操作介面的重新設計。原版已有工作、作業、深色模式等功能；這些概念在 Next 中獲得延續。完整保留項目與差異請看 [功能對照](docs/FEATURE_MATRIX.zh-TW.md)。
+Next 的主要改進是擴充傳輸組合、支援 Apple Silicon，以及重新設計雙面板介面。Dry Run 預演、儲存作業等是沿用的既有功能，不列為本版新增。完整保留項目與差異請看 [功能對照](docs/FEATURE_MATRIX.zh-TW.md)。
 
 ## 開始使用
 
