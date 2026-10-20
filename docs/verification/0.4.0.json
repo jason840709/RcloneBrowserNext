@@ -1,0 +1,217 @@
+{
+  "version": "0.4.0",
+  "assembled_at_utc": "2026-10-20T07:53:55.704610+00:00",
+  "environment": "Linux x86_64; Swift 6.0.3 in Swift 5 language mode; official rclone 1.75.2",
+  "swift_total_passed": 95,
+  "swift_suites": [
+    {
+      "suite": "CoreTests",
+      "passed": 37,
+      "failed": 0,
+      "skipped": 0,
+      "compile_warnings": 0,
+      "recorded_at_utc": "2026-10-20T05:55:01.049661+00:00",
+      "tested_primary_sources_sha256": {
+        "Sources/Core/LanguageResolver.swift": "35c1eb275e9eda6458af756e9fd3502d459c81a2647df6458f4b51d68beaff4c",
+        "Sources/Core/EngineModels.swift": "ce71cbf46a3002586e066fbe2b3bf5526797d4788d3cd2c5a09fd77844351ce9",
+        "Sources/Core/EngineStorage.swift": "5eb0d943b00c045a20e005479f28e38a06d4f29679c582622dc2f4860229b293",
+        "Sources/Core/RcloneEngine.swift": "d2cee104e751bc44ace5e3f8137a97ccabadf8fbcb99ff524765c667be525b4b",
+        "Tests/CoreTests.swift": "2f0c80ce9dc9a59ab01c6732975abbad08f16130f90df520d40423686625a7d6"
+      }
+    },
+    {
+      "suite": "UpdaterTests",
+      "passed": 20,
+      "failed": 0,
+      "skipped": 0,
+      "compile_warnings": 0,
+      "recorded_at_utc": "2026-10-20T06:00:11.648332+00:00",
+      "tested_primary_sources_sha256": {
+        "Sources/Core/RcloneUpdater.swift": "616ccbb4ee8bd85e0a8fd36ee6eb04e7ae5bcecf1c023c22c09b221ac7be221d",
+        "Tests/UpdaterTests.swift": "89bd5c9b7270f6089abb2d2617e1da15faf83902075dff541df2d2ed46a43fbf"
+      }
+    },
+    {
+      "suite": "ToolsTests",
+      "passed": 12,
+      "failed": 0,
+      "skipped": 0,
+      "compile_warnings": 0,
+      "recorded_at_utc": "2026-10-20T05:50:29.739565+00:00",
+      "tested_primary_sources_sha256": {
+        "Sources/Core/RcloneTools.swift": "093bf6e73c861a6d7976b23f4bd6c541483255aa25e8fc220f18f4255cc53dba",
+        "Tests/ToolsTests.swift": "1178f755426433aa47bc10f600e939d8105be510518806eec53e01b38db2ab98"
+      }
+    },
+    {
+      "suite": "NativeMessagesTests",
+      "passed": 13,
+      "failed": 0,
+      "skipped": 0,
+      "compile_warnings": 0,
+      "recorded_at_utc": "2026-10-20T06:05:49.968564+00:00",
+      "tested_primary_sources_sha256": {
+        "Sources/Core/NativeMessages.swift": "c5f48bd9f6cece8841cdb830a54fe081418d4e52ca4a45af7b017f887d9a4e79",
+        "Tests/NativeMessagesTests.swift": "64eb42dc3603668e116cf0a77ae0759cea668f141318d288377d8358909a7fb9"
+      }
+    },
+    {
+      "suite": "FinderDropTests",
+      "passed": 5,
+      "failed": 0,
+      "skipped": 0,
+      "compile_warnings": 0,
+      "recorded_at_utc": "2026-10-20T05:50:29.739565+00:00",
+      "tested_primary_sources_sha256": {
+        "Sources/Core/FinderDrop.swift": "823f46456e89a5c1672e8b5b61f64dca17e94b75a957017a4e3c081047c29fee",
+        "Tests/FinderDropTests.swift": "6ef88a57f8d807d3886e8c240338484f98bf3988f5ac1da4252b3708da97d314"
+      }
+    },
+    {
+      "suite": "AppReleaseTests",
+      "passed": 8,
+      "failed": 0,
+      "skipped": 0,
+      "compile_warnings": 0,
+      "recorded_at_utc": "2026-10-20T06:05:49.968564+00:00",
+      "tested_primary_sources_sha256": {
+        "Sources/Core/AppReleaseChecker.swift": "58d5ad351b89c6717e7bc8b3f5bd9349fc7247809886b45a14451de3d35bb4a1",
+        "Tests/AppReleaseTests.swift": "ce3d3c4e7e31748e4ab87bcbf8443c72c1177ee0db4ac6d306900a369a40e73c"
+      }
+    }
+  ],
+  "test_accounting": "Latest successful execution of each suite in this revision; baseline and targeted reruns are not added twice. All core files also compiled together for the final NativeMessagesTests and AppReleaseTests runs.",
+  "final_native_syntax": {
+    "results": [
+      {
+        "arch": "arm64",
+        "exit": 0
+      },
+      {
+        "arch": "x86_64",
+        "exit": 0
+      }
+    ],
+    "scope": "Final arm64 and x86_64 syntax parse only; no Apple SDK typecheck, link, signature or execution"
+  },
+  "shell_syntax": [
+    {
+      "file": "Build-on-Mac.command",
+      "syntax_exit": 0
+    },
+    {
+      "file": "Test-on-Mac.command",
+      "syntax_exit": 0
+    },
+    {
+      "file": "Verify-App.command",
+      "syntax_exit": 0
+    },
+    {
+      "file": "Scripts/build-mac.sh",
+      "syntax_exit": 0
+    },
+    {
+      "file": "Scripts/ci-rclone.sh",
+      "syntax_exit": 0
+    },
+    {
+      "file": "Scripts/common-mac.sh",
+      "syntax_exit": 0
+    },
+    {
+      "file": "Scripts/test-mac.sh",
+      "syntax_exit": 0
+    },
+    {
+      "file": "Scripts/verify-mac.sh",
+      "syntax_exit": 0
+    },
+    {
+      "file": "Tests/Web/run.sh",
+      "syntax_exit": 0
+    }
+  ],
+  "bundle_metadata": {
+    "version": "0.4.0",
+    "build": "40",
+    "minimum_macos": "13.0",
+    "icon_matches_user_v2": true,
+    "icon_bytes": 620209,
+    "localizations": [
+      "zh_TW",
+      "en",
+      "ja"
+    ]
+  },
+  "final_swift_sources_sha256": {
+    "Sources/Core/AppReleaseChecker.swift": "58d5ad351b89c6717e7bc8b3f5bd9349fc7247809886b45a14451de3d35bb4a1",
+    "Sources/Core/EngineModels.swift": "ce71cbf46a3002586e066fbe2b3bf5526797d4788d3cd2c5a09fd77844351ce9",
+    "Sources/Core/EngineStorage.swift": "5eb0d943b00c045a20e005479f28e38a06d4f29679c582622dc2f4860229b293",
+    "Sources/Core/FinderDrop.swift": "823f46456e89a5c1672e8b5b61f64dca17e94b75a957017a4e3c081047c29fee",
+    "Sources/Core/LanguageResolver.swift": "35c1eb275e9eda6458af756e9fd3502d459c81a2647df6458f4b51d68beaff4c",
+    "Sources/Core/NativeMessages.swift": "c5f48bd9f6cece8841cdb830a54fe081418d4e52ca4a45af7b017f887d9a4e79",
+    "Sources/Core/RcloneEngine.swift": "d2cee104e751bc44ace5e3f8137a97ccabadf8fbcb99ff524765c667be525b4b",
+    "Sources/Core/RcloneTools.swift": "093bf6e73c861a6d7976b23f4bd6c541483255aa25e8fc220f18f4255cc53dba",
+    "Sources/Core/RcloneUpdater.swift": "616ccbb4ee8bd85e0a8fd36ee6eb04e7ae5bcecf1c023c22c09b221ac7be221d",
+    "Sources/Mac/AppMain.swift": "aff38025bf1614cd868838b06f31691eaac04a3747d70b4b87323cdfe5ac49fb",
+    "Sources/Mac/RcloneWebView.swift": "d5ab0ccfe1c3c5cd26993f0233f9de2e66b9f146f6ef633c84d2fe95e508d35e"
+  },
+  "ui_full_regression": {
+    "date_utc": "2026-10-20",
+    "duration_reported": "1.0m",
+    "expected": 62,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0,
+    "scope": "Full suite completed before final comparison-help and unpublished-app-release presentation corrections. Those changed paths and the rebuilt production bundle were then rechecked in the targeted run below."
+  },
+  "ui_final_targeted_regression": {
+    "startTime": "2026-10-20T06:09:54.115Z",
+    "duration": 7867.468,
+    "expected": 3,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0,
+    "scope": "Production file/IPC contract; seven comparison tooltips in zh-TW/en/ja including interaction and compact-window bounds; app update available/current/unpublished with unpublished download controls absent in all three languages."
+  },
+  "ui_production_files": {
+    "Resources/Web/THIRD_PARTY_NOTICES.txt": {
+      "bytes": 6526,
+      "sha256": "401a52547c510b5c231c69f9077b192e2759d282e68f74d13339922f9d9e8552"
+    },
+    "Resources/Web/app.js": {
+      "bytes": 593224,
+      "sha256": "780353b92e682a2b555f29ca23d6f7ade836fda40f3e365a5f45b187bb9297e4"
+    },
+    "Resources/Web/favicon.svg": {
+      "bytes": 18533,
+      "sha256": "5dcf6bb2e77fc4f5670743c49e42e2f107812f56459bf32d30ae9ca021383a1a"
+    },
+    "Resources/Web/index.html": {
+      "bytes": 866,
+      "sha256": "6d64e8836f8ea3c2cdfb0bd3f4e214da93f633390ecbb6512949e65a94801411"
+    },
+    "Resources/Web/style.css": {
+      "bytes": 62205,
+      "sha256": "bf85d905a3fa9df63e9d3514be8ef43da18ab79e19cd4720e7ca7faabce95697"
+    }
+  },
+  "ui_palette_contrast": {
+    "passed": true,
+    "checks": 80,
+    "minimum_text_ratio": 4.9,
+    "minimum_control_border_ratio": 3.5,
+    "scope": "Computed palette token contrast for text, metadata, placeholders, primary action states, selected text, notices and control border. Disabled controls excluded. This is not a full WCAG audit."
+  },
+  "v2_icon_sha256": "e5eabce9eb64c7cdcd279caad498955e53fa007d6751425379e801aca88da0e4",
+  "limits": {
+    "mac_sdk_typecheck": false,
+    "mac_app_executed": false,
+    "mac_signing_gatekeeper_tested": false,
+    "real_cloud_or_nas_accessed": false,
+    "github_repository_created": false,
+    "github_macos_ci_executed": false,
+    "delivered_precompiled_mac_app": false
+  }
+}

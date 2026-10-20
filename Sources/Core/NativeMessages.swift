@@ -1,0 +1,471 @@
+import Foundation
+
+/// Native dialogs and engine errors share these translations. Captured paths,
+/// versions and rclone's own diagnostic output are preserved verbatim.
+enum RBNNativeStrings {
+    private struct Entry {
+        let source: String
+        let english: String
+        let japanese: String
+        let expression: NSRegularExpression?
+        let labelCaptures: Set<Int>
+        let sourcePieces: [String]
+        init(_ source: String, _ english: String, _ japanese: String, labels: Set<Int> = []) {
+            self.source = source; self.english = english; self.japanese = japanese
+            self.labelCaptures = labels
+            self.sourcePieces = source.components(separatedBy: "{}")
+            let escaped = sourcePieces.map(NSRegularExpression.escapedPattern(for:))
+            // Absolute anchors avoid translating just before a diagnostic's final
+            // newline. Captures are literal by default, including nested messages.
+            expression = escaped.count > 1 ? try? NSRegularExpression(pattern: "\\A" + escaped.joined(separator: "([\\s\\S]*?)") + "\\z") : nil
+        }
+    }
+    private static let entries: [Entry] = [
+        Entry("預設啟動資料夾格式不正確。", "The default startup folder format is invalid.", "起動時のデフォルトフォルダの形式が正しくありません。"),
+        Entry("只能設定左右面板的預設啟動資料夾。", "Only the left and right panes can have default startup folders.", "起動時のデフォルトフォルダは左右のペインにのみ設定できます。"),
+        Entry("記住的環境格式不正確。", "The saved workspace format is invalid.", "保存した作業環境の形式が正しくありません。"),
+        Entry("記住的環境必須包含左右位置、方向、操作與傳輸選項。", "A saved workspace must include both locations, direction, operation and transfer options.", "作業環境には左右の場所、方向、操作、転送オプションが必要です。"),
+        Entry("傳輸方向不正確。", "The transfer direction is invalid.", "転送方向が正しくありません。"),
+        Entry("網路設定格式不正確。", "The network settings format is invalid.", "ネットワーク設定の形式が正しくありません。"),
+        Entry("網路設定包含不支援的選項。", "The network settings contain an unsupported option.", "ネットワーク設定に未対応のオプションが含まれています。"),
+        Entry("連線位址模式不正確。", "The connection address mode is invalid.", "接続アドレスのモードが正しくありません。"),
+        Entry("來源位址請填入有效的 IPv4 或 IPv6，不要填入網卡名稱、網址或連接埠。", "Enter a valid source IPv4 or IPv6 address, without an interface name, URL or port.", "接続元には有効な IPv4 または IPv6 アドレスを入力してください。インターフェース名、URL、ポート番号は使用できません。"),
+        Entry("TPS 與 HTTP/2 請在「rclone 連線」設定，不要重複填入全域其他選項。", "Set TPS and HTTP/2 in rclone connection settings; remove duplicate global extra options.", "TPS と HTTP/2 は「rclone 接続」で設定し、共通の追加オプションから重複する指定を削除してください。"),
+        Entry("GitHub 專案位置不正確。", "The GitHub repository address is invalid.", "GitHub プロジェクトのアドレスが正しくありません。"),
+        Entry("App 版本格式不正確。", "The app version format is invalid.", "アプリのバージョン形式が正しくありません。"),
+        Entry("GitHub 更新資訊超過允許大小。", "GitHub's update response exceeds the allowed size.", "GitHub の更新情報が許容サイズを超えています。"),
+        Entry("GitHub 回傳的正式版本資訊不完整。", "GitHub returned incomplete release information.", "GitHub から返された正式版の情報が不完全です。"),
+        Entry("更新資訊轉址到其他位置，已停止檢查。", "The update response redirected to another address. The check was stopped.", "更新情報が別のアドレスに転送されたため、確認を停止しました。"),
+        Entry("GitHub 暫時限制更新檢查，請稍後再試。", "GitHub is temporarily limiting update requests. Try again later.", "GitHub が更新確認のリクエストを一時的に制限しています。後でもう一度お試しください。"),
+        Entry("GitHub 更新檢查失敗（HTTP {}）。", "The GitHub update check failed (HTTP {}).", "GitHub の更新確認に失敗しました（HTTP {}）。"),
+        Entry("GitHub 未回傳更新資訊。", "GitHub did not return update information.", "GitHub から更新情報が返されませんでした。"),
+        Entry("更新檢查不需要額外參數。", "The update check does not take additional arguments.", "更新確認に追加の引数は不要です。"),
+        Entry("關於視窗不需要額外參數。", "The About dialog does not take additional arguments.", "情報ウインドウに追加の引数は不要です。"),
+        Entry("好", "OK", "OK"),
+        Entry("取消", "Cancel", "キャンセル"),
+        Entry("刪除", "Delete", "削除"),
+        Entry("下載", "Download", "ダウンロード"),
+        Entry("更新", "Update", "更新"),
+        Entry("稍後", "Later", "あとで"),
+        Entry("跳過此版本", "Skip this version", "このバージョンをスキップ"),
+        Entry("尚未安裝", "Not installed", "未インストール"),
+        Entry("rclone 已是最新版本", "rclone is up to date", "rclone は最新です"),
+        Entry("rclone 已是最新版本。", "rclone is up to date.", "rclone は最新です。"),
+        Entry("無法自動更新", "Automatic update unavailable", "自動更新を利用できません"),
+        Entry("rclone 正在更新", "rclone is updating", "rclone を更新中です"),
+        Entry("請等更新完成後再結束 App。", "Wait for the update to finish before quitting.", "更新が完了してからアプリを終了してください。"),
+        Entry("停止工作並結束？", "Stop jobs and quit?", "処理を停止して終了しますか？"),
+        Entry("停止並結束", "Stop and quit", "停止して終了"),
+        Entry("還有工作正在執行或排隊。結束會停止這些工作，已完成的檔案變更不會復原。", "There are running or queued jobs. Quitting stops them; completed file changes are not undone.", "実行中または待機中の処理があります。終了すると停止しますが、完了したファイルの変更は元に戻りません。"),
+        Entry("刪除選取項目？", "Delete selected items?", "選択した項目を削除しますか？"),
+        Entry("位置：{}\n\n{}\n\n將刪除 {} 個選取項目。這項操作不會移到垃圾桶。", "Location: {}\n\n{}\n\nDelete {} selected items. Items are not moved to Trash.", "場所：{}\n\n{}\n\n選択した {} 個の項目を削除します。ゴミ箱には移動しません。"),
+        Entry("來源：{}\n目標：{}", "Source: {}\nDestination: {}", "転送元：{}\n転送先：{}"),
+        Entry("同步到目標？", "Sync to destination?", "転送先を同期しますか？"),
+        Entry("\n\n目標中來源沒有的檔案會被刪除。這次最多刪除 {} 個項目。", "\n\nDestination files absent from the source will be deleted. Maximum deletions: {}.", "\n\n転送元に存在しない転送先のファイルを削除します。削除上限：{} 件。"),
+        Entry("開始同步", "Start sync", "同期を開始"),
+        Entry("移動到目標？", "Move to destination?", "転送先へ移動しますか？"),
+        Entry("\n\n傳輸成功的項目會從來源刪除。", "\n\nSuccessfully transferred items are removed from the source.", "\n\n転送に成功した項目を転送元から削除します。"),
+        Entry("開始移動", "Start move", "移動を開始"),
+        Entry("選擇資料夾", "Choose folder", "フォルダを選択"),
+        Entry("選擇 rclone 執行檔", "Choose rclone executable", "rclone 実行ファイルを選択"),
+        Entry("選擇 rclone 設定檔", "Choose rclone configuration", "rclone 設定ファイルを選択"),
+        Entry("匯入作業", "Import tasks", "タスクを読み込む"),
+        Entry("下載 rclone？", "Download rclone?", "rclone をダウンロードしますか？"),
+        Entry("發現新版 rclone", "A new rclone version is available", "rclone の新しいバージョンがあります"),
+        Entry("目前：{}\n新版：{}\n\n存放位置：{}", "Current: {}\nLatest: {}\n\nLocation: {}", "現在：{}\n最新：{}\n\n保存先：{}", labels: [1]),
+        Entry("已跳過 {}。", "Skipped {}.", "{} をスキップしました。"),
+        Entry("rclone 已更新為 {}。", "rclone updated to {}.", "rclone を {} に更新しました。"),
+        Entry("操作未完成", "Could not complete the operation", "操作を完了できませんでした"),
+        Entry("雙面板 rclone 檔案工具\n\n介面使用 macOS 的 AppKit 與 WebKit。rclone 由設定中的外部路徑提供。", "A dual-pane rclone file manager.\n\nUses macOS AppKit and WebKit. Select a separate rclone executable in Settings.", "2 ペインの rclone ファイル管理アプリです。\n\nmacOS の AppKit と WebKit を使用します。rclone は設定で指定した外部の実行ファイルを使用します。"),
+        Entry("正在檢查 rclone 版本…", "Checking rclone versions…", "rclone のバージョンを確認中…"),
+        Entry("版本檢查完成。", "Version check complete.", "バージョンの確認が完了しました。"),
+        Entry("連線暫時失敗，正在重試（{}/2）…", "Connection interrupted. Retrying ({}/2)…", "接続が一時的に失敗しました。再試行中（{}/2）…"),
+        Entry("正在下載 rclone {}…", "Downloading rclone {}…", "rclone {} をダウンロード中…"),
+        Entry("正在檢查架構、macOS 需求與版本…", "Checking architecture, macOS requirements and version…", "アーキテクチャ、必要な macOS、バージョンを確認中…"),
+        Entry("正在備份並替換 rclone…", "Backing up and replacing rclone…", "rclone をバックアップして置き換え中…"),
+        Entry("已更新至 rclone {}。", "Updated to rclone {}.", "rclone {} に更新しました。"),
+        Entry("更新檢查未完成，請重試。", "Update check did not finish. Try again.", "更新の確認が完了しませんでした。もう一度お試しください。"),
+        Entry("rclone 官方下載站回傳 HTTP {}（{}）。請稍後重試。", "The official rclone server returned HTTP {} ({}). Try again later.", "rclone 公式サーバーから HTTP {}（{}）が返されました。しばらくしてから再試行してください。"),
+        Entry("下載回應超過允許大小（{} bytes；上限 {} bytes）。已停止下載。", "Download exceeds the size limit ({} bytes; limit {} bytes). Download stopped.", "ダウンロードがサイズ上限を超えたため停止しました（{} bytes、上限 {} bytes）。"),
+        Entry("更新回應並非來自 rclone 官方下載站。", "The update response did not come from the official rclone server.", "更新応答が rclone の公式ダウンロードサーバーからのものではありません。"),
+        Entry("rclone 官網回傳的版本資訊無法辨識，請稍後再試。", "The official rclone version response is invalid. Try again later.", "rclone 公式サイトのバージョン情報を読み取れませんでした。しばらくしてから再試行してください。"),
+        Entry("目前使用自訂或測試版 rclone；請手動選擇要使用的穩定版。", "This is a custom or test rclone build. Select a stable release manually.", "カスタム版またはテスト版の rclone を使用しています。安定版を手動で選択してください。"),
+        Entry("無法執行這個 rclone：\n{}", "Could not run this rclone:\n{}", "この rclone を実行できません：\n{}"),
+        Entry("所選檔案沒有回傳有效的 rclone 版本。", "The selected file did not return a valid rclone version.", "選択したファイルから有効な rclone バージョンが返されませんでした。"),
+        Entry("請先選擇存放 rclone 的資料夾。", "Choose a folder for rclone first.", "rclone を保存するフォルダを選択してください。"),
+        Entry("請選擇有效的 rclone 執行檔或資料夾。", "Choose a valid rclone executable or folder.", "有効な rclone 実行ファイルまたはフォルダを選択してください。"),
+        Entry("下載未完成，原本的 rclone 保持不變。\n{}", "The download failed. Your existing rclone is unchanged.\n{}", "ダウンロードに失敗しました。既存の rclone は変更されていません。\n{}"),
+        Entry("下載檔的 SHA-256 不符，已停止安裝。", "The download SHA-256 does not match. Installation stopped.", "ダウンロードしたファイルの SHA-256 が一致しないため、インストールを停止しました。"),
+        Entry("下載的 rclone 執行檔不完整。", "The downloaded rclone executable is incomplete.", "ダウンロードした rclone 実行ファイルが不完全です。"),
+        Entry("下載檔回報的版本與選定版本不符，已停止更新。", "The downloaded version does not match the selected release. Update stopped.", "ダウンロードしたバージョンが選択したリリースと一致しないため、更新を停止しました。"),
+        Entry("更新後的版本檢查失敗。", "The post-update version check failed.", "更新後のバージョン確認に失敗しました。"),
+        Entry("更新後驗證失敗，已還原原本的 rclone。\n{}", "Post-update validation failed. The previous rclone was restored.\n{}", "更新後の検証に失敗したため、元の rclone を復元しました。\n{}"),
+        Entry("更新後驗證失敗，自動還原也未完成。\n舊版備份位置：{}\n{}", "Post-update validation and automatic restoration failed.\nPrevious version backup: {}\n{}", "更新後の検証と自動復元に失敗しました。\n旧バージョンのバックアップ：{}\n{}"),
+        Entry("rclone 在更新期間被其他程式更動，已停止替換。", "Another process changed rclone during the update. Replacement stopped.", "更新中にほかのプロセスが rclone を変更したため、置き換えを停止しました。"),
+        Entry("這個位置剛出現另一個檔案，已停止替換。", "A file appeared at the destination. Replacement stopped.", "保存先に別のファイルが作成されたため、置き換えを停止しました。"),
+        Entry("請先完成 rclone 更新或目前開啟的設定工具。", "Finish the current update or account setup first.", "実行中の更新またはアカウント設定を完了してください。"),
+        Entry("請先結束 Terminal 中的 rclone 設定工具，再更新。", "Close rclone account setup in Terminal before updating.", "更新する前に、ターミナルで開いている rclone 設定を終了してください。"),
+        Entry("無法開啟 Terminal。請在終端機執行所選 rclone 的 config 指令。", "Could not open Terminal. Run the selected rclone's config command in Terminal.", "ターミナルを開けませんでした。選択した rclone の config コマンドをターミナルで実行してください。"),
+        Entry("請先選取要刪除的項目。", "Select items to delete first.", "削除する項目を選択してください。"),
+        Entry("找不到這個工作。", "This job could not be found.", "この処理が見つかりません。"),
+        Entry("找不到工作記錄。", "The job log could not be found.", "処理のログが見つかりません。"),
+        Entry("作業檔超過 8 MiB，請縮小後再匯入。", "The task file exceeds 8 MiB. Reduce it before importing.", "タスクファイルが 8 MiB を超えています。小さくしてから読み込んでください。"),
+        Entry("不支援的操作。", "Unsupported operation.", "この操作には対応していません。"),
+        Entry("上次關閉時工作尚未完成，未自動重跑。", "This job was interrupted when the app closed. It was not restarted automatically.", "アプリの終了時にこの処理が中断されました。自動では再実行していません。"),
+        Entry("請先結束執行中的工作，再變更 rclone 或設定檔。", "Finish active jobs before changing rclone or its configuration.", "rclone または設定ファイルを変更する前に、実行中の処理を終了してください。"),
+        Entry("正在更新 rclone，請稍候。", "rclone is updating. Please wait.", "rclone を更新中です。しばらくお待ちください。"),
+
+        // Core validation. Only the field-name captures below are app-owned.
+        Entry("{} 格式不正確，不能包含控制字元。", "{} has an invalid format. Control characters are not allowed.", "{}の形式が正しくありません。制御文字は使用できません。", labels: [1]),
+        Entry("{} 必須為開啟或關閉。", "{} must be on or off.", "{}はオンまたはオフで指定してください。", labels: [1]),
+        Entry("{} 必須介於 {} 與 {}。", "{} must be between {} and {}.", "{}は {} から {} の範囲で指定してください。", labels: [1]),
+        Entry("{}必須使用絕對路徑。", "{} must use an absolute path.", "{}には絶対パスを指定してください。", labels: [1]),
+        Entry("{}請填入 10M、512K 等大小；留白表示不限。", "For {}, enter a size such as 10M or 512K. Leave blank for no limit.", "{}には 10M、512K などのサイズを入力してください。空欄にすると制限しません。", labels: [1]),
+        Entry("{}請填入 30s、5m、24h、7d 等時間。", "For {}, enter a duration such as 30s, 5m, 24h or 7d.", "{}には 30s、5m、24h、7d などの時間を入力してください。", labels: [1]),
+        Entry("資料無法儲存成 JSON。", "The data cannot be saved as JSON.", "データを JSON 形式で保存できません。"),
+        Entry("請選擇位置。", "Choose a location.", "場所を選択してください。"),
+        Entry("本機位置必須是完整的絕對路徑。", "A local location must be a full absolute path.", "ローカルの場所には完全な絶対パスを指定してください。"),
+        Entry("遠端連線名稱格式不正確。", "The remote name is invalid.", "リモート名の形式が正しくありません。"),
+        Entry("遠端路徑不能包含「..」。", "A remote path cannot contain '..'.", "リモートのパスに「..」は使用できません。"),
+        Entry("名稱不能留白、使用「.」「..」或包含斜線。", "Names cannot be blank, be '.' or '..', or contain a slash.", "名前は空欄にできません。「.」「..」やスラッシュは使用できません。"),
+        Entry("單次最多選取 10,000 個項目。", "Select up to 10,000 items at a time.", "一度に選択できる項目は 10,000 件までです。"),
+        Entry("選取項目不能重複。", "Selected items cannot be duplicated.", "同じ項目を重複して選択できません。"),
+        Entry("傳輸選項格式不正確。", "The transfer options are invalid.", "転送オプションの形式が正しくありません。"),
+        Entry("傳輸选項格式不正確。", "The transfer options are invalid.", "転送オプションの形式が正しくありません。"),
+        Entry("限速請填入 10M、512K 或 off；留白表示不限速。", "Enter a bandwidth limit such as 10M, 512K or off. Leave blank for no limit.", "帯域制限には 10M、512K、off などを入力してください。空欄にすると制限しません。"),
+        Entry("檔案比較方式不正確。", "The file comparison method is invalid.", "ファイルの比較方法が正しくありません。"),
+        Entry("全部重新傳送不能同時略過已存在或較新的檔案。請選擇一種比對方式。", "Retransfer all cannot also skip existing or newer files. Choose a comparison method.", "すべて再転送する場合、既存のファイルや新しいファイルをスキップできません。比較方法を選択してください。"),
+        Entry("刪除時機不正確。", "The deletion timing is invalid.", "削除のタイミングが正しくありません。"),
+        Entry("本機雜湊讀取設定不正確。", "The local hashing setting is invalid.", "ローカルのハッシュ計算設定が正しくありません。"),
+        Entry("停用本機雜湊讀取時，不能使用雜湊比對。", "Hash comparison is unavailable when local hashing is disabled.", "ローカルのハッシュ計算を無効にしている場合、ハッシュで比較できません。"),
+        Entry("最小檔案大小不能大於最大檔案大小。", "Minimum file size cannot exceed maximum file size.", "最小ファイルサイズは最大ファイルサイズ以下にしてください。"),
+        Entry("最小檔案年齡不能大於最大檔案年齡。", "Minimum file age cannot exceed maximum file age.", "最小経過時間は最大経過時間以下にしてください。"),
+        Entry("最多可設定 256 條篩選規則。", "You can set up to 256 filter rules.", "フィルタールールは 256 件まで設定できます。"),
+        Entry("其他選項最多 64 行，每行填入一個 --選項=值。", "Additional options allow up to 64 lines. Enter one --option=value per line.", "追加オプションは 64 行までです。1 行に 1 つずつ --option=value を入力してください。"),
+        Entry("其他選項不能包含命令、路徑、短旗標或重複選項。每行請使用 --選項=值。", "Additional options cannot contain commands, paths, short flags or duplicate options. Use --option=value on each line.", "追加オプションにコマンド、パス、短縮フラグ、重複したオプションは指定できません。各行に --option=value を入力してください。"),
+        Entry("{} 只接受 true 或 false。", "{} accepts only true or false.", "{}には true または false を指定してください。"),
+        Entry("{} 請使用 --選項=值。", "Use --option=value for {}.", "{}は --option=value の形式で指定してください。"),
+        Entry("{} 必須是 0 至 9,999,999 的整數。", "{} must be an integer from 0 to 9,999,999.", "{}には 0 から 9,999,999 までの整数を指定してください。"),
+        Entry("每秒請求上限格式不正確。", "The requests-per-second limit is invalid.", "1 秒あたりのリクエスト上限が正しくありません。"),
+        Entry("cutoff-mode 請填入 HARD、SOFT 或 CAUTIOUS。", "For cutoff-mode, enter HARD, SOFT or CAUTIOUS.", "cutoff-mode には HARD、SOFT、CAUTIOUS のいずれかを指定してください。"),
+        Entry("order-by 格式不正確。", "The order-by value is invalid.", "order-by の形式が正しくありません。"),
+        Entry("{} 不在支援的其他選項中。請使用畫面上的對應設定；帳號與憑證請在 Config 設定。", "{} is not a supported additional option. Use its setting in the interface; configure accounts and credentials in Config.", "{}は追加オプションとして指定できません。画面の該当する設定を使用してください。アカウントと認証情報は Config で設定してください。"),
+        Entry("傳輸設定格式不正確。", "The transfer configuration is invalid.", "転送設定の形式が正しくありません。"),
+        Entry("傳輸模式不正確。", "The transfer mode is invalid.", "転送モードが正しくありません。"),
+        Entry("同步適用於整個目前目錄。請清除選取，或改用複製／移動。", "Sync applies to the entire current folder. Clear the selection or use Copy or Move.", "同期は現在のフォルダ全体に適用されます。選択を解除するか、コピーまたは移動を使用してください。"),
+        Entry("同步需要列出目的地，不能使用「不掃描目的地」。", "Sync needs a destination listing. Turn off 'Do not scan destination'.", "同期には転送先の一覧が必要です。「転送先を走査しない」をオフにしてください。"),
+        Entry("移動時，rclone 可能刪除因目的地較新而略過的來源。請關閉「略過較新」或改用複製。", "When moving, rclone may delete source files skipped because the destination is newer. Turn off 'Skip newer' or use Copy.", "移動では、転送先のほうが新しいためスキップした転送元ファイルも rclone が削除する場合があります。「新しいファイルをスキップ」をオフにするか、コピーを使用してください。"),
+        Entry("刪除已排除的檔案只適用於同步。", "Deleting excluded files is available only for Sync.", "除外したファイルの削除は同期でのみ使用できます。"),
+        Entry("工作編號格式不正確。", "The job ID is invalid.", "処理 ID の形式が正しくありません。"),
+        Entry("工作狀態格式不正確。", "The job status is invalid.", "処理の状態が正しくありません。"),
+        Entry("作業格式不正確。", "The task format is invalid.", "タスクの形式が正しくありません。"),
+        Entry("作業編號格式不正確。", "The task ID is invalid.", "タスク ID の形式が正しくありません。"),
+        Entry("請輸入作業名稱。", "Enter a task name.", "タスク名を入力してください。"),
+
+        // Storage, connections and transfer lifecycle.
+        Entry("無法寫入 {}。", "Could not write {}.", "{} に書き込めません。"),
+        Entry("儲存資料過大。", "The saved data is too large.", "保存データが大きすぎます。"),
+        Entry("無法解析本機路徑。", "Could not resolve the local path.", "ローカルのパスを解決できません。"),
+        Entry("來源資料夾不存在或無法讀取。", "The source folder does not exist or cannot be read.", "転送元フォルダが存在しないか、読み取れません。"),
+        Entry("請選擇根目錄之下的目的資料夾。", "Choose a destination folder below the root directory.", "ルートディレクトリ以外の転送先フォルダを選択してください。"),
+        Entry("目的位置已存在同名檔案，請選擇資料夾。", "A file already exists at the destination path. Choose a folder.", "転送先に同名のファイルが存在します。フォルダを選択してください。"),
+        Entry("來源與目的地不能相同，也不能互為上層／子目錄（包含符號連結）。", "Source and destination cannot be the same or contain one another, including through symbolic links.", "転送元と転送先に同じ場所や親子関係のあるフォルダは指定できません。シンボリックリンクも対象です。"),
+        Entry("同一遠端的來源與目的地不能相同，也不能互為上層／子目錄。", "On the same remote, source and destination cannot be the same or contain one another.", "同じリモート内では、転送元と転送先に同じ場所や親子関係のあるフォルダは指定できません。"),
+        Entry("無法建立工作記錄。", "Could not create the job log.", "処理のログを作成できません。"),
+        Entry("記錄輪替；每項工作保留最近 100 MiB。", "Log rotation: the latest 100 MiB is kept for each job.", "ログをローテーションします。各処理の最新 100 MiB を保存します。"),
+        Entry("無法輪替工作記錄。", "Could not rotate the job log.", "処理のログをローテーションできません。"),
+        Entry("工作記錄已關閉。", "The job log is closed.", "処理のログは閉じられています。"),
+        Entry("這項工作尚未產生記錄。", "This job has not produced a log yet.", "この処理のログはまだありません。"),
+        Entry("無法匯出記錄。", "Could not export the log.", "ログを書き出せません。"),
+        Entry("目錄資料超過單次可載入大小，請進入較小的資料夾。", "The directory listing is too large to load at once. Open a smaller folder.", "ディレクトリの一覧が大きすぎて一度に読み込めません。小さいフォルダを開いてください。"),
+        Entry("找不到 rclone。請在設定中下載，或選擇已有的執行檔。", "rclone was not found. Download it in Settings or choose an existing executable.", "rclone が見つかりません。設定からダウンロードするか、既存の実行ファイルを選択してください。"),
+        Entry("無法執行指定的 rclone，請確認路徑與執行權限。", "The selected rclone cannot run. Check its path and execution permissions.", "指定した rclone を実行できません。パスと実行権限を確認してください。"),
+        Entry("程式正在關閉。", "The app is closing.", "アプリを終了しています。"),
+        Entry("rclone 更新或位置切換正在進行。", "A rclone update or location change is in progress.", "rclone の更新または場所の変更が進行中です。"),
+        Entry("請等候目錄載入與工作結束，再更新 rclone。", "Wait for directory loading and jobs to finish before updating rclone.", "ディレクトリの読み込みと処理が終わってから rclone を更新してください。"),
+        Entry("更新後的 rclone 執行檔無法讀取。", "The updated rclone executable cannot be read.", "更新後の rclone 実行ファイルを読み取れません。"),
+        Entry("必須先取得 rclone 更新鎖定，才能保存更新位置。", "The rclone update lock is required before saving the updated location.", "更新後の場所を保存するには、先に rclone の更新ロックを取得する必要があります。"),
+        Entry("缺少操作參數。", "A required operation argument is missing.", "操作に必要な引数がありません。"),
+        Entry("密碼格式不正確。", "The password format is invalid.", "パスワードの形式が正しくありません。"),
+        Entry("不支援的操作：{}", "Unsupported operation: {}", "この操作には対応していません：{}"),
+        Entry("rclone 正在更新，請稍候。", "rclone is updating. Please wait.", "rclone を更新中です。しばらくお待ちください。"),
+        Entry("rclone 位置正在切換，請稍候。", "The rclone location is changing. Please wait.", "rclone の場所を変更中です。しばらくお待ちください。"),
+        Entry("rclone 目前無法使用，請稍後再試。", "rclone is currently unavailable. Try again shortly.", "現在 rclone を使用できません。しばらくしてから再試行してください。"),
+        Entry("rclone 正在更新。", "rclone is updating.", "rclone を更新中です。"),
+        Entry("無法啟動 rclone：{}", "Could not start rclone: {}", "rclone を起動できません：{}"),
+        Entry("rclone 回應逾時，請檢查連線後重試。", "rclone timed out. Check the connection and try again.", "rclone の応答がタイムアウトしました。接続を確認して再試行してください。"),
+        Entry("rclone 單行輸出過大，工作已停止。", "A rclone output line was too large. The job was stopped.", "rclone の出力行が大きすぎるため、処理を停止しました。"),
+        Entry("無法讀取 rclone 輸出：{}", "Could not read rclone output: {}", "rclone の出力を読み取れません：{}"),
+        Entry("rclone 執行失敗（代碼 {}）：\n{}", "rclone failed (code {}):\n{}", "rclone の実行に失敗しました（コード {}）：\n{}"),
+        Entry("rclone 執行失敗（代碼 {}）。", "rclone failed (code {}).", "rclone の実行に失敗しました（コード {}）。"),
+        Entry("指定的執行檔不是 rclone。", "The selected executable is not rclone.", "指定した実行ファイルは rclone ではありません。"),
+        Entry("找不到 rclone。", "rclone was not found.", "rclone が見つかりません。"),
+        Entry("rclone 未回傳有效的遠端清單，請更新 rclone。", "rclone did not return a valid remote list. Update rclone.", "rclone から有効なリモート一覧が返されませんでした。rclone を更新してください。"),
+        Entry("找不到遠端連線「{}」，請重新整理。", "Remote '{}' was not found. Refresh the list.", "リモート「{}」が見つかりません。一覧を更新してください。"),
+        Entry("目錄超過 250,000 個項目，請選擇較小的資料夾。", "The directory has more than 250,000 items. Choose a smaller folder.", "ディレクトリの項目数が 250,000 件を超えています。小さいフォルダを選択してください。"),
+        Entry("rclone 未回傳有效的目錄清單。", "rclone did not return a valid directory listing.", "rclone から有効なディレクトリ一覧が返されませんでした。"),
+        Entry("同名項目已存在。", "An item with the same name already exists.", "同じ名前の項目がすでに存在します。"),
+        Entry("新名稱已存在，請選擇其他名稱。", "The new name already exists. Choose another name.", "その名前はすでに使用されています。別の名前を指定してください。"),
+        Entry("原項目已不存在或類型已改變。", "The original item no longer exists or its type has changed.", "元の項目が存在しないか、種類が変更されています。"),
+        Entry("來源檔案仍存在，目的地可能出現同名項目。請重新整理確認。", "The source file still exists and a same-named item may be at the destination. Refresh to check both locations.", "転送元ファイルが残っています。転送先に同名の項目がある可能性があります。両方の場所を更新して確認してください。"),
+        Entry("部分內容仍留在原資料夾，請檢查兩個資料夾。", "Some contents remain in the original folder. Check both folders.", "元のフォルダに一部の内容が残っています。両方のフォルダを確認してください。"),
+        Entry("「{}」已不存在或類型已改變，請重新整理。", "'{}' no longer exists or its type has changed. Refresh the list.", "「{}」が存在しないか、種類が変更されています。一覧を更新してください。"),
+        Entry("無法讀取資料夾。", "Could not read the folder.", "フォルダを読み取れません。"),
+        Entry("rclone 未回傳有效的容量資訊。", "rclone did not return valid size information.", "rclone から有効なサイズ情報が返されませんでした。"),
+        Entry("同步會刪除目的地中來源沒有的檔案；本次最多刪除 {} 個。超過上限前已刪除的檔案不會復原。", "Sync deletes destination files absent from the source, up to {} files this time. Deletions made before the limit is reached are not undone.", "同期では転送元に存在しない転送先のファイルを削除します。今回の上限は {} 件です。上限に達する前に削除したファイルは元に戻りません。"),
+        Entry("同步會刪除目的地中來源沒有的檔案；本次未設定刪除數量上限。", "Sync deletes destination files absent from the source. No deletion limit is set for this run.", "同期では転送元に存在しない転送先のファイルを削除します。今回は削除数の上限を設定していません。"),
+        Entry("移動會在傳送成功後刪除來源檔案。", "Move removes source files after successful transfer.", "移動では、転送が成功したあとに転送元ファイルを削除します。"),
+        Entry("已啟用刪除排除項目：目的地中符合排除規則的檔案也會刪除。", "Delete excluded is on: destination files matching exclusion rules will also be deleted.", "除外した項目の削除が有効です。除外ルールに一致する転送先ファイルも削除します。"),
+        Entry("目的地多餘檔案會在傳輸開始前刪除，後續傳輸失敗不會還原這些刪除。", "Extra destination files will be deleted before transfer. A later transfer failure will not restore them.", "転送開始前に転送先の余分なファイルを削除します。その後に転送が失敗しても復元されません。"),
+        Entry("本次會重新傳送所有範圍內的檔案，即使目的地已有相同內容。", "All files in scope will be retransferred, even if the destination has identical contents.", "転送先に同じ内容があっても、対象範囲のすべてのファイルを再転送します。"),
+        Entry("本機位置不讀取檔案內容計算雜湊。大小和修改時間皆未變的內容差異無法偵測。", "Local files are not read to calculate hashes. Content changes with unchanged size and modification time cannot be detected.", "ローカルファイルの内容を読み込んでハッシュを計算しません。サイズと更新日時が同じままの内容の変更は検出できません。"),
+        Entry("已關閉傳送後的雜湊驗證；傳送前的雜湊比對仍依比對方式執行。", "Post-transfer hash verification is off. Pre-transfer hash comparison still follows the selected comparison method.", "転送後のハッシュ検証は無効です。転送前のハッシュ比較は、選択した比較方法に従います。"),
+        Entry("預演不會變更檔案，傳輸統計為模擬結果。", "A dry run does not change files. Transfer statistics are simulated.", "試行ではファイルを変更しません。転送統計はシミュレーションの結果です。"),
+        Entry("選取項目與包含規則取交集，執行前會先掃描來源。", "Only selected items matching include rules are included. The source will be scanned before execution.", "選択した項目のうち、含めるルールにも一致するものを対象にします。実行前に転送元を走査します。"),
+        Entry("不同連線也可能指向同一儲存空間，請確認兩側位置。", "Different remotes can point to the same storage. Check both locations.", "異なるリモートが同じ保存先を指している場合があります。両方の場所を確認してください。"),
+        Entry("工作紀錄已達 200 筆，請先清除已結束的工作。", "Job history has reached 200 entries. Clear finished jobs first.", "処理履歴が 200 件に達しました。完了した処理を先に消去してください。"),
+        Entry("無法儲存工作，未開始傳輸：{}", "The job could not be saved. Transfer did not start: {}", "処理を保存できなかったため、転送は開始していません：{}"),
+        Entry("無法儲存工作。", "Could not save the job.", "処理を保存できません。"),
+        Entry("正在套用選取範圍與包含規則。", "Applying the selection and include rules.", "選択範囲と含めるルールを適用しています。"),
+        Entry("選取清單超過 250,000 個項目，請縮小來源範圍。", "The selection exceeds 250,000 items. Narrow the source scope.", "選択項目が 250,000 件を超えています。転送元の範囲を狭くしてください。"),
+        Entry("遠端回傳不安全的相對路徑。", "The remote returned an unsafe relative path.", "リモートから安全でない相対パスが返されました。"),
+        Entry("已取消。", "Cancelled.", "キャンセルしました。"),
+        Entry("開始預演。", "Dry run started.", "試行を開始しました。"),
+        Entry("開始傳輸。", "Transfer started.", "転送を開始しました。"),
+        Entry("程式關閉，工作已停止。", "The app closed and the job stopped.", "アプリの終了により処理を停止しました。"),
+        Entry("rclone 結束代碼：{}。請查看記錄。", "rclone exit code: {}. Check the log.", "rclone の終了コード：{}。ログを確認してください。"),
+        Entry("預演完成，檔案未變更。", "Dry run complete. No files were changed.", "試行が完了しました。ファイルは変更していません。"),
+        Entry("工作完成。", "Job complete.", "処理が完了しました。"),
+        Entry("已取消。已完成的檔案變更不會復原。", "Cancelled. Completed file changes are not undone.", "キャンセルしました。完了したファイルの変更は元に戻りません。"),
+        Entry("工作已結束。", "The job has ended.", "処理が終了しました。"),
+        Entry("記錄無法完整保存：{}", "The log could not be saved completely: {}", "ログを完全に保存できませんでした：{}"),
+        Entry("工作狀態無法儲存：{}", "The job status could not be saved: {}", "処理の状態を保存できませんでした：{}"),
+        Entry("無法儲存記錄：{}", "Could not save the log: {}", "ログを保存できません：{}"),
+        Entry("無法儲存工作狀態：{}", "Could not save the job status: {}", "処理の状態を保存できません：{}"),
+        Entry("找不到這項工作。", "This job could not be found.", "この処理が見つかりません。"),
+        Entry("工作尚未結束，不能重試。", "The job has not finished and cannot be retried yet.", "処理がまだ終了していないため、再試行できません。"),
+        Entry("程式關閉，排隊工作未執行。", "The app closed before the queued job started.", "アプリが終了したため、待機中の処理は実行していません。"),
+
+        // Saved tasks, settings and immediate connection changes.
+        Entry("請輸入 1 至 200 字的作業名稱。", "Enter a task name between 1 and 200 characters.", "タスク名を 1〜200 文字で入力してください。"),
+        Entry("找不到要更新的作業。", "The task to update was not found.", "更新するタスクが見つかりません。"),
+        Entry("最多可儲存 1,000 個作業。", "You can save up to 1,000 tasks.", "保存できるタスクは 1,000 件までです。"),
+        Entry("作業檔案過大。", "The task file is too large.", "タスクファイルが大きすぎます。"),
+        Entry("請匯入有效的作業 JSON，最多 1,000 筆。", "Import a valid task JSON file containing up to 1,000 tasks.", "1,000 件以内のタスクを含む有効な JSON ファイルを読み込んでください。"),
+        Entry("儲存的作業總數不能超過 1,000 筆。", "The total number of saved tasks cannot exceed 1,000.", "保存するタスクの合計は 1,000 件を超えられません。"),
+        Entry("設定格式不正確。", "The settings are invalid.", "設定の形式が正しくありません。"),
+        Entry("語言或外觀設定不正確。", "The language or appearance setting is invalid.", "言語または外観の設定が正しくありません。"),
+        Entry("預設傳輸選項格式不正確。", "The default transfer options are invalid.", "既定の転送オプションの形式が正しくありません。"),
+        Entry("欄寬設定格式不正確。", "The column width settings are invalid.", "列幅の設定が正しくありません。"),
+        Entry("只能設定左右面板的欄寬。", "Column widths can be set only for the left and right panes.", "列幅を設定できるのは左右のペインのみです。"),
+        Entry("欄寬名稱不正確。", "The column width name is invalid.", "列幅の項目名が正しくありません。"),
+        Entry("啟動位置格式不正確。", "The startup locations are invalid.", "起動時の場所の形式が正しくありません。"),
+        Entry("只能設定左右面板的啟動位置。", "Startup locations can be set only for the left and right panes.", "起動時の場所を設定できるのは左右のペインのみです。"),
+        Entry("代理伺服器設定不正確。", "The proxy settings are invalid.", "プロキシ設定が正しくありません。"),
+        Entry("更新檢查目前不支援 https:// 代理位址。請改用 http:// 或 socks5://；rclone 傳輸仍可使用 https:// 代理。", "Update checks do not currently support https:// proxy addresses. Use http:// or socks5:// for updates; rclone transfers can still use an https:// proxy.", "更新確認では現在 https:// のプロキシアドレスに対応していません。更新には http:// または socks5:// を使用してください。rclone の転送では引き続き https:// プロキシを使用できます。"),
+        Entry("代理伺服器請填入 http://127.0.0.1:7890 等網址，不能包含帳號或密碼。", "Enter a proxy URL such as http://127.0.0.1:7890 without a username or password.", "プロキシには http://127.0.0.1:7890 などの URL を入力してください。ユーザー名やパスワードは含められません。"),
+        Entry("不使用代理的位址請以逗號分隔，不要加入空白。", "Separate proxy bypass addresses with commas and no spaces.", "プロキシを使用しないアドレスは、空白を入れずにカンマで区切ってください。"),
+        Entry("播放器參數最多 32 個，每行填入一個參數。", "Enter up to 32 player arguments, one per line.", "プレーヤーの引数は 1 行に 1 つ、32 個まで入力できます。"),
+        Entry("設定已在其他操作中更新，請重新整理後再試。", "Another operation updated the settings. Refresh and try again.", "別の操作で設定が更新されました。再読み込みしてからお試しください。"),
+        Entry("指定的設定檔不存在或不是檔案。", "The selected configuration file does not exist or is not a file.", "指定した設定ファイルが存在しないか、ファイルではありません。"),
+        Entry("請等候傳輸或更新結束，再切換 rclone、設定檔或網路設定。", "Wait for transfers or updates to finish before changing rclone, its configuration or network settings.", "転送または更新が完了してから、rclone、設定ファイル、ネットワーク設定を変更してください。"),
+        Entry("目前的目錄讀取尚未結束。請稍後再切換位置。", "The directory is still loading. Wait before changing the location.", "ディレクトリを読み込み中です。しばらく待ってから場所を変更してください。"),
+        Entry("傳輸已開始，請等候工作結束再切換位置。", "A transfer has started. Wait for it to finish before changing the location.", "転送が開始されました。完了してから場所を変更してください。"),
+        Entry("找不到這項工作的記錄。", "The log for this job was not found.", "この処理のログが見つかりません。"),
+
+        // Directory tools, public links, mounts and streaming. Provider output
+        // in the action wrappers below is intentionally a literal capture.
+        Entry("目錄深度必須介於 1 與 64。", "Directory depth must be between 1 and 64.", "ディレクトリの深さは 1〜64 で指定してください。"),
+        Entry("請選擇本機匯出位置。", "Choose a local export location.", "書き出し先にローカルの場所を選択してください。"),
+        Entry("匯出資料夾不存在。", "The export folder does not exist.", "書き出し先のフォルダが存在しません。"),
+        Entry("匯出位置必須是一般檔案，不能是資料夾或符號連結。", "The export destination must be a regular file, not a folder or symbolic link.", "書き出し先には通常のファイルを指定してください。フォルダやシンボリックリンクは指定できません。"),
+        Entry("無法在這個資料夾建立匯出檔案。", "Could not create the export file in this folder.", "このフォルダに書き出すファイルを作成できません。"),
+        Entry("清單超過 512 MB，請選擇較小的目錄再匯出。", "The listing exceeds 512 MB. Choose a smaller directory to export.", "一覧が 512 MB を超えています。小さいディレクトリを選択して書き出してください。"),
+        Entry("寫入匯出檔案失敗：{}", "Could not write the export file: {}", "書き出しファイルに書き込めません：{}"),
+        Entry("無法儲存匯出檔案；原檔案未被替換。", "Could not save the export. The original file was not replaced.", "書き出したファイルを保存できませんでした。元のファイルは置き換えていません。"),
+        Entry("公開連結只適用於支援分享功能的雲端位置。", "Public links are available only for cloud locations that support sharing.", "公開リンクは、共有に対応するクラウドでのみ作成できます。"),
+        Entry("rclone 沒有回傳有效的公開連結。", "rclone did not return a valid public link.", "rclone から有効な公開リンクが返されませんでした。"),
+        Entry("掛載選項過多。", "Too many mount options.", "マウントオプションが多すぎます。"),
+        Entry("掛載選項不能重複。", "Mount options cannot be duplicated.", "マウントオプションを重複して指定できません。"),
+        Entry("掛載只接受唯讀與 VFS 快取模式選項。", "Mount accepts only read-only and VFS cache mode options.", "マウントでは読み取り専用と VFS キャッシュモードのみ指定できます。"),
+        Entry("請選擇要掛載的雲端位置。", "Choose a cloud location to mount.", "マウントするクラウドの場所を選択してください。"),
+        Entry("請選擇本機掛載資料夾。", "Choose a local mount folder.", "マウント先にローカルフォルダを選択してください。"),
+        Entry("掛載位置必須是既存的空資料夾，不能是符號連結。", "The mount location must be an existing empty folder, not a symbolic link.", "マウント先には既存の空のフォルダを指定してください。シンボリックリンクは指定できません。"),
+        Entry("圖形介面的掛載功能目前只支援 macOS。", "Mounting from this app is currently available only on macOS.", "このアプリからのマウントは現在 macOS のみに対応しています。"),
+        Entry("這個資料夾已經有進行中的掛載。", "This folder already has an active mount.", "このフォルダはすでにマウントに使用されています。"),
+        Entry("請選擇已安裝播放器的執行檔。", "Choose the executable of an installed player.", "インストール済みプレーヤーの実行ファイルを選択してください。"),
+        Entry("播放器參數格式不正確。", "The player arguments are invalid.", "プレーヤーの引数の形式が正しくありません。"),
+        Entry("串流播放只能選擇檔案，不能選擇資料夾。", "Choose a file to stream. Folders cannot be streamed.", "ストリーミング再生するファイルを選択してください。フォルダは再生できません。"),
+        Entry("無法啟動串流：{}", "Could not start the stream: {}", "ストリーミング再生を開始できません：{}"),
+        Entry("無法卸載。請先關閉使用這個磁碟的檔案，再重試。\n{}", "Could not unmount. Close files using this disk and try again.\n{}", "マウントを解除できません。このディスクのファイルを閉じてから再試行してください。\n{}"),
+        Entry("工作尚未停止，請稍候再試。", "The job has not stopped yet. Try again shortly.", "処理がまだ停止していません。しばらくしてから再試行してください。"),
+        Entry("最多可同時執行 16 個掛載或串流。", "Up to 16 mounts or streams can run at the same time.", "マウントとストリーミング再生は合計 16 件まで同時に実行できます。"),
+        Entry("工具的輸出尚未結束，請檢查播放器是否仍在執行。", "The tool's output is still open. Check whether the player is still running.", "ツールの出力がまだ閉じていません。プレーヤーが実行中か確認してください。"),
+        Entry("rclone 或播放器提早結束。", "rclone or the player exited early.", "rclone またはプレーヤーが途中で終了しました。"),
+        Entry("rclone 或工具的執行位置與參數不正確。", "The rclone or tool executable location or arguments are invalid.", "rclone またはツールの実行ファイルの場所、もしくは引数が正しくありません。"),
+        Entry("無法執行工具：{}", "Could not run the tool: {}", "ツールを実行できません：{}"),
+        Entry("操作逾時。\n{}", "The operation timed out.\n{}", "操作がタイムアウトしました。\n{}"),
+        Entry("工具的輸出尚未結束，請稍後重試。", "The tool's output is still open. Try again shortly.", "ツールの出力がまだ閉じていません。しばらくしてから再試行してください。"),
+        Entry("讀寫工具輸出失敗：{}", "Could not read or write tool output: {}", "ツールの出力の読み書きに失敗しました：{}"),
+        Entry("讀取目錄樹失敗（代碼 {}）。", "Could not read the directory tree (code {}).", "ディレクトリツリーを読み取れませんでした（コード {}）。"),
+        Entry("讀取目錄樹失敗（代碼 {}）。\n{}", "Could not read the directory tree (code {}).\n{}", "ディレクトリツリーを読み取れませんでした（コード {}）。\n{}"),
+        Entry("匯出檔案清單失敗（代碼 {}）。", "Could not export the file list (code {}).", "ファイル一覧を書き出せませんでした（コード {}）。"),
+        Entry("匯出檔案清單失敗（代碼 {}）。\n{}", "Could not export the file list (code {}).\n{}", "ファイル一覧を書き出せませんでした（コード {}）。\n{}"),
+        Entry("建立公開連結失敗（代碼 {}）。", "Could not create a public link (code {}).", "公開リンクを作成できませんでした（コード {}）。"),
+        Entry("建立公開連結失敗（代碼 {}）。\n{}", "Could not create a public link (code {}).\n{}", "公開リンクを作成できませんでした（コード {}）。\n{}"),
+        Entry("無法讀取要播放的檔案（代碼 {}）。", "Could not read the file to play (code {}).", "再生するファイルを読み取れませんでした（コード {}）。"),
+        Entry("無法讀取要播放的檔案（代碼 {}）。\n{}", "Could not read the file to play (code {}).\n{}", "再生するファイルを読み取れませんでした（コード {}）。\n{}"),
+        Entry("這個 rclone 無法使用 FUSE 掛載；請使用支援 mount 的引擎與已安裝的 macFUSE 或 FUSE-T（代碼 {}）。", "This rclone cannot use FUSE mounting. Use an engine that supports mount and an installed macFUSE or FUSE-T (code {}).", "この rclone では FUSE マウントを利用できません。mount に対応するエンジンと、インストール済みの macFUSE または FUSE-T を使用してください（コード {}）。"),
+        Entry("這個 rclone 無法使用 FUSE 掛載；請使用支援 mount 的引擎與已安裝的 macFUSE 或 FUSE-T（代碼 {}）。\n{}", "This rclone cannot use FUSE mounting. Use an engine that supports mount and an installed macFUSE or FUSE-T (code {}).\n{}", "この rclone では FUSE マウントを利用できません。mount に対応するエンジンと、インストール済みの macFUSE または FUSE-T を使用してください（コード {}）。\n{}"),
+
+        // Updater validation and recovery. File paths and OS diagnostics stay
+        // unchanged, even when they happen to equal an app phrase.
+        Entry("更新版本格式不正確。", "The update version is invalid.", "更新するバージョンの形式が正しくありません。"),
+        Entry("下載與安裝 Mac 版 rclone 必須在 Mac 執行。", "Downloading and installing rclone for Mac must be done on a Mac.", "Mac 版 rclone のダウンロードとインストールは Mac で実行してください。"),
+        Entry("下載檔裡沒有唯一的 rclone 執行檔。", "The download does not contain exactly one rclone executable.", "ダウンロードしたファイル内の rclone 実行ファイルを一意に特定できません。"),
+        Entry("rclone 解壓縮失敗，原本的版本保持不變。", "Could not extract rclone. Your existing version is unchanged.", "rclone を展開できませんでした。既存のバージョンは変更していません。"),
+        Entry("無法讀取官方校驗資訊。", "Could not read the official checksum information.", "公式のチェックサム情報を読み取れません。"),
+        Entry("官方校驗表找不到唯一的對應檔案，已停止安裝。", "The official checksum list does not identify exactly one matching file. Installation stopped.", "公式チェックサム一覧で対応するファイルを一意に特定できないため、インストールを停止しました。"),
+        Entry("這個位置由 App 或套件管理工具管理。請另選自己的 rclone 資料夾，再下載更新。", "This location is managed by an app or package manager. Choose your own rclone folder to download updates.", "この場所はアプリまたはパッケージ管理ツールが管理しています。更新をダウンロードするには、自分で管理する rclone フォルダを選択してください。"),
+        Entry("不能直接替換符號連結或資料夾。請選擇獨立的 rclone 執行檔。", "A symbolic link or folder cannot be replaced directly. Choose a standalone rclone executable.", "シンボリックリンクやフォルダは直接置き換えられません。独立した rclone 実行ファイルを選択してください。"),
+        Entry("更新暫存檔不在所選 rclone 資料夾內。", "The update temporary file is not in the selected rclone folder.", "更新用の一時ファイルが、選択した rclone フォルダ内にありません。"),
+        Entry("備份位置不是一般資料夾，已停止更新。", "The backup location is not a regular folder. Update stopped.", "バックアップ先が通常のフォルダではないため、更新を停止しました。"),
+        Entry("舊版備份驗證失敗，已停止更新。", "Validation of the previous version's backup failed. Update stopped.", "旧バージョンのバックアップの検証に失敗したため、更新を停止しました。"),
+        Entry("無法替換 rclone：{}", "Could not replace rclone: {}", "rclone を置き換えられません：{}"),
+        Entry("新安裝的 rclone 驗證失敗，且無法移除。\n檔案位置：{}\n{}", "The newly installed rclone failed validation and could not be removed.\nFile location: {}\n{}", "新しくインストールした rclone の検証に失敗し、削除もできませんでした。\nファイルの場所：{}\n{}"),
+        Entry("新安裝的 rclone 驗證失敗，已移除。\n{}", "The newly installed rclone failed validation and was removed.\n{}", "新しくインストールした rclone の検証に失敗したため、削除しました。\n{}"),
+        Entry("更新網址不在 rclone 官方下載站。", "The update URL is not on the official rclone download server.", "更新 URL が rclone の公式ダウンロードサイトではありません。"),
+        Entry("無法建立更新暫存檔。", "Could not create the update temporary file.", "更新用の一時ファイルを作成できません。"),
+        Entry("無法執行 {}：{}", "Could not run {}: {}", "{} を実行できません：{}"),
+        Entry("rclone 作業逾時，原本的版本保持不變。", "The rclone operation timed out. Your existing version is unchanged.", "rclone の操作がタイムアウトしました。既存のバージョンは変更していません。"),
+        Entry("rclone 已結束，但輸出尚未關閉，已停止更新。", "rclone exited but its output is still open. Update stopped.", "rclone は終了しましたが出力が閉じていないため、更新を停止しました。"),
+        Entry("官方下載站轉址到未允許的位置，已停止下載。", "The official download server redirected to a disallowed location. Download stopped.", "公式ダウンロードサイトが許可されていない場所へリダイレクトしたため、ダウンロードを停止しました。"),
+        Entry("下載檔超過允許大小，已停止下載。", "The download exceeds the size limit. Download stopped.", "ファイルがサイズ上限を超えたため、ダウンロードを停止しました。"),
+        Entry("rclone 不是有效的 Mac 執行檔。", "rclone is not a valid Mac executable.", "rclone が有効な Mac 実行ファイルではありません。"),
+        Entry("Mac 執行檔的架構表不完整。", "The Mac executable's architecture table is incomplete.", "Mac 実行ファイルのアーキテクチャテーブルが不完全です。"),
+        Entry("新版 rclone 不包含這台 Mac 的處理器架構。", "The new rclone does not include this Mac's processor architecture.", "新しい rclone にこの Mac のプロセッサアーキテクチャが含まれていません。"),
+        Entry("Mac 執行檔的架構範圍不正確。", "The Mac executable's architecture range is invalid.", "Mac 実行ファイルのアーキテクチャの範囲が正しくありません。"),
+        Entry("新版 rclone 的執行檔格式或架構不符。", "The new rclone executable's format or architecture is incompatible.", "新しい rclone 実行ファイルの形式またはアーキテクチャが対応していません。"),
+        Entry("Mac 執行檔的載入資訊不完整。", "The Mac executable's load information is incomplete.", "Mac 実行ファイルのロード情報が不完全です。"),
+        Entry("Mac 執行檔已截斷。", "The Mac executable is truncated.", "Mac 実行ファイルの一部が欠けています。"),
+        Entry("Mac 執行檔的載入資訊已截斷。", "The Mac executable's load information is truncated.", "Mac 実行ファイルのロード情報の一部が欠けています。"),
+        Entry("Mac 執行檔包含無效載入指令。", "The Mac executable contains an invalid load command.", "Mac 実行ファイルに無効なロードコマンドが含まれています。"),
+        Entry("新版 rclone 的目標平台不是 macOS。", "The new rclone does not target macOS.", "新しい rclone の対象プラットフォームが macOS ではありません。"),
+        Entry("macOS 最低版本資訊不完整。", "The minimum macOS version information is incomplete.", "必要な macOS の最低バージョン情報が不完全です。"),
+        Entry("無法確認新版 rclone 的 macOS 需求，已保留原版。", "Could not verify the new rclone's macOS requirements. The previous version was kept.", "新しい rclone に必要な macOS を確認できなかったため、元のバージョンを保持しました。"),
+        Entry("這個官方 rclone 執行檔需要 macOS {}，高於目前系統。原本的 rclone 保持不變；你可以選擇另一個相容版本。", "This official rclone executable requires macOS {}, which is newer than this system. Your existing rclone is unchanged; you can select another compatible version.", "この公式 rclone 実行ファイルには、現在のシステムより新しい macOS {} が必要です。既存の rclone は変更していません。対応する別のバージョンを選択できます。"),
+
+        // Finder drops and native file dialogs.
+        Entry("一次最多拖入 10,000 個項目。", "Drop up to 10,000 items at a time.", "一度にドロップできる項目は 10,000 件までです。"),
+        Entry("請從 Finder 拖入本機檔案或資料夾。", "Drag local files or folders from Finder.", "Finder からローカルのファイルまたはフォルダをドラッグしてください。"),
+        Entry("請拖入資料夾內的項目。", "Drag items from inside a folder.", "フォルダ内の項目をドラッグしてください。"),
+        Entry("一次請拖入同一資料夾內的項目；不同來源可以分次加入。", "Drop items from the same folder together. Add different source folders separately.", "一度にドロップする項目は同じフォルダから選択してください。別のフォルダの項目は分けて追加できます。"),
+        Entry("拖入的項目不是可傳輸的檔案或資料夾。", "The dropped item is not a transferable file or folder.", "ドロップした項目は転送できるファイルまたはフォルダではありません。"),
+        Entry("請拖入檔案或資料夾。", "Drag a file or folder.", "ファイルまたはフォルダをドラッグしてください。"),
+        Entry("請拖入原始檔案或資料夾；拖放不會跟隨符號連結。", "Drag the original file or folder. Drag and drop does not follow symbolic links.", "元のファイルまたはフォルダをドラッグしてください。ドラッグ＆ドロップではシンボリックリンクをたどりません。"),
+        Entry("App 缺少資源資料夾。請重新建置。", "The app's Resources folder is missing. Build the app again.", "アプリの Resources フォルダがありません。アプリを再ビルドしてください。"),
+        Entry("App 缺少介面檔案。請重新建置。", "The app's interface files are missing. Build the app again.", "アプリの画面ファイルがありません。アプリを再ビルドしてください。"),
+        Entry("無法開啟 Rclone Browser Next", "Could not open Rclone Browser Next", "Rclone Browser Next を開けません"),
+        Entry("檔案類型不正確。", "The file type is invalid.", "ファイルの種類が正しくありません。"),
+        Entry("只能開啟 rclone 官方網站與參考專案。", "Only the official rclone websites and reference projects can be opened.", "開けるのは rclone の公式サイトと参考プロジェクトのみです。"),
+        Entry("無法開啟瀏覽器。", "Could not open the browser.", "ブラウザを開けません。"),
+        Entry("匯出格式不正確。", "The export format is invalid.", "書き出し形式が正しくありません。"),
+        Entry("快取模式不正確。", "The cache mode is invalid.", "キャッシュモードが正しくありません。")
+    ]
+
+    // This is a closed set of labels passed by the app to EngineJSON validation.
+    // A value is looked up here only when its template explicitly marks that
+    // capture as a label. The same words in paths or raw errors stay untouched.
+    private static let fieldLabels: [String: (String, String)] = [
+        "傳輸方向": ("Transfer direction", "転送方向"), "連線位址模式": ("Connection address mode", "接続アドレスのモード"),
+        "來源 IP 位址": ("Source IP address", "接続元 IP アドレス"), "瞬間請求上限": ("Request burst limit", "リクエストのバースト上限"),
+        "User-Agent": ("User-Agent", "User-Agent"), "停用 HTTP/2": ("Disable HTTP/2", "HTTP/2 を無効化"),
+        "尚未安裝": ("Not installed", "未インストール"),
+        "路徑": ("Path", "パス"), "遠端連線名稱": ("Remote name", "リモート名"),
+        "名稱": ("Name", "名前"), "項目類型": ("Item type", "項目の種類"),
+        "平行傳輸數": ("Parallel transfers", "並列転送数"), "平行檢查數": ("Parallel checks", "並列チェック数"),
+        "重試次數": ("Retry count", "再試行回数"), "最多刪除數": ("Maximum deletions", "削除上限"),
+        "連線重試次數": ("Connection retries", "接続の再試行回数"), "目錄深度": ("Directory depth", "ディレクトリの深さ"),
+        "傳輸選項": ("Transfer options", "転送オプション"), "限速": ("Bandwidth limit", "帯域制限"),
+        "比較方式": ("Comparison method", "比較方法"), "刪除時機": ("Deletion timing", "削除のタイミング"),
+        "本機雜湊讀取": ("Local hashing", "ローカルのハッシュ計算"),
+        "最小檔案大小": ("Minimum file size", "最小ファイルサイズ"), "最大檔案大小": ("Maximum file size", "最大ファイルサイズ"),
+        "最小檔案年齡": ("Minimum file age", "最小経過時間"), "最大檔案年齡": ("Maximum file age", "最大経過時間"),
+        "時間容許誤差": ("Modification-time tolerance", "更新日時の許容誤差"),
+        "連線逾時": ("Connection timeout", "接続タイムアウト"), "傳輸閒置逾時": ("Idle transfer timeout", "転送の無通信タイムアウト"),
+        "重試間隔": ("Retry interval", "再試行間隔"), "篩選規則": ("Filter rule", "フィルタールール"),
+        "其他選項": ("Additional option", "追加オプション"), "傳輸模式": ("Transfer mode", "転送モード"),
+        "預演設定": ("Dry-run setting", "試行設定"), "工作名稱": ("Job name", "処理名"),
+        "工作編號": ("Job ID", "処理 ID"), "建立時間": ("Creation time", "作成日時"),
+        "工作狀態": ("Job status", "処理の状態"), "作業編號": ("Task ID", "タスク ID"),
+        "作業名稱": ("Task name", "タスク名"), "更新時間": ("Updated time", "更新日時"),
+        "rclone 執行檔": ("rclone executable", "rclone 実行ファイル"), "參數": ("Argument", "引数"),
+        "相對路徑": ("Relative path", "相対パス"), "rclone 資料夾": ("rclone folder", "rclone フォルダ"),
+        "設定檔": ("Configuration file", "設定ファイル"), "播放器": ("Player", "プレーヤー"),
+        "語言": ("Language", "言語"), "外觀": ("Appearance", "外観"),
+        "啟動時檢查更新": ("Check updates at startup", "起動時の更新確認"), "介面設定": ("Interface setting", "インターフェース設定"),
+        "略過版本": ("Skipped version", "スキップしたバージョン"), "設定版本": ("Settings revision", "設定のリビジョン"),
+        "同時執行的工作數": ("Concurrent jobs", "同時実行する処理数"), "欄寬": ("Column width", "列幅"),
+        "代理伺服器設定": ("Proxy setting", "プロキシ設定"), "代理伺服器": ("Proxy server", "プロキシサーバー"),
+        "不使用代理的位址": ("Proxy bypass addresses", "プロキシを使用しないアドレス"),
+        "播放器參數": ("Player argument", "プレーヤーの引数"), "檔案類型": ("File type", "ファイルの種類"),
+        "網址": ("URL", "URL"), "更新檢查方式": ("Update check mode", "更新確認の方法"),
+        "文字": ("Text", "テキスト"), "檔案名稱": ("Filename", "ファイル名"),
+        "資料夾": ("Folder", "フォルダ"), "唯讀": ("Read only", "読み取り専用")
+    ]
+
+    private static let exactEntries: [String: Entry] = Dictionary(entries.filter { $0.expression == nil }.map { ($0.source, $0) }, uniquingKeysWith: { first, _ in first })
+    // Prefer a diagnostic wrapper over its shorter, code-only variant. Without
+    // this order a final punctuation mark inside stderr could look like the end
+    // of the shorter template and become part of the "exit code" capture.
+    private static let templateEntries = entries.enumerated().filter { $0.element.expression != nil }.sorted {
+        let left = $0.element.sourcePieces.reduce(0) { $0 + $1.utf8.count }
+        let right = $1.element.sourcePieces.reduce(0) { $0 + $1.utf8.count }
+        return left == right ? $0.offset < $1.offset : left > right
+    }.map { $0.element }
+
+    static func japanese(_ source: String, fallback: String) -> String {
+        translated(source, language: "ja") ?? fallback
+    }
+
+    static func translate(_ source: String, language: String) -> String {
+        guard language == "en" || language == "ja" else { return source }
+        return translated(source, language: language) ?? source
+    }
+
+    private static func translated(_ source: String, language: String) -> String? {
+        guard source.utf8.count <= 65536 else { return nil }
+        if let entry = exactEntries[source] { return language == "ja" ? entry.japanese : entry.english }
+        for entry in templateEntries {
+            let output = language == "ja" ? entry.japanese : entry.english
+            guard source.hasPrefix(entry.sourcePieces.first!), source.hasSuffix(entry.sourcePieces.last!) else { continue }
+            // A path can contain newline-delimited text that resembles the next
+            // field. If a separator occurs more than once, the original message
+            // is safer than guessing where that user-controlled value ends.
+            let separators = entry.sourcePieces.dropFirst().dropLast().filter { !$0.isEmpty }
+            guard separators.allSatisfy({ separator in
+                let literalCount = entry.sourcePieces.reduce(0) { $0 + $1.components(separatedBy: separator).count - 1 }
+                return source.components(separatedBy: separator).count - 1 <= literalCount
+            }) else { return nil }
+            // Reject ambiguous delimiters before regex evaluation as well, so
+            // repeated provider text cannot trigger excessive backtracking.
+            guard let match = entry.expression?.firstMatch(in: source, range: NSRange(source.startIndex..., in: source)) else { continue }
+            let pieces = output.components(separatedBy: "{}")
+            guard pieces.count == match.numberOfRanges else { continue }
+            var text = pieces[0]
+            for index in 1..<pieces.count {
+                guard let range = Range(match.range(at: index), in: source) else { return nil }
+                let value = String(source[range])
+                // Only explicitly marked app-owned field labels may translate.
+                // Never recursively translate a captured path, filename, version,
+                // URL, process error or provider diagnostic.
+                if entry.labelCaptures.contains(index), let labels = fieldLabels[value] {
+                    text += language == "ja" ? labels.1 : labels.0
+                } else { text += value }
+                text += pieces[index]
+            }
+            return text
+        }
+        return nil
+    }
+}

@@ -1,0 +1,203 @@
+import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent, type MouseEvent, type PointerEvent } from 'react';
+import { TableVirtuoso, type TableComponents, type TableVirtuosoHandle } from 'react-virtuoso';
+import { ArrowLeft, ArrowUp, ArrowClockwise, Folder, FolderOpen, FolderPlus, HardDrives, Cloud, MagnifyingGlass,
+  Eye, EyeSlash, CaretDown, CaretUp, File as FileIcon, FileText, FileImage, FileZip, PencilSimple, Trash, ChartBar, X, Plus } from '@phosphor-icons/react';
+import type { FileEntry, ResolvedLanguage, RemoteInfo, LocalLocation, PaneColumnWidths, Settings } from '../shared/types';
+import type { BrowserState } from './useBrowser';
+import type { Translate } from './i18n';
+import { childEndpoint, endpointEqual, endpointName, endpointText, errorMessage, formatBytes, formatDate, parentEndpoint } from './utils';
+import PaneMenu from './PaneMenu';
+import { LocationPicker } from './LocationPicker';
+import type { ToolAction } from './Tools';
+import { EmptyState, IconButton, Notice } from './components';
+
+export type FileAction = 'newFolder' | 'rename' | 'remove' | 'size';
+interface PaneContext {
+  selected: Set<string>;
+  widths: PaneColumnWidths;
+  focused: string;
+  onSelect(item: FileEntry, event: MouseEvent): void;
+  onOpen(item: FileEntry): void;
+  onKey(event: KeyboardEvent, item: FileEntry, index: number): void;
+  onFocus(name: string): void;
+}
+const tableComponents: TableComponents<FileEntry, PaneContext> = {
+  Table: ({ context, children, ...props }) => <table {...props} className="file-table" style={{width: '100%', minWidth: 36 + (context?.widths.name || 180) + (context?.widths.size || 86) + (context?.widths.modified || 164)}}><colgroup><col style={{width: 36}}/><col style={{width: context?.widths.name}}/><col style={{width: context?.widths.size}}/><col style={{width: context?.widths.modified}}/><col className="row-fill"/></colgroup>{children}</table>,
+  TableRow: ({ item, context, ...props }) => <tr {...props} data-row-parity={Number(props['data-index']) % 2} data-selected={context?.selected.has(item.name) || undefined}
+    tabIndex={context?.focused === item.name ? 0 : -1} aria-selected={context?.selected.has(item.name)}
+    onFocus={() => context?.onFocus(item.name)}
+    onClick={event => context?.onSelect(item, event)}
+    onDoubleClick={() => context?.onOpen(item)}
+    onKeyDown={event => context?.onKey(event, item, Number(props['data-index']))}/>,
+};
+
+function EntryIcon({ entry }: {entry: FileEntry}) {
+  if (entry.isDir) return <Folder className="folder-icon" size={19} weight="duotone"/>;
+  const extension = entry.name.toLowerCase().split('.').at(-1) || '';
+  if (['jpg', 'jpeg', 'png', 'heic', 'webp', 'tif', 'tiff', 'svg', 'gif'].includes(extension)) return <FileImage size={18} className="file-icon"/>;
+  if (['zip', 'gz', '7z', 'rar', 'tar', 'bz2', 'xz'].includes(extension)) return <FileZip size={18} className="file-icon"/>;
+  if (['txt', 'md', 'pdf', 'doc', 'docx', 'tex', 'csv'].includes(extension)) return <FileText size={18} className="file-icon"/>;
+  return <FileIcon size={18} className="file-icon"/>;
+}
+
+export default function BrowserPane({ side, browser, remotes, locations, home, t, language, active, isSource, disabled, remoteAvailable, onActivate, onFileAction, onError, columnWidths, onColumnWidths, preferences, onToolAction }:
+  {side: 'left' | 'right'; browser: BrowserState; remotes: RemoteInfo[]; locations: LocalLocation[]; home: string; t: Translate; language: ResolvedLanguage;
+    active: boolean; isSource: boolean; disabled: boolean; remoteAvailable: boolean; onActivate(): void; onFileAction(action: FileAction): void; onError(message: string): void; columnWidths?: PaneColumnWidths; onColumnWidths(widths: PaneColumnWidths): void; preferences: Settings; onToolAction(action: ToolAction): void}) {
+  const { endpoint, entries, selection, loading, error } = browser;
+  const navigationDisabled = disabled || Boolean(endpoint.remote && !remoteAvailable);
+  const [query, setQuery] = useState('');
+  const [showHidden, setShowHidden] = useState(preferences.showHiddenFiles);
+  useEffect(() => setShowHidden(preferences.showHiddenFiles), [preferences.showHiddenFiles]);
+  const [sort, setSort] = useState<{key: 'name'|'size'|'modified'; ascending: boolean}>({ key: 'name', ascending: true });
+  const [focused, setFocused] = useState('');
+  const [pathDraft, setPathDraft] = useState<string | null>(null);
+  const sectionRef = useRef<HTMLElement>(null);
+  const pathRef = useRef<HTMLInputElement>(null);
+  const [paneWidth, setPaneWidth] = useState(450);
+  const [dragWidths, setDragWidths] = useState<PaneColumnWidths | null>(null);
+  const dragging = useRef<{column: keyof PaneColumnWidths; startX: number; widths: PaneColumnWidths; pointerId: number; latest: PaneColumnWidths} | null>(null);
+  const widths: PaneColumnWidths = dragWidths || columnWidths || {name: Math.max(120, paneWidth - 16 - 36 - 82 - 158), size: 82, modified: 158};
+  useEffect(() => {
+    const element = sectionRef.current;
+    if (!element) return;
+    const observer = new ResizeObserver(entries => setPaneWidth(Math.floor(entries[0].contentRect.width)));
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, []);
+  useEffect(() => { if (!dragging.current) setDragWidths(null); }, [columnWidths]);
+  const columnLimits = {name: [120,1600], size: [76,400], modified: [150,500]} as const;
+  const clampWidth = (key: keyof PaneColumnWidths, width: number) => Math.round(Math.max(columnLimits[key][0], Math.min(columnLimits[key][1], width)));
+  const commitWidths = (value: PaneColumnWidths) => { setDragWidths(value); onColumnWidths(value); };
+  const resetWidths = () => commitWidths({name: Math.max(120, paneWidth - 16 - 36 - 82 - 158), size: 82, modified: 158});
+  const onResizeStart = (event: PointerEvent<HTMLButtonElement>, column: keyof PaneColumnWidths) => {
+    if (dragging.current || event.button !== 0) return;
+    event.preventDefault(); event.stopPropagation();
+    event.currentTarget.setPointerCapture(event.pointerId);
+    dragging.current = {column, startX: event.clientX, widths: {...widths}, pointerId: event.pointerId, latest: {...widths}};
+  };
+  const onResizeMove = (event: PointerEvent<HTMLButtonElement>) => {
+    const drag = dragging.current;
+    if (!drag || drag.pointerId !== event.pointerId) return;
+    const next = {...drag.widths, [drag.column]: clampWidth(drag.column, drag.widths[drag.column] + event.clientX - drag.startX)};
+    drag.latest = next; setDragWidths(next);
+  };
+  const onResizeEnd = (event: PointerEvent<HTMLButtonElement>) => {
+    const drag = dragging.current;
+    if (!drag || drag.pointerId !== event.pointerId) return;
+    dragging.current = null; if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
+    commitWidths(drag.latest);
+  };
+  const resizeHandle = (key: keyof PaneColumnWidths, label: string) => <button type="button" className={`column-resizer ${key === 'modified' ? 'column-resizer-last' : ''}`} aria-label={`${label} ${t('resizeColumn')}`} title={t('resizeColumnHint')} data-testid={`${side}-resize-${key}`} onPointerDown={event => onResizeStart(event, key)} onPointerMove={onResizeMove} onPointerUp={onResizeEnd} onPointerCancel={onResizeEnd} onDoubleClick={resetWidths} onKeyDown={event => {
+    if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') { event.preventDefault(); event.stopPropagation(); commitWidths({...widths, [key]: clampWidth(key, widths[key] + (event.key === 'ArrowRight' ? 8 : -8))}); }
+    if (event.key === 'Home') { event.preventDefault(); resetWidths(); }
+  }}/>;
+  const virtuoso = useRef<TableVirtuosoHandle>(null);
+  const anchor = useRef<number | null>(null);
+  const rememberedPaths = useRef<Record<string, string>>({});
+  rememberedPaths.current[endpoint.remote || ''] = endpoint.path;
+  useEffect(() => { setPathDraft(null); setQuery(''); setFocused(''); anchor.current = null; }, [endpoint.remote, endpoint.path, browser.activeTab]);
+  const selected = useMemo(() => new Set(selection.map(item => item.name)), [selection]);
+  const filtered = useMemo(() => entries.filter(entry => (showHidden || !entry.name.startsWith('.')) && entry.name.toLocaleLowerCase().includes(query.toLocaleLowerCase()))
+    .sort((a, b) => {
+      if (a.isDir !== b.isDir) return a.isDir ? -1 : 1;
+      const primary = sort.key === 'size' ? a.size - b.size : sort.key === 'modified' ? Date.parse(a.modified) - Date.parse(b.modified) : a.name.localeCompare(b.name, language, {numeric: true, sensitivity: 'base'});
+      const diff = Number.isFinite(primary) && primary !== 0 ? primary : a.name.localeCompare(b.name, language, {numeric: true});
+      return sort.ascending ? diff : -diff;
+    }), [entries, query, showHidden, sort, language]);
+  const visibleNames = new Set(filtered.map(item => item.name));
+  const allSelected = filtered.length > 0 && filtered.every(item => selected.has(item.name));
+  const someSelected = filtered.some(item => selected.has(item.name));
+  const hiddenSelection = selection.some(item => !visibleNames.has(item.name));
+  const navigate = useCallback((target: typeof endpoint) => {
+    setPathDraft(null); setQuery(''); setFocused(''); anchor.current = null; browser.navigate(target);
+  }, [browser.navigate]);
+  const toggle = (item: FileEntry) => browser.setSelection(selected.has(item.name) ? selection.filter(x => x.name !== item.name) : [...selection, { name: item.name, isDir: item.isDir }]);
+  const selectVisible = () => {
+    const remaining = selection.filter(item => !visibleNames.has(item.name));
+    browser.setSelection(allSelected ? remaining : [...remaining, ...filtered.map(item => ({name: item.name, isDir: item.isDir}))]);
+  };
+  const focusIndex = (index: number) => {
+    const next = Math.min(filtered.length - 1, Math.max(0, index));
+    if (!filtered[next]) return;
+    setFocused(filtered[next].name);
+    virtuoso.current?.scrollIntoView({index: next, behavior: 'auto', done: () => sectionRef.current?.querySelector<HTMLElement>(`tr[data-index="${next}"]`)?.focus()});
+  };
+  const context: PaneContext = {
+    selected, widths, focused: visibleNames.has(focused) ? focused : filtered[0]?.name || '', onFocus: setFocused,
+    onOpen: item => { if (item.isDir && !navigationDisabled) navigate(childEndpoint(endpoint, item.name)); },
+    onSelect: (item, event) => {
+      if ((event.target as HTMLElement).closest('input,button')) return;
+      const index = filtered.findIndex(x => x.name === item.name);
+      if (event.shiftKey && anchor.current !== null) {
+        const start = Math.min(anchor.current, index), end = Math.max(anchor.current, index);
+        browser.setSelection(filtered.slice(start, end + 1).map(x => ({name: x.name, isDir: x.isDir})));
+      } else if (event.metaKey || event.ctrlKey) toggle(item);
+      else browser.setSelection([{name: item.name, isDir: item.isDir}]);
+      if (!event.shiftKey) anchor.current = index;
+      setFocused(item.name);
+    },
+    onKey: (event, item, index) => {
+      if (event.target instanceof HTMLInputElement) return;
+      if (event.key === 'ArrowDown' || event.key === 'ArrowUp') { event.preventDefault(); focusIndex(index + (event.key === 'ArrowDown' ? 1 : -1)); }
+      if (event.key === ' ') { event.preventDefault(); toggle(item); }
+      if (event.key === 'Enter' && item.isDir && !navigationDisabled) { event.preventDefault(); navigate(childEndpoint(endpoint, item.name)); }
+    },
+  };
+  const sortBy = (key: typeof sort.key) => setSort(old => ({key, ascending: old.key === key ? !old.ascending : true}));
+  const sortHeader = (key: typeof sort.key, label: string) => <button type="button" className="sort-button" onClick={() => sortBy(key)}>{label}{sort.key === key && (sort.ascending ? <CaretUp size={10}/> : <CaretDown size={10}/>)}</button>;
+  const chooseLocal = async () => {
+    try { const path = await window.rclone.chooseFolder(endpoint.remote ? home : endpoint.path); if (path) navigate({remote: null, path}); }
+    catch (reason) { onError(errorMessage(reason)); }
+  };
+  const onKeyDown = (event: KeyboardEvent<HTMLElement>) => {
+    if (navigationDisabled) return;
+    const modifier = event.metaKey || event.ctrlKey;
+    if (modifier && event.key.toLowerCase() === 'l') { event.preventDefault(); pathRef.current?.focus(); pathRef.current?.select(); }
+    if (modifier && event.key.toLowerCase() === 'r') { event.preventDefault(); browser.reload(); }
+    const editing = (event.target as HTMLElement).closest('input,textarea,select');
+    if (editing) return;
+    if (modifier && event.key.toLowerCase() === 'a') { event.preventDefault(); browser.setSelection(filtered.map(item => ({name: item.name, isDir: item.isDir}))); }
+    if ((modifier && event.key === 'ArrowUp') || event.key === 'Backspace') { event.preventDefault(); event.stopPropagation(); setPathDraft(null); browser.up(); }
+  };
+
+  return <section ref={sectionRef} className={`browser-pane ${active ? 'pane-active' : ''} ${preferences.alternatingRows ? 'striped-rows' : ''}`} aria-label={`${t(side)} ${t('files')}`} data-testid={`${side}-pane`} data-pane-side={side}
+    onFocusCapture={onActivate} onPointerDown={onActivate} onKeyDownCapture={onKeyDown}>
+    <div className="pane-tabs" role="tablist" aria-label={`${t(side)} ${t('locationTabs')}`}>{browser.tabs.map(tab => <div key={tab.id} className={`pane-tab ${tab.id === browser.activeTab ? 'active' : ''}`}><button type="button" role="tab" aria-selected={tab.id === browser.activeTab} title={endpointText(tab.endpoint)} onClick={() => browser.switchTab(tab.id)} onKeyDown={event => { if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') { event.preventDefault(); const index = browser.tabs.findIndex(item => item.id === tab.id); const next = browser.tabs[(index + (event.key === 'ArrowRight' ? 1 : browser.tabs.length - 1)) % browser.tabs.length]; browser.switchTab(next.id); requestAnimationFrame(() => sectionRef.current?.querySelector<HTMLButtonElement>('[role="tab"][aria-selected="true"]')?.focus()); } }}>{tab.endpoint.remote ? <Cloud size={13}/> : <HardDrives size={13}/>}<span>{endpointName(tab.endpoint)}</span></button>{browser.tabs.length > 1 && <button type="button" className="tab-close" aria-label={`${t('closeTab')} ${endpointName(tab.endpoint)}`} onClick={() => browser.closeTab(tab.id)}><X size={11}/></button>}</div>)}<IconButton title={t('newTab')} disabled={browser.tabs.length >= 12} onClick={browser.newTab}><Plus size={15}/></IconButton></div>
+      <header className="pane-heading">
+      <span className="pane-side">{t(side)}</span>
+      <LocationPicker endpoint={endpoint} locations={locations} remotes={remotes} label={`${t(side)} ${t('location')}`} disabled={disabled} remoteAvailable={remoteAvailable} t={t} onChange={navigate} remotePath={name => rememberedPaths.current[name] || ''}/>
+      <span className={`role-tag ${isSource ? 'source-tag' : ''}`}>{t(isSource ? 'source' : 'destination')}</span>
+    </header>
+    <div className="path-toolbar">
+      <IconButton title={t('back')} disabled={!browser.canBack || navigationDisabled} onClick={() => { setPathDraft(null); browser.back(); }}><ArrowLeft size={17}/></IconButton>
+      <IconButton title={t('up')} disabled={navigationDisabled || endpointEqual(endpoint, parentEndpoint(endpoint))} onClick={() => { setPathDraft(null); browser.up(); }}><ArrowUp size={17}/></IconButton>
+      <form className="path-form" onSubmit={event => { event.preventDefault(); if (navigationDisabled) return; const raw = pathDraft ?? endpoint.path; if (!endpoint.remote && !raw.trim()) return; navigate({ ...endpoint, path: raw }); }}>
+        <input ref={pathRef} aria-label={`${t(side)} ${t('path')}`} spellCheck={false} value={pathDraft ?? (endpoint.path || '/')} onChange={event => { setPathDraft(event.target.value); browser.setPathDirty(event.target.value !== endpoint.path); }} onKeyDown={event => { if (event.key === 'Escape') { event.preventDefault(); setPathDraft(null); browser.setPathDirty(false); } }} disabled={navigationDisabled}/>
+        <button type="submit" className="path-go" title={t('go')} aria-label={t('go')} disabled={navigationDisabled}><CaretDown className="rotate-left" size={13}/></button>
+      </form>
+      <IconButton title={t('refresh')} className={loading ? 'loading-icon' : ''} onClick={browser.reload} disabled={navigationDisabled || loading}><ArrowClockwise size={18}/></IconButton>
+    </div>
+    <div className="file-toolbar">
+      <div className="search-field"><MagnifyingGlass size={15}/><input aria-label={`${t(side)} ${t('search')}`} placeholder={t('search')} value={query} onChange={event => setQuery(event.target.value)} spellCheck={false}/>{query && <button type="button" onClick={() => setQuery('')} aria-label={t('clearSelection')}><X size={12}/></button>}</div>
+      {!endpoint.remote && <IconButton title={t('chooseFolder')} onClick={chooseLocal} disabled={disabled}><FolderOpen size={18}/></IconButton>}
+      <IconButton title={t('newFolder')} onClick={() => onFileAction('newFolder')} disabled={navigationDisabled || browser.pathDirty || loading || Boolean(error)}><FolderPlus size={18}/></IconButton>
+      <PaneMenu t={t} remote={Boolean(endpoint.remote)} selectedCount={selection.length} selectedDirectory={selection[0]?.isDir || false} disabled={navigationDisabled || browser.pathDirty || loading || Boolean(error)} onAction={onToolAction} onResetColumns={resetWidths}/>
+      <IconButton title={t(showHidden ? 'hideHidden' : 'showHidden')} aria-pressed={showHidden} onClick={() => setShowHidden(!showHidden)}>{showHidden ? <Eye size={18}/> : <EyeSlash size={18}/>}</IconButton>
+    </div>
+    {browser.missingSelection && <Notice kind="warning">{t('missingSelection')} <button type="button" className="text-button" onClick={() => browser.setSelection([])}>{t('clearSelection')}</button></Notice>}
+    <div className="file-list" aria-busy={loading}>
+      {loading && entries.length === 0 ? <div className="file-loading" role="status"><span>{t('loadingFolder')}</span>{[0, 1, 2, 3, 4, 5].map(i => <div className="skeleton-row" key={i}><i/><span/><small/></div>)}</div> : error ?
+        <EmptyState compact icon={<Cloud size={30}/>} title={t('cannotBrowse')} action={<button type="button" onClick={browser.reload}>{t('retry')}</button>}>{error}</EmptyState> : filtered.length === 0 ?
+        <EmptyState compact icon={query ? <MagnifyingGlass size={32}/> : <FolderOpen size={34} weight="duotone"/>} title={t(query || entries.length > 0 ? 'noMatches' : 'emptyFolder')}>{t(query || entries.length > 0 ? 'noMatchesHint' : 'emptyFolderHint')}</EmptyState> :
+        <TableVirtuoso ref={virtuoso} data={filtered} components={tableComponents} context={context} fixedItemHeight={37} overscan={200} onScroll={event => { const element = event.currentTarget as HTMLElement; element.closest<HTMLElement>('.file-list')?.style.setProperty('--stripe-offset', `${33 - element.scrollTop % 74}px`); }}
+          computeItemKey={(_index, item) => item.name}
+          fixedHeaderContent={() => <tr><th scope="col" className="check-cell"><input type="checkbox" aria-label={`${t(side)} ${t('selectAll')}`} checked={allSelected} ref={element => { if (element) element.indeterminate = someSelected && !allSelected; }} onChange={selectVisible}/></th><th scope="col" aria-sort={sort.key === 'name' ? sort.ascending ? 'ascending' : 'descending' : 'none'}>{sortHeader('name', t('name'))}{resizeHandle('name', t('name'))}</th><th scope="col" className="numeric" aria-sort={sort.key === 'size' ? sort.ascending ? 'ascending' : 'descending' : 'none'}>{sortHeader('size', t('size'))}{resizeHandle('size', t('size'))}</th><th scope="col" aria-sort={sort.key === 'modified' ? sort.ascending ? 'ascending' : 'descending' : 'none'}>{sortHeader('modified', t('modified'))}{resizeHandle('modified', t('modified'))}</th><th scope="col" className="row-fill" aria-label=""/></tr>}
+          itemContent={(_index, entry) => <><td className="check-cell"><input type="checkbox" aria-label={`${t('selected')} ${entry.name}`} checked={selected.has(entry.name)} onChange={() => toggle(entry)} onClick={event => event.stopPropagation()}/></td><td><div className="file-name" title={entry.name}>{(entry.isDir ? preferences.showFolderIcons : preferences.showFileIcons) && <EntryIcon entry={entry}/>}<span>{entry.name}</span>{entry.isLink && <span className="link-marker">↗</span>}</div></td><td className="numeric muted">{entry.isDir ? '—' : formatBytes(entry.size)}</td><td className="date-cell muted" title={formatDate(entry.modified, language)}>{formatDate(entry.modified, language)}</td><td className="row-fill" aria-hidden="true"/></>}/>
+      }
+    </div>
+    <footer className="pane-footer">
+      <div className="selection-summary" title={hiddenSelection ? t('hiddenSelection') : endpointText(endpoint)}><span>{filtered.length.toLocaleString()} {t('items')}</span>{selection.length > 0 && <><span className="dot-separator">·</span><button type="button" className="text-button" onClick={() => browser.setSelection([])} title={t('clearSelection')}>{t('selected')} {selection.length}{hiddenSelection ? ' *' : ''}<X size={11}/></button></>}</div>
+      <div className="pane-file-actions"><IconButton title={t('rename')} disabled={navigationDisabled || browser.pathDirty || selection.length !== 1 || loading || browser.missingSelection} onClick={() => onFileAction('rename')}><PencilSimple size={15}/></IconButton><IconButton title={t('remove')} disabled={navigationDisabled || browser.pathDirty || selection.length === 0 || loading || browser.missingSelection} onClick={() => onFileAction('remove')}><Trash size={15}/></IconButton><IconButton title={t('folderSize')} disabled={navigationDisabled || browser.pathDirty || loading || Boolean(error)} onClick={() => onFileAction('size')}><ChartBar size={15}/></IconButton></div>
+    </footer>
+  </section>;
+}

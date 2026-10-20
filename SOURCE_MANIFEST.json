@@ -1,0 +1,374 @@
+{
+  "version": "0.4.0",
+  "publication_date": "2026-10-20",
+  "timezone": "Asia/Taipei",
+  "scope": "GitHub publication; original test evidence preserved separately",
+  "file_count_excluding_manifest": 91,
+  "total_bytes_excluding_manifest": 3490834,
+  "files": {
+    ".github/workflows/macos.yml": {
+      "bytes": 1409,
+      "sha256": "719040c098eb46cc399458430c097a48065aaf3d630cf1f463e7039c101896b6"
+    },
+    ".gitignore": {
+      "bytes": 187,
+      "sha256": "b1e07ea361c952fb0bd6e05083912bf6020b5ffb0363d781520e2aaeffd48684"
+    },
+    "Build-on-Mac.command": {
+      "bytes": 335,
+      "sha256": "1ae4a0b70bba8aa2847fc16ac6cc55fb6ebac52af5a7a7c542a5ca4e3b3c29fd"
+    },
+    "LICENSE": {
+      "bytes": 1104,
+      "sha256": "f91c2bfcb1423973c04aab64fe1bddb1f40cd498562d4697b134c8b3a386544f"
+    },
+    "README.en.md": {
+      "bytes": 4369,
+      "sha256": "053bf1db0d6e3490ee5d36a809513827c2d626b4d5ea99b5d9af236ff169aa4c"
+    },
+    "README.md": {
+      "bytes": 6312,
+      "sha256": "3f5c9002295ec967d41a0dc10f61ffc2474968dbabcb5baed63063f7837a9c05"
+    },
+    "README.zh-TW.md": {
+      "bytes": 430,
+      "sha256": "f9a57d9facfb5d733f71dbeb20e83e791a4b508e04f2389f1b40e584de244e40"
+    },
+    "Resources/AppIcon.icns": {
+      "bytes": 620209,
+      "sha256": "e5eabce9eb64c7cdcd279caad498955e53fa007d6751425379e801aca88da0e4"
+    },
+    "Resources/Info.plist": {
+      "bytes": 1338,
+      "sha256": "3615b707f2b1db85cbd13fd7f9864ad1cce9d05dbedeeb3a9206cba259640973"
+    },
+    "Resources/Web/THIRD_PARTY_NOTICES.txt": {
+      "bytes": 6526,
+      "sha256": "401a52547c510b5c231c69f9077b192e2759d282e68f74d13339922f9d9e8552"
+    },
+    "Resources/Web/app.js": {
+      "bytes": 593224,
+      "sha256": "780353b92e682a2b555f29ca23d6f7ade836fda40f3e365a5f45b187bb9297e4"
+    },
+    "Resources/Web/favicon.svg": {
+      "bytes": 18533,
+      "sha256": "5dcf6bb2e77fc4f5670743c49e42e2f107812f56459bf32d30ae9ca021383a1a"
+    },
+    "Resources/Web/index.html": {
+      "bytes": 866,
+      "sha256": "6d64e8836f8ea3c2cdfb0bd3f4e214da93f633390ecbb6512949e65a94801411"
+    },
+    "Resources/Web/style.css": {
+      "bytes": 62205,
+      "sha256": "bf85d905a3fa9df63e9d3514be8ef43da18ab79e19cd4720e7ca7faabce95697"
+    },
+    "Scripts/build-mac.sh": {
+      "bytes": 6618,
+      "sha256": "1cd74bc678cd6fa2bd295b00970d6a1955c2b68901b12478791cda6d4ab1d1f3"
+    },
+    "Scripts/ci-rclone.sh": {
+      "bytes": 1642,
+      "sha256": "8a82c118e15e3d03adf6f219f38d4cdfa99802858922e5a916d1059a238cff53"
+    },
+    "Scripts/common-mac.sh": {
+      "bytes": 4221,
+      "sha256": "8d924106175e155587e8e1b594329fc06b3d14bb19a856f9a3de9dd597e22101"
+    },
+    "Scripts/test-mac.sh": {
+      "bytes": 2018,
+      "sha256": "98f52bbbd34d91937f8ff8b7238d79136d0a0876a8d95ca1b680a60a452f3922"
+    },
+    "Scripts/verify-mac.sh": {
+      "bytes": 4782,
+      "sha256": "f342320730c99748e115fd79238b760a14f6dfb79e58f72c895c85b719a9f540"
+    },
+    "Sources/Core/AppReleaseChecker.swift": {
+      "bytes": 8866,
+      "sha256": "58d5ad351b89c6717e7bc8b3f5bd9349fc7247809886b45a14451de3d35bb4a1"
+    },
+    "Sources/Core/EngineModels.swift": {
+      "bytes": 35257,
+      "sha256": "ce71cbf46a3002586e066fbe2b3bf5526797d4788d3cd2c5a09fd77844351ce9"
+    },
+    "Sources/Core/EngineStorage.swift": {
+      "bytes": 14683,
+      "sha256": "5eb0d943b00c045a20e005479f28e38a06d4f29679c582622dc2f4860229b293"
+    },
+    "Sources/Core/FinderDrop.swift": {
+      "bytes": 2005,
+      "sha256": "823f46456e89a5c1672e8b5b61f64dca17e94b75a957017a4e3c081047c29fee"
+    },
+    "Sources/Core/LanguageResolver.swift": {
+      "bytes": 825,
+      "sha256": "35c1eb275e9eda6458af756e9fd3502d459c81a2647df6458f4b51d68beaff4c"
+    },
+    "Sources/Core/NativeMessages.swift": {
+      "bytes": 76289,
+      "sha256": "c5f48bd9f6cece8841cdb830a54fe081418d4e52ca4a45af7b017f887d9a4e79"
+    },
+    "Sources/Core/RcloneEngine.swift": {
+      "bytes": 72310,
+      "sha256": "d2cee104e751bc44ace5e3f8137a97ccabadf8fbcb99ff524765c667be525b4b"
+    },
+    "Sources/Core/RcloneTools.swift": {
+      "bytes": 27278,
+      "sha256": "093bf6e73c861a6d7976b23f4bd6c541483255aa25e8fc220f18f4255cc53dba"
+    },
+    "Sources/Core/RcloneUpdater.swift": {
+      "bytes": 39223,
+      "sha256": "616ccbb4ee8bd85e0a8fd36ee6eb04e7ae5bcecf1c023c22c09b221ac7be221d"
+    },
+    "Sources/Mac/AppMain.swift": {
+      "bytes": 69041,
+      "sha256": "aff38025bf1614cd868838b06f31691eaac04a3747d70b4b87323cdfe5ac49fb"
+    },
+    "Sources/Mac/RcloneWebView.swift": {
+      "bytes": 1867,
+      "sha256": "d5ab0ccfe1c3c5cd26993f0233f9de2e66b9f146f6ef633c84d2fe95e508d35e"
+    },
+    "Test-on-Mac.command": {
+      "bytes": 334,
+      "sha256": "25fd55b230ddf1b385448bf91b3ae2411a2dd39cddb2e06f65e1590a2f50ed24"
+    },
+    "Tests/AppReleaseTests.swift": {
+      "bytes": 7378,
+      "sha256": "ce3d3c4e7e31748e4ab87bcbf8443c72c1177ee0db4ac6d306900a369a40e73c"
+    },
+    "Tests/CoreTests.swift": {
+      "bytes": 92460,
+      "sha256": "2f0c80ce9dc9a59ab01c6732975abbad08f16130f90df520d40423686625a7d6"
+    },
+    "Tests/FinderDropTests.swift": {
+      "bytes": 4025,
+      "sha256": "6ef88a57f8d807d3886e8c240338484f98bf3988f5ac1da4252b3708da97d314"
+    },
+    "Tests/NativeMessagesTests.swift": {
+      "bytes": 12892,
+      "sha256": "64eb42dc3603668e116cf0a77ae0759cea668f141318d288377d8358909a7fb9"
+    },
+    "Tests/ToolsTests.swift": {
+      "bytes": 17034,
+      "sha256": "1178f755426433aa47bc10f600e939d8105be510518806eec53e01b38db2ab98"
+    },
+    "Tests/UpdaterTests.swift": {
+      "bytes": 24756,
+      "sha256": "89bd5c9b7270f6089abb2d2617e1da15faf83902075dff541df2d2ed46a43fbf"
+    },
+    "Tests/Web/README.md": {
+      "bytes": 3177,
+      "sha256": "d9c78a4cdcf54ef44d31b22c1df9665072c7a2eaa3c0462e0f97d9f506bca76c"
+    },
+    "Tests/Web/run.sh": {
+      "bytes": 1066,
+      "sha256": "2ee516b471cf5afbca8283a60d68fc52746f6b36343a934fdb60186077327972"
+    },
+    "Verify-App.command": {
+      "bytes": 336,
+      "sha256": "71b6ede449f66bf576e8a75b989bf1fe69b2f0531ec9f811aa68aa41fa89279f"
+    },
+    "WebSource/THIRD_PARTY_NOTICES.txt": {
+      "bytes": 6526,
+      "sha256": "401a52547c510b5c231c69f9077b192e2759d282e68f74d13339922f9d9e8552"
+    },
+    "WebSource/package-lock.json": {
+      "bytes": 41959,
+      "sha256": "b2501f3eb76d1e2ee1ed5d1e908bfc7a967be209698e544c3c09bbe7f5328dce"
+    },
+    "WebSource/package.json": {
+      "bytes": 497,
+      "sha256": "e5c3b65c6c72bc3a643c68bc89575e5d9eaf0a5616a0e1bab716f2233f828255"
+    },
+    "WebSource/renderer/App.tsx": {
+      "bytes": 38932,
+      "sha256": "f01b3b3c60786b935028b308902dac1c2052071ff057e5ef5b4e7dd2441ef4f8"
+    },
+    "WebSource/renderer/ApplicationMenu.tsx": {
+      "bytes": 3960,
+      "sha256": "a0965b71abd5fe013fe4bd849f80f8dec9601004daf30687b231249fd21c3b54"
+    },
+    "WebSource/renderer/BrowserPane.tsx": {
+      "bytes": 21880,
+      "sha256": "598f09758f013dd33f1d95245364327cdcec33fa133fa6073097315cca4b5fd3"
+    },
+    "WebSource/renderer/Jobs.tsx": {
+      "bytes": 9085,
+      "sha256": "83df5f6d318a61598d30bcf07e7477864af04db271a6f1965ff543a8856df0d6"
+    },
+    "WebSource/renderer/LocationPicker.tsx": {
+      "bytes": 4891,
+      "sha256": "310784a799ed392d882e6912c467818457747f359d9d85037e459777d8fbcdee"
+    },
+    "WebSource/renderer/PaneMenu.tsx": {
+      "bytes": 3063,
+      "sha256": "843dd32ae80aa43560b648c7dd74ef87d11d561896254842862a667e25d7973b"
+    },
+    "WebSource/renderer/Settings.tsx": {
+      "bytes": 20948,
+      "sha256": "3e7f4716aa48a3521c3fb2e71566279221e35c37c8e054ab4121bc78fbcdb57e"
+    },
+    "WebSource/renderer/Tasks.tsx": {
+      "bytes": 6165,
+      "sha256": "4fbecc552d4e53112647b49add1afe6764914bde122253ad8497dd12359b62f0"
+    },
+    "WebSource/renderer/Tools.tsx": {
+      "bytes": 5798,
+      "sha256": "a973514b2845c98613ac98b2f7fccc8de259a144cf287e84ef71a93a24e562b4"
+    },
+    "WebSource/renderer/TransferOptions.tsx": {
+      "bytes": 18791,
+      "sha256": "6bbbfbb68efd9699086cd6db12c49470c05d1836ce622e08abd5027b0474afaf"
+    },
+    "WebSource/renderer/bridge.ts": {
+      "bytes": 7134,
+      "sha256": "94037f332ba3f136db9b914cefe35cb6bcb953a7502a61de01718102c570c56c"
+    },
+    "WebSource/renderer/components.tsx": {
+      "bytes": 8121,
+      "sha256": "6dda898284713c07b4a5497db2288ddbae8ad4fd0d3d242a1ee97ac8cbfa950f"
+    },
+    "WebSource/renderer/env.d.ts": {
+      "bytes": 38,
+      "sha256": "65996936fbb042915f7b74a200fcdde7e410f32a669b1ab9597cfaa4b0faddb5"
+    },
+    "WebSource/renderer/favicon.svg": {
+      "bytes": 18533,
+      "sha256": "5dcf6bb2e77fc4f5670743c49e42e2f107812f56459bf32d30ae9ca021383a1a"
+    },
+    "WebSource/renderer/i18n.ts": {
+      "bytes": 81346,
+      "sha256": "15012668846298b4942a2ef2b48e89fc4e254f3adcf1cbb5bf878d4557101d37"
+    },
+    "WebSource/renderer/index.html": {
+      "bytes": 866,
+      "sha256": "6d64e8836f8ea3c2cdfb0bd3f4e214da93f633390ecbb6512949e65a94801411"
+    },
+    "WebSource/renderer/main.tsx": {
+      "bytes": 1295,
+      "sha256": "98eadf561404b5b5e5177c05c0070248374313b439fb364e5a0f2e696749ae22"
+    },
+    "WebSource/renderer/styles.css": {
+      "bytes": 71900,
+      "sha256": "3cf0217fb41e3b955fac29fb744d99a29de2ac0843bbaf21d0c8df9c2cdfc12c"
+    },
+    "WebSource/renderer/useBrowser.ts": {
+      "bytes": 4820,
+      "sha256": "11755aaa33e951b849720a45e5c9e28367bb144348f6c414fa6c534f0491f112"
+    },
+    "WebSource/renderer/utils.ts": {
+      "bytes": 2722,
+      "sha256": "c6a8ba2caa9c1e45c805792960ca26515addd675997e4ab6131a74f2bbb3ea2a"
+    },
+    "WebSource/shared/types.ts": {
+      "bytes": 8980,
+      "sha256": "98a478276af450ae4af11b7baa315e2f53a4f7db16b49cd8297129a1644da98b"
+    },
+    "WebSource/tests/README.md": {
+      "bytes": 5858,
+      "sha256": "32458c1235e7ec9160de5d80f3ac873d03b38807f714313f048d093875244d91"
+    },
+    "WebSource/tests/VERIFICATION.zh-TW.md": {
+      "bytes": 8414,
+      "sha256": "c9ef653da35a09fc26408b95c75ee3424fa9ab09a941bec6f91aa0331bf332cc"
+    },
+    "WebSource/tests/check-contrast.py": {
+      "bytes": 1913,
+      "sha256": "8b6ffdff86cf493938748eeda15e33ac9d9e98d46a3bca65e3ae0ef9234e5c0f"
+    },
+    "WebSource/tests/native-fixture.ts": {
+      "bytes": 12140,
+      "sha256": "4cd2ac0fbd62a95f70628859211ea59b877794d1970ff6eaf6951e1d5a50b7ae"
+    },
+    "WebSource/tests/playwright.config.ts": {
+      "bytes": 616,
+      "sha256": "35f0d14564063b4b33bdec2a5e3fc045335689fecd38c82f62709c85ca051a48"
+    },
+    "WebSource/tests/render-previews.ts": {
+      "bytes": 6241,
+      "sha256": "a78075728c4db533edd7030b3112ada6b6ac1a2db5f931bfa6dbf0ec9eda0ba6"
+    },
+    "WebSource/tests/revision04.spec.ts": {
+      "bytes": 29107,
+      "sha256": "e1b726f72dff379f90ca7dcfc0739e771d996d0c5cdee89a27f5303078175117"
+    },
+    "WebSource/tests/ui.spec.ts": {
+      "bytes": 30011,
+      "sha256": "c3b58e9f6ba512a06079ec4ee701e621f7ecd149fb793c52c47beab680f73567"
+    },
+    "WebSource/tests/verification.json": {
+      "bytes": 6243,
+      "sha256": "ab7831464d87604698e868b9ffc7e2607d99be9486dbeee729660fb1ae8d3044"
+    },
+    "WebSource/tsconfig.json": {
+      "bytes": 386,
+      "sha256": "060dd7a5b36c131267dbc86370b941a003a9bc28f96a0ff5783c7088c8996856"
+    },
+    "WebSource/vite.config.ts": {
+      "bytes": 1087,
+      "sha256": "01797b10ac27dc9ad1d455fce971b81417b8ef9f10d4338620a5c44c3861759d"
+    },
+    "docs/ACKNOWLEDGMENTS.md": {
+      "bytes": 2197,
+      "sha256": "61816be078546aaa27a8d1a1c7a2aee3451909d613358fbfcbc522ca231ef43c"
+    },
+    "docs/BUILD_MAC.zh-TW.md": {
+      "bytes": 7685,
+      "sha256": "cd01efcd44984dbeac27756c14d03d8bbd581baaf5d60c7ff1a3a07398034291"
+    },
+    "docs/CHANGELOG.zh-TW.md": {
+      "bytes": 2152,
+      "sha256": "eaef28fb5be8be506c8b7421283a4dfaf8bc5117cbcd64d84ebeeb467d970de9"
+    },
+    "docs/DEVELOPMENT.md": {
+      "bytes": 8572,
+      "sha256": "b50c7a294ea0369cc6070321e096ea01b58d2cdf4770ba41901d017b5b0cf7b3"
+    },
+    "docs/FEATURE_MATRIX.zh-TW.md": {
+      "bytes": 6040,
+      "sha256": "ef7b636a321214b6919e7581678c363d72bcbaa82748436556063bfbc68a4c41"
+    },
+    "docs/NAS_COMPARISON.zh-TW.md": {
+      "bytes": 6314,
+      "sha256": "5d1233dde228a44f8b2354a252cb1a55da8b4e3731afd09174c27aabd62ce086"
+    },
+    "docs/PUBLICATION.zh-TW.md": {
+      "bytes": 1014,
+      "sha256": "07148c3b5ff1f550b43e1a1f120cdcdaf13bb4c44783ac590240f86c0ed93f4c"
+    },
+    "docs/RELEASE_0.4.0.md": {
+      "bytes": 2186,
+      "sha256": "853e974ffb1817df65b0432198e41579b7646e977bbc15ef33589c390355e898"
+    },
+    "docs/USER_GUIDE.zh-TW.md": {
+      "bytes": 9422,
+      "sha256": "456f51281765f90c4a65fa12b9dd0b5e845f5832fbb6466866d13be853339d51"
+    },
+    "docs/VALIDATION.zh-TW.md": {
+      "bytes": 9679,
+      "sha256": "37bdbad9db8c2ed91bdfd6e5254803f6666374a7339ba48a5c6fcb62604db48c"
+    },
+    "docs/archive/0.4.0/README.original.md": {
+      "bytes": 4977,
+      "sha256": "e20c82f1107f11c3166d7a8705f361e43138eedef1169b4d52e27e52daf33ed4"
+    },
+    "docs/archive/0.4.0/SOURCE_MANIFEST.original.json": {
+      "bytes": 12154,
+      "sha256": "affd4abb5c66a6f891a24ecff9e7715fe0efab9b10726bf69adc782a3a704a07"
+    },
+    "docs/assets/icon.png": {
+      "bytes": 537010,
+      "sha256": "f65cd4fbed53e29fe4c9b24405709d4530478c9d0eb51835d88cdd391ce7073e"
+    },
+    "docs/assets/icon.svg": {
+      "bytes": 33183,
+      "sha256": "62b4d781f7406d598f79de209b596023b007416fcdd6183725090fc644cb5b47"
+    },
+    "docs/assets/rclone-browser-next-macos.png": {
+      "bytes": 502272,
+      "sha256": "97c28affe26ac71ff56a02c78f5fa8cb1bacb8db3472dec9472926e50060c059"
+    },
+    "docs/verification/0.4.0.json": {
+      "bytes": 8281,
+      "sha256": "ac320e49c37e01262b0a07628fa6a0d9f75118bbccc405fead0c9265cab4a97f"
+    }
+  }
+}

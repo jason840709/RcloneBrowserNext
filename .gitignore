@@ -1,0 +1,17 @@
+.DS_Store
+.build-cache/
+**/.build-cache/
+node_modules/
+**/node_modules/
+Distribution/
+Backups/
+Tools/
+*.app/
+playwright-report/
+test-results/
+*.log
+*.rclone.conf
+rclone.conf
+.env
+.env.*
+

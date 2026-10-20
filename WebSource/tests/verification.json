@@ -1,0 +1,172 @@
+{
+  "version": "0.4.0",
+  "test_execution": {
+    "date_utc": "2026-10-20",
+    "duration_reported": "1.0m",
+    "expected": 62,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0,
+    "scope": "Full suite completed before final comparison-help and unpublished-app-release presentation corrections. Those changed paths and the rebuilt production bundle were then rechecked in the targeted run below."
+  },
+  "final_targeted_execution": {
+    "startTime": "2026-10-20T06:09:54.115Z",
+    "duration": 7867.468,
+    "expected": 3,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0,
+    "scope": "Production file/IPC contract; seven comparison tooltips in zh-TW/en/ja including interaction and compact-window bounds; app update available/current/unpublished with unpublished download controls absent in all three languages."
+  },
+  "browser": "Chrome for Testing 155.0.8059.84, Linux headless, visible scrollbars",
+  "playwright": "1.64.1",
+  "transport": "file:// production IIFE and native wire contract, deterministic test-only host fixture",
+  "typecheck": "passed",
+  "production_build": "passed",
+  "languages": [
+    "zh-TW",
+    "en",
+    "ja"
+  ],
+  "language_preference_default": "system",
+  "system_language_resolution": {
+    "zh-CN": "zh-TW",
+    "zh-Hans": "zh-TW",
+    "ja-JP": "ja",
+    "de-DE": "en"
+  },
+  "themes": [
+    "purple-light",
+    "purple-dark",
+    "blue-light",
+    "blue-dark"
+  ],
+  "new_install_theme": "purple-dark",
+  "surfaces": "neutral gray/white; purple and blue used as accents",
+  "new_default_concurrent_jobs": 0,
+  "viewports": [
+    {
+      "width": 1060,
+      "height": 680
+    },
+    {
+      "width": 1440,
+      "height": 900
+    }
+  ],
+  "native_mac_execution": false,
+  "real_cloud_or_nas_transfer": false,
+  "palette_contrast": {
+    "passed": true,
+    "checks": 80,
+    "minimum_text_ratio": 4.9,
+    "minimum_control_border_ratio": 3.5,
+    "scope": "Computed palette token contrast for text, metadata, placeholders, primary action states, selected text, notices and control border. Disabled controls excluded. This is not a full WCAG audit."
+  },
+  "production_files": {
+    "Resources/Web/THIRD_PARTY_NOTICES.txt": {
+      "bytes": 6526,
+      "sha256": "401a52547c510b5c231c69f9077b192e2759d282e68f74d13339922f9d9e8552"
+    },
+    "Resources/Web/app.js": {
+      "bytes": 593224,
+      "sha256": "780353b92e682a2b555f29ca23d6f7ade836fda40f3e365a5f45b187bb9297e4"
+    },
+    "Resources/Web/favicon.svg": {
+      "bytes": 18533,
+      "sha256": "5dcf6bb2e77fc4f5670743c49e42e2f107812f56459bf32d30ae9ca021383a1a"
+    },
+    "Resources/Web/index.html": {
+      "bytes": 866,
+      "sha256": "6d64e8836f8ea3c2cdfb0bd3f4e214da93f633390ecbb6512949e65a94801411"
+    },
+    "Resources/Web/style.css": {
+      "bytes": 62205,
+      "sha256": "bf85d905a3fa9df63e9d3514be8ef43da18ab79e19cd4720e7ca7faabce95697"
+    }
+  },
+  "production_bytes": 681354,
+  "v2_icon_exact_match": true,
+  "evidence_directory": "WebSource/.build-cache/qa04",
+  "full_suite_evidence_directory": "WebSource/.build-cache/qa04/playwright",
+  "final_targeted_evidence": "WebSource/.build-cache/qa04/final-targeted-results.json",
+  "previews": {
+    "clean-preview-blue-dark-1060.png": {
+      "bytes": 90160,
+      "sha256": "c4cbb4822bb64dfdaeefbdd51d76f0dc8ce2355e5e25b9e398214cf0c63b8545"
+    },
+    "clean-preview-blue-dark.png": {
+      "bytes": 140748,
+      "sha256": "3a4163d65134153b3a87e7108bb048c6fe7f481812ab7c863a103545e3005197"
+    },
+    "clean-preview-blue-light-1060.png": {
+      "bytes": 89715,
+      "sha256": "e489bb4dfb5a68bbb76bd53e94b13d821338c1ec58d8104b7e48a049c7b6f683"
+    },
+    "clean-preview-blue-light.png": {
+      "bytes": 139890,
+      "sha256": "1440fd3e5267f6442185c17c3651e7d47e9fce4051f5eb3fc503e4c44cf60715"
+    },
+    "clean-preview-purple-dark-1060.png": {
+      "bytes": 90065,
+      "sha256": "dc5f1dcc457766fdd72cb0ec2f167e6eb9f79539a568524efd05646ffb09fdad"
+    },
+    "clean-preview-purple-dark.png": {
+      "bytes": 140250,
+      "sha256": "e8932912fa98d71b86a275b5dfb43c0dcf0c39eb486a1cde4dbda6166f0e1ba5"
+    },
+    "clean-preview-purple-light-1060.png": {
+      "bytes": 89569,
+      "sha256": "44c4cf57d353d4e0a35bd6c894630e0f5d301c61327ec7bf56be9bbbd98b19f4"
+    },
+    "clean-preview-purple-light.png": {
+      "bytes": 139189,
+      "sha256": "14f9c5f2c9d5013d29c2e472a4f81d3e0c70f8e445c4cc1d276a19230cf8f5ba"
+    },
+    "comparison-tooltip-1060.png": {
+      "bytes": 99357,
+      "sha256": "12b99740944afe1a01e655f047d94d62febe5b768fba8cfc0050b12ef725139b"
+    },
+    "options-filters-1060.png": {
+      "bytes": 102270,
+      "sha256": "fb0b4b52697194a6539698ef821ea2c53d0e7927cf117747a42fb3ff260438a3"
+    },
+    "options-nas-sync-1060.png": {
+      "bytes": 116696,
+      "sha256": "c900b049d4615580b6691920ca6acdaee65b002c1bb3ee571084b0dac83d2587"
+    },
+    "options-transfer-1060.png": {
+      "bytes": 112822,
+      "sha256": "c10d28a55dd85f82de4dc47170e1ebfe32cbc052786d0349cae149b24f1bc3cd"
+    },
+    "settings-general-1060.png": {
+      "bytes": 109195,
+      "sha256": "fc8647f1146c9ebce82238bf8c2f68581f43e7feb9382a5eda1eaa91269e02d0"
+    },
+    "settings-japanese-1060.png": {
+      "bytes": 82872,
+      "sha256": "751207fbd26a4f6828c9f80fd89e04a4c3d54db3009c519e32337690ecb37775"
+    },
+    "settings-network-1060.png": {
+      "bytes": 96688,
+      "sha256": "f1f559c3f88cd8dbdd0abea7abe2f39d98750066eda6cc6d8407bf2d9d009ab5"
+    },
+    "settings-rclone-connections-1060.png": {
+      "bytes": 97381,
+      "sha256": "a7e79ddbea7961f1cf85504e7e9608f421796b7059492eb5d8d44c90d848c9e7"
+    },
+    "task-editor-comparison-1060.png": {
+      "bytes": 77524,
+      "sha256": "8a67bdf51412cb8b15d0221ed03c2b3441487073288166d39504bb179f269814"
+    },
+    "task-editor-locations-1060.png": {
+      "bytes": 75987,
+      "sha256": "e868de85ebf3b5c277634fa0b1f216d0eba620234a652e667e9b5cbe6c793738"
+    },
+    "tasks-list-1440.png": {
+      "bytes": 67894,
+      "sha256": "15dc07b9798bb5fc0c94f20c314bd8c50de5ae441b81d275edd6e5773bd11d54"
+    }
+  },
+  "preview_note": "Production UI with fictional deterministic fixture data. Images are internal review evidence, not user screenshots and not evidence of macOS execution or actual cloud/NAS transfers."
+}
