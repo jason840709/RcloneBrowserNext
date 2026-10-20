@@ -1,0 +1,188 @@
+{
+  "version": "0.6.0",
+  "run_id": 39423143808,
+  "run_url": "https://github.com/jason840709/RcloneBrowserNext/actions/runs/39423143808",
+  "source_commit": "4eac09b64abc272cbd3016c65be04e92d5dc015a",
+  "source_tree": "d0df68fda1b9f840d668d4dfee487c69f92e405e",
+  "release_url": "https://github.com/jason840709/RcloneBrowserNext/releases/tag/v0.6.0",
+  "published_at": "2026-10-20T12:42:25Z",
+  "architectures": {
+    "arm64": {
+      "job_id": 118628901658,
+      "conclusion": "success",
+      "suites": [
+        {
+          "suite": "CoreTests",
+          "passed": 55,
+          "failed": 0,
+          "skipped": 1
+        },
+        {
+          "suite": "UpdaterTests",
+          "passed": 20,
+          "failed": 0,
+          "skipped": 0
+        },
+        {
+          "suite": "ToolsTests",
+          "passed": 12,
+          "failed": 0,
+          "skipped": 0
+        },
+        {
+          "suite": "NativeMessagesTests",
+          "passed": 13,
+          "failed": 0,
+          "skipped": 0
+        },
+        {
+          "suite": "FinderDropTests",
+          "passed": 5,
+          "failed": 0,
+          "skipped": 0
+        },
+        {
+          "suite": "AppReleaseTests",
+          "passed": 8,
+          "failed": 0,
+          "skipped": 0
+        },
+        {
+          "suite": "TransferReportTests",
+          "passed": 15,
+          "failed": 0,
+          "skipped": 0
+        },
+        {
+          "suite": "MacInterfaceTests",
+          "passed": 9,
+          "failed": 0,
+          "skipped": 0
+        }
+      ],
+      "passed": 137,
+      "failed": 0,
+      "skipped": 1,
+      "native_tests": [
+        "Bundled-style interface loads in macOS WebKit",
+        "80% zoom changes the viewport and preserves native pane hit testing",
+        "90% zoom changes the viewport and preserves native pane hit testing",
+        "100% zoom changes the viewport and preserves native pane hit testing",
+        "110% zoom changes the viewport and preserves native pane hit testing",
+        "125% zoom changes the viewport and preserves native pane hit testing",
+        "macOS decodes and accepts AppIcon.icns as the running app icon",
+        "macOS decodes and accepts AppIcon-blue.icns as the running app icon",
+        "macOS decodes and accepts AppIcon-green.icns as the running app icon"
+      ],
+      "skip_reasons": [
+        "SKIP NAS kernel read instrumentation — Linux inotify is unavailable; the portable NAS transfer/compare test still runs"
+      ],
+      "os": "15.7.9",
+      "swift": "swift-driver version: 1.120.5 Apple Swift version 6.1.2 (swiftlang-6.1.2.1.2 clang-1700.0.13.5)",
+      "executable_sha256": "44fc7197e5c78576ccbec521155cbe45da8dbbce66b4f14bb7dc64bcab9da492",
+      "app_disk_usage": "3.95 MiB（磁碟用量）",
+      "signature_validations": 2,
+      "counter_benchmark": "BENCHMARK: 10000 counter snapshots 0.068684 seconds; peak bound 64 samples",
+      "warnings": [
+        "Sources/Mac/AppMain.swift:882:56: warning: 'openFile(_:withApplication:)' was deprecated in macOS 11.0: Use -[NSWorkspace openURLs:withApplicationAtURL:configuration:completionHandler:] instead."
+      ]
+    },
+    "x86_64": {
+      "job_id": 118628901742,
+      "conclusion": "success",
+      "suites": [
+        {
+          "suite": "CoreTests",
+          "passed": 55,
+          "failed": 0,
+          "skipped": 1
+        },
+        {
+          "suite": "UpdaterTests",
+          "passed": 20,
+          "failed": 0,
+          "skipped": 0
+        },
+        {
+          "suite": "ToolsTests",
+          "passed": 12,
+          "failed": 0,
+          "skipped": 0
+        },
+        {
+          "suite": "NativeMessagesTests",
+          "passed": 13,
+          "failed": 0,
+          "skipped": 0
+        },
+        {
+          "suite": "FinderDropTests",
+          "passed": 5,
+          "failed": 0,
+          "skipped": 0
+        },
+        {
+          "suite": "AppReleaseTests",
+          "passed": 8,
+          "failed": 0,
+          "skipped": 0
+        },
+        {
+          "suite": "TransferReportTests",
+          "passed": 15,
+          "failed": 0,
+          "skipped": 0
+        },
+        {
+          "suite": "MacInterfaceTests",
+          "passed": 9,
+          "failed": 0,
+          "skipped": 0
+        }
+      ],
+      "passed": 137,
+      "failed": 0,
+      "skipped": 1,
+      "native_tests": [
+        "Bundled-style interface loads in macOS WebKit",
+        "80% zoom changes the viewport and preserves native pane hit testing",
+        "90% zoom changes the viewport and preserves native pane hit testing",
+        "100% zoom changes the viewport and preserves native pane hit testing",
+        "110% zoom changes the viewport and preserves native pane hit testing",
+        "125% zoom changes the viewport and preserves native pane hit testing",
+        "macOS decodes and accepts AppIcon.icns as the running app icon",
+        "macOS decodes and accepts AppIcon-blue.icns as the running app icon",
+        "macOS decodes and accepts AppIcon-green.icns as the running app icon"
+      ],
+      "skip_reasons": [
+        "SKIP NAS kernel read instrumentation — Linux inotify is unavailable; the portable NAS transfer/compare test still runs"
+      ],
+      "os": "15.7.9",
+      "swift": "swift-driver version: 1.120.5 Apple Swift version 6.1.2 (swiftlang-6.1.2.1.2 clang-1700.0.13.5)",
+      "executable_sha256": "ba61aab9f6f4eb7ebf7bac3b000f5244834092003d6dddda2872e71576e2e875",
+      "app_disk_usage": "4.01 MiB（磁碟用量）",
+      "signature_validations": 2,
+      "counter_benchmark": "BENCHMARK: 10000 counter snapshots 0.161846 seconds; peak bound 64 samples",
+      "warnings": [
+        "Sources/Mac/AppMain.swift:882:56: warning: 'openFile(_:withApplication:)' was deprecated in macOS 11.0: Use -[NSWorkspace openURLs:withApplicationAtURL:configuration:completionHandler:] instead."
+      ]
+    }
+  },
+  "initial_build_correction": {
+    "run": 39422459070,
+    "reason": "Darwin statfs name lookup collision",
+    "fixed_commit": "4eac09b64abc272cbd3016c65be04e92d5dc015a"
+  },
+  "scope": {
+    "native_apple_sdk_build": true,
+    "actual_wkwebview_page_zoom": true,
+    "native_to_dom_point_mapping": true,
+    "appkit_icns_decoding": true,
+    "physical_mouse": false,
+    "physical_nas": false,
+    "live_cloud": false,
+    "developer_id_signed": false,
+    "notarized": false
+  },
+  "counts": "Each architecture ran the same 137 passing cases plus one Linux-specific skip; do not sum as 274 distinct tests."
+}

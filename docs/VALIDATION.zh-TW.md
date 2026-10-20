@@ -4,6 +4,8 @@
 
 ## 結果與範圍
 
+**0.6.0 已通過 Apple Silicon 與 Intel 的原生 Mac 建置及測試，並正式發布。兩個架構各為 137 通過、0 失敗、1 略過。**略過的是 Linux 專用的 inotify 讀取監測；可攜式 NAS 傳輸與比對案例仍有執行。兩個架構跑的是同一組案例，不能加總為 274 個不同測試。
+
 本輪 Linux 的 **CoreTests 56 項、TransferReportTests 15 項**通過，全部沒有失敗或略過。正式介面的 **140 個不同案例在同一次完整執行中全部通過**，沒有失敗、略過或 flaky。Core 編譯及測試前後核對來源 SHA，確認測試期間沒有變更。
 
 | 驗證 | 本輪結果 | 使用環境 |
@@ -13,11 +15,11 @@
 | 正式 Web 介面 | 140 通過，0 失敗，0 略過 | Linux Chrome，載入正式 file:// bundle |
 | TypeScript 與正式建置 | 通過 | 鎖定的 WebSource 依賴 |
 | 指定配色組合 | 120／120 通過 | 六種主題的色彩 token 對比檢查 |
-| 原生 Mac 發布門檻 | 兩架構各自完成建置、簽章、七套 Core 與 MacInterfaceTests 才發布 | GitHub Actions 的 macos-15／macos-15-intel |
+| 原生 Mac 發布門檻 | **已通過：兩架構各 137 通過、0 失敗、1 略過**；完成建置、簽章與八套測試 | GitHub Actions 的 macos-15／macos-15-intel，macOS 15.7.9 |
 
-最後一列是自動發布的必要條件，不是 Linux 執行結果。各次 Mac 工作的實際退出碼與套件數字見 [Actions](https://github.com/jason840709/RcloneBrowserNext/actions)。本頁的發布後更新會補上對應 run 與實際記錄；來源包保留製作時的驗證範圍。
+Mac 結果來自 [Actions run 39423143808](https://github.com/jason840709/RcloneBrowserNext/actions/runs/39423143808)，通過後於 2026-10-20 12:42:25 UTC 發布 [v0.6.0](https://github.com/jason840709/RcloneBrowserNext/releases/tag/v0.6.0)。實際建置的來源為 [commit 4eac09b64abc272cbd3016c65be04e92d5dc015a](https://github.com/jason840709/RcloneBrowserNext/commit/4eac09b64abc272cbd3016c65be04e92d5dc015a)。
 
-[本輪本機驗證 JSON](verification/0.6.0.json) 保留結果、來源雜湊與測試界線。[SOURCE_MANIFEST.json](../SOURCE_MANIFEST.json) 用來核對來源包；manifest 本身不自我雜湊。測試只使用獨立暫存目錄、alias 遠端、loopback 回應與示意介面資料，沒有使用日常備份或真實雲端帳號。
+[本輪本機驗證 JSON](verification/0.6.0.json) 保留原始 Linux 結果、來源雜湊與測試界線；[Mac CI 驗證 JSON](verification/0.6.0-macos-ci.json) 另外保存發布來源、雙架構結果與執行檔 SHA-256，沒有覆寫先前的記錄。[SOURCE_MANIFEST.json](../SOURCE_MANIFEST.json) 用來核對來源包；manifest 本身不自我雜湊。測試只使用獨立暫存目錄、alias 遠端、loopback 回應與示意介面資料，沒有使用日常備份或真實雲端帳號。
 
 ## 重複同步與來源選取
 
@@ -86,10 +88,37 @@ Linux inotify 的既有測試監看目的檔案讀取，用來檢查 `--local-ha
 
 ## macOS 驗證範圍
 
-首輪 [Mac CI](https://github.com/jason840709/RcloneBrowserNext/actions/runs/39422459070) 在原生編譯時發現 Swift 對 `statfs` 結構與同名函式的解析衝突，沒有產生 Release。現行 macOS 分支改以 `O_EVTONLY` 開啟僅供事件／中繼資料的 descriptor，再呼叫 `fstatfs`，結束後關閉；沒有讀取內容或建立檔案。先前 Linux 測試的來源雜湊保留原記錄，這項 Mac 專屬修正另外列在 JSON，由後續 Mac CI 驗證。
+### 實際發布結果
 
-發布 workflow 在 Apple Silicon 與 Intel 各自使用 Apple SDK 建置，完成資源後建立 ad-hoc 簽章，執行 `codesign --verify --strict`，再跑 CoreTests、UpdaterTests、ToolsTests、NativeMessagesTests、FinderDropTests、AppReleaseTests、TransferReportTests。任一架構失敗都不會發布版本。
+| 架構與 CI 工作 | macOS／Apple Swift | 通過／失敗／略過 | CI 建置 App 的磁碟用量 |
+| --- | --- | --- | --- |
+| [Apple Silicon（arm64）](https://github.com/jason840709/RcloneBrowserNext/actions/runs/39423143808/job/118628901658) | macOS 15.7.9／Swift 6.1.2 | **137／0／1** | **3.95 MiB** |
+| [Intel（x86_64）](https://github.com/jason840709/RcloneBrowserNext/actions/runs/39423143808/job/118628901742) | macOS 15.7.9／Swift 6.1.2 | **137／0／1** | **4.01 MiB** |
 
-另有原生 `MacInterfaceTests`，載入實際 WKWebView 的本機測試文件，檢查五段 `pageZoom`、原生到 DOM 的兩側座標對應，以及三個 ICNS 的 AppKit 解碼與 runtime 設定。這比 Linux 語法檢查多了真正的 WebKit 執行，但它不是完整的真人 GUI 操作。
+磁碟用量指 CI 建置的 `.app`，不是壓縮包大小，也不包含外部 rclone。兩個架構使用相同的發布 commit；來源 tree、執行檔 SHA-256 與完整工具版本均保存在 [Mac CI 驗證 JSON](verification/0.6.0-macos-ci.json)。
+
+| 測試套件 | 每個架構通過 | 失敗 | 略過 |
+| --- | --- | --- | --- |
+| CoreTests | 55 | 0 | 1 |
+| UpdaterTests | 20 | 0 | 0 |
+| ToolsTests | 12 | 0 | 0 |
+| NativeMessagesTests | 13 | 0 | 0 |
+| FinderDropTests | 5 | 0 | 0 |
+| AppReleaseTests | 8 | 0 | 0 |
+| TransferReportTests | 15 | 0 | 0 |
+| MacInterfaceTests | 9 | 0 | 0 |
+| **每個架構合計** | **137** | **0** | **1** |
+
+CoreTests 唯一略過項目是「NAS kernel read instrumentation」：macOS 沒有 Linux inotify。其他可攜式 NAS 傳輸、比對與零重傳回歸仍正常執行。兩個架構都完成兩次 App 簽章驗證；建置留下既有 `NSWorkspace.openFile(_:withApplication:)` 棄用警告，沒有導致編譯或測試失敗。
+
+### 首輪問題與修正
+
+首輪 [Mac CI](https://github.com/jason840709/RcloneBrowserNext/actions/runs/39422459070) 在原生編譯時發現 Swift 對 `statfs` 結構與同名函式的解析衝突，沒有產生 Release。修正後的 macOS 分支以 `O_EVTONLY` 開啟僅供事件／中繼資料的 descriptor，再呼叫 `fstatfs`，結束後關閉；沒有讀取檔案內容或建立檔案。[修正 commit](https://github.com/jason840709/RcloneBrowserNext/commit/4eac09b64abc272cbd3016c65be04e92d5dc015a) 已在上述雙架構 CI 通過。先前 Linux 測試的來源雜湊保留原記錄，這項 Mac 專屬修正及後續結果另記於 Mac CI JSON。
+
+本次發布 workflow 已在 Apple Silicon 與 Intel 各自使用 Apple SDK 建置，完成資源後建立 ad-hoc 簽章，執行 `codesign --verify --strict`，再跑上述八套測試。任一架構失敗都不會發布版本。
+
+### 已驗證與仍待實機確認的界線
+
+原生 `MacInterfaceTests` 的九項案例在兩個架構都通過：一項實際 WKWebView 文件載入、五項 `pageZoom`（80%、90%、100%、110%、125%）及原生到 DOM 的兩側座標對應，以及三項 ICNS 的 AppKit 解碼與 runtime 設定。這些是在真正的 macOS WebKit／AppKit 執行，沒有用 Linux 模擬結果替代；測試文件仍是受控案例，不是完整的真人 GUI 操作。
 
 實體滑鼠與驅動、Finder 拖放、Cmd-Q 對話框、Terminal Config、系統通知、真實代理連線、SMB、FUSE 及雲端分段取消仍取決於實際使用環境。App 的 ad-hoc 簽章不是 Apple Developer ID 簽章或公證；下載後的 Gatekeeper 體驗另見 [Mac 建置說明](BUILD_MAC.zh-TW.md)。
