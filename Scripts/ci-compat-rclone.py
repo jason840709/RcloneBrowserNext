@@ -23,14 +23,18 @@ def main():
     cache.mkdir(parents=True, exist_ok=True)
     stem = f'rclone-{VERSION}-{system}-amd64'
     filename = stem + '.zip'
-    base = f'https://downloads.rclone.org/{VERSION}/'
-    sums = urllib.request.urlopen(base + 'SHA256SUMS', timeout=60).read().decode()
+    base = f'https://github.com/rclone/rclone/releases/download/{VERSION}/'
+    headers = {'User-Agent': 'RcloneBrowserNext-CI/0.7.0'}
+    checksum_request = urllib.request.Request(base + 'SHA256SUMS', headers=headers)
+    with urllib.request.urlopen(checksum_request, timeout=60) as response:
+        sums = response.read().decode()
     matches = [line.split()[0] for line in sums.splitlines()
                if len(line.split()) == 2 and line.split()[1].lstrip('*') == filename]
     if len(matches) != 1:
         raise SystemExit('Expected exactly one official checksum.')
     archive = cache / filename
-    with urllib.request.urlopen(base + filename, timeout=180) as response, archive.open('wb') as out:
+    archive_request = urllib.request.Request(base + filename, headers=headers)
+    with urllib.request.urlopen(archive_request, timeout=180) as response, archive.open('wb') as out:
         while chunk := response.read(1024 * 1024):
             out.write(chunk)
     digest = hashlib.sha256(archive.read_bytes()).hexdigest()

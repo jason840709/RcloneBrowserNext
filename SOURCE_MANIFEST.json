@@ -1,7 +1,7 @@
 {
   "version": "0.7.0",
   "file_count_excluding_manifest": 179,
-  "total_bytes_excluding_manifest": 6452934,
+  "total_bytes_excluding_manifest": 6453210,
   "files": {
     ".github/workflows/macos.yml": {
       "bytes": 7608,
@@ -204,8 +204,8 @@
       "sha256": "89e71b31ad8fe9faa46ce690ac87b261ace1ee6bb4a9e09782b52b2feb87f2e0"
     },
     "Scripts/ci-compat-rclone.py": {
-      "bytes": 2241,
-      "sha256": "e8cf4f0370dd82c32f704f98cd1112c27591c8aebbc48152ec3f13e961fa0fe1"
+      "bytes": 2517,
+      "sha256": "53409e839ca25319c4fe3f6cdc6836582021fd2e985db8dd7a514b96215280d8"
     },
     "Scripts/ci-rclone.sh": {
       "bytes": 1642,
