@@ -1,7 +1,7 @@
 {
   "version": "0.7.0",
   "file_count_excluding_manifest": 180,
-  "total_bytes_excluding_manifest": 6465620,
+  "total_bytes_excluding_manifest": 6466811,
   "files": {
     ".github/workflows/macos.yml": {
       "bytes": 7764,
@@ -220,8 +220,8 @@
       "sha256": "a4cabc6c145d046754f1338badd2dda81ea7aa387506b3ebb6aa698c46639f05"
     },
     "Scripts/native/WindowsRcloneLauncher.c": {
-      "bytes": 7551,
-      "sha256": "cdc5ed24b6b02b1da030452f43d989a9e43b337b97ec446cbb1ea6360f27dd46"
+      "bytes": 7812,
+      "sha256": "e08f1424b463d2a5e80b84293d51fb9c9b9226cf946e3214a500b9eff60a151c"
     },
     "Scripts/package-compat.py": {
       "bytes": 1551,
@@ -264,8 +264,8 @@
       "sha256": "46d2a94e8f1c2d8f8f4a31a0789322e99b2141af8126082b00b76de513f064f3"
     },
     "Sources/Core/EnginePlatform.swift": {
-      "bytes": 11635,
-      "sha256": "e7afb2a94cfc3c0200bdd6f57b9efcf8eb569e610fddb49827e9625553e214a3"
+      "bytes": 12434,
+      "sha256": "a01a460e5330e5fe4c7fe7435c5d8798d4297cc87b57e7f71a6f6b865ab2235a"
     },
     "Sources/Core/EngineStorage.swift": {
       "bytes": 14654,
@@ -292,8 +292,8 @@
       "sha256": "399984ed2bbd898f3f9bb075a25965f615183e7663b65ee5559e5fe42eda4666"
     },
     "Sources/Core/RcloneTools.swift": {
-      "bytes": 26769,
-      "sha256": "175bdd70c0961cec248291ce01883430d2e51faf40a3001c4d6f2783137dd043"
+      "bytes": 26905,
+      "sha256": "2eceb002dc6eb59c8c39a2d34d57ec19502dbd1b94bbe1ad92ad957240df6c4a"
     },
     "Sources/Core/RcloneUpdater.swift": {
       "bytes": 39703,
@@ -596,8 +596,8 @@
       "sha256": "8fcf7be016a431d6ed8d72395627274197d2eae19b2250bec9befda823d66976"
     },
     "docs/BUILD_COMPATIBILITY.md": {
-      "bytes": 2978,
-      "sha256": "ddd7bee1ff33322775fcb8026c4983b76425d025d9d71633b591c045aff8b054"
+      "bytes": 2973,
+      "sha256": "a695799706a203693d5677b07f7b87585f0bcf566b0ebf7ad105fe242f0f7097"
     },
     "docs/BUILD_MAC.zh-TW.md": {
       "bytes": 7679,

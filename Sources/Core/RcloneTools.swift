@@ -161,7 +161,7 @@ final class RcloneTools {
             process.standardError = errors; process.standardOutput = standard
             process.standardInput = FileHandle.nullDevice
             session.processes = [process]
-            try process.run()
+            try EnginePlatform.prepare(process); try process.run()
             RBNToolsDrains.start(errors, into: session.logs, group: session.drains, stop: session.drainStop)
             RBNToolsDrains.start(standard, into: session.logs, group: session.drains, stop: session.drainStop)
             register(session)
@@ -214,6 +214,8 @@ final class RcloneTools {
             consumer.standardInput = media; consumer.standardOutput = FileHandle.nullDevice; consumer.standardError = consumerErrors
             session.processes = [producer, consumer]
             do {
+                try EnginePlatform.prepare(consumer)
+                try EnginePlatform.prepare(producer)
                 try consumer.run()
                 try producer.run()
             } catch {
@@ -327,7 +329,6 @@ final class RcloneTools {
         process.executableURL = URL(fileURLWithPath: context.binary)
         process.arguments = arguments
         process.environment = context.environment
-        try EnginePlatform.prepare(process)
         return process
     }
 
@@ -356,7 +357,7 @@ final class RcloneTools {
         process.standardInput = FileHandle.nullDevice
         process.standardOutput = standard; process.standardError = errors
         process.terminationHandler = { _ in finished.signal() }
-        do { try process.run() }
+        do { try EnginePlatform.prepare(process); try process.run() }
         catch { throw EngineError("無法執行工具：\(error.localizedDescription)") }
         RBNToolsDrains.start(standard, into: output, group: drains, stop: drainStop)
         RBNToolsDrains.start(errors, into: errorOutput, group: drains, stop: drainStop)

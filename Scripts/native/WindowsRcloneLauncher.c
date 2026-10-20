@@ -76,11 +76,15 @@ int wmain(int argc, wchar_t **argv) {
 
     HANDLE streams[3] = {NULL, NULL, NULL};
     const DWORD identifiers[3] = {STD_INPUT_HANDLE, STD_OUTPUT_HANDLE, STD_ERROR_HANDLE};
+    const char *operations[3] = {"Copying standard input", "Copying standard output", "Copying standard error"};
     for (int i = 0; i < 3; ++i) {
         HANDLE original = GetStdHandle(identifiers[i]);
-        if (!original || original == INVALID_HANDLE_VALUE ||
-            !DuplicateHandle(GetCurrentProcess(), original, GetCurrentProcess(), &streams[i], 0, TRUE, DUPLICATE_SAME_ACCESS)) {
-            free(line); return fail("Copying standard handles");
+        if (!original || original == INVALID_HANDLE_VALUE) {
+            free(line); SetLastError(ERROR_INVALID_HANDLE); return fail(operations[i]);
+        }
+        if (!DuplicateHandle(GetCurrentProcess(), original, GetCurrentProcess(), &streams[i], 0, TRUE, DUPLICATE_SAME_ACCESS)) {
+            DWORD error = GetLastError();
+            free(line); SetLastError(error); return fail(operations[i]);
         }
     }
 

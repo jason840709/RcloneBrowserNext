@@ -23,6 +23,6 @@ Both scripts package only redistributable runtime dependencies, retain their lic
 
 ## Verification
 
-The workflow builds installers on `windows-2025` and `ubuntu-24.04`. It runs platform file-operation checks, local copy/sync/move and cancellation through the packaged Swift helper, then opens the native window and checks the production interface bridge. These checks use isolated local fixtures. The macOS edition has its own full native core and WebKit test suites.
+The workflow builds installers on `windows-2025` and `ubuntu-24.04`. It runs platform file-operation checks, local copy/sync and cancellation through the packaged Swift helper, then opens the native window and checks the production interface bridge. These checks use isolated local fixtures. The macOS edition has its own full native core and WebKit test suites.
 
 Test and package receipts are retained as workflow artifacts. [GitHub Actions](https://github.com/jason840709/RcloneBrowserNext/actions) is the source for each run's result.

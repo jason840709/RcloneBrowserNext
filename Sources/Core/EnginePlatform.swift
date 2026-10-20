@@ -92,6 +92,16 @@ enum EnginePlatform {
         guard let executable = process.executableURL else { throw EngineError("缺少執行檔。") }
         let launcher = URL(fileURLWithPath: CommandLine.arguments[0]).deletingLastPathComponent().appendingPathComponent("rbn-process-launcher.exe")
         guard FileManager.default.isExecutableFile(atPath: launcher.path) else { throw EngineError("缺少 Windows 程序啟動元件，請重新安裝。") }
+        // Swift 6.1.2's Windows Process does not mark its special nullDevice
+        // handle inheritable. A regular NUL FileHandle takes the branch that
+        // does; keep actual pipes intact, including a player's media input.
+        func needsNullHandle(_ stream: Any?) -> Bool {
+            stream == nil || (stream as? FileHandle) === FileHandle.nullDevice
+        }
+        let nullURL = URL(fileURLWithPath: "NUL", isDirectory: false)
+        if needsNullHandle(process.standardInput) { process.standardInput = try FileHandle(forReadingFrom: nullURL) }
+        if needsNullHandle(process.standardOutput) { process.standardOutput = try FileHandle(forWritingTo: nullURL) }
+        if needsNullHandle(process.standardError) { process.standardError = try FileHandle(forWritingTo: nullURL) }
         process.arguments = [executable.path] + (process.arguments ?? [])
         process.executableURL = launcher
         #endif
