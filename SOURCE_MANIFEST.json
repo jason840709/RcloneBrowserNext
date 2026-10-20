@@ -1,7 +1,7 @@
 {
   "version": "0.8.0",
-  "file_count_excluding_manifest": 189,
-  "total_bytes_excluding_manifest": 6642058,
+  "file_count_excluding_manifest": 190,
+  "total_bytes_excluding_manifest": 6675594,
   "files": {
     ".github/workflows/macos.yml": {
       "bytes": 7778,
@@ -684,8 +684,8 @@
       "sha256": "8eca5e72ede9871af4f1a35d7561aede169ff414c281f6a5a46b5b243bc0d06c"
     },
     "docs/VALIDATION.zh-TW.md": {
-      "bytes": 1269,
-      "sha256": "f60936c288110b04920e6f63f9f9b15ba3ddb1b0b0f3ae4cf95cfef23c96fe29"
+      "bytes": 4022,
+      "sha256": "765d093b3002fbebefcbea202465de24df3a625f9ac66f19271337b1df371822"
     },
     "docs/VALIDATION_0.6.0.zh-TW.md": {
       "bytes": 12820,
@@ -758,6 +758,10 @@
     "docs/verification/0.7.0-native.json": {
       "bytes": 19291,
       "sha256": "b3dc4d306a4a616a243464e055193789552ff6038b54d820d44f145d41bd96f1"
+    },
+    "docs/verification/0.8.0-native.json": {
+      "bytes": 30783,
+      "sha256": "851b0c985e8bd5b5718c792d25fbe2bf05ffcb29a2c89ba5116e5585abb2c8e1"
     }
   }
 }

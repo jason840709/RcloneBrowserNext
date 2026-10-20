@@ -1,0 +1,713 @@
+{
+  "schemaVersion": 1,
+  "release": "0.8.0",
+  "recordedAtUTC": "2026-10-20T17:55:47.747005+00:00",
+  "status": "passed",
+  "verifiedAgainstCommit": "f2435c706770f68770d7c95fadfa54e3d814a014",
+  "commitURL": "https://github.com/jason840709/RcloneBrowserNext/commit/f2435c706770f68770d7c95fadfa54e3d814a014",
+  "ci": {
+    "runID": 39467210330,
+    "runURL": "https://github.com/jason840709/RcloneBrowserNext/actions/runs/39467210330",
+    "workflow": ".github/workflows/macos.yml",
+    "requiredPlatforms": [
+      "macos-arm64",
+      "macos-x86_64",
+      "windows-x86_64",
+      "linux-x86_64"
+    ],
+    "requiredJobsConclusion": "success"
+  },
+  "publication": {
+    "releaseID": 418697196,
+    "tag": "v0.8.0",
+    "URL": "https://github.com/jason840709/RcloneBrowserNext/releases/tag/v0.8.0",
+    "targetCommit": "f2435c706770f68770d7c95fadfa54e3d814a014",
+    "publishedAtUTC": "2026-10-20T17:53:46Z",
+    "jobID": 118790788248,
+    "jobURL": "https://github.com/jason840709/RcloneBrowserNext/actions/runs/39467210330/job/118790788248",
+    "conclusion": "success",
+    "assetCount": 6
+  },
+  "webVerificationRecord": "WebSource/tests/verification.json",
+  "counting": {
+    "macOS": "Each architecture executes the same nine suites; counts are reported separately.",
+    "compatibility": "Suite cases and one packaged native UI smoke invocation are reported separately."
+  },
+  "platforms": [
+    {
+      "platform": "macos-arm64",
+      "runnerLabel": "macos-15",
+      "jobID": 118781598563,
+      "jobURL": "https://github.com/jason840709/RcloneBrowserNext/actions/runs/39467210330/job/118781598563",
+      "conclusion": "success",
+      "suiteCount": 9,
+      "suites": [
+        {
+          "name": "CoreTests",
+          "passed": 56,
+          "failed": 0,
+          "skipped": 1,
+          "skipCountEvidence": "Explicit SKIP lines; checked against summary when reported",
+          "skipReasons": [
+            "NAS kernel read instrumentation — Linux inotify is unavailable; the portable NAS transfer/compare test still runs"
+          ],
+          "summary": "RESULT: 56 passed, 0 failed, 1 skipped",
+          "summaryReportsSkipped": true
+        },
+        {
+          "name": "UpdaterTests",
+          "passed": 20,
+          "failed": 0,
+          "skipped": 0,
+          "skipCountEvidence": "Explicit SKIP lines; checked against summary when reported",
+          "skipReasons": [],
+          "summary": "Updater: 20 passed, 0 failed",
+          "summaryReportsSkipped": false
+        },
+        {
+          "name": "ToolsTests",
+          "passed": 12,
+          "failed": 0,
+          "skipped": 0,
+          "skipCountEvidence": "Explicit SKIP lines; checked against summary when reported",
+          "skipReasons": [],
+          "summary": "12 passed, 0 failed, 0 skipped",
+          "summaryReportsSkipped": true
+        },
+        {
+          "name": "NativeMessagesTests",
+          "passed": 13,
+          "failed": 0,
+          "skipped": 0,
+          "skipCountEvidence": "Explicit SKIP lines; checked against summary when reported",
+          "skipReasons": [],
+          "summary": "NativeMessagesTests: 13 passed, 0 failed, 0 skipped",
+          "summaryReportsSkipped": true
+        },
+        {
+          "name": "FinderDropTests",
+          "passed": 5,
+          "failed": 0,
+          "skipped": 0,
+          "skipCountEvidence": "Explicit SKIP lines; checked against summary when reported",
+          "skipReasons": [],
+          "summary": "5 passed, 0 failed",
+          "summaryReportsSkipped": false
+        },
+        {
+          "name": "AppReleaseTests",
+          "passed": 8,
+          "failed": 0,
+          "skipped": 0,
+          "skipCountEvidence": "Explicit SKIP lines; checked against summary when reported",
+          "skipReasons": [],
+          "summary": "App release tests: 8 passed, 0 failed",
+          "summaryReportsSkipped": false
+        },
+        {
+          "name": "TransferReportTests",
+          "passed": 25,
+          "failed": 0,
+          "skipped": 0,
+          "skipCountEvidence": "Explicit SKIP lines; checked against summary when reported",
+          "skipReasons": [],
+          "summary": "25 passed, 0 failed, 0 skipped",
+          "summaryReportsSkipped": true
+        },
+        {
+          "name": "PlatformTests",
+          "passed": 10,
+          "failed": 0,
+          "skipped": 0,
+          "skipCountEvidence": "Explicit SKIP lines; checked against summary when reported",
+          "skipReasons": [],
+          "summary": "RESULT 10 passed, 0 failed",
+          "summaryReportsSkipped": false
+        },
+        {
+          "name": "MacInterfaceTests",
+          "passed": 19,
+          "failed": 0,
+          "skipped": 0,
+          "skipCountEvidence": "Explicit SKIP lines; checked against summary when reported",
+          "skipReasons": [],
+          "summary": "MacInterfaceTests: 19 passed, 0 failed, 0 skipped",
+          "summaryReportsSkipped": true
+        }
+      ],
+      "totals": {
+        "passed": 168,
+        "failed": 0,
+        "skipped": 1
+      },
+      "build": {
+        "version": "0.8.0",
+        "architecture": "arm64",
+        "minimumMacOS": "13.0",
+        "runnerOS": [
+          "15.7.9"
+        ]
+      },
+      "signature": {
+        "type": "ad-hoc local codesign (--sign -)",
+        "validOnDisk": true,
+        "designatedRequirementSatisfied": true,
+        "bundleVerification": "驗證通過：版本 0.8.0；架構 arm64；最低 macOS 13.0。",
+        "mainExecutableSHA256": "91434bfe2dbaa6e3f06ebeeb0b5abcf266f00e4760dd18c7775f903815fa9472",
+        "bundleVersion": "0.8.0",
+        "bundleMinimumOS": "13.0",
+        "packagedExecutableMatchesVerifiedBuild": true
+      },
+      "nativeInterfaceCoverage": {
+        "harness": "Actual AppKit NSWindow and production RcloneWebView with a controlled local HTML document",
+        "actualCheckRecords": [
+          "PASS Saved dark background is installed before showing the window or loading HTML",
+          "PASS Bundled-style interface loads in macOS WebKit",
+          "PASS Document-start theme precedes page scripts and the first revealed frame",
+          "PASS Reload uses the latest saved light theme without retaining an old startup script",
+          "PASS 80% zoom changes the viewport and preserves native pane hit testing",
+          "PASS 90% zoom changes the viewport and preserves native pane hit testing",
+          "PASS 100% zoom changes the viewport and preserves native pane hit testing",
+          "PASS 110% zoom changes the viewport and preserves native pane hit testing",
+          "PASS 125% zoom changes the viewport and preserves native pane hit testing",
+          "PASS 120% zoom changes the viewport and preserves native pane hit testing",
+          "PASS 135% zoom changes the viewport and preserves native pane hit testing",
+          "PASS AppKit side-button presses reach the correct WebKit panes once per press",
+          "PASS Release-only side buttons navigate and duplicate delivery stays consumed",
+          "PASS Rapid side-button presses retain separate gestures and repeated down delivery does not",
+          "PASS A lost release does not swallow a later release-only gesture in another pane",
+          "PASS A page that rejects history navigation receives no native callback",
+          "PASS macOS decodes and accepts AppIcon.icns as the running app icon",
+          "PASS macOS decodes and accepts AppIcon-blue.icns as the running app icon",
+          "PASS macOS decodes and accepts AppIcon-green.icns as the running app icon"
+        ]
+      },
+      "rcloneFixture": {
+        "version": "1.75.2",
+        "archiveChecksumVerified": true,
+        "archiveChecksumEvidence": "rclone-v1.75.2-osx-arm64.zip: OK",
+        "downloadStepConclusion": "success",
+        "minimumOSGateEvidence": [
+          "INFO rclone declares macOS 26.0.0; update eligibility correctly rejects this on 15.7.9"
+        ]
+      },
+      "rawLog": {
+        "bytes": 46668,
+        "sha256": "e521cd8b3b803e67c674f80795179e80392cc42e6c7d645a9783c8d3ffc66bbf",
+        "jobURL": "https://github.com/jason840709/RcloneBrowserNext/actions/runs/39467210330/job/118781598563"
+      },
+      "evidenceExcerpt": {
+        "sha256": "2e3395c4de5ad798b5d0b01f426c01c5ddb401fe67e9348eeac3c48e9c4a357f",
+        "jobURL": "https://github.com/jason840709/RcloneBrowserNext/actions/runs/39467210330/job/118781598563"
+      },
+      "package": {
+        "fileName": "Rclone_Browser_Next_0.8.0_macOS_arm64.zip",
+        "sizeBytes": 2684652,
+        "sha256": "b81b0fa009df1d4bf49e54c47920376462b25e6609ce97fc5548a0f26f3aa765",
+        "URL": "https://github.com/jason840709/RcloneBrowserNext/releases/download/v0.8.0/Rclone_Browser_Next_0.8.0_macOS_arm64.zip",
+        "downloadedAndVerified": true,
+        "resourcesMatchVerifiedSource": true,
+        "buildArtifactMembers": [
+          "Rclone_Browser_Next_0.8.0_macOS_arm64_20261020-174424-1252.zip"
+        ]
+      }
+    },
+    {
+      "platform": "macos-x86_64",
+      "runnerLabel": "macos-15-intel",
+      "jobID": 118781598384,
+      "jobURL": "https://github.com/jason840709/RcloneBrowserNext/actions/runs/39467210330/job/118781598384",
+      "conclusion": "success",
+      "suiteCount": 9,
+      "suites": [
+        {
+          "name": "CoreTests",
+          "passed": 56,
+          "failed": 0,
+          "skipped": 1,
+          "skipCountEvidence": "Explicit SKIP lines; checked against summary when reported",
+          "skipReasons": [
+            "NAS kernel read instrumentation — Linux inotify is unavailable; the portable NAS transfer/compare test still runs"
+          ],
+          "summary": "RESULT: 56 passed, 0 failed, 1 skipped",
+          "summaryReportsSkipped": true
+        },
+        {
+          "name": "UpdaterTests",
+          "passed": 20,
+          "failed": 0,
+          "skipped": 0,
+          "skipCountEvidence": "Explicit SKIP lines; checked against summary when reported",
+          "skipReasons": [],
+          "summary": "Updater: 20 passed, 0 failed",
+          "summaryReportsSkipped": false
+        },
+        {
+          "name": "ToolsTests",
+          "passed": 12,
+          "failed": 0,
+          "skipped": 0,
+          "skipCountEvidence": "Explicit SKIP lines; checked against summary when reported",
+          "skipReasons": [],
+          "summary": "12 passed, 0 failed, 0 skipped",
+          "summaryReportsSkipped": true
+        },
+        {
+          "name": "NativeMessagesTests",
+          "passed": 13,
+          "failed": 0,
+          "skipped": 0,
+          "skipCountEvidence": "Explicit SKIP lines; checked against summary when reported",
+          "skipReasons": [],
+          "summary": "NativeMessagesTests: 13 passed, 0 failed, 0 skipped",
+          "summaryReportsSkipped": true
+        },
+        {
+          "name": "FinderDropTests",
+          "passed": 5,
+          "failed": 0,
+          "skipped": 0,
+          "skipCountEvidence": "Explicit SKIP lines; checked against summary when reported",
+          "skipReasons": [],
+          "summary": "5 passed, 0 failed",
+          "summaryReportsSkipped": false
+        },
+        {
+          "name": "AppReleaseTests",
+          "passed": 8,
+          "failed": 0,
+          "skipped": 0,
+          "skipCountEvidence": "Explicit SKIP lines; checked against summary when reported",
+          "skipReasons": [],
+          "summary": "App release tests: 8 passed, 0 failed",
+          "summaryReportsSkipped": false
+        },
+        {
+          "name": "TransferReportTests",
+          "passed": 25,
+          "failed": 0,
+          "skipped": 0,
+          "skipCountEvidence": "Explicit SKIP lines; checked against summary when reported",
+          "skipReasons": [],
+          "summary": "25 passed, 0 failed, 0 skipped",
+          "summaryReportsSkipped": true
+        },
+        {
+          "name": "PlatformTests",
+          "passed": 10,
+          "failed": 0,
+          "skipped": 0,
+          "skipCountEvidence": "Explicit SKIP lines; checked against summary when reported",
+          "skipReasons": [],
+          "summary": "RESULT 10 passed, 0 failed",
+          "summaryReportsSkipped": false
+        },
+        {
+          "name": "MacInterfaceTests",
+          "passed": 19,
+          "failed": 0,
+          "skipped": 0,
+          "skipCountEvidence": "Explicit SKIP lines; checked against summary when reported",
+          "skipReasons": [],
+          "summary": "MacInterfaceTests: 19 passed, 0 failed, 0 skipped",
+          "summaryReportsSkipped": true
+        }
+      ],
+      "totals": {
+        "passed": 168,
+        "failed": 0,
+        "skipped": 1
+      },
+      "build": {
+        "version": "0.8.0",
+        "architecture": "x86_64",
+        "minimumMacOS": "13.0",
+        "runnerOS": [
+          "15.7.9"
+        ]
+      },
+      "signature": {
+        "type": "ad-hoc local codesign (--sign -)",
+        "validOnDisk": true,
+        "designatedRequirementSatisfied": true,
+        "bundleVerification": "驗證通過：版本 0.8.0；架構 x86_64；最低 macOS 13.0。",
+        "mainExecutableSHA256": "d1d983daad3327059ab65b3d595858b06535420d5e2f9be5d0bb8a5c974a30eb",
+        "bundleVersion": "0.8.0",
+        "bundleMinimumOS": "13.0",
+        "packagedExecutableMatchesVerifiedBuild": true
+      },
+      "nativeInterfaceCoverage": {
+        "harness": "Actual AppKit NSWindow and production RcloneWebView with a controlled local HTML document",
+        "actualCheckRecords": [
+          "PASS Saved dark background is installed before showing the window or loading HTML",
+          "PASS Bundled-style interface loads in macOS WebKit",
+          "PASS Document-start theme precedes page scripts and the first revealed frame",
+          "PASS Reload uses the latest saved light theme without retaining an old startup script",
+          "PASS 80% zoom changes the viewport and preserves native pane hit testing",
+          "PASS 90% zoom changes the viewport and preserves native pane hit testing",
+          "PASS 100% zoom changes the viewport and preserves native pane hit testing",
+          "PASS 110% zoom changes the viewport and preserves native pane hit testing",
+          "PASS 125% zoom changes the viewport and preserves native pane hit testing",
+          "PASS 120% zoom changes the viewport and preserves native pane hit testing",
+          "PASS 135% zoom changes the viewport and preserves native pane hit testing",
+          "PASS AppKit side-button presses reach the correct WebKit panes once per press",
+          "PASS Release-only side buttons navigate and duplicate delivery stays consumed",
+          "PASS Rapid side-button presses retain separate gestures and repeated down delivery does not",
+          "PASS A lost release does not swallow a later release-only gesture in another pane",
+          "PASS A page that rejects history navigation receives no native callback",
+          "PASS macOS decodes and accepts AppIcon.icns as the running app icon",
+          "PASS macOS decodes and accepts AppIcon-blue.icns as the running app icon",
+          "PASS macOS decodes and accepts AppIcon-green.icns as the running app icon"
+        ]
+      },
+      "rcloneFixture": {
+        "version": "1.75.2",
+        "archiveChecksumVerified": true,
+        "archiveChecksumEvidence": "rclone-v1.75.2-osx-amd64.zip: OK",
+        "downloadStepConclusion": "success",
+        "minimumOSGateEvidence": [
+          "INFO rclone declares macOS 26.0.0; update eligibility correctly rejects this on 15.7.9"
+        ]
+      },
+      "rawLog": {
+        "bytes": 44834,
+        "sha256": "d17f12adbd818cd1a1ea133c06c334f280c93e901338cfcc690c493b5b026221",
+        "jobURL": "https://github.com/jason840709/RcloneBrowserNext/actions/runs/39467210330/job/118781598384"
+      },
+      "evidenceExcerpt": {
+        "sha256": "35ef1f4ae25069063a14c236cf17505ac08fca1aeeb41a8e82ec55a7a6e7730e",
+        "jobURL": "https://github.com/jason840709/RcloneBrowserNext/actions/runs/39467210330/job/118781598384"
+      },
+      "package": {
+        "fileName": "Rclone_Browser_Next_0.8.0_macOS_x86_64.zip",
+        "sizeBytes": 2725347,
+        "sha256": "94ddb51ba1f2b08eda588a6da2a997b9db6b9987d06f810bbab3dda5c464cdb5",
+        "URL": "https://github.com/jason840709/RcloneBrowserNext/releases/download/v0.8.0/Rclone_Browser_Next_0.8.0_macOS_x86_64.zip",
+        "downloadedAndVerified": true,
+        "resourcesMatchVerifiedSource": true,
+        "buildArtifactMembers": [
+          "Rclone_Browser_Next_0.8.0_macOS_x86_64_20261020-173427-2378.zip"
+        ]
+      }
+    },
+    {
+      "platform": "windows-x86_64",
+      "environment": "Windows Server 2025 x64 (10.0.26100)",
+      "runnerLabel": "windows-2025",
+      "jobID": 118781597206,
+      "jobURL": "https://github.com/jason840709/RcloneBrowserNext/actions/runs/39467210330/job/118781597206",
+      "conclusion": "success",
+      "suites": {
+        "rustHost": {
+          "passed": 4,
+          "failed": 0,
+          "skipped": 0
+        },
+        "platform": {
+          "passed": 9,
+          "failed": 0,
+          "skipped": 0
+        },
+        "engineSmoke": {
+          "passed": 9,
+          "failed": 0,
+          "skipped": 0
+        },
+        "nativeUISmoke": {
+          "passed": 1,
+          "failed": 0,
+          "skipped": 0
+        }
+      },
+      "package": {
+        "fileName": "Rclone_Browser_Next_0.8.0_Windows_x64_Setup.exe",
+        "sizeBytes": 16921145,
+        "sha256": "4b71936b341c7030f12fbadafd5f74246fc7eaf1ad0c5fa6e69fe102bc4d7a63",
+        "URL": "https://github.com/jason840709/RcloneBrowserNext/releases/download/v0.8.0/Rclone_Browser_Next_0.8.0_Windows_x64_Setup.exe",
+        "downloadedAndVerified": true
+      },
+      "artifact": {
+        "id": 12286850424,
+        "name": "RcloneBrowserNext-Windows-x64",
+        "sizeBytes": 16907920,
+        "sha256": "4e218616929e0ef3a7c10f6985cab00759c21dcd12453c07ff36e0beead826b1",
+        "digestVerifiedAfterDownload": false,
+        "URL": "https://github.com/jason840709/RcloneBrowserNext/actions/runs/39467210330/artifacts/12286850424"
+      },
+      "packageSmoke": {
+        "method": "NSIS /S installation into an isolated directory, execute the installed rclone-browser-next.exe",
+        "installedApp": "rclone-browser-next.exe",
+        "installExitSuccess": true,
+        "bundledSwiftRuntime": true,
+        "buildSDKPathRemoved": true,
+        "buttons": 80,
+        "error": null,
+        "initialTheme": "green-dark",
+        "language": "en",
+        "panes": 2,
+        "platform": "win32",
+        "scaleBefore": 100,
+        "themeBefore": "green-dark",
+        "webkit": "function",
+        "widthBefore": 1142,
+        "widthRestored": 1142,
+        "widthZoomed": 894,
+        "exitCode": 0,
+        "system": "Windows-2025Server-10.0.26100-SP0",
+        "nativeLog": "[1020/174647.106:ERROR:ui\\gfx\\win\\window_impl.cc:172] Failed to unregister class Chrome_WidgetWin_0. Error = 1412\n"
+      },
+      "packagedUISmokeReceipt": {
+        "passed": true,
+        "result": {
+          "buttons": 80,
+          "error": null,
+          "initialTheme": "green-dark",
+          "language": "en",
+          "panes": 2,
+          "platform": "win32",
+          "scaleBefore": 100,
+          "themeBefore": "green-dark",
+          "webkit": "function",
+          "widthBefore": 1142,
+          "widthRestored": 1142,
+          "widthZoomed": 894
+        },
+        "version": "0.8.0",
+        "installer": {
+          "name": "Rclone_Browser_Next_0.8.0_Windows_x64_Setup.exe",
+          "sha256": "4b71936b341c7030f12fbadafd5f74246fc7eaf1ad0c5fa6e69fe102bc4d7a63",
+          "bytes": 16921145
+        },
+        "system": "Windows-2025Server-10.0.26100-SP0",
+        "exitCode": 0,
+        "installedApp": "rclone-browser-next.exe",
+        "nativeLog": "[1020/174647.106:ERROR:ui\\gfx\\win\\window_impl.cc:172] Failed to unregister class Chrome_WidgetWin_0. Error = 1412\n"
+      },
+      "helperSmokeCoverage": [
+        "bootstrap, engine discovery and Unicode listing",
+        "Windows account setup launcher",
+        "account setup preserves its engine while appearance applies immediately",
+        "dry run reports planned work without changing files",
+        "copy preserves destination-only files",
+        "repeat sync skips unchanged files and removes destination extras",
+        "complete reports and task export/import",
+        "graceful cancellation cleans partials and preserves completed files",
+        "restart clears successful history and retains stopped jobs and tasks"
+      ],
+      "uninstallIndependentlyVerified": false,
+      "authenticodeInspectionPerformed": false,
+      "limitations": [
+        "Requires Microsoft Edge WebView2; the NSIS package is configured to bootstrap the runtime when needed.",
+        "CI used Windows Server 2025, not separate Windows 10 and Windows 11 installations.",
+        "No cloud-account integration or full interactive UI regression suite was run for compatibility platforms."
+      ],
+      "evidence": {
+        "source": "Decoded GitHub Actions job log; installer metadata and native UI receipt were parsed from complete JSON objects.",
+        "skippedCountEvidence": "No explicit SKIP lines; Rust reports zero ignored.",
+        "jobURL": "https://github.com/jason840709/RcloneBrowserNext/actions/runs/39467210330/job/118781597206"
+      }
+    },
+    {
+      "platform": "linux-x86_64",
+      "environment": "Ubuntu 24.04 x86_64",
+      "runnerLabel": "ubuntu-24.04",
+      "jobID": 118781597633,
+      "jobURL": "https://github.com/jason840709/RcloneBrowserNext/actions/runs/39467210330/job/118781597633",
+      "conclusion": "success",
+      "suites": {
+        "rustHost": {
+          "passed": 4,
+          "failed": 0,
+          "skipped": 0
+        },
+        "platform": {
+          "passed": 10,
+          "failed": 0,
+          "skipped": 0
+        },
+        "engineSmoke": {
+          "passed": 8,
+          "failed": 0,
+          "skipped": 0
+        },
+        "nativeUISmoke": {
+          "passed": 1,
+          "failed": 0,
+          "skipped": 0
+        }
+      },
+      "package": {
+        "fileName": "Rclone_Browser_Next_0.8.0_Linux_amd64.deb",
+        "sizeBytes": 30208870,
+        "sha256": "e2fa774ebce5fd9fc064ee09850f529a294c89e1178604d6237e0fa9b5044608",
+        "URL": "https://github.com/jason840709/RcloneBrowserNext/releases/download/v0.8.0/Rclone_Browser_Next_0.8.0_Linux_amd64.deb",
+        "downloadedAndVerified": true
+      },
+      "artifact": {
+        "id": 12285633579,
+        "name": "RcloneBrowserNext-Linux-x64",
+        "sizeBytes": 30021093,
+        "sha256": "000292d2d2d2fc2c0a2f5be2b3fc87a7702c9e5ac082d9c8ca9521a826322b4e",
+        "digestVerifiedAfterDownload": false,
+        "URL": "https://github.com/jason840709/RcloneBrowserNext/actions/runs/39467210330/artifacts/12285633579"
+      },
+      "packageSmoke": {
+        "method": "dpkg-deb --extract, execute extracted usr/bin/rclone-browser-next under Xvfb",
+        "bundledSwiftRuntime": true,
+        "buildSDKLibraryPathRemoved": true,
+        "installedApp": "usr/bin/rclone-browser-next",
+        "buttons": 80,
+        "error": null,
+        "initialTheme": "green-dark",
+        "language": "en",
+        "panes": 2,
+        "platform": "linux",
+        "scaleBefore": 100,
+        "themeBefore": "green-dark",
+        "webkit": "undefined",
+        "widthBefore": 1422,
+        "widthRestored": 1422,
+        "widthZoomed": 1113,
+        "exitCode": 0,
+        "system": "Linux-7.0.0-1017-azure-x86_64-with-glibc2.39",
+        "nativeLog": "\n(rclone-browser-next:17407): dbind-WARNING **: 17:41:53.086: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files\nlibEGL warning: DRI3 error: Could not get DRI3 device\nlibEGL warning: Ensure your X server supports DRI3 to get accelerated rendering\n"
+      },
+      "packagedUISmokeReceipt": {
+        "passed": true,
+        "result": {
+          "buttons": 80,
+          "error": null,
+          "initialTheme": "green-dark",
+          "language": "en",
+          "panes": 2,
+          "platform": "linux",
+          "scaleBefore": 100,
+          "themeBefore": "green-dark",
+          "webkit": "undefined",
+          "widthBefore": 1422,
+          "widthRestored": 1422,
+          "widthZoomed": 1113
+        },
+        "version": "0.8.0",
+        "installer": {
+          "name": "Rclone_Browser_Next_0.8.0_Linux_amd64.deb",
+          "sha256": "e2fa774ebce5fd9fc064ee09850f529a294c89e1178604d6237e0fa9b5044608",
+          "bytes": 30208870
+        },
+        "system": "Linux-7.0.0-1017-azure-x86_64-with-glibc2.39",
+        "exitCode": 0,
+        "installedApp": "usr/bin/rclone-browser-next",
+        "nativeLog": "\n(rclone-browser-next:17407): dbind-WARNING **: 17:41:53.086: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files\nlibEGL warning: DRI3 error: Could not get DRI3 device\nlibEGL warning: Ensure your X server supports DRI3 to get accelerated rendering\n"
+      },
+      "helperSmokeCoverage": [
+        "bootstrap, engine discovery and Unicode listing",
+        "account setup preserves its engine while appearance applies immediately",
+        "dry run reports planned work without changing files",
+        "copy preserves destination-only files",
+        "repeat sync skips unchanged files and removes destination extras",
+        "complete reports and task export/import",
+        "graceful cancellation cleans partials and preserves completed files",
+        "restart clears successful history and retains stopped jobs and tasks"
+      ],
+      "limitations": [
+        "Built for Ubuntu 24.04-compatible amd64 with listed native package dependencies.",
+        "Package smoke extracts the .deb and launches the actual packaged app; it does not use a clean VM package-manager installation.",
+        "No cloud-account integration or full interactive UI regression suite was run for compatibility platforms."
+      ],
+      "evidence": {
+        "source": "Decoded GitHub Actions job log; installer metadata and native UI receipt were parsed from complete JSON objects.",
+        "skippedCountEvidence": "No explicit SKIP lines; Rust reports zero ignored.",
+        "jobURL": "https://github.com/jason840709/RcloneBrowserNext/actions/runs/39467210330/job/118781597633"
+      }
+    }
+  ],
+  "macOSScope": {
+    "suiteCount": 9,
+    "nativeInterface": {
+      "testDocument": "Controlled embedded HTML in an actual AppKit window and production RcloneWebView",
+      "coverage": [
+        "Native background and zoom before document loading",
+        "Document-start saved dark theme and subsequent light-theme document",
+        "Five standard and two retained legacy zoom values with pane hit testing",
+        "Actual NSEvent delivery through production NSWindow.sendEvent to WebKit receipts",
+        "Paired presses, release-only, duplicate dispatch, rapid presses, and missing releases",
+        "AppKit decoding and runtime application of three ICNS icons"
+      ],
+      "productionReactBundleEndToEnd": false
+    },
+    "codeSigning": {
+      "type": "ad-hoc",
+      "verification": "codesign --verify --deep --strict",
+      "developerID": false,
+      "notarized": false
+    },
+    "knownSkip": {
+      "suite": "CoreTests",
+      "name": "NAS kernel read instrumentation",
+      "reason": "Linux inotify is unavailable on macOS; portable NAS transfer and comparison cases still execute."
+    }
+  },
+  "compatibilityScope": {
+    "packagedUI": "Windows uses an NSIS-installed executable; Linux extracts the DEB and runs its packaged executable under Xvfb.",
+    "initialTheme": "Saved green-dark is applied before the production interface initializes.",
+    "zoom": "New 100% starts at 0.90, changes to 125% at 1.15, and restores the original viewport at 100%.",
+    "runtime": "Bundled Swift runtime, with build SDK runtime paths removed from smoke environment."
+  },
+  "releaseAssets": [
+    {
+      "name": "Rclone_Browser_Next_0.8.0_Mac_Local_Build.zip",
+      "bytes": 4120168,
+      "sha256": "4d04892bcf4a8a581cd789cffdd71af556617c5d527d6a1297a29fff7d755b14",
+      "asset_id": 660047363,
+      "url": "https://github.com/jason840709/RcloneBrowserNext/releases/download/v0.8.0/Rclone_Browser_Next_0.8.0_Mac_Local_Build.zip"
+    },
+    {
+      "name": "Rclone_Browser_Next_0.8.0_macOS_arm64.zip",
+      "bytes": 2684652,
+      "sha256": "b81b0fa009df1d4bf49e54c47920376462b25e6609ce97fc5548a0f26f3aa765",
+      "asset_id": 660047361,
+      "url": "https://github.com/jason840709/RcloneBrowserNext/releases/download/v0.8.0/Rclone_Browser_Next_0.8.0_macOS_arm64.zip"
+    },
+    {
+      "name": "Rclone_Browser_Next_0.8.0_macOS_x86_64.zip",
+      "bytes": 2725347,
+      "sha256": "94ddb51ba1f2b08eda588a6da2a997b9db6b9987d06f810bbab3dda5c464cdb5",
+      "asset_id": 660047365,
+      "url": "https://github.com/jason840709/RcloneBrowserNext/releases/download/v0.8.0/Rclone_Browser_Next_0.8.0_macOS_x86_64.zip"
+    },
+    {
+      "name": "Rclone_Browser_Next_0.8.0_Windows_x64_Setup.exe",
+      "bytes": 16921145,
+      "sha256": "4b71936b341c7030f12fbadafd5f74246fc7eaf1ad0c5fa6e69fe102bc4d7a63",
+      "asset_id": 660047360,
+      "url": "https://github.com/jason840709/RcloneBrowserNext/releases/download/v0.8.0/Rclone_Browser_Next_0.8.0_Windows_x64_Setup.exe"
+    },
+    {
+      "name": "Rclone_Browser_Next_0.8.0_Linux_amd64.deb",
+      "bytes": 30208870,
+      "sha256": "e2fa774ebce5fd9fc064ee09850f529a294c89e1178604d6237e0fa9b5044608",
+      "asset_id": 660047364,
+      "url": "https://github.com/jason840709/RcloneBrowserNext/releases/download/v0.8.0/Rclone_Browser_Next_0.8.0_Linux_amd64.deb"
+    },
+    {
+      "name": "SHA256SUMS_0.8.0.txt",
+      "bytes": 551,
+      "sha256": "30e3ff0afeaed703c5af7fd00b2c17d6e573b115eaba48730c5d477963cc8e78",
+      "asset_id": 660047424,
+      "url": "https://github.com/jason840709/RcloneBrowserNext/releases/download/v0.8.0/SHA256SUMS_0.8.0.txt"
+    }
+  ],
+  "releaseAssetVerification": {
+    "downloadedCount": 6,
+    "allChecksPassed": true,
+    "checks": [
+      "GitHub asset size and SHA-256",
+      "Published SHA256SUMS",
+      "ZIP CRC and safe paths",
+      "Source ZIP complete tracked file set, manifest and bytes against release commit",
+      "Mac version/build/minimum OS, architecture, executable hash and all Web/icon resources",
+      "Windows executable header and Linux package version/amd64 control metadata"
+    ]
+  },
+  "testData": "Isolated local fixture directories, alias remotes, loopback responses and deterministic UI data."
+}
