@@ -107,7 +107,6 @@ Author: **Jason Chen**. Released under the [MIT License](LICENSE). Jason Chen su
 - [rclone](https://rclone.org/) and its contributors provide the storage connections and transfer engine.
 - [mmozeiko/RcloneBrowser](https://github.com/mmozeiko/RcloneBrowser) is the original Rclone Browser project and the foundation for its graphical workflows.
 - [kapitainsky/RcloneBrowser](https://github.com/kapitainsky/RcloneBrowser) continued maintenance and feature development, providing workflows and features studied for this project.
-- ForkLift informed the dual-pane interactions and layout; its code and private resources are not distributed here.
 
 Next is an independent Swift/AppKit and React implementation, rather than an official release of the original project.
 Third-party frontend notices accompany the [web resources](Resources/Web/THIRD_PARTY_NOTICES.txt).
