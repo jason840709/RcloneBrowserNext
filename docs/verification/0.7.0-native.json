@@ -1,0 +1,506 @@
+{
+  "schemaVersion": 1,
+  "release": "0.7.0",
+  "recordedAtUTC": "2026-10-20T16:23:33Z",
+  "status": "passed",
+  "verifiedAgainstCommit": "5f60aab8874dece2913f54467c23c841736e987b",
+  "commitURL": "https://github.com/jason840709/RcloneBrowserNext/commit/5f60aab8874dece2913f54467c23c841736e987b",
+  "ci": {
+    "runID": 39454908404,
+    "runURL": "https://github.com/jason840709/RcloneBrowserNext/actions/runs/39454908404",
+    "workflow": ".github/workflows/macos.yml",
+    "requiredPlatforms": [
+      "macos-arm64",
+      "macos-x86_64",
+      "windows-x86_64",
+      "linux-x86_64"
+    ],
+    "requiredJobsConclusion": "success"
+  },
+  "publication": {
+    "releaseID": 418615379,
+    "tag": "v0.7.0",
+    "URL": "https://github.com/jason840709/RcloneBrowserNext/releases/tag/v0.7.0",
+    "targetCommit": "5f60aab8874dece2913f54467c23c841736e987b",
+    "publishedAtUTC": "2026-10-20T16:21:39Z",
+    "jobID": 118745373113,
+    "jobURL": "https://github.com/jason840709/RcloneBrowserNext/actions/runs/39454908404/job/118745373113",
+    "conclusion": "success",
+    "assetCount": 6
+  },
+  "localVerificationRecord": "docs/verification/0.7.0-local.json",
+  "counting": {
+    "macOS": "Each architecture executes the same nine suites; counts are reported separately.",
+    "compatibility": "Suite cases and one packaged native UI smoke invocation are reported separately."
+  },
+  "platforms": [
+    {
+      "platform": "macos-arm64",
+      "runnerLabel": "macos-15",
+      "jobID": 118739108177,
+      "jobURL": "https://github.com/jason840709/RcloneBrowserNext/actions/runs/39454908404/job/118739108177",
+      "conclusion": "success",
+      "suiteCount": 9,
+      "suites": [
+        {
+          "name": "CoreTests",
+          "passed": 55,
+          "failed": 0,
+          "skipped": 1,
+          "summary": "RESULT: 55 passed, 0 failed, 1 skipped",
+          "summaryReportsSkipped": true,
+          "skipCountEvidence": "Explicit SKIP lines; checked against summary when reported",
+          "skipReasons": [
+            "NAS kernel read instrumentation — Linux inotify is unavailable; the portable NAS transfer/compare test still runs"
+          ]
+        },
+        {
+          "name": "UpdaterTests",
+          "passed": 20,
+          "failed": 0,
+          "skipped": 0,
+          "summary": "Updater: 20 passed, 0 failed",
+          "summaryReportsSkipped": false,
+          "skipCountEvidence": "Explicit SKIP lines; checked against summary when reported",
+          "skipReasons": []
+        },
+        {
+          "name": "ToolsTests",
+          "passed": 12,
+          "failed": 0,
+          "skipped": 0,
+          "summary": "12 passed, 0 failed, 0 skipped",
+          "summaryReportsSkipped": true,
+          "skipCountEvidence": "Explicit SKIP lines; checked against summary when reported",
+          "skipReasons": []
+        },
+        {
+          "name": "NativeMessagesTests",
+          "passed": 13,
+          "failed": 0,
+          "skipped": 0,
+          "summary": "NativeMessagesTests: 13 passed, 0 failed, 0 skipped",
+          "summaryReportsSkipped": true,
+          "skipCountEvidence": "Explicit SKIP lines; checked against summary when reported",
+          "skipReasons": []
+        },
+        {
+          "name": "FinderDropTests",
+          "passed": 5,
+          "failed": 0,
+          "skipped": 0,
+          "summary": "5 passed, 0 failed",
+          "summaryReportsSkipped": false,
+          "skipCountEvidence": "Explicit SKIP lines; checked against summary when reported",
+          "skipReasons": []
+        },
+        {
+          "name": "AppReleaseTests",
+          "passed": 8,
+          "failed": 0,
+          "skipped": 0,
+          "summary": "App release tests: 8 passed, 0 failed",
+          "summaryReportsSkipped": false,
+          "skipCountEvidence": "Explicit SKIP lines; checked against summary when reported",
+          "skipReasons": []
+        },
+        {
+          "name": "TransferReportTests",
+          "passed": 25,
+          "failed": 0,
+          "skipped": 0,
+          "summary": "25 passed, 0 failed, 0 skipped",
+          "summaryReportsSkipped": true,
+          "skipCountEvidence": "Explicit SKIP lines; checked against summary when reported",
+          "skipReasons": []
+        },
+        {
+          "name": "PlatformTests",
+          "passed": 10,
+          "failed": 0,
+          "skipped": 0,
+          "summary": "RESULT 10 passed, 0 failed",
+          "summaryReportsSkipped": false,
+          "skipCountEvidence": "Explicit SKIP lines; checked against summary when reported",
+          "skipReasons": []
+        },
+        {
+          "name": "MacInterfaceTests",
+          "passed": 9,
+          "failed": 0,
+          "skipped": 0,
+          "summary": "MacInterfaceTests: 9 passed, 0 failed, 0 skipped",
+          "summaryReportsSkipped": true,
+          "skipCountEvidence": "Explicit SKIP lines; checked against summary when reported",
+          "skipReasons": []
+        }
+      ],
+      "totals": {
+        "passed": 157,
+        "failed": 0,
+        "skipped": 1
+      },
+      "signature": {
+        "type": "ad-hoc local codesign (--sign -)",
+        "validOnDisk": true,
+        "designatedRequirementSatisfied": true,
+        "bundleVerification": "驗證通過：版本 0.7.0；架構 arm64；最低 macOS 13.0。",
+        "mainExecutableSHA256": "35fd3e6a6df55cb0fd45039c08816374e12c2b53076a34b84b6859bfa6aa8ce2",
+        "packagedExecutableMatchesVerifiedBuild": true,
+        "bundleVersion": "0.7.0",
+        "bundleMinimumOS": "13.0"
+      },
+      "rcloneFixture": {
+        "version": "1.75.2",
+        "archiveChecksumVerified": true,
+        "minimumOSGateEvidence": [
+          "INFO rclone declares macOS 26.0.0; update eligibility correctly rejects this on 15.7.9"
+        ]
+      },
+      "artifact": {
+        "id": 12281061463,
+        "name": "RcloneBrowserNext-macOS-arm64",
+        "sizeBytes": 2674985,
+        "sha256": "5c73050a850dd1bf1f1ea06c65a5a4572d1ea6009204b944102fe25c728a135a",
+        "digestVerifiedAfterDownload": true,
+        "downloadURL": "https://api.github.com/repos/jason840709/RcloneBrowserNext/actions/artifacts/12281061463/zip",
+        "URL": "https://github.com/jason840709/RcloneBrowserNext/actions/runs/39454908404/artifacts/12281061463"
+      },
+      "package": {
+        "fileName": "Rclone_Browser_Next_0.7.0_macOS_arm64_20261020-160936-1247.zip",
+        "sizeBytes": 2677101,
+        "sha256": "722975a9e02a5265cdbd2115f84eaee63858abdae990e011615934b5b6e642eb",
+        "artifactMember": "Rclone_Browser_Next_0.7.0_macOS_arm64_20261020-160936-1247.zip"
+      },
+      "rawLogSHA256": "9da2685f33042e3d70d48aa795c254e098f49e4fc4c5420e0ac72022c6e61e8c"
+    },
+    {
+      "platform": "macos-x86_64",
+      "runnerLabel": "macos-15-intel",
+      "jobID": 118739107893,
+      "jobURL": "https://github.com/jason840709/RcloneBrowserNext/actions/runs/39454908404/job/118739107893",
+      "conclusion": "success",
+      "suiteCount": 9,
+      "suites": [
+        {
+          "name": "CoreTests",
+          "passed": 55,
+          "failed": 0,
+          "skipped": 1,
+          "summary": "RESULT: 55 passed, 0 failed, 1 skipped",
+          "summaryReportsSkipped": true,
+          "skipCountEvidence": "Explicit SKIP lines; checked against summary when reported",
+          "skipReasons": [
+            "NAS kernel read instrumentation — Linux inotify is unavailable; the portable NAS transfer/compare test still runs"
+          ]
+        },
+        {
+          "name": "UpdaterTests",
+          "passed": 20,
+          "failed": 0,
+          "skipped": 0,
+          "summary": "Updater: 20 passed, 0 failed",
+          "summaryReportsSkipped": false,
+          "skipCountEvidence": "Explicit SKIP lines; checked against summary when reported",
+          "skipReasons": []
+        },
+        {
+          "name": "ToolsTests",
+          "passed": 12,
+          "failed": 0,
+          "skipped": 0,
+          "summary": "12 passed, 0 failed, 0 skipped",
+          "summaryReportsSkipped": true,
+          "skipCountEvidence": "Explicit SKIP lines; checked against summary when reported",
+          "skipReasons": []
+        },
+        {
+          "name": "NativeMessagesTests",
+          "passed": 13,
+          "failed": 0,
+          "skipped": 0,
+          "summary": "NativeMessagesTests: 13 passed, 0 failed, 0 skipped",
+          "summaryReportsSkipped": true,
+          "skipCountEvidence": "Explicit SKIP lines; checked against summary when reported",
+          "skipReasons": []
+        },
+        {
+          "name": "FinderDropTests",
+          "passed": 5,
+          "failed": 0,
+          "skipped": 0,
+          "summary": "5 passed, 0 failed",
+          "summaryReportsSkipped": false,
+          "skipCountEvidence": "Explicit SKIP lines; checked against summary when reported",
+          "skipReasons": []
+        },
+        {
+          "name": "AppReleaseTests",
+          "passed": 8,
+          "failed": 0,
+          "skipped": 0,
+          "summary": "App release tests: 8 passed, 0 failed",
+          "summaryReportsSkipped": false,
+          "skipCountEvidence": "Explicit SKIP lines; checked against summary when reported",
+          "skipReasons": []
+        },
+        {
+          "name": "TransferReportTests",
+          "passed": 25,
+          "failed": 0,
+          "skipped": 0,
+          "summary": "25 passed, 0 failed, 0 skipped",
+          "summaryReportsSkipped": true,
+          "skipCountEvidence": "Explicit SKIP lines; checked against summary when reported",
+          "skipReasons": []
+        },
+        {
+          "name": "PlatformTests",
+          "passed": 10,
+          "failed": 0,
+          "skipped": 0,
+          "summary": "RESULT 10 passed, 0 failed",
+          "summaryReportsSkipped": false,
+          "skipCountEvidence": "Explicit SKIP lines; checked against summary when reported",
+          "skipReasons": []
+        },
+        {
+          "name": "MacInterfaceTests",
+          "passed": 9,
+          "failed": 0,
+          "skipped": 0,
+          "summary": "MacInterfaceTests: 9 passed, 0 failed, 0 skipped",
+          "summaryReportsSkipped": true,
+          "skipCountEvidence": "Explicit SKIP lines; checked against summary when reported",
+          "skipReasons": []
+        }
+      ],
+      "totals": {
+        "passed": 157,
+        "failed": 0,
+        "skipped": 1
+      },
+      "signature": {
+        "type": "ad-hoc local codesign (--sign -)",
+        "validOnDisk": true,
+        "designatedRequirementSatisfied": true,
+        "bundleVerification": "驗證通過：版本 0.7.0；架構 x86_64；最低 macOS 13.0。",
+        "mainExecutableSHA256": "aa8bc9814332cdbae0116e0547045a2194d9d5ac724b5db7f5dc666568980fba",
+        "packagedExecutableMatchesVerifiedBuild": true,
+        "bundleVersion": "0.7.0",
+        "bundleMinimumOS": "13.0"
+      },
+      "rcloneFixture": {
+        "version": "1.75.2",
+        "archiveChecksumVerified": true,
+        "minimumOSGateEvidence": [
+          "INFO rclone declares macOS 26.0.0; update eligibility correctly rejects this on 15.7.9"
+        ]
+      },
+      "artifact": {
+        "id": 12281601070,
+        "name": "RcloneBrowserNext-macOS-x86_64",
+        "sizeBytes": 2716223,
+        "sha256": "4290e1dbf8206b1e18187c39d09bb709e625fe5a475c269ba2db976d1310ec9a",
+        "digestVerifiedAfterDownload": true,
+        "downloadURL": "https://api.github.com/repos/jason840709/RcloneBrowserNext/actions/artifacts/12281601070/zip",
+        "URL": "https://github.com/jason840709/RcloneBrowserNext/actions/runs/39454908404/artifacts/12281601070"
+      },
+      "package": {
+        "fileName": "Rclone_Browser_Next_0.7.0_macOS_x86_64_20261020-160947-5596.zip",
+        "sizeBytes": 2718442,
+        "sha256": "15f3afbbc8f6827a0edb37fe85c3beace105370d3d06110c1757aaa5e1d0bdf4",
+        "artifactMember": "Rclone_Browser_Next_0.7.0_macOS_x86_64_20261020-160947-5596.zip"
+      },
+      "rawLogSHA256": "0dd30b87ab64bce0e8636ed511a266eea21ff771b65a8058d065df5d913092f6"
+    },
+    {
+      "platform": "windows-x86_64",
+      "environment": "Windows Server 2025 x64 (10.0.26100)",
+      "runnerLabel": "windows-2025",
+      "jobID": 118739108088,
+      "jobURL": "https://github.com/jason840709/RcloneBrowserNext/actions/runs/39454908404/job/118739108088",
+      "conclusion": "success",
+      "suites": {
+        "rustHost": {
+          "passed": 3,
+          "failed": 0,
+          "skipped": 0
+        },
+        "platform": {
+          "passed": 9,
+          "failed": 0,
+          "skipped": 0
+        },
+        "engineSmoke": {
+          "passed": 9,
+          "failed": 0,
+          "skipped": 0
+        },
+        "nativeUISmoke": {
+          "passed": 1,
+          "failed": 0,
+          "skipped": 0
+        }
+      },
+      "package": {
+        "fileName": "Rclone_Browser_Next_0.7.0_Windows_x64_Setup.exe",
+        "sizeBytes": 16913260,
+        "sha256": "32bf56f20de64853f9628f29172f3ab9bb8c21aaf566f2ac0e58c94c583905bc"
+      },
+      "artifact": {
+        "id": 12280572739,
+        "URL": "https://github.com/jason840709/RcloneBrowserNext/actions/runs/39454908404/artifacts/12280572739"
+      },
+      "packageSmoke": {
+        "method": "NSIS /S installation into an isolated directory, execute the installed rclone-browser-next.exe",
+        "installedApp": "rclone-browser-next.exe",
+        "installExitSuccess": true,
+        "bundledSwiftRuntime": true,
+        "buildSDKPathRemoved": true,
+        "panes": 2,
+        "buttons": 80,
+        "language": "en",
+        "platform": "win32",
+        "widthBefore": 1028,
+        "widthZoomed": 822,
+        "exitCode": 0
+      },
+      "helperSmokeCoverage": [
+        "bootstrap, engine discovery and Unicode listing",
+        "Windows account setup launcher",
+        "account setup preserves its engine while appearance applies immediately",
+        "dry run reports planned work without changing files",
+        "copy preserves destination-only files",
+        "repeat sync skips unchanged files and removes destination extras",
+        "complete reports and task export/import",
+        "graceful cancellation cleans partials and preserves completed files",
+        "restart clears successful history and retains stopped jobs and tasks"
+      ],
+      "uninstallIndependentlyVerified": false,
+      "authenticodeInspectionPerformed": false,
+      "limitations": [
+        "Requires Microsoft Edge WebView2; the NSIS package is configured to bootstrap the runtime when needed.",
+        "CI used Windows Server 2025, not separate Windows 10 and Windows 11 installations.",
+        "No cloud-account integration or full interactive UI regression suite was run for compatibility platforms."
+      ]
+    },
+    {
+      "platform": "linux-x86_64",
+      "environment": "Ubuntu 24.04 x86_64",
+      "runnerLabel": "ubuntu-24.04",
+      "jobID": 118739108222,
+      "jobURL": "https://github.com/jason840709/RcloneBrowserNext/actions/runs/39454908404/job/118739108222",
+      "conclusion": "success",
+      "suites": {
+        "rustHost": {
+          "passed": 3,
+          "failed": 0,
+          "skipped": 0
+        },
+        "platform": {
+          "passed": 10,
+          "failed": 0,
+          "skipped": 0
+        },
+        "engineSmoke": {
+          "passed": 8,
+          "failed": 0,
+          "skipped": 0
+        },
+        "nativeUISmoke": {
+          "passed": 1,
+          "failed": 0,
+          "skipped": 0
+        }
+      },
+      "package": {
+        "fileName": "Rclone_Browser_Next_0.7.0_Linux_amd64.deb",
+        "sizeBytes": 30207186,
+        "sha256": "3d9bd10fcdb00b1f699679da2b7888c46b3e208c7ed499b30baa0c107b4f80b7"
+      },
+      "artifact": {
+        "id": 12281216242,
+        "URL": "https://github.com/jason840709/RcloneBrowserNext/actions/runs/39454908404/artifacts/12281216242"
+      },
+      "packageSmoke": {
+        "method": "dpkg-deb --extract, execute extracted usr/bin/rclone-browser-next under Xvfb",
+        "bundledSwiftRuntime": true,
+        "buildSDKLibraryPathRemoved": true,
+        "panes": 2,
+        "buttons": 80,
+        "language": "en",
+        "platform": "linux",
+        "widthBefore": 1280,
+        "widthZoomed": 1024,
+        "exitCode": 0
+      },
+      "limitations": [
+        "Built for Ubuntu 24.04-compatible amd64 with listed native package dependencies.",
+        "Package smoke extracts the .deb and launches the actual packaged app; it does not use a clean VM package-manager installation.",
+        "No cloud-account integration or full interactive UI regression suite was run for compatibility platforms."
+      ]
+    }
+  ],
+  "macOSScope": {
+    "suiteCount": 9,
+    "nativeInterface": {
+      "testDocument": "Controlled embedded HTML in a native AppKit window and WKWebView",
+      "coverage": [
+        "Native WKWebView document load",
+        "pageZoom at 80%, 90%, 100%, 110% and 125% with native-to-DOM pane hit testing",
+        "AppKit decoding and runtime application of three ICNS icons"
+      ],
+      "productionReactBundleEndToEnd": false
+    },
+    "codeSigning": {
+      "type": "ad-hoc",
+      "verification": "codesign --verify --deep --strict",
+      "developerID": false,
+      "notarized": false
+    },
+    "knownSkip": {
+      "suite": "CoreTests",
+      "name": "NAS kernel read instrumentation",
+      "reason": "Linux inotify is not available on macOS; portable NAS transfer and comparison cases still execute."
+    }
+  },
+  "sharedCompatibilitySmokeCoverage": [
+    "Bootstrap, engine discovery and Unicode listing",
+    "Account setup preserves its engine while appearance applies immediately",
+    "Dry run reports planned work without changing files",
+    "Copy preserves destination-only files",
+    "Repeat sync skips unchanged files and removes destination extras",
+    "Complete reports and task export/import",
+    "Graceful cancellation cleans partials and preserves completed files",
+    "Restart clears successful history and retains stopped jobs and tasks"
+  ],
+  "compatibilityScope": {
+    "rustHostCoverage": [
+      "Exact matching of the bundled page origin",
+      "External website allow-list boundaries",
+      "Native-only methods excluded from the JavaScript bridge"
+    ],
+    "platformCoverage": [
+      "JSON boolean and numeric value distinction",
+      "Windows absolute paths and drive/UNC root protection",
+      "POSIX filename semantics",
+      "Exclusive file creation, regular-file reads and atomic replacement",
+      "Removal safeguards",
+      "Real rclone executable format and declared operating-system requirement validation"
+    ],
+    "packagedUICoverage": [
+      "Launch the executable obtained from the installer package",
+      "Load the production interface with two panes",
+      "Round-trip the actual native bridge",
+      "Verify platform and language",
+      "Apply native zoom and record the changed viewport",
+      "Exit successfully"
+    ],
+    "platformSpecificCoverage": {
+      "windows": "An additional helper smoke case verifies the account setup launcher; POSIX symlink protection is excluded at compile time.",
+      "linux": "PlatformTests includes POSIX symlink protection."
+    }
+  },
+  "testData": "Isolated local fixture directories, alias remotes, loopback responses and deterministic UI data."
+}
