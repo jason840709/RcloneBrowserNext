@@ -23,6 +23,7 @@ import Foundation
         var errors = [String]()
         var methods = [String]()
         var listedPaths = [String]()
+        var listingNames = [String: [String]]()
         var pendingRequests = 0
         var pendingNavigation = 0
 
@@ -66,11 +67,13 @@ import Foundation
                     String(decoding: try JSONSerialization.data(withJSONObject: reply), as: UTF8.self)
                 }
                 let completedError = requestError
+                let completedNames = (reply["result"] as? [[String: Any]])?.compactMap { $0["name"] as? String }
                 DispatchQueue.main.async {
                     if let error = completedError { self.errors.append(error) }
                     if completedError == nil, method == "list",
                        let endpoint = arguments.first as? [String: Any], let path = endpoint["path"] as? String {
                         self.listedPaths.append(path)
+                        self.listingNames[path] = completedNames
                     }
                     do {
                         let json = try result.get()
@@ -121,10 +124,24 @@ import Foundation
     private static func require(_ condition: Bool, _ message: String) throws {
         if !condition { throw Failure(description: message) }
     }
+    private static func pumpAppKit() {
+        // A Foundation run loop services IPC and JavaScript callbacks but does
+        // not dispatch AppKit's queued window events or update its windows.
+        // Exercise the same event/update cycle as NSApplication.run so WebKit
+        // can present frames and Virtuoso can receive real ResizeObserver/rAF
+        // callbacks. Do not substitute timers for the document's animation API.
+        autoreleasepool {
+            if let event = NSApp.nextEvent(matching: .any, until: Date().addingTimeInterval(0.01),
+                                           inMode: .default, dequeue: true) {
+                NSApp.sendEvent(event)
+            }
+            NSApp.updateWindows()
+        }
+    }
     private static func wait(_ condition: () -> Bool, seconds: TimeInterval = 15) throws {
         let deadline = Date().addingTimeInterval(seconds)
         while !condition() && Date() < deadline {
-            _ = RunLoop.current.run(mode: .default, before: Date().addingTimeInterval(0.01))
+            pumpAppKit()
         }
         try require(condition(), "Timed out waiting for native/WebKit integration")
     }
@@ -140,10 +157,23 @@ import Foundation
         let deadline = Date().addingTimeInterval(seconds)
         repeat {
             if try evaluate(script, in: view) as? Bool == true { return }
-            _ = RunLoop.current.run(mode: .default, before: Date().addingTimeInterval(0.01))
+            pumpAppKit()
         } while Date() < deadline
-        let state = try? evaluate("JSON.stringify({paths:[...document.querySelectorAll('.path-form input')].map(x=>x.value), alerts:[...document.querySelectorAll('[role=alert]')].map(x=>x.textContent), errors:window.__rbnIntegrationErrors})", in: view)
-        throw Failure(description: "Timed out: \(script); page state: \(String(describing: state))")
+        let state = try? evaluate("""
+        JSON.stringify({visibility:document.visibilityState, viewport:[innerWidth,innerHeight],
+          panes:[...document.querySelectorAll('[data-testid$="-pane"]')].map(p=>({
+            id:p.dataset.testid,path:p.querySelector('.path-form input')?.value,
+            busy:p.querySelector('.file-list')?.getAttribute('aria-busy'),
+            names:[...p.querySelectorAll('.file-name')].map(x=>x.title),
+            footer:p.querySelector('.pane-footer')?.textContent,
+            bounds:p.getBoundingClientRect().toJSON(),
+            listBounds:p.querySelector('.file-list')?.getBoundingClientRect().toJSON(),
+            tableViewport:p.querySelector('[data-viewport-type]')?.getBoundingClientRect().toJSON()})),
+          alerts:[...document.querySelectorAll('[role=alert]')].map(x=>x.textContent),
+          errors:window.__rbnIntegrationErrors})
+        """, in: view)
+        let native = "windowVisible=\(view.window?.isVisible ?? false), windowOcclusion=\(view.window?.occlusionState.rawValue ?? 0), viewHidden=\(view.isHidden), viewFrame=\(view.frame)"
+        throw Failure(description: "Timed out: \(script); page state: \(String(describing: state)); \(native)")
     }
     private static func json(_ value: Any) throws -> String {
         String(decoding: try JSONSerialization.data(withJSONObject: value, options: [.fragmentsAllowed]), as: UTF8.self)
@@ -159,8 +189,14 @@ import Foundation
     private static func expectPath(_ side: Side, depth: Int, root: URL, in view: RcloneWebView, host: Host) throws {
         let expected = path(side, root: root, depth: depth).path
         let row = ".file-name[title=\"\(marker(side, depth: depth))\"]"
-        try waitForScript("(()=>{const p=\(pane(side));return p?.querySelector('.path-form input')?.value===\(try json(expected)) && p.querySelector('.file-list')?.getAttribute('aria-busy')==='false' && !!p.querySelector(\(try json(row)));})()", in: view)
+        do {
+            try waitForScript("(()=>{const p=\(pane(side));return p?.querySelector('.path-form input')?.value===\(try json(expected)) && p.querySelector('.file-list')?.getAttribute('aria-busy')==='false' && !!p.querySelector(\(try json(row)));})()", in: view)
+        } catch {
+            throw Failure(description: "\(error); Core listing names=\(host.listingNames[expected] ?? []); methods=\(host.methods); pendingRequests=\(host.pendingRequests); bridgeErrors=\(host.errors)")
+        }
         try require(host.listedPaths.contains(expected), "Displayed path never came from a successful Core listing: \(expected)")
+        try require(host.listingNames[expected]?.contains(marker(side, depth: depth)) == true,
+                    "The displayed marker was absent from Core's real listing: \(expected)")
     }
     private static func openFolder(_ name: String, side: Side, in view: RcloneWebView) throws {
         let selector = ".file-name[title=\"\(name)\"]"
@@ -237,6 +273,10 @@ import Foundation
         let tools = try RcloneTools(workDirectory: root.appendingPathComponent("tools-work", isDirectory: true))
         defer { engine.shutdown(); try? tools.shutdown() }
         let host = Host(engine: engine, tools: tools, indexURL: indexURL)
+        defer {
+            print("Integration fixture: \(root.path)")
+            print("Native bridge: \(host.methods.count) real requests; \(host.listedPaths.count) successful local Core listings")
+        }
         let settings: [String: Any] = ["rclonePath": rclone.path, "configPath": config.path,
             "language": "en", "theme": "blue-dark", "interfaceScale": 100, "autoCheckUpdates": false,
             "initialLocations": ["left": ["remote": NSNull(), "path": path(.left, root: root, depth: 0).path],
@@ -268,7 +308,9 @@ import Foundation
         container.addSubview(view); view.autoresizingMask = [.width, .height]
         window.contentView = container; window.browserView = view
         window.backgroundColor = RBNWebAppearance(theme: "blue-dark").backgroundColor
+        window.center()
         window.makeKeyAndOrderFront(nil)
+        NSApp.activate(ignoringOtherApps: true)
         defer {
             view.stopLoading(); view.stopHistoryMonitoring()
             view.acceptsHistoryNavigation = nil; view.onHistoryNavigation = nil
@@ -375,8 +417,6 @@ import Foundation
             try settle(host, in: view)
             try require(Set(host.methods).isSubset(of: ["bootstrap", "list", "listToolSessions"]), "Navigation unexpectedly mutated engine data")
         }
-        print("Integration fixture: \(root.path)")
-        print("Native bridge: \(host.methods.count) real requests; \(host.listedPaths.count) successful local Core listings")
     }
 
     static func main() {

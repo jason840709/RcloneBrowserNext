@@ -1,7 +1,7 @@
 {
   "version": "0.8.1",
   "file_count_excluding_manifest": 201,
-  "total_bytes_excluding_manifest": 6883669,
+  "total_bytes_excluding_manifest": 6890107,
   "files": {
     ".github/workflows/macos.yml": {
       "bytes": 8742,
@@ -340,20 +340,20 @@
       "sha256": "6ef88a57f8d807d3886e8c240338484f98bf3988f5ac1da4252b3708da97d314"
     },
     "Tests/MacIconTests.swift": {
-      "bytes": 11546,
-      "sha256": "a9e38b84a9c34bab3526408e069be3da222056efc4552c6eb699ca0d3936d290"
+      "bytes": 11647,
+      "sha256": "cdf0b7f8f93e57055e98ede4c5327db3d118c67ba5253c7f5d7d1a7c304b2baa"
     },
     "Tests/MacInterfaceTests.swift": {
       "bytes": 28725,
       "sha256": "d1ccab064a059a87a0bfd49aeb6c9f508bb95b0809a29e1482820b09623e564c"
     },
     "Tests/MacNavigationIntegrationTests.swift": {
-      "bytes": 26013,
-      "sha256": "d22f9e1d84bfb7cee345151cef5e8f7203e33cca6042bd1732a29238003ba47a"
+      "bytes": 28249,
+      "sha256": "0b7d7a7f017723e5ede19ede7350df4191db049920f5dcd996e85213d02dd436"
     },
     "Tests/MacStartupTests.swift": {
-      "bytes": 10830,
-      "sha256": "f347921c4504cd72f47295d923cf65ea099ee0ceb84036623dcf555c5c7aa1a1"
+      "bytes": 14931,
+      "sha256": "a13693ef76b3895a71ab53623e4ad30a477b42d2fb1c4eccda59100ff04742e4"
     },
     "Tests/NativeMessagesTests.swift": {
       "bytes": 13669,

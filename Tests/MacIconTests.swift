@@ -57,35 +57,36 @@ import Foundation
     }
 
     private static func raster(_ image: NSImage, size: Int = 128) throws -> [UInt8] {
+        // A Quartz drawing destination uses premultiplied RGBA. A bitmap can
+        // hold straight alpha, but NSGraphicsContext cannot draw into that
+        // 8-bit format and returns nil on current macOS.
         guard let bitmap = NSBitmapImageRep(bitmapDataPlanes: nil, pixelsWide: size, pixelsHigh: size,
                                           bitsPerSample: 8, samplesPerPixel: 4, hasAlpha: true,
                                           isPlanar: false, colorSpaceName: .deviceRGB,
-                                          bitmapFormat: .alphaNonpremultiplied,
-                                          bytesPerRow: size * 4, bitsPerPixel: 32),
-              let context = NSGraphicsContext(bitmapImageRep: bitmap), let pixels = bitmap.bitmapData else {
-            throw Failure(description: "Could not create icon raster")
+                                          bitmapFormat: [],
+                                          bytesPerRow: size * 4, bitsPerPixel: 32) else {
+            throw Failure(description: "Could not allocate the premultiplied icon bitmap")
+        }
+        guard let context = NSGraphicsContext(bitmapImageRep: bitmap), let pixels = bitmap.bitmapData else {
+            throw Failure(description: "Could not create the premultiplied icon drawing context")
         }
         NSGraphicsContext.saveGraphicsState()
+        defer { NSGraphicsContext.restoreGraphicsState() }
         NSGraphicsContext.current = context
         context.imageInterpolation = .high
         let rect = NSRect(x: 0, y: 0, width: size, height: size)
         NSColor.clear.setFill()
         rect.fill(using: .copy)
         image.draw(in: rect, from: .zero, operation: .copy, fraction: 1, respectFlipped: false, hints: nil)
-        NSGraphicsContext.restoreGraphicsState()
         return Array(UnsafeBufferPointer(start: pixels, count: size * size * 4))
     }
 
-    /// Compare all rendered pixels in premultiplied space so hidden RGB values
-    /// in transparent pixels do not count against the actual artwork.
+    /// The drawing buffers already contain premultiplied RGBA, so compare
+    /// those bytes directly without multiplying their RGB values a second time.
     private static func distance(_ lhs: [UInt8], _ rhs: [UInt8]) -> Double {
         guard lhs.count == rhs.count else { return .infinity }
         var error = 0.0
-        for i in stride(from: 0, to: lhs.count, by: 4) {
-            let a = Double(lhs[i + 3]) / 255, b = Double(rhs[i + 3]) / 255
-            for channel in 0..<3 { error += abs(Double(lhs[i + channel]) * a - Double(rhs[i + channel]) * b) }
-            error += abs(Double(lhs[i + 3]) - Double(rhs[i + 3]))
-        }
+        for i in lhs.indices { error += abs(Double(lhs[i]) - Double(rhs[i])) }
         return error / Double(lhs.count)
     }
 

@@ -37,19 +37,32 @@ import Foundation
     private static func require(_ condition: Bool, _ message: String) throws {
         if !condition { throw Failure(description: message) }
     }
-    private static func wait(_ condition: () -> Bool, seconds: TimeInterval = 15) throws {
+    private static func pumpAppKit() {
+        // Use the application's event/update cycle, including WindowServer
+        // visibility changes. A Foundation-only loop can service JavaScript
+        // callbacks while leaving WebKit's presentation/rAF suspended.
+        autoreleasepool {
+            if let event = NSApp.nextEvent(matching: .any, until: Date().addingTimeInterval(0.01),
+                                           inMode: .default, dequeue: true) {
+                NSApp.sendEvent(event)
+            }
+            NSApp.updateWindows()
+        }
+    }
+    private static func wait(seconds: TimeInterval = 15, context: String = "WebKit response",
+                             _ condition: () -> Bool) throws {
         let deadline = Date().addingTimeInterval(seconds)
         while !condition() && Date() < deadline {
-            _ = RunLoop.current.run(mode: .default, before: Date().addingTimeInterval(0.01))
+            pumpAppKit()
         }
-        try require(condition(), "Timed out waiting for the painted startup document")
+        try require(condition(), "Timed out waiting for \(context)")
     }
     private static func evaluate(_ script: String, in view: WKWebView) throws -> Any? {
         var result: Result<Any?, Error>?
         view.evaluateJavaScript(script) { value, error in
             result = error.map { .failure($0) } ?? .success(value)
         }
-        try wait { result != nil }
+        try wait(context: "JavaScript evaluation") { result != nil }
         return try result!.get()
     }
     private static func snapshot(_ view: WKWebView) throws -> NSImage {
@@ -61,8 +74,41 @@ import Foundation
             if let image = image { result = .success(image) }
             else { result = .failure(error ?? Failure(description: "WebKit returned no snapshot")) }
         }
-        try wait { result != nil }
+        try wait(context: "WebKit snapshot completion") { result != nil }
         return try result!.get()
+    }
+    private static func diagnostics(_ view: WKWebView, surface: RBNStartupSurface, host: Host) -> String {
+        var page = "No JavaScript diagnostic reply"
+        var complete = false
+        view.evaluateJavaScript("""
+        JSON.stringify({ready:document.readyState,visibility:document.visibilityState,
+          theme:document.documentElement.dataset.theme,rootChildren:document.getElementById('root')?.childElementCount,
+          frames:window.__rbnStartupTestFrames,viewport:[innerWidth,innerHeight],
+          htmlBackground:getComputedStyle(document.documentElement).backgroundColor,
+          bodyBackground:document.body&&getComputedStyle(document.body).backgroundColor,
+          startupIcon:document.querySelector('.startup .app-mark')?.getAttribute('src'),
+          status:document.querySelector('.loading-status')?.textContent})
+        """) { value, error in
+            page = error.map { String(describing: $0) } ?? String(describing: value)
+            complete = true
+        }
+        try? wait(seconds: 1, context: "failure diagnostics") { complete }
+        var pixels = "No snapshot diagnostic reply"
+        var sampled = false
+        let config = WKSnapshotConfiguration()
+        config.snapshotWidth = 128
+        // Diagnostics only: inspect the last available frame even if waiting
+        // for a new presentation was the operation that timed out.
+        config.afterScreenUpdates = false
+        view.takeSnapshot(with: config) { image, error in
+            if let cgImage = image?.cgImage(forProposedRect: nil, context: nil, hints: nil),
+               let color = NSBitmapImageRep(cgImage: cgImage).colorAt(x: 0, y: 0)?.usingColorSpace(.sRGB) {
+                pixels = "rgba=\([color.redComponent, color.greenComponent, color.blueComponent, color.alphaComponent])"
+            } else { pixels = String(describing: error) }
+            sampled = true
+        }
+        try? wait(seconds: 1, context: "failure snapshot diagnostics") { sampled }
+        return "loaded=\(host.loaded), bootstrap=\(host.bootstrapRequests), cover=\(surface.isCoverVisible), error=\(String(describing: host.error)), windowVisible=\(view.window?.isVisible ?? false), windowOcclusion=\(view.window?.occlusionState.rawValue ?? 0), frame=\(view.frame), \(pixels), page=\(page)"
     }
     private static func nativeCanvas(_ surface: RBNStartupSurface) throws -> NSImage {
         surface.layoutSubtreeIfNeeded()
@@ -85,6 +131,10 @@ import Foundation
         let config = WKWebViewConfiguration()
         config.websiteDataStore = .nonPersistent()
         config.userContentController.add(host, name: "rclone")
+        config.userContentController.addUserScript(WKUserScript(source: """
+        window.__rbnStartupTestFrames=0;
+        requestAnimationFrame(()=>{window.__rbnStartupTestFrames++;requestAnimationFrame(()=>{window.__rbnStartupTestFrames++})});
+        """, injectionTime: .atDocumentEnd, forMainFrameOnly: true))
         let view = RcloneWebView(frame: .zero, configuration: config)
         let appearance = RBNWebAppearance(theme: theme)
         NSApp.appearance = NSAppearance(named: appearance.isDark ? .darkAqua : .aqua)
@@ -101,7 +151,9 @@ import Foundation
         window.browserView = view
         host.surface = surface
         view.navigationDelegate = host
-        window.orderFront(nil)
+        window.center()
+        window.makeKeyAndOrderFront(nil)
+        NSApp.activate(ignoringOtherApps: true)
         return (window, view, surface, host)
     }
 
@@ -125,6 +177,8 @@ import Foundation
             test("\(theme) cold start covers WebKit until the bundled loading UI is painted") {
                 let (window, view, surface, host) = fixture(theme: theme, resources: resources)
                 defer { close(window, view: view) }
+                var completed = false
+                defer { if !completed { print("STARTUP DIAGNOSTIC \(theme): \(diagnostics(view, surface: surface, host: host))") } }
                 let appearance = RBNWebAppearance(theme: theme)
                 try require(surface.isCoverVisible && !view.isHidden, "WebKit must render under an opaque cover")
                 try require(view.frame == surface.bounds && view.bounds.width == 1060 && view.bounds.height == 680,
@@ -132,7 +186,11 @@ import Foundation
                 try require(RBNStartupSurface.hasPaintedCanvas(try nativeCanvas(surface), appearance: appearance),
                             "The pre-document native canvas flashed a different color")
                 view.loadFileURL(web.appendingPathComponent("index.html"), allowingReadAccessTo: web)
-                try wait { host.error != nil || (!surface.isCoverVisible && host.bootstrapRequests > 0) }
+                // Allow the production 20-second watchdog to explain a failed
+                // handoff instead of hiding it behind a shorter test timeout.
+                try wait(seconds: 25, context: "bundled loading UI to be painted and revealed") {
+                    host.error != nil || (!surface.isCoverVisible && host.bootstrapRequests > 0)
+                }
                 if let error = host.error { throw error }
                 try require(host.loaded, "The packaged document did not finish loading")
                 let family = theme.components(separatedBy: "-").first!
@@ -141,6 +199,7 @@ import Foundation
                             "The actual React loading screen lost its saved theme or icon")
                 try require(RBNStartupSurface.hasPaintedCanvas(try snapshot(view), appearance: appearance),
                             "The revealed WebKit canvas has the wrong pixels")
+                completed = true
             }
         }
 
@@ -148,18 +207,21 @@ import Foundation
         test("\(theme): a finished but still-white WebKit document stays covered until its themed frame exists") {
             let (window, view, surface, host) = fixture(theme: theme, resources: resources)
             defer { close(window, view: view) }
+            var completed = false
+            defer { if !completed { print("STARTUP DIAGNOSTIC white fixture \(theme): \(diagnostics(view, surface: surface, host: host))") } }
             let appearance = RBNWebAppearance(theme: theme)
             view.loadHTMLString("<!doctype html><html><head><style>html,body{margin:0;background:#fff}</style></head><body><div id='root'><p>Waiting for the compositor</p></div></body></html>", baseURL: nil)
-            try wait { host.loaded || host.error != nil }
+            try wait(context: "white fixture didFinish") { host.loaded || host.error != nil }
             if let error = host.error { throw error }
             try require(!RBNStartupSurface.hasPaintedCanvas(try snapshot(view), appearance: appearance), "Fixture is not actually white")
             try require(surface.isCoverVisible, "didFinish exposed the deliberately white page")
             try require(RBNStartupSurface.hasPaintedCanvas(try nativeCanvas(surface), appearance: appearance), "The white page leaked through the native cover")
             let canvas = appearance.isDark ? "#1c1c1c" : "#f1f1f1"
             _ = try evaluate("document.querySelector('style').textContent='html,body{margin:0;background:\(canvas)}'", in: view)
-            try wait { !surface.isCoverVisible || host.error != nil }
+            try wait(seconds: 25, context: "themed fixture to be painted and revealed") { !surface.isCoverVisible || host.error != nil }
             if let error = host.error { throw error }
             try require(RBNStartupSurface.hasPaintedCanvas(try snapshot(view), appearance: appearance), "The cover was removed before the themed frame")
+            completed = true
         }
         }
 
