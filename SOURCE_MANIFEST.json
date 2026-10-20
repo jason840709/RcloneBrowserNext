@@ -1,11 +1,11 @@
 {
-  "version": "0.7.0",
-  "file_count_excluding_manifest": 181,
-  "total_bytes_excluding_manifest": 6490647,
+  "version": "0.8.0",
+  "file_count_excluding_manifest": 189,
+  "total_bytes_excluding_manifest": 6642058,
   "files": {
     ".github/workflows/macos.yml": {
-      "bytes": 7764,
-      "sha256": "58a30766591070d8e52c107ae0f033c7cae5b19b2c12cb20b4c9ae82f3a5144a"
+      "bytes": 7778,
+      "sha256": "9d3b6989b1d539e695693c3c65baa3eb1ff411d7112932f39f46eef4bf9fa681"
     },
     ".gitignore": {
       "bytes": 259,
@@ -21,19 +21,19 @@
     },
     "Compat/cli/package-lock.json": {
       "bytes": 7033,
-      "sha256": "1b1f8357c80c34198a64f848ccd6d817e13df512500ed8fc55c88a3d4336d853"
+      "sha256": "aac6bea7a6ce6c4f2be9c22562545fbe54a1af9fec05aec25be1b4e6550b507e"
     },
     "Compat/cli/package.json": {
       "bytes": 135,
-      "sha256": "af53465801f83d518960280a94107bf18271817a4e37eb80dbd575abe6f2db7e"
+      "sha256": "afe66d8b86019193119d14f78ffb8555096ce26c2765b9ad51aff3ca71b42a80"
     },
     "Compat/desktop/Cargo.lock": {
       "bytes": 118276,
-      "sha256": "6c5f1d8e8ac24033afab5fed683897db5a7bb3e7e632a543e79a6a92e946709f"
+      "sha256": "1016cf3439c16d92fa8f37b3bc365195149e8d518c704b869449d8e3db28f7dd"
     },
     "Compat/desktop/Cargo.toml": {
       "bytes": 665,
-      "sha256": "480e86454984fc5a95975635985517f33bd97dc2ecbda24db241fbf790938a5b"
+      "sha256": "9ed1a2297d435f2a5b56ed9a08905b42c514d0b1f33f3b2a34724fd833298cda"
     },
     "Compat/desktop/build.rs": {
       "bytes": 39,
@@ -48,16 +48,16 @@
       "sha256": "226a49b7cf2d7d642b465dc8780859614e4fcb8d95fcac42798f299c4a1e1d02"
     },
     "Compat/desktop/src/main.rs": {
-      "bytes": 41625,
-      "sha256": "b23323edd43451fef1ff0cca1dffe606997c4ef8aeacee313061778ec7cd5bdc"
+      "bytes": 45995,
+      "sha256": "0043e91c247d193fe671f1eb4057f9aeac65a6bdc091eafb4134e61eee990b1f"
     },
     "Compat/desktop/src/smoke.js": {
-      "bytes": 1079,
-      "sha256": "71f0cbe72978954ea5ffc56b2951b0b5c893373f11d93e4f3ff575e6e66a38c5"
+      "bytes": 1357,
+      "sha256": "1090774fd6a58750587793436d4c7ff893f3e4d6b6db1007af754e4705a7dc03"
     },
     "Compat/desktop/tauri.conf.json": {
       "bytes": 1633,
-      "sha256": "76f5b0a72bf786f64cd4a07d11575e78f1c252d26cabba1fcb3f4642ad42df21"
+      "sha256": "060e6e422d762c61dabf7f57e48da9fdce48b3a93f8a7a237eee23a6d57f0435"
     },
     "Compat/licenses/Foundation-LICENSE.txt": {
       "bytes": 11759,
@@ -132,12 +132,12 @@
       "sha256": "f91c2bfcb1423973c04aab64fe1bddb1f40cd498562d4697b134c8b3a386544f"
     },
     "README.en.md": {
-      "bytes": 8139,
-      "sha256": "cf0010a66698fbabb5f3f36b99e70d55bbdd7bf11a4638206b0d1fa78d8e8ca7"
+      "bytes": 8233,
+      "sha256": "b1e5b440d5cf0dce7f9d98c0bcbb2dcc79a8103660da8569bf0330d6958d4bef"
     },
     "README.md": {
-      "bytes": 7279,
-      "sha256": "3031453e24832c5fd05d3b43dba24a12d31b88a9e939b43e817a7b8ab599d517"
+      "bytes": 7331,
+      "sha256": "f26c8d33887ffda0e379e2ac48c076934980c0f76fb84bcf35d9304a9a38cb62"
     },
     "README.zh-TW.md": {
       "bytes": 20832,
@@ -157,15 +157,19 @@
     },
     "Resources/Info.plist": {
       "bytes": 1338,
-      "sha256": "6d5a8b9f13afa1f9ed2fcf8ac86d24cfe070bb5306da7cce8c5d2dfe9abf591c"
+      "sha256": "0622ba4c55c3d23e9974ef6035a0ff967dda7aa427d6a697e5346b2d71ba2e31"
     },
     "Resources/Web/THIRD_PARTY_NOTICES.txt": {
       "bytes": 6526,
       "sha256": "401a52547c510b5c231c69f9077b192e2759d282e68f74d13339922f9d9e8552"
     },
     "Resources/Web/app.js": {
-      "bytes": 679237,
-      "sha256": "9cb46c4ef03b75a3c83163ba11aceb867c19b2e041cfbef7024f51752de8dea0"
+      "bytes": 680609,
+      "sha256": "2eb6496357be31506625fdf030c6b1441702f46fdb6f9fb982e258c5a0224077"
+    },
+    "Resources/Web/appearance-bootstrap.js": {
+      "bytes": 494,
+      "sha256": "662ee8ad52661096b62115903ba44b7a37a00475c67f26ad9f1358c5a1f3c5d6"
     },
     "Resources/Web/favicon-blue.svg": {
       "bytes": 18536,
@@ -180,12 +184,12 @@
       "sha256": "5dcf6bb2e77fc4f5670743c49e42e2f107812f56459bf32d30ae9ca021383a1a"
     },
     "Resources/Web/index.html": {
-      "bytes": 866,
-      "sha256": "6d64e8836f8ea3c2cdfb0bd3f4e214da93f633390ecbb6512949e65a94801411"
+      "bytes": 1102,
+      "sha256": "5f9ea015222c61bb5b7de24f2fdc2845df473f628f62e609ccc149b72f9a1541"
     },
     "Resources/Web/style.css": {
-      "bytes": 85879,
-      "sha256": "beb405713f31123c88ff594a21731174c771ddd1cc946bfd9df20054328420c3"
+      "bytes": 85887,
+      "sha256": "79554574a95c289e3e9f0d11e1b622ed8351db5fe56b1e8a000cfe22fb7bc6a4"
     },
     "Scripts/build-compat-linux.sh": {
       "bytes": 2122,
@@ -205,7 +209,7 @@
     },
     "Scripts/ci-compat-rclone.py": {
       "bytes": 2524,
-      "sha256": "020e66f69dc00f29ba963631b10590b8300fe7a98c728cf34471651e1f5c7a42"
+      "sha256": "c972df77c398d55956066aaac3eef6b025c8d9061ac0bb8e8f5b655b7a72ac69"
     },
     "Scripts/ci-rclone.sh": {
       "bytes": 1642,
@@ -217,7 +221,7 @@
     },
     "Scripts/common-mac.sh": {
       "bytes": 4221,
-      "sha256": "a4cabc6c145d046754f1338badd2dda81ea7aa387506b3ebb6aa698c46639f05"
+      "sha256": "edb5e668e00f38863d894c175d1b321d19451bf7215ea60a89ec6037b99348b7"
     },
     "Scripts/native/WindowsRcloneLauncher.c": {
       "bytes": 7812,
@@ -257,7 +261,7 @@
     },
     "Sources/Core/AppReleaseChecker.swift": {
       "bytes": 8814,
-      "sha256": "8b6cebcba75a48db9765f02d8a9bcf49f02400e37ecd1b97c1438f3c13796b20"
+      "sha256": "f9dfd5b59bae64f612efb40f40d63ecffdab1d47e7ee00ae4b3d3e8e87b0bc5b"
     },
     "Sources/Core/EngineModels.swift": {
       "bytes": 49515,
@@ -284,12 +288,12 @@
       "sha256": "8efff6f19faff01352d446962d3143be3267cb879d2ffe06773be8872b200304"
     },
     "Sources/Core/NativeMessages.swift": {
-      "bytes": 89716,
-      "sha256": "ff2fff7155961b8e113eed847a176a1dfc0b75037d0b25188caa7caa210b3a19"
+      "bytes": 89871,
+      "sha256": "e193c0aaa536b9f03b1c9f38a6378bce7766e65db1ab110c9e60027a6e9f958e"
     },
     "Sources/Core/RcloneEngine.swift": {
-      "bytes": 91758,
-      "sha256": "399984ed2bbd898f3f9bb075a25965f615183e7663b65ee5559e5fe42eda4666"
+      "bytes": 92165,
+      "sha256": "80ec059e8407972262828d6e5271ac68b8854e7c7bd2f2a6cc0d5394f9f5c09a"
     },
     "Sources/Core/RcloneTools.swift": {
       "bytes": 26905,
@@ -304,12 +308,12 @@
       "sha256": "5982f8dca69c7b4cb2e7b2cb7b9c11a959fbda49062703e6b97192689934beaa"
     },
     "Sources/Mac/AppMain.swift": {
-      "bytes": 73228,
-      "sha256": "a066c56eead2abe2336c5db6fdaed4e9b7782f715c7bcc7fba4f3086ed9fae20"
+      "bytes": 73603,
+      "sha256": "42a2675d6d44345ff09e2941710554b2613100d4a25cb68c7ceca21229efcd49"
     },
     "Sources/Mac/RcloneWebView.swift": {
-      "bytes": 5358,
-      "sha256": "1acde21ab11889db1ff425fd55a4e7bba6bb8969a2918e6c549b76fed66126d9"
+      "bytes": 9710,
+      "sha256": "3f01e94935057d1ecda6d56064c7585cadc98876acd18d57fbd5fe6e312fd8ac"
     },
     "Test-on-Mac.command": {
       "bytes": 334,
@@ -320,16 +324,16 @@
       "sha256": "dd034a8dd0e0d02b257fc0af606c4f01b4c5c77f2f67a2393e72559df69eefae"
     },
     "Tests/CoreTests.swift": {
-      "bytes": 153784,
-      "sha256": "178c838aff140dd9a779e4866c74568e3152c088f9fef749382dc0616f59e586"
+      "bytes": 156652,
+      "sha256": "a6c20dda4918bb7978369ce4f7d403969b3228362062909352b7dba72b47ec12"
     },
     "Tests/FinderDropTests.swift": {
       "bytes": 4025,
       "sha256": "6ef88a57f8d807d3886e8c240338484f98bf3988f5ac1da4252b3708da97d314"
     },
     "Tests/MacInterfaceTests.swift": {
-      "bytes": 6870,
-      "sha256": "f216d583e93b6c68c7d151bae1251e7955e7b0ec4d76786d496e4bd374a7dbb9"
+      "bytes": 19093,
+      "sha256": "73a0e224e470e760211be0fafefcb72a5a2819cc670e118587110415ab662483"
     },
     "Tests/NativeMessagesTests.swift": {
       "bytes": 13669,
@@ -385,23 +389,23 @@
     },
     "WebSource/package-lock.json": {
       "bytes": 41959,
-      "sha256": "c85c1cf5532eb8b8b631ffbdc810f9ba6ed7391f823c32e8948c2f875f13c78d"
+      "sha256": "cf2661e046adeb2cf693636ce5908db9c1c4ba09023d33fe08c23750aa282e47"
     },
     "WebSource/package.json": {
       "bytes": 498,
-      "sha256": "a5e5d960330a22678e81feef0efaf0bc001c0f08cd4e612716005f3ff74bcd1a"
+      "sha256": "17160945cf8d9b473731e051266701754ae4e2c8a355144bfb52629f8b8863d3"
     },
     "WebSource/renderer/App.tsx": {
-      "bytes": 43138,
-      "sha256": "7443845aba6f7d5ad78145f8d206eb439e5ae593dcb492421b6e1763a2cf706e"
+      "bytes": 43288,
+      "sha256": "95c18b62a3796eeb03f6b9b16c80f41d7604df697a1a7bcbad580183695163c1"
     },
     "WebSource/renderer/ApplicationMenu.tsx": {
       "bytes": 4102,
       "sha256": "b8f02d5185d119b6e48005568782bd28a7f33434c6e35063d95f2cef489da5c9"
     },
     "WebSource/renderer/BrowserPane.tsx": {
-      "bytes": 23381,
-      "sha256": "5680945ab1208494f92418ba1d9db3b62cae82f2c2fca3fed145dfe4a1c0cc62"
+      "bytes": 23976,
+      "sha256": "47ee140db0af2722ba00dbec7e1f57562313fbe7bb1c87a73c8dafb9f244df3c"
     },
     "WebSource/renderer/JobReport.tsx": {
       "bytes": 11124,
@@ -424,8 +428,8 @@
       "sha256": "97af13feb27bee9f3c7f2faafd63bc1919f8e675cec7411f4bb3e6c5cc2eed40"
     },
     "WebSource/renderer/Settings.tsx": {
-      "bytes": 22092,
-      "sha256": "6745282b6f1a07b1fd2119704de8437c55fc680b39f5e00d567f8b012d4d5847"
+      "bytes": 22127,
+      "sha256": "0fa293fe95fb55cffbf4bb4849f2d7fa3a0ab0d1e18da9b177514c150ad1dd5d"
     },
     "WebSource/renderer/Tasks.tsx": {
       "bytes": 6201,
@@ -439,13 +443,17 @@
       "bytes": 21559,
       "sha256": "9aed1b122c399dcc4ae485065cc740352f1667bac07247a045968d2155ce3dbb"
     },
+    "WebSource/renderer/appearance-bootstrap.js": {
+      "bytes": 494,
+      "sha256": "662ee8ad52661096b62115903ba44b7a37a00475c67f26ad9f1358c5a1f3c5d6"
+    },
     "WebSource/renderer/appearance.ts": {
-      "bytes": 322,
-      "sha256": "ef301a383f45bd96b61f08d0cbd51a774a21aa36af09402bdfaf8f397499a923"
+      "bytes": 1332,
+      "sha256": "8ae97f26a4cf3f094b45f2609efc61e3f9db5c28b1b88ba17f3a1c6fae58f71a"
     },
     "WebSource/renderer/bridge.ts": {
-      "bytes": 7700,
-      "sha256": "3ee9bf36e12f7e46e92ff63ad1e1866bd0b910e3669673e471d92a09b6d9dcb7"
+      "bytes": 7721,
+      "sha256": "0070be36ac2ef2a7fac05fa758a2d19cd61b2a14bee38b4a091912dd9707208c"
     },
     "WebSource/renderer/components.tsx": {
       "bytes": 10757,
@@ -472,44 +480,44 @@
       "sha256": "0b0802286350991f776883e0ff95b609b5b9c0c6876468202cbb00b64ca5eb0c"
     },
     "WebSource/renderer/index.html": {
-      "bytes": 866,
-      "sha256": "6d64e8836f8ea3c2cdfb0bd3f4e214da93f633390ecbb6512949e65a94801411"
+      "bytes": 1102,
+      "sha256": "5f9ea015222c61bb5b7de24f2fdc2845df473f628f62e609ccc149b72f9a1541"
     },
     "WebSource/renderer/main.tsx": {
-      "bytes": 1295,
-      "sha256": "98eadf561404b5b5e5177c05c0070248374313b439fb364e5a0f2e696749ae22"
+      "bytes": 1238,
+      "sha256": "78a6b0cf6dd32a34bf60deef5823690589d8904edc1ed763870febae7bf4445b"
     },
     "WebSource/renderer/presets.ts": {
       "bytes": 2329,
       "sha256": "77e0486eac832511ff077aa44ab07bd904feb618c4c818dca6192d778a75248e"
     },
     "WebSource/renderer/styles.css": {
-      "bytes": 99304,
-      "sha256": "fe8ae02b11c3d21827771e8bf12d3bc467e4e20823ede98d13a066d672db6d4e"
+      "bytes": 99313,
+      "sha256": "d186841d78f7c04e6c597517965295aa686c1d03ee62ba04596876bf336661dd"
     },
     "WebSource/renderer/useBrowser.ts": {
-      "bytes": 5920,
-      "sha256": "ed0c236dd30b71089bd174a298d0f8bdc6d0aa5d87fba8e368a7e44c262691d7"
+      "bytes": 6090,
+      "sha256": "29f083fc75c39b1d19d680093b096b8cf60a27a4385856f0cd3d3b538487acd3"
     },
     "WebSource/renderer/useHistoryNavigation.ts": {
-      "bytes": 4709,
-      "sha256": "90191bec1c7c0f8b4a1177ee74ede180cd660c2461cc210cd1ee2459b9ef0312"
+      "bytes": 6752,
+      "sha256": "bc45428e582702c085054690888b11db3451e86d031675f5eafc7993a5613e38"
     },
     "WebSource/renderer/utils.ts": {
       "bytes": 3631,
       "sha256": "7fa63ed66c4fc899ef982be72526d08ed81b5c1e3f09a83777380a731eb1ccd8"
     },
     "WebSource/shared/types.ts": {
-      "bytes": 11678,
-      "sha256": "2fb81d07416c95f3414309670629c13c039886413b3f52d8adfc51bfef54ae48"
+      "bytes": 11690,
+      "sha256": "d6a64f75cbdb158a6fe02a9ef0cd622ef3dee15a239e75df4b568ef28ef7df0e"
     },
     "WebSource/tests/README.md": {
-      "bytes": 3523,
-      "sha256": "684bd587dee3fcd17e4c0e63e8a9b8a89dfda38a1a5b6e9b05a13008dd4a5fda"
+      "bytes": 3465,
+      "sha256": "ce8462c7a0af3ba1a297b2c76c74a4ea4698651259119d62ae7a40743245aed2"
     },
     "WebSource/tests/VERIFICATION.zh-TW.md": {
-      "bytes": 2304,
-      "sha256": "37e965055fd9bad0e23c18d2b61c8a22c5e48d48fa1956b72a02b180a41bce40"
+      "bytes": 2755,
+      "sha256": "547c059e32d056aed1b0012e2474bbaf3c0d880298a0a0b50cc4891186cac6ad"
     },
     "WebSource/tests/check-contrast.py": {
       "bytes": 1928,
@@ -539,17 +547,29 @@
       "bytes": 75432,
       "sha256": "f4497e919589190a79a760255801722f27e2f347e92ec4418bf966c6f6f11a21"
     },
+    "WebSource/tests/history/0.7.0/README.md": {
+      "bytes": 3523,
+      "sha256": "684bd587dee3fcd17e4c0e63e8a9b8a89dfda38a1a5b6e9b05a13008dd4a5fda"
+    },
+    "WebSource/tests/history/0.7.0/VERIFICATION.zh-TW.md": {
+      "bytes": 2304,
+      "sha256": "37e965055fd9bad0e23c18d2b61c8a22c5e48d48fa1956b72a02b180a41bce40"
+    },
+    "WebSource/tests/history/0.7.0/verification.json": {
+      "bytes": 66099,
+      "sha256": "d214679fb87241d16fbe7da3f8379c64ac0c0cbb4e25373ca5beb477e70bf418"
+    },
     "WebSource/tests/native-fixture.ts": {
-      "bytes": 17852,
-      "sha256": "98f961ff1661e9dac728c30ee0c64dbf222885df6d483a0e23d5f42a00cc1073"
+      "bytes": 18267,
+      "sha256": "f7b8c50f64e3f7097aad0a3cc19363b66c215d380e41a01c3d654f0468ea8cef"
     },
     "WebSource/tests/playwright.config.ts": {
       "bytes": 616,
       "sha256": "35f0d14564063b4b33bdec2a5e3fc045335689fecd38c82f62709c85ca051a48"
     },
     "WebSource/tests/render-previews.ts": {
-      "bytes": 10750,
-      "sha256": "10994de23ac483d79d80e880773429164655e9c537ee0be8127a2b896f7b783a"
+      "bytes": 10978,
+      "sha256": "f3374bbb1ff40ece0a0df0e3375f787ecb6e9d85d81533064915b50204dfadc4"
     },
     "WebSource/tests/revision04.spec.ts": {
       "bytes": 29247,
@@ -564,20 +584,24 @@
       "sha256": "a092572cf6bba708871ee5d12118a92c145933cdec9a59ecee958ee056fc9592"
     },
     "WebSource/tests/revision06.spec.ts": {
-      "bytes": 21970,
-      "sha256": "e31fefb387a9856bea14a53d0791ce0dab8f31e455d69e24eaf04583c9f99490"
+      "bytes": 22054,
+      "sha256": "d23b2711162a3f33e54550f87a002dbce757d5f9a726e5c5346510850a6d6ea6"
     },
     "WebSource/tests/revision07.spec.ts": {
-      "bytes": 21667,
-      "sha256": "4dabef699553374921c9512c0b630f7422d767e8c5a39008f0b302792ff56180"
+      "bytes": 21750,
+      "sha256": "60d0d7af39b77062d94337a70d50e325b92f9434323f46235798dd0964393123"
+    },
+    "WebSource/tests/revision08.spec.ts": {
+      "bytes": 13561,
+      "sha256": "71a1e5b5d87af9cf2cf3d7d0546c37aff51b09e1d52f33cf90e99e99c118c1af"
     },
     "WebSource/tests/ui.spec.ts": {
       "bytes": 30189,
       "sha256": "30fcf2e3653f64a218c5244ac0691759fd47f6959a7b9ad552ecd4a3f62e33bf"
     },
     "WebSource/tests/verification.json": {
-      "bytes": 66099,
-      "sha256": "d214679fb87241d16fbe7da3f8379c64ac0c0cbb4e25373ca5beb477e70bf418"
+      "bytes": 92671,
+      "sha256": "e54107f55670933fe92fb2d996e3df05186b921f41ba57564e54995ae905e236"
     },
     "WebSource/tools/generate-theme-icons.py": {
       "bytes": 4402,
@@ -588,8 +612,8 @@
       "sha256": "060dd7a5b36c131267dbc86370b941a003a9bc28f96a0ff5783c7088c8996856"
     },
     "WebSource/vite.config.ts": {
-      "bytes": 1237,
-      "sha256": "61f7e570ac1d830b2d97f4cd2ff4c41b38738ff533b2e3cf1db4b7e0b4e1590e"
+      "bytes": 1351,
+      "sha256": "ddeaa777d9a7522e42dc94267ddcc0f3ce751826c291086206e902235cae13fd"
     },
     "docs/ACKNOWLEDGMENTS.md": {
       "bytes": 2580,
@@ -597,19 +621,19 @@
     },
     "docs/BUILD_COMPATIBILITY.md": {
       "bytes": 2973,
-      "sha256": "a695799706a203693d5677b07f7b87585f0bcf566b0ebf7ad105fe242f0f7097"
+      "sha256": "dd7de6e6f7b1dd2f53221656e670989853b6056ec7372413e5fb07568a11914b"
     },
     "docs/BUILD_MAC.zh-TW.md": {
-      "bytes": 7679,
-      "sha256": "1b41f862a1bff5e98a67844e521e03ca52472d466c49f463fa95d470c576db6c"
+      "bytes": 7922,
+      "sha256": "ec126ff2eac4993016fe822e363a62f6e269596a5661bfca5f2e94c7b355912b"
     },
     "docs/CHANGELOG.zh-TW.md": {
-      "bytes": 8694,
-      "sha256": "feba74cc996a38ce3a4d7b45b80d6d68a9fb7eed5a321e0af421cf590008c2c0"
+      "bytes": 9285,
+      "sha256": "c4324c370f4368a35166453e59453af30e14994328a3c06c3ac729378942998a"
     },
     "docs/DEVELOPMENT.md": {
-      "bytes": 16063,
-      "sha256": "f833451f4c1bf1d8ec9251a773fab9fe9dee2f6d6f69d1431499348ae750c59b"
+      "bytes": 18136,
+      "sha256": "afd568614082f9a6eadf871833c88ac727d3e4a96a0a6470484e7427b2b38b5b"
     },
     "docs/FEATURE_MATRIX.zh-TW.md": {
       "bytes": 7764,
@@ -639,6 +663,10 @@
       "bytes": 4115,
       "sha256": "8baaf66abd6c3888a6af651c58743c7e983f95f8a69bc137547aa2e815723733"
     },
+    "docs/RELEASE_0.8.0.md": {
+      "bytes": 1843,
+      "sha256": "cb66e7e6c6d817d10565ce292e6e9cd6385c87d102d92c5a3114a3b2b6587688"
+    },
     "docs/RESEARCH_0.5.0.md": {
       "bytes": 10720,
       "sha256": "ab3a5e4cd1b1003039b8124e408dd7b792515306e84532b4e379b28a565dfac3"
@@ -656,12 +684,16 @@
       "sha256": "8eca5e72ede9871af4f1a35d7561aede169ff414c281f6a5a46b5b243bc0d06c"
     },
     "docs/VALIDATION.zh-TW.md": {
-      "bytes": 7678,
-      "sha256": "c4c1a46ae900cce616379873e8eb568ae7ccf496c619a2c54497b72121740ca1"
+      "bytes": 1269,
+      "sha256": "f60936c288110b04920e6f63f9f9b15ba3ddb1b0b0f3ae4cf95cfef23c96fe29"
     },
     "docs/VALIDATION_0.6.0.zh-TW.md": {
       "bytes": 12820,
       "sha256": "1ee09c3038c82f7f8ee729d6610499233c353ddddf0e31ac2c6ac7c0827ba619"
+    },
+    "docs/VALIDATION_0.7.0.zh-TW.md": {
+      "bytes": 7678,
+      "sha256": "c4c1a46ae900cce616379873e8eb568ae7ccf496c619a2c54497b72121740ca1"
     },
     "docs/archive/0.4.0/README.original.md": {
       "bytes": 5073,

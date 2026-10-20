@@ -1,0 +1,2305 @@
+{
+  "release": "0.7.0",
+  "suite": {
+    "startTime": "2026-10-20T15:01:11.525Z",
+    "duration": 200780.685,
+    "expected": 163,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0,
+    "cases": 163,
+    "durationSeconds": 200.8,
+    "receiptSHA256": "d009871db1671fa53d1c72c1b1f4c39f6182f15243c1b49e7278c534411b3217"
+  },
+  "commands": [
+    "npm run typecheck",
+    "npm run build",
+    "node node_modules/@playwright/test/cli.js test --config tests/playwright.config.ts --reporter=list,json"
+  ],
+  "environment": "Linux Chromium; project-local Noto CJK fonts; production file:// resources and deterministic native bridge fixtures. Browser execution used the permitted host context after the sandbox rejected browser startup.",
+  "production": {
+    "Resources/Web/THIRD_PARTY_NOTICES.txt": {
+      "bytes": 6526,
+      "sha256": "401a52547c510b5c231c69f9077b192e2759d282e68f74d13339922f9d9e8552"
+    },
+    "Resources/Web/app.js": {
+      "bytes": 679237,
+      "sha256": "9cb46c4ef03b75a3c83163ba11aceb867c19b2e041cfbef7024f51752de8dea0"
+    },
+    "Resources/Web/favicon-blue.svg": {
+      "bytes": 18536,
+      "sha256": "36a26990d1dd782a5f6c0561e2870fa4e71064a1f42f72bf149e401e817f3591"
+    },
+    "Resources/Web/favicon-green.svg": {
+      "bytes": 18537,
+      "sha256": "c86f66312b4b934795e3aef424c4e77dfb5c0863c75857831968492e5ef4ec75"
+    },
+    "Resources/Web/favicon.svg": {
+      "bytes": 18533,
+      "sha256": "5dcf6bb2e77fc4f5670743c49e42e2f107812f56459bf32d30ae9ca021383a1a"
+    },
+    "Resources/Web/index.html": {
+      "bytes": 866,
+      "sha256": "6d64e8836f8ea3c2cdfb0bd3f4e214da93f633390ecbb6512949e65a94801411"
+    },
+    "Resources/Web/style.css": {
+      "bytes": 85879,
+      "sha256": "beb405713f31123c88ff594a21731174c771ddd1cc946bfd9df20054328420c3"
+    }
+  },
+  "sourceSHA256": {
+    "WebSource/renderer/App.tsx": "7443845aba6f7d5ad78145f8d206eb439e5ae593dcb492421b6e1763a2cf706e",
+    "WebSource/renderer/ApplicationMenu.tsx": "b8f02d5185d119b6e48005568782bd28a7f33434c6e35063d95f2cef489da5c9",
+    "WebSource/renderer/BrowserPane.tsx": "5680945ab1208494f92418ba1d9db3b62cae82f2c2fca3fed145dfe4a1c0cc62",
+    "WebSource/renderer/JobReport.tsx": "02b92cf4d999a6c003638f7573c3ce1e39f470bd95465c735b1c20146596fdfe",
+    "WebSource/renderer/Jobs.tsx": "e939f3b74c962d9b373021a1348f5c20f87f7700365b06ebf1efae2bf020ddcf",
+    "WebSource/renderer/LocationPicker.tsx": "6604487925fe7d82e9cf53b84a820bf978ce95a169a4deb15350d000b569620f",
+    "WebSource/renderer/OperationPicker.tsx": "64b405b1b34a3ebe5d0e4ea09a629fb6315a9a3ff9f2f8ccb1933ff591f7bbe1",
+    "WebSource/renderer/PaneMenu.tsx": "97af13feb27bee9f3c7f2faafd63bc1919f8e675cec7411f4bb3e6c5cc2eed40",
+    "WebSource/renderer/Settings.tsx": "6745282b6f1a07b1fd2119704de8437c55fc680b39f5e00d567f8b012d4d5847",
+    "WebSource/renderer/Tasks.tsx": "a6dc228d0f04107cb579b286669ffb499c776ad25187a328721e1e22c59cb5ae",
+    "WebSource/renderer/Tools.tsx": "a973514b2845c98613ac98b2f7fccc8de259a144cf287e84ef71a93a24e562b4",
+    "WebSource/renderer/TransferOptions.tsx": "9aed1b122c399dcc4ae485065cc740352f1667bac07247a045968d2155ce3dbb",
+    "WebSource/renderer/appearance.ts": "ef301a383f45bd96b61f08d0cbd51a774a21aa36af09402bdfaf8f397499a923",
+    "WebSource/renderer/bridge.ts": "3ee9bf36e12f7e46e92ff63ad1e1866bd0b910e3669673e471d92a09b6d9dcb7",
+    "WebSource/renderer/components.tsx": "c2f2dc15660e9bb3511b3f53c0538ae0b8e7d76569399bcce068c3986890891b",
+    "WebSource/renderer/env.d.ts": "65996936fbb042915f7b74a200fcdde7e410f32a669b1ab9597cfaa4b0faddb5",
+    "WebSource/renderer/i18n.ts": "0b0802286350991f776883e0ff95b609b5b9c0c6876468202cbb00b64ca5eb0c",
+    "WebSource/renderer/main.tsx": "98eadf561404b5b5e5177c05c0070248374313b439fb364e5a0f2e696749ae22",
+    "WebSource/renderer/presets.ts": "77e0486eac832511ff077aa44ab07bd904feb618c4c818dca6192d778a75248e",
+    "WebSource/renderer/styles.css": "fe8ae02b11c3d21827771e8bf12d3bc467e4e20823ede98d13a066d672db6d4e",
+    "WebSource/renderer/useBrowser.ts": "ed0c236dd30b71089bd174a298d0f8bdc6d0aa5d87fba8e368a7e44c262691d7",
+    "WebSource/renderer/useHistoryNavigation.ts": "90191bec1c7c0f8b4a1177ee74ede180cd660c2461cc210cd1ee2459b9ef0312",
+    "WebSource/renderer/utils.ts": "7fa63ed66c4fc899ef982be72526d08ed81b5c1e3f09a83777380a731eb1ccd8",
+    "WebSource/shared/types.ts": "2fb81d07416c95f3414309670629c13c039886413b3f52d8adfc51bfef54ae48",
+    "WebSource/tests/native-fixture.ts": "98f961ff1661e9dac728c30ee0c64dbf222885df6d483a0e23d5f42a00cc1073",
+    "WebSource/tests/playwright.config.ts": "35f0d14564063b4b33bdec2a5e3fc045335689fecd38c82f62709c85ca051a48",
+    "WebSource/tests/render-previews.ts": "10994de23ac483d79d80e880773429164655e9c537ee0be8127a2b896f7b783a",
+    "WebSource/tests/revision04.spec.ts": "6c7f500afe4c65e44a564548383e1e4b313ff369884ae2c0f2075ff7d55480fa",
+    "WebSource/tests/revision05.spec.ts": "3a09a7069362e77c11918599e414d0e34c4f12e78ba0db657e267ea07b807b8b",
+    "WebSource/tests/revision06-additions.spec.ts": "a092572cf6bba708871ee5d12118a92c145933cdec9a59ecee958ee056fc9592",
+    "WebSource/tests/revision06.spec.ts": "e31fefb387a9856bea14a53d0791ce0dab8f31e455d69e24eaf04583c9f99490",
+    "WebSource/tests/revision07.spec.ts": "4dabef699553374921c9512c0b630f7422d767e8c5a39008f0b302792ff56180",
+    "WebSource/tests/ui.spec.ts": "30fcf2e3653f64a218c5244ac0691759fd47f6959a7b9ad552ecd4a3f62e33bf"
+  },
+  "uiCopy": {
+    "stringsPerLanguage": 627,
+    "languages": [
+      "zh-TW",
+      "en",
+      "ja"
+    ],
+    "i18nSHA256": "0b0802286350991f776883e0ff95b609b5b9c0c6876468202cbb00b64ca5eb0c",
+    "reviewScope": "Follow-up implementation and review of the prior independent full-copy review; no new claim of a complete first-reader pass.",
+    "resolvedReviewItems": [
+      "UI-01",
+      "UI-02",
+      "UI-03",
+      "UI-04",
+      "UI-05",
+      "UI-06",
+      "UI-07",
+      "UI-08",
+      "UI-09",
+      "UI-10",
+      "UI-11",
+      "UI-12",
+      "UI-13",
+      "UI-15",
+      "UI-16",
+      "P-06",
+      "P-07"
+    ],
+    "retainedAfterCodeCheck": {
+      "UI-14": "Completed-only clears only successful completed job IDs; failed and stopped records remain."
+    },
+    "revisedExistingKeys": [
+      "collapseJobs",
+      "comparisonAdviceDetail",
+      "deleteExcluded",
+      "expandJobs",
+      "helpStep2",
+      "loadedTask",
+      "mountHint",
+      "mountStart",
+      "mounted",
+      "moveHint",
+      "notifyOnCompletion",
+      "patternsHint",
+      "presetCloudSummary",
+      "presetNASSummary",
+      "presetOptionsHint",
+      "proxySystem",
+      "rememberWorkspace",
+      "reportCandidateAction",
+      "selectedTransferHint",
+      "selectionHint",
+      "sharedWithMeHint",
+      "stopAndClear",
+      "streamPlayerHint",
+      "syncSelectionDeleteExcluded"
+    ],
+    "addedKeys": [
+      "proxySystemHint"
+    ]
+  },
+  "visuals": {
+    "suiteScreenshotCount": 77,
+    "visuallyInspected": [
+      "network-zh-TW.png",
+      "preset-menu.png",
+      "locations-125.png",
+      "report-breakdown-zh-TW.png",
+      "startup-popup-ja.png"
+    ],
+    "inspection": "Existing suite captures inspected for popup anchoring, selected-row scrolling, longer preset labels, report sizes and compact Japanese settings. No new standalone preview or contrast run."
+  },
+  "largeLists": {
+    "fullListPasses": 0,
+    "updates": 25,
+    "wallMilliseconds": 410.3999999985099
+  },
+  "development": [
+    {
+      "event": "Sandbox blocked Chromium startup before app navigation",
+      "resolution": "A permitted browser launch succeeded; the final complete suite ran in that environment."
+    },
+    {
+      "event": "Intermediate runs stopped while final copy and CJK font configuration were completed",
+      "countedInFinalResult": false
+    }
+  ],
+  "history": [
+    {
+      "release": "0.6.0",
+      "manifest": "history/0.6.0/verification.json",
+      "sha256": "5c69a33c742edcdb5c8a5e2768fe6aa60e81e01c2adb9a7dec2164afa28e70af"
+    },
+    {
+      "release": "0.7.0 before recovery follow-up",
+      "manifest": "history/0.7.0-before-recovery/verification.json",
+      "sha256": "f4497e919589190a79a760255801722f27e2f347e92ec4418bf966c6f6f11a21"
+    }
+  ],
+  "cases": [
+    {
+      "file": "revision04.spec.ts",
+      "title": "system language uses the native primary zh-CN → zh-TW; manual choice survives restart",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMilliseconds": 1334,
+          "retry": 0,
+          "attachments": []
+        }
+      ]
+    },
+    {
+      "file": "revision04.spec.ts",
+      "title": "system language uses the native primary zh-Hans → zh-TW; manual choice survives restart",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMilliseconds": 1151,
+          "retry": 0,
+          "attachments": []
+        }
+      ]
+    },
+    {
+      "file": "revision04.spec.ts",
+      "title": "system language uses the native primary ja-JP → ja; manual choice survives restart",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMilliseconds": 1268,
+          "retry": 0,
+          "attachments": []
+        }
+      ]
+    },
+    {
+      "file": "revision04.spec.ts",
+      "title": "system language uses the native primary de-DE → en; manual choice survives restart",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMilliseconds": 1107,
+          "retry": 0,
+          "attachments": []
+        }
+      ]
+    },
+    {
+      "file": "revision04.spec.ts",
+      "title": "Remember restores locations, direction, mode and all options without selection or automatic transfers",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMilliseconds": 2601,
+          "retry": 0,
+          "attachments": []
+        }
+      ]
+    },
+    {
+      "file": "revision04.spec.ts",
+      "title": "startup location edits update a remembered workspace and forgetting removes both old and new defaults",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMilliseconds": 1533,
+          "retry": 0,
+          "attachments": []
+        }
+      ]
+    },
+    {
+      "file": "revision04.spec.ts",
+      "title": "Tasks save and edit the complete request; Dry Run and Run execute the saved snapshot",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMilliseconds": 2329,
+          "retry": 0,
+          "attachments": []
+        }
+      ]
+    },
+    {
+      "file": "revision04.spec.ts",
+      "title": "editing destination keeps saved selection; changing source clears it visibly before saving",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMilliseconds": 1102,
+          "retry": 0,
+          "attachments": []
+        }
+      ]
+    },
+    {
+      "file": "revision04.spec.ts",
+      "title": "rclone connection settings save partial patches, custom IP commits atomically, and task timeouts inherit",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMilliseconds": 1373,
+          "retry": 0,
+          "attachments": []
+        }
+      ]
+    },
+    {
+      "file": "revision04.spec.ts",
+      "title": "comparison tips work with hover, focus, click and Escape without dismissing the dialog",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMilliseconds": 4137,
+          "retry": 0,
+          "attachments": []
+        }
+      ]
+    },
+    {
+      "file": "revision04.spec.ts",
+      "title": "location picker classifies native known places, mounted NAS, cloud and ambiguous remotes separately",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMilliseconds": 905,
+          "retry": 0,
+          "attachments": []
+        }
+      ]
+    },
+    {
+      "file": "revision04.spec.ts",
+      "title": "the application menu exposes native About, engine updates and distinct app release checks",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMilliseconds": 3629,
+          "retry": 0,
+          "attachments": []
+        }
+      ]
+    },
+    {
+      "file": "revision04.spec.ts",
+      "title": "purple-light: narrow columns leave one separator and full-width zebra pixels through empty space",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMilliseconds": 657,
+          "retry": 0,
+          "attachments": []
+        }
+      ]
+    },
+    {
+      "file": "revision04.spec.ts",
+      "title": "purple-dark: narrow columns leave one separator and full-width zebra pixels through empty space",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMilliseconds": 607,
+          "retry": 0,
+          "attachments": []
+        }
+      ]
+    },
+    {
+      "file": "revision04.spec.ts",
+      "title": "blue-light: narrow columns leave one separator and full-width zebra pixels through empty space",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMilliseconds": 717,
+          "retry": 0,
+          "attachments": []
+        }
+      ]
+    },
+    {
+      "file": "revision04.spec.ts",
+      "title": "blue-dark: narrow columns leave one separator and full-width zebra pixels through empty space",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMilliseconds": 703,
+          "retry": 0,
+          "attachments": []
+        }
+      ]
+    },
+    {
+      "file": "revision04.spec.ts",
+      "title": "sync tasks round-trip deletion controls including unlimited maximum and never run during editing",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMilliseconds": 1437,
+          "retry": 0,
+          "attachments": []
+        }
+      ]
+    },
+    {
+      "file": "revision04.spec.ts",
+      "title": "zh-TW: full task editor and network controls fit a compact window and keep borders separated",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMilliseconds": 1436,
+          "retry": 0,
+          "attachments": []
+        }
+      ]
+    },
+    {
+      "file": "revision04.spec.ts",
+      "title": "en: full task editor and network controls fit a compact window and keep borders separated",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMilliseconds": 1386,
+          "retry": 0,
+          "attachments": []
+        }
+      ]
+    },
+    {
+      "file": "revision04.spec.ts",
+      "title": "ja: full task editor and network controls fit a compact window and keep borders separated",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMilliseconds": 1438,
+          "retry": 0,
+          "attachments": []
+        }
+      ]
+    },
+    {
+      "file": "revision05.spec.ts",
+      "title": "empty Tasks has one contained prompt and no phantom selected task or execution controls",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMilliseconds": 864,
+          "retry": 0,
+          "attachments": []
+        }
+      ]
+    },
+    {
+      "file": "revision05.spec.ts",
+      "title": "directory failure keeps icon, title, long diagnostic and Retry within one scrollable card",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMilliseconds": 754,
+          "retry": 0,
+          "attachments": []
+        }
+      ]
+    },
+    {
+      "file": "revision05.spec.ts",
+      "title": "success toast floats without moving panes, closes with motion, and dismisses after five seconds",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMilliseconds": 6630,
+          "retry": 0,
+          "attachments": []
+        }
+      ]
+    },
+    {
+      "file": "revision05.spec.ts",
+      "title": "reduced-motion toast fades without translating and can be replaced before an old dismissal",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMilliseconds": 901,
+          "retry": 0,
+          "attachments": []
+        }
+      ]
+    },
+    {
+      "file": "revision05.spec.ts",
+      "title": "new default sync choices are unlimited, during-transfer deletion, and size-time without local hashes",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMilliseconds": 743,
+          "retry": 0,
+          "attachments": []
+        }
+      ]
+    },
+    {
+      "file": "revision05.spec.ts",
+      "title": "local-nas preset keeps locations, resets skip rules, uses explicit single-direction sync and never auto-runs",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMilliseconds": 575,
+          "retry": 0,
+          "attachments": []
+        }
+      ]
+    },
+    {
+      "file": "revision05.spec.ts",
+      "title": "nas-cloud preset keeps locations, resets skip rules, uses explicit single-direction sync and never auto-runs",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMilliseconds": 608,
+          "retry": 0,
+          "attachments": []
+        }
+      ]
+    },
+    {
+      "file": "revision05.spec.ts",
+      "title": "local-cloud preset keeps locations, resets skip rules, uses explicit single-direction sync and never auto-runs",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMilliseconds": 668,
+          "retry": 0,
+          "attachments": []
+        }
+      ]
+    },
+    {
+      "file": "revision05.spec.ts",
+      "title": "preset hiding persists, does not alter the applied request, and Restore changes only menu visibility",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMilliseconds": 1623,
+          "retry": 0,
+          "attachments": []
+        }
+      ]
+    },
+    {
+      "file": "revision05.spec.ts",
+      "title": "native side buttons navigate the pane under the pointer and preserve independent forward history per tab",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMilliseconds": 1343,
+          "retry": 0,
+          "attachments": []
+        }
+      ]
+    },
+    {
+      "file": "revision05.spec.ts",
+      "title": "DOM side-button fallback fires once despite a legacy native flag, and a dialog blocks navigation",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMilliseconds": 1393,
+          "retry": 0,
+          "attachments": []
+        }
+      ]
+    },
+    {
+      "file": "revision05.spec.ts",
+      "title": "keyboard back and forward use active pane and keep edited text in inputs untouched",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMilliseconds": 673,
+          "retry": 0,
+          "attachments": []
+        }
+      ]
+    },
+    {
+      "file": "revision05.spec.ts",
+      "title": "purple-dark 1060: roles, connected tabs and one path row remain distinct and fit",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMilliseconds": 651,
+          "retry": 0,
+          "attachments": []
+        }
+      ]
+    },
+    {
+      "file": "revision05.spec.ts",
+      "title": "purple-dark 1440: roles, connected tabs and one path row remain distinct and fit",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMilliseconds": 698,
+          "retry": 0,
+          "attachments": []
+        }
+      ]
+    },
+    {
+      "file": "revision05.spec.ts",
+      "title": "purple-light 1060: roles, connected tabs and one path row remain distinct and fit",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMilliseconds": 891,
+          "retry": 0,
+          "attachments": []
+        }
+      ]
+    },
+    {
+      "file": "revision05.spec.ts",
+      "title": "purple-light 1440: roles, connected tabs and one path row remain distinct and fit",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMilliseconds": 756,
+          "retry": 0,
+          "attachments": []
+        }
+      ]
+    },
+    {
+      "file": "revision05.spec.ts",
+      "title": "job progress shows one decimal, rolling speed, rough ETA and a retained completed average",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMilliseconds": 608,
+          "retry": 0,
+          "attachments": []
+        }
+      ]
+    },
+    {
+      "file": "revision05.spec.ts",
+      "title": "all-zero-byte files use count progress and a running near-complete job never claims 100.0 percent",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMilliseconds": 459,
+          "retry": 0,
+          "attachments": []
+        }
+      ]
+    },
+    {
+      "file": "revision05.spec.ts",
+      "title": "100,000-file panes stay virtualized and progress updates do not repeat full-list mapping, sorting or scanning",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMilliseconds": 2304,
+          "retry": 0,
+          "attachments": []
+        }
+      ]
+    },
+    {
+      "file": "revision05.spec.ts",
+      "title": "a fresh task-saved toast survives closing its editor while a prior root toast is still visible",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMilliseconds": 1116,
+          "retry": 0,
+          "attachments": []
+        }
+      ]
+    },
+    {
+      "file": "revision05.spec.ts",
+      "title": "opening the operation menu by keyboard focuses the selected operation, never a preset hide button",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMilliseconds": 646,
+          "retry": 0,
+          "attachments": []
+        }
+      ]
+    },
+    {
+      "file": "revision05.spec.ts",
+      "title": "zh-TW: NAS-to-cloud advice names the route and explains unavoidable data transfer",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMilliseconds": 757,
+          "retry": 0,
+          "attachments": []
+        }
+      ]
+    },
+    {
+      "file": "revision05.spec.ts",
+      "title": "en: NAS-to-cloud advice names the route and explains unavoidable data transfer",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMilliseconds": 821,
+          "retry": 0,
+          "attachments": []
+        }
+      ]
+    },
+    {
+      "file": "revision05.spec.ts",
+      "title": "ja: NAS-to-cloud advice names the route and explains unavoidable data transfer",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMilliseconds": 817,
+          "retry": 0,
+          "attachments": []
+        }
+      ]
+    },
+    {
+      "file": "revision06-additions.spec.ts",
+      "title": "only the source can be checked, and reversing direction clears selections in every tab",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMilliseconds": 1236,
+          "retry": 0,
+          "attachments": []
+        }
+      ]
+    },
+    {
+      "file": "revision06-additions.spec.ts",
+      "title": "swapping locations clears old selections rather than applying them to the other endpoint",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMilliseconds": 744,
+          "retry": 0,
+          "attachments": []
+        }
+      ]
+    },
+    {
+      "file": "revision06-additions.spec.ts",
+      "title": "a focused destination file remains available for file actions without entering transfer selection",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMilliseconds": 866,
+          "retry": 0,
+          "attachments": []
+        }
+      ]
+    },
+    {
+      "file": "revision06-additions.spec.ts",
+      "title": "Finder drop prepares only its explicit source selection and never auto-starts",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMilliseconds": 1065,
+          "retry": 0,
+          "attachments": []
+        }
+      ]
+    },
+    {
+      "file": "revision06-additions.spec.ts",
+      "title": "folder selection sync keeps the named source scope through Dry Run and explains untouched destination siblings",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMilliseconds": 770,
+          "retry": 0,
+          "attachments": []
+        }
+      ]
+    },
+    {
+      "file": "revision06-additions.spec.ts",
+      "title": "sync blocks files and mixed selections, and selected folders cannot enable delete-excluded",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMilliseconds": 1132,
+          "retry": 0,
+          "attachments": []
+        }
+      ]
+    },
+    {
+      "file": "revision06-additions.spec.ts",
+      "title": "a saved sync task can browse folders, edit its scope and restore the explicit source alone",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMilliseconds": 1696,
+          "retry": 0,
+          "attachments": []
+        }
+      ]
+    },
+    {
+      "file": "revision06-additions.spec.ts",
+      "title": "presetLocalLocal explicitly uses 1 transfers and ten checks without starting",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMilliseconds": 799,
+          "retry": 0,
+          "attachments": []
+        }
+      ]
+    },
+    {
+      "file": "revision06-additions.spec.ts",
+      "title": "presetCloudCloud explicitly uses 7 transfers and ten checks without starting",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMilliseconds": 721,
+          "retry": 0,
+          "attachments": []
+        }
+      ]
+    },
+    {
+      "file": "revision06-additions.spec.ts",
+      "title": "presetCloudLocal explicitly uses 1 transfers and ten checks without starting",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMilliseconds": 771,
+          "retry": 0,
+          "attachments": []
+        }
+      ]
+    },
+    {
+      "file": "revision06-additions.spec.ts",
+      "title": "all six preset choices can be hidden and restored without replacing current options",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMilliseconds": 1310,
+          "retry": 0,
+          "attachments": []
+        }
+      ]
+    },
+    {
+      "file": "revision06-additions.spec.ts",
+      "title": "all themes use an opaque continuous scrollbar track rather than the table stripe",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMilliseconds": 662,
+          "retry": 0,
+          "attachments": []
+        }
+      ]
+    },
+    {
+      "file": "revision06-additions.spec.ts",
+      "title": "non-editable labels cannot be dragged into text selection while paths, logs and errors remain copyable",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMilliseconds": 592,
+          "retry": 0,
+          "attachments": []
+        }
+      ]
+    },
+    {
+      "file": "revision06-additions.spec.ts",
+      "title": "empty Jobs is a single plain message with no card, icon or instructions",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMilliseconds": 509,
+          "retry": 0,
+          "attachments": []
+        }
+      ]
+    },
+    {
+      "file": "revision06-additions.spec.ts",
+      "title": "a visible success toast passes pointer hits through its text and keeps an operable close button",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMilliseconds": 1141,
+          "retry": 0,
+          "attachments": []
+        }
+      ]
+    },
+    {
+      "file": "revision06-additions.spec.ts",
+      "title": "side buttons pair a single native-first gesture without disabling the DOM fallback",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMilliseconds": 1117,
+          "retry": 0,
+          "attachments": []
+        }
+      ]
+    },
+    {
+      "file": "revision06-additions.spec.ts",
+      "title": "side buttons pair a single dom-first gesture without disabling the DOM fallback",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMilliseconds": 1213,
+          "retry": 0,
+          "attachments": []
+        }
+      ]
+    },
+    {
+      "file": "revision06-additions.spec.ts",
+      "title": "side buttons pair a single dom-delivered-before-native gesture without disabling the DOM fallback",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMilliseconds": 1269,
+          "retry": 0,
+          "attachments": []
+        }
+      ]
+    },
+    {
+      "file": "revision06-additions.spec.ts",
+      "title": "rapid native/DOM gestures and pure auxclick presses are not direction-debounced",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMilliseconds": 1123,
+          "retry": 0,
+          "attachments": []
+        }
+      ]
+    },
+    {
+      "file": "revision06-additions.spec.ts",
+      "title": "BrowserBack, Alt arrows and Meta brackets use the focused pane but preserve editing shortcuts",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMilliseconds": 1326,
+          "retry": 0,
+          "attachments": []
+        }
+      ]
+    },
+    {
+      "file": "revision06-additions.spec.ts",
+      "title": "report loading is lazy, bounded to 100 rows and paginated by opaque cursors without progress polling",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMilliseconds": 1100,
+          "retry": 0,
+          "attachments": []
+        }
+      ]
+    },
+    {
+      "file": "revision06-additions.spec.ts",
+      "title": "report categories distinguish compared, skipped, successful and recoverable errors without inventing unique file counts",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMilliseconds": 894,
+          "retry": 0,
+          "attachments": []
+        }
+      ]
+    },
+    {
+      "file": "revision06-additions.spec.ts",
+      "title": "missing reports stay unknown, and report failures or malformed comparison text retain export and retry routes",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMilliseconds": 747,
+          "retry": 0,
+          "attachments": []
+        }
+      ]
+    },
+    {
+      "file": "revision06-additions.spec.ts",
+      "title": "zh-TW: report comparison copy, errors, pagination and export stay reachable at 125 percent",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMilliseconds": 946,
+          "retry": 0,
+          "attachments": []
+        }
+      ]
+    },
+    {
+      "file": "revision06-additions.spec.ts",
+      "title": "en: report comparison copy, errors, pagination and export stay reachable at 125 percent",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMilliseconds": 901,
+          "retry": 0,
+          "attachments": []
+        }
+      ]
+    },
+    {
+      "file": "revision06-additions.spec.ts",
+      "title": "ja: report comparison copy, errors, pagination and export stay reachable at 125 percent",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMilliseconds": 888,
+          "retry": 0,
+          "attachments": []
+        }
+      ]
+    },
+    {
+      "file": "revision06-additions.spec.ts",
+      "title": "manual report refresh uses the newest writer summary and language changes translate existing comparison rows without polling",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMilliseconds": 851,
+          "retry": 0,
+          "attachments": []
+        }
+      ]
+    },
+    {
+      "file": "revision06-additions.spec.ts",
+      "title": "a live report announces newer records without fetching until requested and clears the hint after refresh",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMilliseconds": 611,
+          "retry": 0,
+          "attachments": []
+        }
+      ]
+    },
+    {
+      "file": "revision06.spec.ts",
+      "title": "zh-TW: five interface sizes save immediately through native host, with 100 percent in the middle",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMilliseconds": 1965,
+          "retry": 0,
+          "attachments": []
+        }
+      ]
+    },
+    {
+      "file": "revision06.spec.ts",
+      "title": "en: five interface sizes save immediately through native host, with 100 percent in the middle",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMilliseconds": 2228,
+          "retry": 0,
+          "attachments": []
+        }
+      ]
+    },
+    {
+      "file": "revision06.spec.ts",
+      "title": "ja: five interface sizes save immediately through native host, with 100 percent in the middle",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMilliseconds": 2048,
+          "retry": 0,
+          "attachments": []
+        }
+      ]
+    },
+    {
+      "file": "revision06.spec.ts",
+      "title": "scale keyboard selection and rapid edits survive save rejection without applying CSS zoom",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMilliseconds": 1238,
+          "retry": 0,
+          "attachments": []
+        }
+      ]
+    },
+    {
+      "file": "revision06.spec.ts",
+      "title": "zh-TW: all six themes change the brand icon, Next text and native setting together",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMilliseconds": 1712,
+          "retry": 0,
+          "attachments": []
+        }
+      ]
+    },
+    {
+      "file": "revision06.spec.ts",
+      "title": "en: all six themes change the brand icon, Next text and native setting together",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMilliseconds": 1661,
+          "retry": 0,
+          "attachments": []
+        }
+      ]
+    },
+    {
+      "file": "revision06.spec.ts",
+      "title": "ja: all six themes change the brand icon, Next text and native setting together",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMilliseconds": 1783,
+          "retry": 0,
+          "attachments": []
+        }
+      ]
+    },
+    {
+      "file": "revision06.spec.ts",
+      "title": "a rejected color change restores the saved brand icon and accent",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMilliseconds": 996,
+          "retry": 0,
+          "attachments": []
+        }
+      ]
+    },
+    {
+      "file": "revision06.spec.ts",
+      "title": "zh-TW green-dark: 125 percent at the minimum native window keeps panes, settings, transfer and task actions reachable",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMilliseconds": 3039,
+          "retry": 0,
+          "attachments": []
+        }
+      ]
+    },
+    {
+      "file": "revision06.spec.ts",
+      "title": "zh-TW green-light: 125 percent at the minimum native window keeps panes, settings, transfer and task actions reachable",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMilliseconds": 2994,
+          "retry": 0,
+          "attachments": []
+        }
+      ]
+    },
+    {
+      "file": "revision06.spec.ts",
+      "title": "en green-dark: 125 percent at the minimum native window keeps panes, settings, transfer and task actions reachable",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMilliseconds": 3069,
+          "retry": 0,
+          "attachments": []
+        }
+      ]
+    },
+    {
+      "file": "revision06.spec.ts",
+      "title": "en green-light: 125 percent at the minimum native window keeps panes, settings, transfer and task actions reachable",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMilliseconds": 3210,
+          "retry": 0,
+          "attachments": []
+        }
+      ]
+    },
+    {
+      "file": "revision06.spec.ts",
+      "title": "ja green-dark: 125 percent at the minimum native window keeps panes, settings, transfer and task actions reachable",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMilliseconds": 3059,
+          "retry": 0,
+          "attachments": []
+        }
+      ]
+    },
+    {
+      "file": "revision06.spec.ts",
+      "title": "ja green-light: 125 percent at the minimum native window keeps panes, settings, transfer and task actions reachable",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMilliseconds": 2993,
+          "retry": 0,
+          "attachments": []
+        }
+      ]
+    },
+    {
+      "file": "revision06.spec.ts",
+      "title": "Finished trash clears all ended statuses without stopping active jobs or opening a confirmation",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMilliseconds": 868,
+          "retry": 0,
+          "attachments": []
+        }
+      ]
+    },
+    {
+      "file": "revision06.spec.ts",
+      "title": "all: cancellation leaves every record unchanged, and completed-only excludes failed, stopped and newly arrived jobs",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMilliseconds": 1271,
+          "retry": 0,
+          "attachments": []
+        }
+      ]
+    },
+    {
+      "file": "revision06.spec.ts",
+      "title": "active: cancellation leaves every record unchanged, and completed-only excludes failed, stopped and newly arrived jobs",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMilliseconds": 1259,
+          "retry": 0,
+          "attachments": []
+        }
+      ]
+    },
+    {
+      "file": "revision06.spec.ts",
+      "title": "completed-only is disabled when there are no green completed records",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMilliseconds": 664,
+          "retry": 0,
+          "attachments": []
+        }
+      ]
+    },
+    {
+      "file": "revision06.spec.ts",
+      "title": "all: stop-and-clear retains stopping rows until exit, snapshots scope, and rejects late resurrecting events",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMilliseconds": 2426,
+          "retry": 0,
+          "attachments": []
+        }
+      ]
+    },
+    {
+      "file": "revision06.spec.ts",
+      "title": "active: stop-and-clear retains stopping rows until exit, snapshots scope, and rejects late resurrecting events",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMilliseconds": 2348,
+          "retry": 0,
+          "attachments": []
+        }
+      ]
+    },
+    {
+      "file": "revision06.spec.ts",
+      "title": "bulk stop failure can be retried; acknowledged retention and forced stopping remain visible",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMilliseconds": 1689,
+          "retry": 0,
+          "attachments": []
+        }
+      ]
+    },
+    {
+      "file": "revision06.spec.ts",
+      "title": "a new progress event keeps more than 200 interrupted jobs available for manual recovery",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMilliseconds": 1350,
+          "retry": 0,
+          "attachments": []
+        }
+      ]
+    },
+    {
+      "file": "revision06.spec.ts",
+      "title": "zh-TW: stopping confirmation fits 125 percent, and a stopped job describes retained changes and destination-dependent partial cleanup",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMilliseconds": 790,
+          "retry": 0,
+          "attachments": []
+        }
+      ]
+    },
+    {
+      "file": "revision06.spec.ts",
+      "title": "en: stopping confirmation fits 125 percent, and a stopped job describes retained changes and destination-dependent partial cleanup",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMilliseconds": 774,
+          "retry": 0,
+          "attachments": []
+        }
+      ]
+    },
+    {
+      "file": "revision06.spec.ts",
+      "title": "ja: stopping confirmation fits 125 percent, and a stopped job describes retained changes and destination-dependent partial cleanup",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMilliseconds": 856,
+          "retry": 0,
+          "attachments": []
+        }
+      ]
+    },
+    {
+      "file": "revision06.spec.ts",
+      "title": "blue and green icons preserve canonical v2 vector geometry and contain valid complete ICNS representation lengths",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMilliseconds": 20,
+          "retry": 0,
+          "attachments": []
+        }
+      ]
+    },
+    {
+      "file": "revision07.spec.ts",
+      "title": "80%: both long location menus stay below their trigger after choosing the last cloud",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMilliseconds": 1132,
+          "retry": 0,
+          "attachments": []
+        }
+      ]
+    },
+    {
+      "file": "revision07.spec.ts",
+      "title": "90%: both long location menus stay below their trigger after choosing the last cloud",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMilliseconds": 1096,
+          "retry": 0,
+          "attachments": []
+        }
+      ]
+    },
+    {
+      "file": "revision07.spec.ts",
+      "title": "100%: both long location menus stay below their trigger after choosing the last cloud",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMilliseconds": 1041,
+          "retry": 0,
+          "attachments": []
+        }
+      ]
+    },
+    {
+      "file": "revision07.spec.ts",
+      "title": "110%: both long location menus stay below their trigger after choosing the last cloud",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMilliseconds": 1195,
+          "retry": 0,
+          "attachments": []
+        }
+      ]
+    },
+    {
+      "file": "revision07.spec.ts",
+      "title": "125%: both long location menus stay below their trigger after choosing the last cloud",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMilliseconds": 1113,
+          "retry": 0,
+          "attachments": []
+        }
+      ]
+    },
+    {
+      "file": "revision07.spec.ts",
+      "title": "location search supports keyboard choice, Escape, Tab and outside dismissal without navigating the pane",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMilliseconds": 1214,
+          "retry": 0,
+          "attachments": []
+        }
+      ]
+    },
+    {
+      "file": "revision07.spec.ts",
+      "title": "local locations remain selectable while unavailable remote locations stay disabled",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMilliseconds": 640,
+          "retry": 0,
+          "attachments": []
+        }
+      ]
+    },
+    {
+      "file": "revision07.spec.ts",
+      "title": "known local locations retain their name when a startup path has a trailing separator",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMilliseconds": 750,
+          "retry": 0,
+          "attachments": []
+        }
+      ]
+    },
+    {
+      "file": "revision07.spec.ts",
+      "title": "zh-TW: task and startup location menus stay below the trigger inside compact modal windows",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMilliseconds": 1420,
+          "retry": 0,
+          "attachments": []
+        }
+      ]
+    },
+    {
+      "file": "revision07.spec.ts",
+      "title": "en: task and startup location menus stay below the trigger inside compact modal windows",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMilliseconds": 1462,
+          "retry": 0,
+          "attachments": []
+        }
+      ]
+    },
+    {
+      "file": "revision07.spec.ts",
+      "title": "ja: task and startup location menus stay below the trigger inside compact modal windows",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMilliseconds": 1384,
+          "retry": 0,
+          "attachments": []
+        }
+      ]
+    },
+    {
+      "file": "revision07.spec.ts",
+      "title": "local path navigation stops at Windows drive and UNC share roots without altering remote or POSIX names",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMilliseconds": 7,
+          "retry": 0,
+          "attachments": []
+        }
+      ]
+    },
+    {
+      "file": "revision07.spec.ts",
+      "title": "darwin: only supported native tools and appearance settings are exposed",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMilliseconds": 732,
+          "retry": 0,
+          "attachments": []
+        }
+      ]
+    },
+    {
+      "file": "revision07.spec.ts",
+      "title": "windows: only supported native tools and appearance settings are exposed",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMilliseconds": 758,
+          "retry": 0,
+          "attachments": []
+        }
+      ]
+    },
+    {
+      "file": "revision07.spec.ts",
+      "title": "linux: only supported native tools and appearance settings are exposed",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMilliseconds": 817,
+          "retry": 0,
+          "attachments": []
+        }
+      ]
+    },
+    {
+      "file": "revision07.spec.ts",
+      "title": "a Windows custom executable saves its drive-qualified parent installation folder",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMilliseconds": 1003,
+          "retry": 0,
+          "attachments": []
+        }
+      ]
+    },
+    {
+      "file": "revision07.spec.ts",
+      "title": "zh-TW: symbolic-link policy survives defaults and saved-task editing without starting a transfer",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMilliseconds": 1464,
+          "retry": 0,
+          "attachments": []
+        }
+      ]
+    },
+    {
+      "file": "revision07.spec.ts",
+      "title": "en: symbolic-link policy survives defaults and saved-task editing without starting a transfer",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMilliseconds": 1680,
+          "retry": 0,
+          "attachments": []
+        }
+      ]
+    },
+    {
+      "file": "revision07.spec.ts",
+      "title": "ja: symbolic-link policy survives defaults and saved-task editing without starting a transfer",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMilliseconds": 1439,
+          "retry": 0,
+          "attachments": []
+        }
+      ]
+    },
+    {
+      "file": "revision07.spec.ts",
+      "title": "zh-TW: report explains retry bytes, source growth and cleanup failures with exact figures and original evidence",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMilliseconds": 1129,
+          "retry": 0,
+          "attachments": []
+        }
+      ]
+    },
+    {
+      "file": "revision07.spec.ts",
+      "title": "en: report explains retry bytes, source growth and cleanup failures with exact figures and original evidence",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMilliseconds": 1166,
+          "retry": 0,
+          "attachments": []
+        }
+      ]
+    },
+    {
+      "file": "revision07.spec.ts",
+      "title": "ja: report explains retry bytes, source growth and cleanup failures with exact figures and original evidence",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMilliseconds": 984,
+          "retry": 0,
+          "attachments": []
+        }
+      ]
+    },
+    {
+      "file": "revision07.spec.ts",
+      "title": "an incomplete copy-byte total is omitted and source-growth history cannot replace an unrelated final error",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMilliseconds": 561,
+          "retry": 0,
+          "attachments": []
+        }
+      ]
+    },
+    {
+      "file": "ui.spec.ts",
+      "title": "production file bundle uses native IPC, escapes adversarial names and loads no network runtime",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMilliseconds": 584,
+          "retry": 0,
+          "attachments": []
+        }
+      ]
+    },
+    {
+      "file": "ui.spec.ts",
+      "title": "without native host the UI does not invent filesystem access",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMilliseconds": 319,
+          "retry": 0,
+          "attachments": []
+        }
+      ]
+    },
+    {
+      "file": "ui.spec.ts",
+      "title": "choosing a single engine location saves and probes immediately; failed update can retry without restart",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMilliseconds": 1207,
+          "retry": 0,
+          "attachments": []
+        }
+      ]
+    },
+    {
+      "file": "ui.spec.ts",
+      "title": "advanced executable selection updates its parent and manual check can revisit a skipped version",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMilliseconds": 1107,
+          "retry": 0,
+          "attachments": []
+        }
+      ]
+    },
+    {
+      "file": "ui.spec.ts",
+      "title": "rapid theme and language edits persist in order and ignore stale bootstrap replies",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMilliseconds": 2027,
+          "retry": 0,
+          "attachments": []
+        }
+      ]
+    },
+    {
+      "file": "ui.spec.ts",
+      "title": "rejected setting rolls back and later changes still save",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMilliseconds": 1181,
+          "retry": 0,
+          "attachments": []
+        }
+      ]
+    },
+    {
+      "file": "ui.spec.ts",
+      "title": "proxy, launch locations, global flags and player apply without a Save action; Escape discards uncommitted text",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMilliseconds": 2175,
+          "retry": 0,
+          "attachments": []
+        }
+      ]
+    },
+    {
+      "file": "ui.spec.ts",
+      "title": "native menu and Config completion refresh accounts without restarting",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMilliseconds": 964,
+          "retry": 0,
+          "attachments": []
+        }
+      ]
+    },
+    {
+      "file": "ui.spec.ts",
+      "title": "file columns resize with mouse and keyboard, persist to native Settings and show full years without checkbox ellipses",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMilliseconds": 1177,
+          "retry": 0,
+          "attachments": []
+        }
+      ]
+    },
+    {
+      "file": "ui.spec.ts",
+      "title": "appearance flags change file rows immediately and tabs retain isolated locations, selection and back history",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMilliseconds": 2033,
+          "retry": 0,
+          "attachments": []
+        }
+      ]
+    },
+    {
+      "file": "ui.spec.ts",
+      "title": "all original comparison modes and the NAS profile reach the request unchanged",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMilliseconds": 3854,
+          "retry": 0,
+          "attachments": []
+        }
+      ]
+    },
+    {
+      "file": "ui.spec.ts",
+      "title": "sync exposes delete timing, filters, timeouts, skips and additional parameters; preview is not an operation mode",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMilliseconds": 1747,
+          "retry": 0,
+          "attachments": []
+        }
+      ]
+    },
+    {
+      "file": "ui.spec.ts",
+      "title": "move never silently carries skip-newer, and left/right direction includes only selected items",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMilliseconds": 1786,
+          "retry": 0,
+          "attachments": []
+        }
+      ]
+    },
+    {
+      "file": "ui.spec.ts",
+      "title": "native Finder drop prepares the opposite source and never auto-starts or overwrites an open dialog",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMilliseconds": 1046,
+          "retry": 0,
+          "attachments": []
+        }
+      ]
+    },
+    {
+      "file": "ui.spec.ts",
+      "title": "directory tree, exports, public-link creation, mount, stream and native clipboard have working entrances",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMilliseconds": 2124,
+          "retry": 0,
+          "attachments": []
+        }
+      ]
+    },
+    {
+      "file": "ui.spec.ts",
+      "title": "an unavailable saved startup folder shows an error and allows choosing a replacement",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMilliseconds": 656,
+          "retry": 0,
+          "attachments": []
+        }
+      ]
+    },
+    {
+      "file": "ui.spec.ts",
+      "title": "legacy move+skip-newer tasks retain their options until the user explicitly fixes the unsafe combination",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMilliseconds": 922,
+          "retry": 0,
+          "attachments": []
+        }
+      ]
+    },
+    {
+      "file": "ui.spec.ts",
+      "title": "keyboard menu navigation, native-style settings shortcut and reduced motion stay predictable",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMilliseconds": 760,
+          "retry": 0,
+          "attachments": []
+        }
+      ]
+    },
+    {
+      "file": "ui.spec.ts",
+      "title": "1060x680 zh-TW purple-light: core controls, typography and live transfer metrics remain visible",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMilliseconds": 659,
+          "retry": 0,
+          "attachments": []
+        }
+      ]
+    },
+    {
+      "file": "ui.spec.ts",
+      "title": "1060x680 zh-TW purple-dark: core controls, typography and live transfer metrics remain visible",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMilliseconds": 601,
+          "retry": 0,
+          "attachments": []
+        }
+      ]
+    },
+    {
+      "file": "ui.spec.ts",
+      "title": "1060x680 zh-TW blue-light: core controls, typography and live transfer metrics remain visible",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMilliseconds": 605,
+          "retry": 0,
+          "attachments": []
+        }
+      ]
+    },
+    {
+      "file": "ui.spec.ts",
+      "title": "1060x680 zh-TW blue-dark: core controls, typography and live transfer metrics remain visible",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMilliseconds": 752,
+          "retry": 0,
+          "attachments": []
+        }
+      ]
+    },
+    {
+      "file": "ui.spec.ts",
+      "title": "1060x680 en purple-light: core controls, typography and live transfer metrics remain visible",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMilliseconds": 654,
+          "retry": 0,
+          "attachments": []
+        }
+      ]
+    },
+    {
+      "file": "ui.spec.ts",
+      "title": "1060x680 en purple-dark: core controls, typography and live transfer metrics remain visible",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMilliseconds": 761,
+          "retry": 0,
+          "attachments": []
+        }
+      ]
+    },
+    {
+      "file": "ui.spec.ts",
+      "title": "1060x680 en blue-light: core controls, typography and live transfer metrics remain visible",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMilliseconds": 734,
+          "retry": 0,
+          "attachments": []
+        }
+      ]
+    },
+    {
+      "file": "ui.spec.ts",
+      "title": "1060x680 en blue-dark: core controls, typography and live transfer metrics remain visible",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMilliseconds": 660,
+          "retry": 0,
+          "attachments": []
+        }
+      ]
+    },
+    {
+      "file": "ui.spec.ts",
+      "title": "1060x680 ja purple-light: core controls, typography and live transfer metrics remain visible",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMilliseconds": 752,
+          "retry": 0,
+          "attachments": []
+        }
+      ]
+    },
+    {
+      "file": "ui.spec.ts",
+      "title": "1060x680 ja purple-dark: core controls, typography and live transfer metrics remain visible",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMilliseconds": 658,
+          "retry": 0,
+          "attachments": []
+        }
+      ]
+    },
+    {
+      "file": "ui.spec.ts",
+      "title": "1060x680 ja blue-light: core controls, typography and live transfer metrics remain visible",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMilliseconds": 638,
+          "retry": 0,
+          "attachments": []
+        }
+      ]
+    },
+    {
+      "file": "ui.spec.ts",
+      "title": "1060x680 ja blue-dark: core controls, typography and live transfer metrics remain visible",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMilliseconds": 634,
+          "retry": 0,
+          "attachments": []
+        }
+      ]
+    },
+    {
+      "file": "ui.spec.ts",
+      "title": "1440x900 zh-TW purple-light: core controls, typography and live transfer metrics remain visible",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMilliseconds": 639,
+          "retry": 0,
+          "attachments": []
+        }
+      ]
+    },
+    {
+      "file": "ui.spec.ts",
+      "title": "1440x900 zh-TW purple-dark: core controls, typography and live transfer metrics remain visible",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMilliseconds": 601,
+          "retry": 0,
+          "attachments": []
+        }
+      ]
+    },
+    {
+      "file": "ui.spec.ts",
+      "title": "1440x900 zh-TW blue-light: core controls, typography and live transfer metrics remain visible",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMilliseconds": 721,
+          "retry": 0,
+          "attachments": []
+        }
+      ]
+    },
+    {
+      "file": "ui.spec.ts",
+      "title": "1440x900 zh-TW blue-dark: core controls, typography and live transfer metrics remain visible",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMilliseconds": 691,
+          "retry": 0,
+          "attachments": []
+        }
+      ]
+    },
+    {
+      "file": "ui.spec.ts",
+      "title": "1440x900 en purple-light: core controls, typography and live transfer metrics remain visible",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMilliseconds": 632,
+          "retry": 0,
+          "attachments": []
+        }
+      ]
+    },
+    {
+      "file": "ui.spec.ts",
+      "title": "1440x900 en purple-dark: core controls, typography and live transfer metrics remain visible",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMilliseconds": 631,
+          "retry": 0,
+          "attachments": []
+        }
+      ]
+    },
+    {
+      "file": "ui.spec.ts",
+      "title": "1440x900 en blue-light: core controls, typography and live transfer metrics remain visible",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMilliseconds": 628,
+          "retry": 0,
+          "attachments": []
+        }
+      ]
+    },
+    {
+      "file": "ui.spec.ts",
+      "title": "1440x900 en blue-dark: core controls, typography and live transfer metrics remain visible",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMilliseconds": 583,
+          "retry": 0,
+          "attachments": []
+        }
+      ]
+    },
+    {
+      "file": "ui.spec.ts",
+      "title": "1440x900 ja purple-light: core controls, typography and live transfer metrics remain visible",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMilliseconds": 741,
+          "retry": 0,
+          "attachments": []
+        }
+      ]
+    },
+    {
+      "file": "ui.spec.ts",
+      "title": "1440x900 ja purple-dark: core controls, typography and live transfer metrics remain visible",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMilliseconds": 664,
+          "retry": 0,
+          "attachments": []
+        }
+      ]
+    },
+    {
+      "file": "ui.spec.ts",
+      "title": "1440x900 ja blue-light: core controls, typography and live transfer metrics remain visible",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMilliseconds": 710,
+          "retry": 0,
+          "attachments": []
+        }
+      ]
+    },
+    {
+      "file": "ui.spec.ts",
+      "title": "1440x900 ja blue-dark: core controls, typography and live transfer metrics remain visible",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMilliseconds": 754,
+          "retry": 0,
+          "attachments": []
+        }
+      ]
+    }
+  ]
+}

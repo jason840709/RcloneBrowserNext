@@ -4,7 +4,7 @@ import { ArrowLeft, ArrowRight, ArrowsLeftRight, FolderOpen, ListBullets, BookBo
   FloppyDisk, TerminalWindow, Play, Eye, CheckCircle, WarningCircle, ArrowSquareOut, X, Cloud, HardDrives, ChartBar } from '@phosphor-icons/react';
 import { DEFAULT_OPTIONS, type Bootstrap, type CommandPreview, type Endpoint, type Job, type SavedTask, type Settings, type SettingsPatch, type TransferMode, type TransferOptions, type TransferRequest, type UpdateStatus, type ToolSession, type AppUpdateResult, type ResolvedLanguage, type BuiltinPresetID } from '../shared/types';
 import OperationPicker from './OperationPicker';
-import { themeIcon } from './appearance';
+import { applyTheme, initialTheme, themeIcon } from './appearance';
 import {presetOptions, presetLabel, presetSummary, recommendedPreset} from './presets';
 import BrowserPane, { type FileAction } from './BrowserPane';
 import Jobs, { jobIsActive } from './Jobs';
@@ -20,7 +20,7 @@ import { endpointEqual, endpointName, endpointText, errorMessage, formatBytes, v
 
 type Modal = 'options' | 'settings' | 'saveTask' | 'preview' | 'help' | 'appUpdate' | null;
 type FileDialog = { kind: Exclude<FileAction, 'remove'>; side: 'left'|'right'; endpoint: Endpoint; oldName?: string; isDir?: boolean };
-const initialSettings: Settings = { rcloneDirectory: '', rclonePath: '', configPath: '', language: 'system', theme: 'purple-dark', interfaceScale: 100, autoCheckUpdates: true, skippedRcloneVersion: '', paneColumnWidths: {}, defaultTransferOptions: DEFAULT_OPTIONS, maxConcurrentJobs: 0, proxyMode: 'system', httpProxy: '', httpsProxy: '', noProxy: '', defaultRcloneOptions: [], initialLocations: {}, savedWorkspace: null, networkOptions: {bindMode: 'auto', bindAddress: '', connectTimeout: '1m', ioTimeout: '5m', tpsLimit: 0, tpsBurst: 1, userAgent: '', disableHTTP2: false}, settingsRevision: 0, settingsSchemaVersion: 6, hiddenBuiltinPresets: [], streamPlayerPath: '', streamPlayerArguments: ['-'], showStatusItem: false, notifyOnCompletion: false, showHiddenFiles: true, showFolderIcons: true, showFileIcons: true, alternatingRows: true };
+const initialSettings: Settings = { rcloneDirectory: '', rclonePath: '', configPath: '', language: 'system', theme: 'purple-dark', interfaceScale: 100, autoCheckUpdates: true, skippedRcloneVersion: '', paneColumnWidths: {}, defaultTransferOptions: DEFAULT_OPTIONS, maxConcurrentJobs: 0, proxyMode: 'system', httpProxy: '', httpsProxy: '', noProxy: '', defaultRcloneOptions: [], initialLocations: {}, savedWorkspace: null, networkOptions: {bindMode: 'auto', bindAddress: '', connectTimeout: '1m', ioTimeout: '5m', tpsLimit: 0, tpsBurst: 1, userAgent: '', disableHTTP2: false}, settingsRevision: 0, settingsSchemaVersion: 7, hiddenBuiltinPresets: [], streamPlayerPath: '', streamPlayerArguments: ['-'], showStatusItem: false, notifyOnCompletion: false, showHiddenFiles: true, showFolderIcons: true, showFileIcons: true, alternatingRows: true };
 function mergeSettings(base: Settings, patch: SettingsPatch): Settings {
   return {...base, ...patch,
     paneColumnWidths: {...base.paneColumnWidths, ...patch.paneColumnWidths},
@@ -34,8 +34,8 @@ export default function App() {
   const [startupError, setStartupError] = useState('');
   const [updateStatus, setUpdateStatus] = useState<UpdateStatus | null>(null);
   const startupCheck = useRef(false);
-  const [settings, setSettings] = useState<Settings>(initialSettings);
-  const settingsRef = useRef(initialSettings);
+  const [settings, setSettings] = useState<Settings>(() => ({...initialSettings, theme: initialTheme()}));
+  const settingsRef = useRef(settings);
   const saveQueue = useRef<Promise<void>>(Promise.resolve());
   const settingsEpoch = useRef(0);
   const serverRevision = useRef(0);
@@ -216,7 +216,7 @@ export default function App() {
     }).catch(() => {}).finally(() => setUpdateStatus(null));
   }, [bootstrap, loadBootstrap]);
   useEffect(() => {
-    document.documentElement.dataset.theme = settings.theme;
+    applyTheme(settings.theme);
     const favicon = document.querySelector<HTMLLinkElement>('link[rel="icon"]');
     if (favicon) favicon.href = themeIcon(settings.theme);
     document.documentElement.lang = language === 'zh-TW' ? 'zh-Hant' : language;
@@ -303,6 +303,7 @@ export default function App() {
   };
   const fileAction = async (side: 'left'|'right', kind: FileAction) => {
     const browser = side === 'left' ? left : right;
+    if (browser.loading || browser.error || fileBusy) return;
     const selection = (direction === 'lr' ? side === 'left' : side === 'right') ? browser.selection : browser.focusedEntry ? [browser.focusedEntry] : [];
     if (browser.pathDirty) { showError(t('uncommittedPath')); return; }
     if ((kind === 'rename' && selection.length !== 1) || (kind === 'remove' && selection.length === 0)) return;
@@ -348,6 +349,7 @@ export default function App() {
   }, [bridgeAvailable, upsertToolSession, showError]);
   const toolAction = async (side: 'left'|'right', action: ToolAction) => {
     const browser = side === 'left' ? left : right;
+    if (browser.loading || browser.error || fileBusy) return;
     if (browser.pathDirty) { showError(t('uncommittedPath')); return; }
     const endpoint = {...browser.endpoint};
     const selection = (direction === 'lr' ? side === 'left' : side === 'right') ? browser.selection : browser.focusedEntry ? [browser.focusedEntry] : [];
@@ -391,7 +393,7 @@ export default function App() {
       {page === 'jobs' && <div className="jobs-page-layout"><Jobs jobs={jobs} t={t} language={language} onJobsCleared={removeClearedJobs} onError={showError} onNotice={showNotice} onRetry={upsertJob}/><ToolSessions sessions={toolSessions} t={t} language={language} onError={showError}/></div>}
       {page === 'tasks' && <Tasks tasks={tasks} t={t} language={language} available={ready && pendingSettings === 0} onEdit={editTask} onRun={runTask} onTasksChange={setTasks} onSaveCurrent={() => openSaveTask(true)} onError={showError} onNotice={showNotice}/>}
     </main>
-    <footer className="app-statusbar"><div><span className={`status-dot ${ready ? 'ready' : ''}`}/><span>{ready ? `rclone ${bootstrap.environment.version.replace(/^rclone\s+/i, '')}` : t('notReady')}</span></div><span className="statusbar-center" role={updateStatus?.message ? 'status' : undefined}>{updateStatus?.message || `${bootstrap.remotes.length} ${t('remoteCount')}`}</span><span className="statusbar-version">0.7.0</span></footer>
+    <footer className="app-statusbar"><div><span className={`status-dot ${ready ? 'ready' : ''}`}/><span>{ready ? `rclone ${bootstrap.environment.version.replace(/^rclone\s+/i, '')}` : t('notReady')}</span></div><span className="statusbar-center" role={updateStatus?.message ? 'status' : undefined}>{updateStatus?.message || `${bootstrap.remotes.length} ${t('remoteCount')}`}</span><span className="statusbar-version">0.8.0</span></footer>
 
     {toolTarget && <ToolDialog target={toolTarget} t={t} onClose={() => setToolTarget(null)} onSession={session => { upsertToolSession(session); setPage('jobs'); }}/> }
     {modal === 'options' && <TransferOptionsDialog options={options} mode={mode} recommendation={currentRecommendation} hiddenPresets={settings.hiddenBuiltinPresets || []} onRestorePresets={restorePresets} defaults={settings.defaultTransferOptions} t={t} onClose={() => setModal(null)} onSave={(next, nextMode) => { setOptions(next); setMode(nextMode); setActivePreset(null); setError(''); setNotice(''); setModal(null); }} onSaveDefaults={async next => { await saveSettings({defaultTransferOptions: next}); }}/>}

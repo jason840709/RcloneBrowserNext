@@ -91,7 +91,7 @@ final class RcloneEngine {
 
     static func defaultSettings(directory: URL) -> [String: Any] {
         ["rclonePath": "", "rcloneDirectory": directory.path, "configPath": "", "language": "system", "theme": "purple-dark", "interfaceScale": 100,
-         "autoCheckUpdates": true, "skippedRcloneVersion": "", "settingsRevision": 0, "settingsSchemaVersion": 6,
+         "autoCheckUpdates": true, "skippedRcloneVersion": "", "settingsRevision": 0, "settingsSchemaVersion": 7,
          "paneColumnWidths": [String: Any](), "defaultTransferOptions": EngineTransferOptions.defaults,
          "hiddenBuiltinPresets": [String](),
          "maxConcurrentJobs": 0, "proxyMode": "system", "httpProxy": "", "httpsProxy": "", "noProxy": "",
@@ -148,7 +148,14 @@ final class RcloneEngine {
             workspace["options"] = EngineTransferOptions.preservingLegacySnapshot(options)
             raw["savedWorkspace"] = workspace
         }
-        raw["settingsSchemaVersion"] = 6
+        // 0.8 names the previous 90% size 100%, and the previous 100% size
+        // 110%. Keep every explicitly saved size visually unchanged, including
+        // the older 110%/125% choices that become 120%/135% compatibility values.
+        if schema < 7, let previous = raw["interfaceScale"] as? Int,
+           [80, 90, 100, 110, 125].contains(previous) {
+            raw["interfaceScale"] = previous + 10
+        }
+        raw["settingsSchemaVersion"] = 7
         return raw
     }
 
@@ -1174,8 +1181,8 @@ final class RcloneEngine {
             throw EngineError("語言或外觀設定不正確。")
         }
         output["language"] = language; output["theme"] = theme
-        let interfaceScale = try EngineJSON.integer(merged["interfaceScale"], "介面比例", 80...125)
-        guard [80, 90, 100, 110, 125].contains(interfaceScale) else { throw EngineError("介面比例只能選擇 80%、90%、100%、110% 或 125%。") }
+        let interfaceScale = try EngineJSON.integer(merged["interfaceScale"], "介面比例", 80...135)
+        guard [80, 90, 100, 110, 120, 125, 135].contains(interfaceScale) else { throw EngineError("請選擇支援的介面比例。") }
         output["interfaceScale"] = interfaceScale
         output["autoCheckUpdates"] = try EngineJSON.bool(merged["autoCheckUpdates"], "啟動時檢查更新")
         for key in ["showStatusItem", "notifyOnCompletion", "showHiddenFiles", "showFolderIcons", "showFileIcons", "alternatingRows"] {
@@ -1183,7 +1190,7 @@ final class RcloneEngine {
         }
         output["skippedRcloneVersion"] = try EngineJSON.text(merged["skippedRcloneVersion"], "略過版本", maximum: 128)
         output["settingsRevision"] = try EngineJSON.integer(merged["settingsRevision"], "設定版本", 0...9007199254740990)
-        output["settingsSchemaVersion"] = 6
+        output["settingsSchemaVersion"] = 7
         output["maxConcurrentJobs"] = try EngineJSON.integer(merged["maxConcurrentJobs"], "同時執行的工作數", 0...128)
         guard let hidden = merged["hiddenBuiltinPresets"] as? [String], hidden.count <= 6,
               Set(hidden).isSubset(of: ["local-nas", "nas-cloud", "local-cloud", "local-local", "cloud-cloud", "cloud-local"]) else {

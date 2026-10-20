@@ -1,5 +1,5 @@
 import type { Page, Locator } from '@playwright/test';
-import type { Bootstrap, Job, Settings, RemoteInfo } from '../shared/types.ts';
+import type { Bootstrap, FileEntry, Job, Settings, RemoteInfo } from '../shared/types.ts';
 import { DEFAULT_OPTIONS } from '../shared/types.ts';
 
 export const unusualName = '<img src=x onerror="window.__unsafe=1"> & "照片".txt';
@@ -7,6 +7,7 @@ export const chosenFolder = '/Users/test/Rclone Engine & Scripts';
 export const chosenExecutable = '/Users/test/Tools/rclone';
 
 export async function installHostFixture(page: Page, options: {
+  initialAppearance?: boolean; delays?: Record<string, number[]>;
   platform?: string; extraRemotes?: RemoteInfo[]; available?: boolean; settings?: Partial<Settings>; job?: boolean; cleanPreview?: boolean; fileCount?: number; preferredLanguage?: string; appStatus?: 'current'|'available'|'unpublished'; manualStatus?: 'skipped' | 'updated' | 'current';
 } = {}) {
   const available = options.available ?? true;
@@ -27,19 +28,20 @@ export async function installHostFixture(page: Page, options: {
   };
   const bootstrap: Bootstrap = {
     environment: { version: available ? 'v1.75.2' : '', rclonePath: available ? '/Users/test/Engine/rclone' : '', configPath: '/Users/test/.config/rclone/rclone.conf', platform: options.platform || 'darwin', arch: 'arm64', available },
-    settings: { rcloneDirectory: '/Users/test/Engine', rclonePath: '', configPath: '', language: 'zh-TW', theme: 'purple-light', interfaceScale: 100, autoCheckUpdates: true, skippedRcloneVersion: '', settingsRevision: 0, settingsSchemaVersion: 6, hiddenBuiltinPresets: [], savedWorkspace: null, networkOptions: {bindMode: 'auto', bindAddress: '', connectTimeout: '1m', ioTimeout: '5m', tpsLimit: 0, tpsBurst: 1, userAgent: '', disableHTTP2: false}, paneColumnWidths: {}, defaultTransferOptions: DEFAULT_OPTIONS, maxConcurrentJobs: 0, proxyMode: 'system', httpProxy: '', httpsProxy: '', noProxy: '', defaultRcloneOptions: [], initialLocations: {}, streamPlayerPath: '', streamPlayerArguments: ['-'], showStatusItem: false, notifyOnCompletion: false, showHiddenFiles: true, showFolderIcons: true, showFileIcons: true, alternatingRows: true, ...options.settings },
+    settings: { rcloneDirectory: '/Users/test/Engine', rclonePath: '', configPath: '', language: 'zh-TW', theme: 'purple-light', interfaceScale: 100, autoCheckUpdates: true, skippedRcloneVersion: '', settingsRevision: 0, settingsSchemaVersion: 7, hiddenBuiltinPresets: [], savedWorkspace: null, networkOptions: {bindMode: 'auto', bindAddress: '', connectTimeout: '1m', ioTimeout: '5m', tpsLimit: 0, tpsBurst: 1, userAgent: '', disableHTTP2: false}, paneColumnWidths: {}, defaultTransferOptions: DEFAULT_OPTIONS, maxConcurrentJobs: 0, proxyMode: 'system', httpProxy: '', httpsProxy: '', noProxy: '', defaultRcloneOptions: [], initialLocations: {}, streamPlayerPath: '', streamPlayerArguments: ['-'], showStatusItem: false, notifyOnCompletion: false, showHiddenFiles: true, showFolderIcons: true, showFileIcons: true, alternatingRows: true, ...options.settings },
     resolvedLanguage: options.settings?.language === 'system' ? (options.preferredLanguage?.startsWith('ja') ? 'ja' : options.preferredLanguage?.startsWith('zh') ? 'zh-TW' : 'en') : options.settings?.language || 'zh-TW',
     home: '/Users/test', localLocations: [{id: 'home', name: 'test', path: '/Users/test', kind: 'home', group: 'local'}, ...(['desktop','documents','downloads','pictures','music','movies'] as const).map(kind => ({id: kind, name: kind, path: `/Users/test/${kind[0].toUpperCase()}${kind.slice(1)}`, kind, group: 'local' as const})), {id: 'volumes', name: 'Volumes', path: '/Volumes', kind: 'volumes', group: 'local'}, {id: 'test-nas-volume', name: 'Media Backup', path: '/Volumes/Media Backup', kind: 'volume', group: 'network'}], remotes: [{ name: 'research-drive', type: 'drive', group: 'cloud' }, { name: 'lab-nas', type: 'sftp', group: 'network' }, { name: 'web-storage', type: 'webdav', group: 'other' }, ...(options.extraRemotes || [])],
     jobs: options.job ? [job] : [], tasks: [],
   };
-  await page.addInitScript(({ bootstrap, job, unusualName, chosenFolder, chosenExecutable, manualStatus, cleanPreview, fileCount, preferredLanguage, appStatus }) => {
+  await page.addInitScript(({ bootstrap, job, unusualName, chosenFolder, chosenExecutable, manualStatus, cleanPreview, fileCount, preferredLanguage, appStatus, initialAppearance, delays }) => {
     const win = window as any;
     const state = {
       bootstrap, job, preferredLanguage, appStatus, started: 0, calls: [] as {id: string; method: string; args: any[]}[],
       reports: {} as Record<string, any[]>, reportOverrides: {} as Record<string, any>, reportError: '',
-      chosenFolder, chosenExecutable, manualStatus, listingError: '', bulkStopDelay: 350, forcedStopIds: [] as string[], bulkRetainIds: [] as string[], bulkError: '', delays: {} as Record<string, number[]>, rejectSave: false, manualErrorOnce: false, toolSessions: [] as any[],
+      chosenFolder, chosenExecutable, manualStatus, listingError: '', listings: {} as Record<string, FileEntry[]>, bulkStopDelay: 350, forcedStopIds: [] as string[], bulkRetainIds: [] as string[], bulkError: '', delays: delays || {} as Record<string, number[]>, rejectSave: false, manualErrorOnce: false, toolSessions: [] as any[],
     };
     win.__fixture = state;
+    if (initialAppearance) win.__rbnInitialAppearance = {theme: bootstrap.settings.theme};
     const englishPreview = cleanPreview && bootstrap.resolvedLanguage === 'en';
     if (englishPreview) {job.stats.transferring[0].name='Research archive.zip';job.logs[0].object='Research archive.zip';}
     const files = [
@@ -66,7 +68,7 @@ export async function installHostFixture(page: Page, options: {
           if (state.listingError) throw new Error(state.listingError);
           if (args[0].path === '/missing-folder') throw new Error('Directory does not exist: /missing-folder');
           if (args[0].remote && !state.bootstrap.environment.available) throw new Error('Remote browsing requires rclone.');
-          return files;
+          return state.listings[args[0].remote ? `${args[0].remote}:${args[0].path}` : args[0].path] || files;
         case 'chooseFolder': return state.chosenFolder;
         case 'chooseFile': return args[0] === 'rclone' ? state.chosenExecutable : args[0] === 'player' ? '/Applications/VLC.app' : '/Users/test/config & backup.conf';
         case 'saveSettings': {
@@ -183,7 +185,7 @@ export async function installHostFixture(page: Page, options: {
         catch (error) { win.__rbnReply?.({id: message.id, error: {message: error instanceof Error ? error.message : String(error)}}); }
       }, delay);
     }}}};
-  }, { bootstrap, job, unusualName, chosenFolder, chosenExecutable, manualStatus: options.manualStatus ?? 'current', cleanPreview: options.cleanPreview ?? false, fileCount: options.fileCount ?? 24, preferredLanguage: options.preferredLanguage || 'zh-TW', appStatus: options.appStatus || 'unpublished' });
+  }, { bootstrap, job, unusualName, chosenFolder, chosenExecutable, manualStatus: options.manualStatus ?? 'current', cleanPreview: options.cleanPreview ?? false, fileCount: options.fileCount ?? 24, preferredLanguage: options.preferredLanguage || 'zh-TW', appStatus: options.appStatus || 'unpublished', initialAppearance: options.initialAppearance ?? true, delays: options.delays });
 }
 
 /** Choose through the visible popup, including its scrolling and close behavior. */

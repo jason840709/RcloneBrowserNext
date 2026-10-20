@@ -5,6 +5,7 @@ import { endpointEqual, errorMessage, parentEndpoint } from './utils';
 export function useBrowser() {
   const [endpoint, setEndpoint] = useState<Endpoint>({ remote: null, path: '' });
   const [entries, setEntries] = useState<FileEntry[]>([]);
+  const [hasListing, setHasListing] = useState(false);
   const [selection, setSelectionState] = useState<Selection[]>([]);
   const [focusedEntry, setFocusedEntry] = useState<Selection | null>(null);
   const [loading, setLoading] = useState(false);
@@ -38,20 +39,23 @@ export function useBrowser() {
     setSelection([]);
     setFocusedEntry(null);
   }, [setSelection]);
-  const load = useCallback(async (target: Endpoint, wanted: Selection[]) => {
+  const load = useCallback(async (target: Endpoint) => {
     const id = ++generation.current;
     setLoading(true); setError('');
     try {
       const result = await window.rclone.list(target);
       if (id !== generation.current) return;
+      // Keep the last successful listing on screen until the current request
+      // completes. React batches this replacement with the loading state below.
       setEntries(result);
+      setHasListing(true);
       setFocusedEntry(current => current && result.some(entry => entry.name === current.name && entry.isDir === current.isDir) ? current : null);
       const missing = selectionRef.current.some(item => !result.some(entry => entry.name === item.name && entry.isDir === item.isDir));
       // Keep missing selections visible as an error. Never silently expand a saved selection to a whole-folder operation.
       setMissingSelection(missing);
     } catch (reason) {
       if (id !== generation.current) return;
-      setEntries([]); setError(errorMessage(reason));
+      setError(errorMessage(reason));
     } finally {
       if (id === generation.current) setLoading(false);
     }
@@ -62,14 +66,14 @@ export function useBrowser() {
       future.current = [];
     }
     endpointRef.current = target;
-    setEndpoint(target); setSelection(wanted); setFocusedEntry(null); setEntries([]); setPathDirty(false);
+    setEndpoint(target); setSelection(wanted); setFocusedEntry(null); setPathDirty(false);
     setCanBack(history.current.length > 0); setCanForward(future.current.length > 0);
     tabState.current.set(activeTabRef.current, {endpoint: target, selection: wanted, history: history.current, future: future.current});
     publishTabs();
-    void load(target, wanted);
+    void load(target);
   }, [load, setSelection, publishTabs]);
   const reload = useCallback(() => {
-    if (endpointRef.current.path || endpointRef.current.remote) void load(endpointRef.current, selectionRef.current);
+    if (endpointRef.current.path || endpointRef.current.remote) void load(endpointRef.current);
   }, [load]);
   const back = useCallback(() => {
     const target = history.current.pop();
@@ -106,7 +110,7 @@ export function useBrowser() {
     tabState.current.delete(id);
     publishTabs();
   }, [switchTab, publishTabs]);
-  return { tabs, activeTab, newTab, switchTab, closeTab, endpoint, entries, selection, focusedEntry, loading, error, missingSelection, pathDirty, canBack, canForward, navigate, reload, back, forward, up, setSelection, clearSelections, setFocusedEntry, setPathDirty };
+  return { tabs, activeTab, newTab, switchTab, closeTab, endpoint, entries, hasListing, selection, focusedEntry, loading, error, missingSelection, pathDirty, canBack, canForward, navigate, reload, back, forward, up, setSelection, clearSelections, setFocusedEntry, setPathDirty };
 }
 
 export type BrowserState = ReturnType<typeof useBrowser>;

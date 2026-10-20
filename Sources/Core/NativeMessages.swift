@@ -35,6 +35,7 @@ enum RBNNativeStrings {
         Entry("只有目標有此檔案。", "This file exists only at the destination.", "このファイルは転送先にのみ存在します。"),
 
         Entry("介面比例只能選擇 80%、90%、100%、110% 或 125%。", "Choose an interface scale of 80%, 90%, 100%, 110% or 125%.", "表示倍率は 80%、90%、100%、110%、125% から選択してください。"),
+        Entry("請選擇支援的介面比例。", "Choose a supported interface scale.", "対応している表示倍率を選択してください。"),
         Entry("工作清理設定格式不正確。", "The job cleanup settings are invalid.", "処理の消去設定が正しくありません。"),
         Entry("無法清除工作紀錄：傳輸清單或清除方式已失效。請重新整理後再試。", "Could not clear job records: the transfer list or cleanup choice is no longer valid. Refresh the list and try again.", "転送一覧または消去方法が無効になったため、ジョブの記録を消去できませんでした。一覧を更新して再試行してください。"),
         Entry("rclone 尚未停止，工作仍保留。請查看工作狀態。", "rclone has not stopped. The job is still listed; check its status.", "rclone はまだ停止していません。処理は一覧に残っています。状態を確認してください。"),

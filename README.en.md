@@ -19,7 +19,7 @@
   <a href="https://github.com/jason840709/RcloneBrowserNext/issues">Report an issue</a>
 </p>
 
-Version 0.7.0 adds Windows x64 and Linux amd64 compatibility editions. **Mac remains the primary platform**; all editions share the interface and transfer core. [Release notes](docs/RELEASE_0.7.0.md) · [Compatibility installation](docs/BUILD_COMPATIBILITY.md)
+Version 0.8.0 fixes startup and folder-navigation flashes, improves mouse back/forward buttons, and makes the previous 90% interface size the new 100% default. **Mac remains the primary platform**, with Windows x64 and Linux amd64 compatibility editions. [Release notes](docs/RELEASE_0.8.0.md) · [Compatibility installation](docs/BUILD_COMPATIBILITY.md)
 
 ## What is it?
 

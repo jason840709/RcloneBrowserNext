@@ -1132,7 +1132,7 @@ dialog .floating-notice { position: absolute; top: 12px; right: 54px; width: min
 /* 0.6: native page zoom, six accent families and readable compact windows. */
 .interface-scale-section .section-heading { margin-bottom: 12px; }
 .interface-scale-section h3 { margin: 0; }
-.interface-scale-picker { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 7px; }
+.interface-scale-picker { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 7px; }
 .interface-scale-picker label { position: relative; min-height: 55px; padding: 8px 4px; display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 3px; border: 1px solid var(--border); border-radius: 6px; background: var(--input); cursor: pointer; font-weight: 600; }
 .interface-scale-picker label.selected { border-color: var(--accent); background: var(--accent-soft); color: var(--accent-soft-text); box-shadow: 0 0 0 1px var(--accent); }
 .interface-scale-picker input { position: absolute; opacity: 0; width: 1px; height: 1px; margin: 0; }

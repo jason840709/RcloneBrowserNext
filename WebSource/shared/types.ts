@@ -1,7 +1,7 @@
 export type ResolvedLanguage = 'zh-TW' | 'en' | 'ja';
 export type Language = ResolvedLanguage | 'system';
 export type Theme = 'purple-dark' | 'purple-light' | 'blue-dark' | 'blue-light' | 'green-dark' | 'green-light';
-export type InterfaceScale = 80 | 90 | 100 | 110 | 125;
+export type InterfaceScale = 80 | 90 | 100 | 110 | 120 | 125 | 135;
 export interface Endpoint { remote: string | null; path: string }
 export interface RemoteInfo { name: string; type: string; group?: 'cloud' | 'network' | 'other' }
 export interface LocalLocation { id: string; name: string; path: string; kind: 'home' | 'desktop' | 'documents' | 'downloads' | 'pictures' | 'music' | 'movies' | 'volumes' | 'volume'; group: 'local' | 'network'; isRemovable?: boolean }

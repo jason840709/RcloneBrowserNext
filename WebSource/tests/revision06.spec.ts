@@ -4,7 +4,7 @@ import path from 'node:path';
 import {readFileSync} from 'node:fs';
 import {installHostFixture} from './native-fixture';
 import {translator} from '../renderer/i18n';
-import {INTERFACE_SCALES} from '../renderer/appearance';
+import {INTERFACE_SCALES, interfaceScaleZoom} from '../renderer/appearance';
 import type {InterfaceScale, Job, Language, Settings, Theme} from '../shared/types';
 
 const t = translator('zh-TW');
@@ -43,7 +43,7 @@ async function reachable(locator: Locator) {
   })).toEqual({inside:true,hit:true});
 }
 async function mockNativeZoom(page: Page, initial: InterfaceScale=100) {
-  const resize=async(scale: number) => page.setViewportSize({width:Math.floor(1060/(scale/100)),height:Math.floor(680/(scale/100))});
+  const resize=async(scale: InterfaceScale) => page.setViewportSize({width:Math.floor(1060/interfaceScaleZoom(scale)),height:Math.floor(680/interfaceScaleZoom(scale))});
   await resize(initial);
   // This host-only callback emulates WKWebView.pageZoom by changing CSS viewport.
   // The production app does not contain or invoke it.
@@ -79,7 +79,7 @@ for(const language of ['zh-TW','en','ja'] as const) test(`${language}: five inte
     await dialog.locator(`.interface-scale-picker input[value="${scale}"]`).locator('..').click();
     await expect(dialog.locator(`.interface-scale-picker input[value="${scale}"]`)).toBeChecked();
     await expect.poll(async()=>(await saved(page)).interfaceScale).toBe(scale);
-    await expect.poll(()=>page.viewportSize()).toEqual({width:Math.floor(1060/(scale/100)),height:Math.floor(680/(scale/100))});
+    await expect.poll(()=>page.viewportSize()).toEqual({width:Math.floor(1060/interfaceScaleZoom(scale)),height:Math.floor(680/interfaceScaleZoom(scale))});
     await reachable(dialog.locator('.dialog-footer button').last());
     expect(await page.evaluate(()=>({zoom:getComputedStyle(document.documentElement).zoom,font:getComputedStyle(document.documentElement).fontSize,overflow:document.documentElement.scrollWidth>innerWidth,transform:getComputedStyle(document.querySelector('.app-shell')!).transform}))).toEqual({zoom:'1',font:'14px',overflow:false,transform:'none'});
   }
@@ -96,7 +96,7 @@ test('scale keyboard selection and rapid edits survive save rejection without ap
   await expect(dialog.getByRole('alert')).toContainText('Settings rejected');await expect(dialog.locator('.interface-scale-picker input[value="110"]')).toBeChecked();
   await page.evaluate(()=>{const w=window as any;w.__fixture.delays.saveSettings=[120,2];});
   await dialog.locator('.interface-scale-picker').evaluate(group=>{(group.querySelector('input[value="80"]') as HTMLInputElement).click();(group.querySelector('input[value="100"]') as HTMLInputElement).click();});
-  await expect.poll(async()=>(await saved(page)).interfaceScale).toBe(100);await expect.poll(()=>page.viewportSize()).toEqual({width:1060,height:680});await expect(dialog.locator('.interface-scale-picker input[value="100"]')).toBeChecked();
+  await expect.poll(async()=>(await saved(page)).interfaceScale).toBe(100);await expect.poll(()=>page.viewportSize()).toEqual({width:1177,height:755});await expect(dialog.locator('.interface-scale-picker input[value="100"]')).toBeChecked();
   expect((await calls(page,'saveSettings')).map(call=>call.args[0])).toEqual([{interfaceScale:110},{interfaceScale:125},{interfaceScale:80},{interfaceScale:100}]);
 });
 

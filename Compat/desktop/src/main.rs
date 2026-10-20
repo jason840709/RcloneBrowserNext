@@ -6,6 +6,7 @@ use std::{collections::HashMap, fs, io::{BufRead, BufReader, Read, Write}, path:
     process::{Child, ChildStdin, Command, Stdio}, sync::{Arc, Mutex, atomic::{AtomicBool, AtomicU64, Ordering}, mpsc},
     thread, time::Duration};
 use tauri::{AppHandle, Manager, WebviewUrl, WebviewWindow, WebviewWindowBuilder};
+use tauri::utils::config::Color;
 use tauri_plugin_clipboard_manager::ClipboardExt;
 use tauri_plugin_dialog::{DialogExt, MessageDialogButtons, MessageDialogKind, MessageDialogResult};
 
@@ -91,6 +92,10 @@ impl Host {
     }
 
     fn call(&self, method: &str, args: Vec<Value>) -> Result<Value, String> {
+        self.call_with_timeout(method, args, Duration::from_secs(960))
+    }
+
+    fn call_with_timeout(&self, method: &str, args: Vec<Value>, timeout: Duration) -> Result<Value, String> {
         if !self.alive.load(Ordering::SeqCst) { return Err(self.text("引擎已停止，請重新開啟程式。", "The engine stopped. Reopen the app.", "エンジンが停止しました。アプリを開き直してください。")); }
         let id = format!("host-{}", self.sequence.fetch_add(1, Ordering::Relaxed));
         let mut packet = serde_json::to_vec(&json!({"id": id, "method": method, "args": args})).map_err(|e| e.to_string())?;
@@ -99,9 +104,11 @@ impl Host {
         let (tx, rx) = mpsc::channel(); self.pending.lock().unwrap().insert(id.clone(), tx);
         let write = self.input.lock().unwrap().as_mut().ok_or("The engine is closing.").and_then(|stdin| stdin.write_all(&packet).map_err(|_| "Cannot contact the engine."));
         if let Err(error) = write { self.pending.lock().unwrap().remove(&id); return Err(error.into()); }
-        let reply = rx.recv_timeout(Duration::from_secs(960));
+        let reply = rx.recv_timeout(timeout);
         self.pending.lock().unwrap().remove(&id);
-        let reply = reply.map_err(|_| self.text("操作尚未回應，請查看工作狀態。", "The operation has not responded. Check its job status.", "操作の応答がありません。ジョブの状態を確認してください。"))?;
+        let reply = reply.map_err(|_| if method == "_preferences" {
+            self.text("讀取設定逾時。請重新開啟程式。", "Reading settings timed out. Reopen the app.", "設定の読み込みがタイムアウトしました。アプリを開き直してください。")
+        } else { self.text("操作尚未回應，請查看工作狀態。", "The operation has not responded. Check its job status.", "操作の応答がありません。ジョブの状態を確認してください。") })?;
         if let Some(error) = reply.get("error") { return Err(error.as_str().unwrap_or("Operation failed").to_owned()); }
         Ok(reply.get("result").cloned().unwrap_or(Value::Null))
     }
@@ -216,6 +223,24 @@ fn open_url(value: &str) -> Result<(), String> {
     Ok(())
 }
 
+fn interface_zoom(displayed_scale: u64) -> f64 {
+    let scale = if [80, 90, 100, 110, 120, 125, 135].contains(&displayed_scale) { displayed_scale } else { 100 };
+    (scale as f64 - 10.0) / 100.0
+}
+
+fn appearance_theme(settings: &Value) -> &str {
+    match settings["theme"].as_str().unwrap_or("purple-dark") {
+        "dark" => "blue-dark", "light" => "blue-light",
+        theme @ ("purple-dark" | "purple-light" | "blue-dark" | "blue-light" | "green-dark" | "green-light") => theme,
+        _ => "purple-dark",
+    }
+}
+
+fn appearance_background(theme: &str) -> Color {
+    let component = if theme.ends_with("-light") { 241 } else { 28 };
+    Color(component, component, component, 255)
+}
+
 fn apply_preferences(app: &AppHandle, host: &Arc<Host>) {
     let handle = app.clone(); let host = host.clone();
     // Read the latest revision on the UI thread. A slow, older save reply must
@@ -224,10 +249,11 @@ fn apply_preferences(app: &AppHandle, host: &Arc<Host>) {
         let settings = host.settings.lock().unwrap().clone();
         if let Some(window) = handle.get_webview_window("main") {
             let scale = settings["interfaceScale"].as_u64().unwrap_or(100);
-            if [80, 90, 100, 110, 125].contains(&scale) { let _ = window.set_zoom(scale as f64 / 100.0); }
-            let theme = settings["theme"].as_str().unwrap_or("purple-dark");
+            let _ = window.set_zoom(interface_zoom(scale));
+            let theme = appearance_theme(&settings);
             let appearance = if theme.ends_with("light") { tauri::Theme::Light } else { tauri::Theme::Dark };
             let _ = window.set_theme(Some(appearance));
+            let _ = window.set_background_color(Some(appearance_background(theme)));
             let color = if theme.starts_with("green") { "green" } else if theme.starts_with("blue") { "blue" } else { "purple" };
             if let Ok(icon) = tauri::image::Image::from_path(host.runtime.join(format!("icon-{color}.png"))) { let _ = window.set_icon(icon); }
         }
@@ -478,15 +504,61 @@ fn smoke_result(app: AppHandle, window: WebviewWindow, host: tauri::State<'_, Ar
     if window.label() != "main" || !window.url().map(|u| bundled_url(&u)).unwrap_or(false) || host.smoke_path.is_none() {
         return Err("UI smoke mode is not enabled".into());
     }
+    let before = payload["widthBefore"].as_f64().unwrap_or(0.0);
+    let zoomed = payload["widthZoomed"].as_f64().unwrap_or(0.0);
+    let restored = payload["widthRestored"].as_f64().unwrap_or(0.0);
     let passed = payload["panes"].as_u64() == Some(2) && payload["buttons"].as_u64().unwrap_or(0) >= 10 &&
         payload["platform"].as_str() == Some(if cfg!(windows) { "win32" } else { "linux" }) &&
-        payload["widthBefore"].as_f64().unwrap_or(0.0) > payload["widthZoomed"].as_f64().unwrap_or(f64::MAX) + 80.0 &&
+        zoomed > 0.0 && before > zoomed + 80.0 &&
+        (before / zoomed - interface_zoom(125) / interface_zoom(100)).abs() < 0.02 &&
+        (restored - before).abs() <= 2.0 && payload["scaleBefore"].as_u64() == Some(100) &&
+        payload["initialTheme"].as_str() == Some("green-dark") && payload["themeBefore"].as_str() == Some("green-dark") &&
         payload["language"].as_str() == Some("en") && payload["error"].is_null();
     let host = host.inner().clone();
     if host.smoke_finished.swap(true, Ordering::SeqCst) { return Ok(()); }
     let path = host.smoke_path.as_ref().unwrap();
     fs::write(path, serde_json::to_vec_pretty(&json!({"passed":passed,"version":env!("CARGO_PKG_VERSION"),"result":payload})).unwrap()).map_err(|e| e.to_string())?;
     thread::spawn(move || { let _ = host.call("_shutdown", vec![]); host.input.lock().unwrap().take(); let _ = host.child.lock().unwrap().wait(); app.exit(if passed { 0 } else { 2 }); });
+    Ok(())
+}
+
+fn open_main_window(app: &AppHandle, host: &Arc<Host>) -> Result<(), String> {
+    let startup_timeout = Duration::from_secs(30);
+    if host.smoke_path.is_some() {
+        let config = host.state_path.join("empty.conf"); fs::write(&config, "").map_err(|e| e.to_string())?;
+        host.call_with_timeout("saveSettings", vec![json!({"language":"en","theme":"green-dark","autoCheckUpdates":false,"configPath":config.to_string_lossy(),"initialLocations":{"left":{"remote":null,"path":host.state_path.to_string_lossy()},"right":{"remote":null,"path":host.state_path.to_string_lossy()}}})], startup_timeout)?;
+    }
+    // This runs off the event-loop thread. The helper's one stdout reader
+    // matches replies by ID, including preferences; it has no second consumer.
+    // Reading migrated settings does not run rclone or wait for discovery.
+    let preferences = host.call_with_timeout("_preferences", vec![], startup_timeout)?;
+    host.store_settings(&preferences["settings"], preferences["resolvedLanguage"].as_str());
+    let initial_theme = appearance_theme(&preferences["settings"]);
+    let initial_script = format!("window.__rbnInitialAppearance = {};", json!({"theme":initial_theme}));
+    let window = WebviewWindowBuilder::new(app, "main", WebviewUrl::App("index.html".into()))
+        .title("Rclone Browser Next").inner_size(1280.0, 800.0).min_inner_size(880.0, 600.0)
+        .visible(false).background_color(appearance_background(initial_theme))
+        .theme(Some(if initial_theme.ends_with("-light") { tauri::Theme::Light } else { tauri::Theme::Dark }))
+        .initialization_script(initial_script).initialization_script(include_str!("bridge.js")).on_navigation(bundled_url)
+        .on_page_load(|window, payload| {
+            if payload.event() == tauri::webview::PageLoadEvent::Finished {
+                let state = window.state::<Arc<Host>>();
+                if state.smoke_path.is_some() { let _ = window.eval(include_str!("smoke.js")); }
+            }
+        }).build().map_err(|e| e.to_string())?;
+    let handle = app.clone();
+    window.on_window_event(move |event| {
+        if let tauri::WindowEvent::CloseRequested { api, .. } = event {
+            api.prevent_close();
+            let host = handle.state::<Arc<Host>>().inner().clone();
+            start_quit(handle.clone(), host);
+        }
+    });
+    window.set_zoom(interface_zoom(preferences["settings"]["interfaceScale"].as_u64().unwrap_or(100))).map_err(|e| e.to_string())?;
+    // Windows/Linux apply the builder's background to both window and webview.
+    // Show once after preparation, even when document loading later fails;
+    // page-load callbacks must not keep reopening or raising this window.
+    window.show().map_err(|e| e.to_string())?;
     Ok(())
 }
 
@@ -505,19 +577,24 @@ fn main() {
             } else { app.path().app_data_dir()? };
             let runtime = app.path().resource_dir()?.join("runtime");
             let host = Host::start(app.handle(), state_path, runtime, smoke_path.clone()).map_err(std::io::Error::other)?;
-            if smoke_path.is_some() {
-                let config = host.state_path.join("empty.conf"); fs::write(&config, "")?;
-                host.call("saveSettings", vec![json!({"language":"en","autoCheckUpdates":false,"configPath":config.to_string_lossy(),"initialLocations":{"left":{"remote":null,"path":host.state_path.to_string_lossy()},"right":{"remote":null,"path":host.state_path.to_string_lossy()}}})]).map_err(std::io::Error::other)?;
-            }
             app.manage(host.clone());
-            let window = WebviewWindowBuilder::new(app, "main", WebviewUrl::App("index.html".into()))
-                .title("Rclone Browser Next").inner_size(1280.0, 800.0).min_inner_size(880.0, 600.0)
-                .initialization_script(include_str!("bridge.js")).on_navigation(bundled_url)
-                .on_page_load(|window, payload| {
-                    if payload.event() == tauri::webview::PageLoadEvent::Finished && window.state::<Arc<Host>>().smoke_path.is_some() {
-                        let _ = window.eval(include_str!("smoke.js"));
+            let handle = app.handle().clone(); let startup_host = host.clone();
+            thread::spawn(move || {
+                if let Err(error) = open_main_window(&handle, &startup_host) {
+                    startup_host.quitting.store(true, Ordering::SeqCst);
+                    startup_host.input.lock().unwrap().take();
+                    { let mut child = startup_host.child.lock().unwrap(); let _ = child.kill(); let _ = child.wait(); }
+                    if let Some(path) = &startup_host.smoke_path {
+                        if !startup_host.smoke_finished.swap(true, Ordering::SeqCst) {
+                            let _ = fs::write(path, serde_json::to_vec_pretty(&json!({"passed":false,"error":error})).unwrap());
+                        }
+                    } else {
+                        handle.dialog().message(error).title(startup_host.text("無法開啟 Rclone Browser Next", "Could not open Rclone Browser Next", "Rclone Browser Next を開けません"))
+                            .kind(MessageDialogKind::Error).blocking_show();
                     }
-                }).build()?;
+                    handle.exit(2);
+                }
+            });
             if let Some(path) = smoke_path.clone() {
                 let app = app.handle().clone();
                 thread::spawn(move || {
@@ -528,14 +605,6 @@ fn main() {
                     }
                 });
             }
-            let handle = app.handle().clone();
-            window.on_window_event(move |event| {
-                if let tauri::WindowEvent::CloseRequested { api, .. } = event {
-                    api.prevent_close();
-                    let host = handle.state::<Arc<Host>>().inner().clone();
-                    start_quit(handle.clone(), host);
-                }
-            });
             Ok(())
         })
         .build(tauri::generate_context!())
@@ -562,5 +631,10 @@ mod tests {
     }
     #[test] fn native_only_methods_are_not_exposed() {
         for name in ["_shutdown", "_beginConfiguration", "_installRclone", "_exportTo", "getLogPath", "getJobReportPath"] { assert!(!METHODS.contains(&name)); }
+    }
+    #[test] fn displayed_scale_maps_to_the_retained_visual_sizes() {
+        for (displayed, expected) in [(80, 0.7), (90, 0.8), (100, 0.9), (110, 1.0), (120, 1.1), (125, 1.15), (135, 1.25)] {
+            assert!((interface_zoom(displayed) - expected).abs() < 0.000001);
+        }
     }
 }

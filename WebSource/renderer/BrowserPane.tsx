@@ -13,6 +13,7 @@ import { EmptyState, IconButton, Notice } from './components';
 
 export type FileAction = 'newFolder' | 'rename' | 'remove' | 'size';
 interface PaneContext {
+  disabled: boolean;
   selected: Set<string>;
   checkWidth: number;
   widths: PaneColumnWidths;
@@ -25,7 +26,7 @@ interface PaneContext {
 const tableComponents: TableComponents<FileEntry, PaneContext> = {
   Table: ({ context, children, ...props }) => <table {...props} className="file-table" style={{width: '100%', minWidth: (context?.checkWidth || 14) + (context?.widths.name || 180) + (context?.widths.size || 86) + (context?.widths.modified || 164)}}><colgroup><col style={{width: context?.checkWidth || 14}}/><col style={{width: context?.widths.name}}/><col style={{width: context?.widths.size}}/><col style={{width: context?.widths.modified}}/><col className="row-fill"/></colgroup>{children}</table>,
   TableRow: ({ item, context, ...props }) => <tr {...props} data-row-parity={Number(props['data-index']) % 2} data-selected={context?.selected.has(item.name) || undefined}
-    tabIndex={context?.focused === item.name ? 0 : -1} aria-selected={context?.selected.has(item.name)}
+    tabIndex={!context?.disabled && context?.focused === item.name ? 0 : -1} aria-selected={context?.selected.has(item.name)} aria-disabled={context?.disabled || undefined}
     onFocus={() => context?.onFocus(item)}
     onClick={event => context?.onSelect(item, event)}
     onDoubleClick={() => context?.onOpen(item)}
@@ -49,6 +50,7 @@ export default function BrowserPane({ side, browser, remotes, locations, home, p
   const checkWidth = isSource ? 36 : 14;
   useEffect(() => { if (!isSource) browser.clearSelections(); }, [isSource, browser.clearSelections]);
   const navigationDisabled = disabled || Boolean(endpoint.remote && !remoteAvailable);
+  const listingDisabled = navigationDisabled || loading || Boolean(error);
   const [query, setQuery] = useState('');
   const [showHidden, setShowHidden] = useState(preferences.showHiddenFiles);
   useEffect(() => setShowHidden(preferences.showHiddenFiles), [preferences.showHiddenFiles]);
@@ -115,9 +117,9 @@ export default function BrowserPane({ side, browser, remotes, locations, home, p
   const navigate = useCallback((target: typeof endpoint) => {
     setPathDraft(null); setQuery(''); setFocused(''); anchor.current = null; browser.navigate(target);
   }, [browser.navigate]);
-  const toggle = (item: FileEntry) => { if (isSource) browser.setSelection(selected.has(item.name) ? selection.filter(x => x.name !== item.name) : [...selection, { name: item.name, isDir: item.isDir }]); };
+  const toggle = (item: FileEntry) => { if (isSource && !listingDisabled) browser.setSelection(selected.has(item.name) ? selection.filter(x => x.name !== item.name) : [...selection, { name: item.name, isDir: item.isDir }]); };
   const selectVisible = () => {
-    if (!isSource) return;
+    if (!isSource || listingDisabled) return;
     const remaining = selection.filter(item => !visibleNames.has(item.name));
     browser.setSelection(allSelected ? remaining : [...remaining, ...filtered.map(item => ({name: item.name, isDir: item.isDir}))]);
   };
@@ -128,10 +130,10 @@ export default function BrowserPane({ side, browser, remotes, locations, home, p
     virtuoso.current?.scrollIntoView({index: next, behavior: 'auto', done: () => sectionRef.current?.querySelector<HTMLElement>(`tr[data-index="${next}"]`)?.focus()});
   };
   const context: PaneContext = {
-    selected, widths, checkWidth, focused: visibleNames.has(focused) ? focused : filtered[0]?.name || '', onFocus: item => { setFocused(item.name); browser.setFocusedEntry({name:item.name,isDir:item.isDir}); },
-    onOpen: item => { if (item.isDir && !navigationDisabled) navigate(childEndpoint(endpoint, item.name)); },
+    disabled: listingDisabled, selected, widths, checkWidth, focused: visibleNames.has(focused) ? focused : filtered[0]?.name || '', onFocus: item => { if (!listingDisabled) { setFocused(item.name); browser.setFocusedEntry({name:item.name,isDir:item.isDir}); } },
+    onOpen: item => { if (item.isDir && !listingDisabled) navigate(childEndpoint(endpoint, item.name)); },
     onSelect: (item, event) => {
-      if ((event.target as HTMLElement).closest('input,button')) return;
+      if (listingDisabled || (event.target as HTMLElement).closest('input,button')) return;
       setFocused(item.name);browser.setFocusedEntry({name:item.name,isDir:item.isDir});
       if (!isSource) return;
       const index = filtered.findIndex(x => x.name === item.name);
@@ -144,7 +146,7 @@ export default function BrowserPane({ side, browser, remotes, locations, home, p
       setFocused(item.name);
     },
     onKey: (event, item, index) => {
-      if (event.target instanceof HTMLInputElement) return;
+      if (listingDisabled || event.target instanceof HTMLInputElement) return;
       if (event.key === 'ArrowDown' || event.key === 'ArrowUp') { event.preventDefault(); focusIndex(index + (event.key === 'ArrowDown' ? 1 : -1)); }
       if (event.key === ' ') { event.preventDefault(); toggle(item); }
       if (event.key === 'Enter' && item.isDir && !navigationDisabled) { event.preventDefault(); navigate(childEndpoint(endpoint, item.name)); }
@@ -163,7 +165,7 @@ export default function BrowserPane({ side, browser, remotes, locations, home, p
     if (modifier && event.key.toLowerCase() === 'r') { event.preventDefault(); browser.reload(); }
     const editing = (event.target as HTMLElement).closest('input,textarea,select');
     if (editing) return;
-    if (modifier && event.key.toLowerCase() === 'a') { event.preventDefault(); if (isSource) browser.setSelection(filtered.map(item => ({name: item.name, isDir: item.isDir}))); }
+    if (modifier && event.key.toLowerCase() === 'a') { event.preventDefault(); if (isSource && !listingDisabled) browser.setSelection(filtered.map(item => ({name: item.name, isDir: item.isDir}))); }
     if ((modifier && event.key === 'ArrowUp') || event.key === 'Backspace') { event.preventDefault(); event.stopPropagation(); setPathDraft(null); browser.up(); }
   };
 
@@ -191,14 +193,16 @@ export default function BrowserPane({ side, browser, remotes, locations, home, p
       <IconButton title={t(showHidden ? 'hideHidden' : 'showHidden')} aria-pressed={showHidden} onClick={() => setShowHidden(!showHidden)}>{showHidden ? <Eye size={18}/> : <EyeSlash size={18}/>}</IconButton>
     </div>
     {isSource && browser.missingSelection && <Notice kind="warning">{t('missingSelection')} <button type="button" className="text-button" onClick={() => browser.setSelection([])}>{t('clearSelection')}</button></Notice>}
-    <div className="file-list" data-empty={Boolean(error) || !filtered.length || undefined} aria-busy={loading}>
-      {loading && entries.length === 0 ? <div className="file-loading" role="status"><span>{t('loadingFolder')}</span>{[0, 1, 2, 3, 4, 5].map(i => <div className="skeleton-row" key={i}><i/><span/><small/></div>)}</div> : error ?
+    <div className="file-list" data-empty={Boolean(error) || !filtered.length || undefined} aria-busy={loading}
+      onDragStartCapture={event => { if (listingDisabled) { event.preventDefault(); event.stopPropagation(); } }}
+      onContextMenuCapture={event => { if (listingDisabled) { event.preventDefault(); event.stopPropagation(); } }}>
+      {loading && !browser.hasListing ? <div className="file-loading" role="status"><span>{t('loadingFolder')}</span>{[0, 1, 2, 3, 4, 5].map(i => <div className="skeleton-row" key={i}><i/><span/><small/></div>)}</div> : error ?
         <EmptyState compact kind="error" icon={endpoint.remote ? <Cloud size={30}/> : <FolderOpen size={30}/>} title={t('cannotBrowse')} action={<button type="button" onClick={browser.reload}>{t('retry')}</button>}>{error}</EmptyState> : filtered.length === 0 ?
         <EmptyState compact icon={query ? <MagnifyingGlass size={32}/> : <FolderOpen size={34} weight="duotone"/>} title={t(query || entries.length > 0 ? 'noMatches' : 'emptyFolder')}>{(query || entries.length > 0) ? t('noMatchesHint') : null}</EmptyState> :
         <TableVirtuoso ref={virtuoso} data={filtered} components={tableComponents} context={context} fixedItemHeight={37} overscan={200} onScroll={event => { const element = event.currentTarget as HTMLElement; element.closest<HTMLElement>('.file-list')?.style.setProperty('--stripe-offset', `${33 - element.scrollTop % 74}px`); }}
           computeItemKey={(_index, item) => item.name}
-          fixedHeaderContent={() => <tr><th scope="col" className="check-cell" aria-hidden={!isSource || undefined}>{isSource && <input type="checkbox" aria-label={`${t(side)} ${t('selectAll')}`} checked={allSelected} ref={element => { if (element) element.indeterminate = someSelected && !allSelected; }} onChange={selectVisible}/>}</th><th scope="col" aria-sort={sort.key === 'name' ? sort.ascending ? 'ascending' : 'descending' : 'none'}>{sortHeader('name', t('name'))}{resizeHandle('name', t('name'))}</th><th scope="col" className="numeric" aria-sort={sort.key === 'size' ? sort.ascending ? 'ascending' : 'descending' : 'none'}>{sortHeader('size', t('size'))}{resizeHandle('size', t('size'))}</th><th scope="col" aria-sort={sort.key === 'modified' ? sort.ascending ? 'ascending' : 'descending' : 'none'}>{sortHeader('modified', t('modified'))}{resizeHandle('modified', t('modified'))}</th><th scope="col" className="row-fill" aria-label=""/></tr>}
-          itemContent={(_index, entry) => <><td className="check-cell" aria-hidden={!isSource || undefined}>{isSource && <input type="checkbox" aria-label={`${t('selected')} ${entry.name}`} checked={selected.has(entry.name)} onChange={() => toggle(entry)} onClick={event => event.stopPropagation()}/>}</td><td><div className="file-name" title={entry.name}>{(entry.isDir ? preferences.showFolderIcons : preferences.showFileIcons) && <EntryIcon entry={entry}/>}<span>{entry.name}</span>{entry.isLink && <span className="link-marker">↗</span>}</div></td><td className="numeric muted">{entry.isDir ? '—' : formatBytes(entry.size)}</td><td className="date-cell muted" title={formatDate(entry.modified, language)}>{formatDate(entry.modified, language)}</td><td className="row-fill" aria-hidden="true"/></>}/>
+          fixedHeaderContent={() => <tr><th scope="col" className="check-cell" aria-hidden={!isSource || undefined}>{isSource && <input type="checkbox" aria-label={`${t(side)} ${t('selectAll')}`} checked={allSelected} disabled={listingDisabled} ref={element => { if (element) element.indeterminate = someSelected && !allSelected; }} onChange={selectVisible}/>}</th><th scope="col" aria-sort={sort.key === 'name' ? sort.ascending ? 'ascending' : 'descending' : 'none'}>{sortHeader('name', t('name'))}{resizeHandle('name', t('name'))}</th><th scope="col" className="numeric" aria-sort={sort.key === 'size' ? sort.ascending ? 'ascending' : 'descending' : 'none'}>{sortHeader('size', t('size'))}{resizeHandle('size', t('size'))}</th><th scope="col" aria-sort={sort.key === 'modified' ? sort.ascending ? 'ascending' : 'descending' : 'none'}>{sortHeader('modified', t('modified'))}{resizeHandle('modified', t('modified'))}</th><th scope="col" className="row-fill" aria-label=""/></tr>}
+          itemContent={(_index, entry) => <><td className="check-cell" aria-hidden={!isSource || undefined}>{isSource && <input type="checkbox" aria-label={`${t('selected')} ${entry.name}`} checked={selected.has(entry.name)} disabled={listingDisabled} onChange={() => toggle(entry)} onClick={event => event.stopPropagation()}/>}</td><td><div className="file-name" title={entry.name}>{(entry.isDir ? preferences.showFolderIcons : preferences.showFileIcons) && <EntryIcon entry={entry}/>}<span>{entry.name}</span>{entry.isLink && <span className="link-marker">↗</span>}</div></td><td className="numeric muted">{entry.isDir ? '—' : formatBytes(entry.size)}</td><td className="date-cell muted" title={formatDate(entry.modified, language)}>{formatDate(entry.modified, language)}</td><td className="row-fill" aria-hidden="true"/></>}/>
       }
     </div>
     <footer className="pane-footer">

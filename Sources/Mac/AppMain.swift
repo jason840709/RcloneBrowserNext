@@ -92,13 +92,15 @@ final class BrowserAppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegat
             configuration.preferences.javaScriptCanOpenWindowsAutomatically = false
             configuration.userContentController.add(self, name: "rclone")
             let browserView = RcloneWebView(frame: .zero, configuration: configuration)
+            let initialAppearance = RBNWebAppearance(theme: engine.settingsSnapshot()["theme"] as? String)
+            browserView.prepareForInitialLoad(initialAppearance)
             browserView.acceptsHistoryNavigation = { [weak self] in
                 guard let self = self else { return false }
                 return self.pageReady && !self.terminationStarted && self.isBundledDocument(self.webView?.url)
             }
-            browserView.onHistoryNavigation = { [weak self] direction, point, eventTime in
+            browserView.onHistoryNavigation = { [weak self] direction, point, eventTime, phase in
                 self?.sendEvent(type: "navigateHistory", data: ["direction": direction, "x": point.x, "y": point.y,
-                                                               "eventTime": eventTime])
+                                                               "eventTime": eventTime, "phase": phase])
             }
             browserView.acceptsFileDrop = { [weak self] in
                 guard let self = self else { return false }
@@ -118,9 +120,8 @@ final class BrowserAppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegat
             webView.navigationDelegate = self
             webView.uiDelegate = self
             webView.autoresizingMask = [.width, .height]
-            webView.underPageBackgroundColor = .windowBackgroundColor
 
-            window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 1280, height: 800),
+            window = RcloneBrowserWindow(contentRect: NSRect(x: 0, y: 0, width: 1280, height: 800),
                               styleMask: [.titled, .closable, .miniaturizable, .resizable],
                               backing: .buffered, defer: false)
             window.title = "Rclone Browser Next"
@@ -128,6 +129,7 @@ final class BrowserAppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegat
             window.contentMinSize = NSSize(width: 1060, height: 680)
             window.isReleasedWhenClosed = false
             window.delegate = self
+            window.backgroundColor = initialAppearance.backgroundColor
             window.contentView = webView
             window.center()
             applyAppearance()
@@ -236,7 +238,7 @@ final class BrowserAppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegat
 
     private func applyInterfacePreferences() {
         let settings = engine.settingsSnapshot()
-        let zoom = CGFloat(settings["interfaceScale"] as? Int ?? 100) / 100
+        let zoom = RBNInterfaceScale.zoom(settings["interfaceScale"] as? Int ?? 100)
         if abs(webView.pageZoom - zoom) > 0.0001 { webView.pageZoom = zoom }
         if settings["showStatusItem"] as? Bool == true {
             if statusItem == nil { statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength) }
@@ -423,12 +425,11 @@ final class BrowserAppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegat
     }
 
     private func applyAppearance() {
-        let theme = engine.settingsSnapshot()["theme"] as? String ?? "purple-dark"
-        switch theme {
-        case "dark", "blue-dark", "purple-dark", "green-dark": NSApp.appearance = NSAppearance(named: .darkAqua)
-        case "light", "blue-light", "purple-light", "green-light": NSApp.appearance = NSAppearance(named: .aqua)
-        default: NSApp.appearance = nil
-        }
+        let appearance = RBNWebAppearance(theme: engine.settingsSnapshot()["theme"] as? String)
+        let theme = appearance.theme
+        NSApp.appearance = NSAppearance(named: appearance.isDark ? .darkAqua : .aqua)
+        window?.backgroundColor = appearance.backgroundColor
+        (webView as? RcloneWebView)?.applyAppearance(appearance)
         let family = theme.hasPrefix("green-") ? "green" : (theme.hasPrefix("blue-") || ["dark", "light"].contains(theme) ? "blue" : "purple")
         guard family != currentIconFamily else { return }
         if themeIcons[family] == nil, let resources = Bundle.main.resourceURL {
@@ -463,11 +464,16 @@ final class BrowserAppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegat
     func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
         guard isBundledDocument(webView.url) else { return }
         pageReady = true
+        (webView as? RcloneWebView)?.revealInitialDocument()
         for event in queuedEvents { evaluate(function: "__rbnEvent", value: event) }
         queuedEvents.removeAll()
     }
 
     func webView(_ webView: WKWebView, didFailProvisionalNavigation navigation: WKNavigation!, withError error: Error) {
+        presentError(error)
+    }
+
+    func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
         presentError(error)
     }
 

@@ -33,7 +33,7 @@
 | 位置 | 內容 |
 | --- | --- |
 | 專案內 `Rclone Browser Next.app` | 在這台 Mac 建好的 App |
-| 專案內 `.build-cache` | Swift／Clang module cache、編譯暫存、記錄、六套 Swift 測試資料 |
+| 專案內 `.build-cache` | Swift／Clang module cache、編譯暫存、記錄、九套 Swift 測試資料 |
 | 專案內 `Distribution` | 本機 App ZIP 與 SHA-256 校驗檔 |
 | 專案內 `Backups` | 重新建置前的 App |
 | 所選 rclone 資料夾 | 外部引擎、引擎更新暫存及備份 |
@@ -52,11 +52,11 @@
 
 這是 **ad-hoc 本機簽章，沒有 Developer ID，也未經 Apple 公證**。簽章完整與 Gatekeeper 信任不是同一項檢查，不能保證把本機 ZIP 傳給另一台 Mac 就完全不會遇到阻擋。腳本不遞迴移除隔離標籤、不關閉 Gatekeeper、不修改系統安全設定。
 
-## 驗證 App 與執行六套測試
+## 驗證 App 與執行九套測試
 
 `Verify-App.command` 檢查同資料夾 App 的版本、架構、最低 macOS、依賴、資源及簽章。它不登入雲端、不驗證 Finder 拖放或實際傳輸。
 
-`Test-on-Mac.command` 分別建立、簽署並執行以下六套 Swift 測試：
+`Test-on-Mac.command` 分別建立、簽署並執行以下九套 Swift 測試：
 
 | 測試 | 用途 |
 | --- | --- |
@@ -66,6 +66,9 @@
 | NativeMessagesTests | 原生提示翻譯，保留檔名與後端診斷 |
 | FinderDropTests | 檔案 URL、來源範圍、類型與符號連結處理 |
 | AppReleaseTests | App 正式版本比較、回應驗證、下載頁邊界與錯誤後重試 |
+| TransferReportTests | 逐檔報告、重試、來源增長、匯出與大型分頁 |
+| PlatformTests | 平台路徑、檔案操作與程序控制 |
+| MacInterfaceTests | 真實 WebKit 的主題啟動、縮放、原生側鍵事件與圖示 |
 
 這些測試的資料都在專案 `.build-cache/tests`，不使用日常備份、雲端帳號、現有掛載或既有播放器。完整 rclone 案例需要提供可執行、與本機相容的引擎：
 

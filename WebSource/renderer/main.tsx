@@ -5,7 +5,6 @@ import { installNativeBridge } from './bridge';
 import './styles.css';
 
 installNativeBridge();
-document.documentElement.dataset.theme = 'purple-light';
 
 document.addEventListener('keydown', () => { document.documentElement.dataset.input = 'keyboard'; }, { capture: true });
 document.addEventListener('pointerdown', () => { document.documentElement.dataset.input = 'pointer'; }, { capture: true });

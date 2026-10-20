@@ -1,7 +1,7 @@
 import type { AppAPI, Job, UpdateStatus, MenuAction, ToolSession, FinderDrop } from '../shared/types';
 
 type Reply = { id: string; result?: unknown; error?: string | { message?: string } | null };
-type HistoryNavigation = {direction: 'back'|'forward'; x: number; y: number; eventTime?: number};
+type HistoryNavigation = {direction: 'back'|'forward'; x: number; y: number; eventTime?: number; phase?: 'down'|'up'};
 type NativeEvent = { type: 'jobUpdate'; data: Job } | { type: 'updateStatus'; data: UpdateStatus } | { type: 'configurationChanged'; data?: unknown } | {type: 'menuAction'; data: MenuAction} | {type: 'toolSessionUpdate'; data: ToolSession} | {type: 'finderDrop'; data: FinderDrop} | {type: 'navigateHistory'; data: HistoryNavigation};
 type Pending = { resolve(value: unknown): void; reject(reason: Error): void; timer: ReturnType<typeof setTimeout> };
 

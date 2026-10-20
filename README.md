@@ -19,7 +19,7 @@
   <a href="https://github.com/jason840709/RcloneBrowserNext/issues">回報問題</a>
 </p>
 
-0.7.0 加入 Windows x64 與 Linux amd64 相容版。**Mac 仍是主要開發平台**；其他系統共用雙面板介面與傳輸核心。[本版更新](docs/RELEASE_0.7.0.md) · [相容版安裝](docs/BUILD_COMPATIBILITY.md)
+0.8.0 修正啟動與資料夾切換閃爍、滑鼠側鍵，並以原來 90% 的大小作為新的 100%。**Mac 仍是主要開發平台**，另提供 Windows x64 與 Linux amd64 相容版。[本版更新](docs/RELEASE_0.8.0.md) · [相容版安裝](docs/BUILD_COMPATIBILITY.md)
 
 ## 這是什麼？
 

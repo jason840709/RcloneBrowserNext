@@ -4,6 +4,7 @@ import path from 'node:path';
 import {installHostFixture, selectPlace} from './native-fixture';
 import {translator} from '../renderer/i18n';
 import {childEndpoint, endpointEqual, endpointName, parentEndpoint} from '../renderer/utils';
+import {interfaceScaleZoom} from '../renderer/appearance';
 import type {Language} from '../shared/types';
 
 const url = pathToFileURL(path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../Resources/Web/index.html')).href;
@@ -43,7 +44,7 @@ async function popupBelow(trigger: Locator, selectedValue?: string) {
 }
 
 for (const scale of [80, 90, 100, 110, 125] as const) test(`${scale}%: both long location menus stay below their trigger after choosing the last cloud`, async ({page}, info) => {
-  await page.setViewportSize({width: Math.floor(1060 / (scale / 100)), height: Math.floor(680 / (scale / 100))});
+  await page.setViewportSize({width: Math.floor(1060 / interfaceScaleZoom(scale)), height: Math.floor(680 / interfaceScaleZoom(scale))});
   const errors = await open(page, {extraRemotes: longRemotes, settings: {interfaceScale: scale}});
   const grid = page.locator('.browser-grid'), before = await grid.boundingBox();
   for (const side of ['left', 'right'] as const) {

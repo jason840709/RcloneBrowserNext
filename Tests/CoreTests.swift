@@ -349,7 +349,7 @@ private final class CoreTestSuite {
                 try EngineStorage.atomicJSON(previous, to: state.appendingPathComponent("settings.json"))
                 let engine = try RcloneEngine(stateDirectory: state, defaultRcloneDirectory: area.appendingPathComponent("rclone"))
                 let settings = engine.settingsSnapshot()
-                try expect(settings["settingsSchemaVersion"] as? Int == 6 && settings["maxConcurrentJobs"] as? Int == expected, "wrong limit migration")
+                try expect(settings["settingsSchemaVersion"] as? Int == 7 && settings["maxConcurrentJobs"] as? Int == expected, "wrong limit migration")
                 try expect(settings["language"] as? String == "en" && settings["theme"] as? String == "blue-light" && settings["skippedRcloneVersion"] as? String == "v99.1.0", "migration changed independent preferences")
                 if schema == 0 {
                     let network = settings["networkOptions"] as! [String: Any]
@@ -568,7 +568,7 @@ private final class CoreTestSuite {
                 try expect(snapshot["interfaceScale"] as? Int == scale && snapshot["language"] as? String == "ja", "theme patch changed scale or language")
             }
             let before = try EngineJSON.data(engine.settingsSnapshot())
-            for invalid: Any in [79, 81, 95, 126, 90.5, "100", true, NSNull()] {
+            for invalid: Any in [79, 81, 95, 126, 130, 136, 90.5, "100", true, NSNull()] {
                 try rejects("invalid scale accepted: \(invalid)") { _ = try engine.invoke("saveSettings", arguments: [["interfaceScale": invalid]]) }
                 try expect(try EngineJSON.data(engine.settingsSnapshot()) == before, "invalid scale changed settings or revision")
             }
@@ -576,7 +576,38 @@ private final class CoreTestSuite {
             let restarted = try RcloneEngine(stateDirectory: state, defaultRcloneDirectory: area.appendingPathComponent("rclone"))
             defer { restarted.shutdown() }
             try expect(restarted.settingsSnapshot()["interfaceScale"] as? Int == 125 && restarted.settingsSnapshot()["theme"] as? String == "green-light", "scale or green theme lost after restart")
-            try expect(restarted.settingsSnapshot()["settingsSchemaVersion"] as? Int == 6, "settings schema was not upgraded")
+            try expect(restarted.settingsSnapshot()["settingsSchemaVersion"] as? Int == 7, "settings schema was not upgraded")
+        }
+
+        test("0.8 scale migration preserves every saved visual size and runs only once") {
+            let area = try folder("settings-scale-v08")
+            let fresh = try RcloneEngine(stateDirectory: area.appendingPathComponent("fresh"), defaultRcloneDirectory: area.appendingPathComponent("rclone"))
+            try expect(fresh.settingsSnapshot()["interfaceScale"] as? Int == 100, "fresh install did not use the new 100% standard")
+            fresh.shutdown()
+            for schema in [0, 5, 6] {
+                for previous in [80, 90, 100, 110, 125] {
+                    let state = try folder("settings-scale-v08/schema-\(schema)-scale-\(previous)")
+                    let saved: [String: Any] = ["settingsSchemaVersion": schema, "interfaceScale": previous,
+                                                "language": "ja", "theme": "green-dark"]
+                    try EngineStorage.atomicJSON(saved, to: state.appendingPathComponent("settings.json"))
+                    let engine = try RcloneEngine(stateDirectory: state, defaultRcloneDirectory: area.appendingPathComponent("rclone"))
+                    let migrated = engine.settingsSnapshot()
+                    try expect(migrated["interfaceScale"] as? Int == previous + 10, "saved size changed during migration")
+                    try expect(migrated["language"] as? String == "ja" && migrated["theme"] as? String == "green-dark", "scale migration changed another preference")
+                    let persisted = try EngineJSON.object(Data(contentsOf: state.appendingPathComponent("settings.json"))) as! [String: Any]
+                    try expect(persisted["interfaceScale"] as? Int == previous + 10 && persisted["settingsSchemaVersion"] as? Int == 7, "migration was not persisted on first launch")
+                    engine.shutdown()
+                    let restarted = try RcloneEngine(stateDirectory: state, defaultRcloneDirectory: area.appendingPathComponent("rclone"))
+                    try expect(restarted.settingsSnapshot()["interfaceScale"] as? Int == previous + 10, "restart applied scale migration twice")
+                    _ = try restarted.invoke("saveSettings", arguments: [["theme": "purple-dark"]])
+                    try expect(restarted.settingsSnapshot()["interfaceScale"] as? Int == previous + 10, "unrelated patch lost a migrated scale")
+                    _ = try restarted.invoke("saveSettings", arguments: [["interfaceScale": 100]])
+                    restarted.shutdown()
+                    let afterChoice = try RcloneEngine(stateDirectory: state, defaultRcloneDirectory: area.appendingPathComponent("rclone"))
+                    try expect(afterChoice.settingsSnapshot()["interfaceScale"] as? Int == 100, "new 100% choice was migrated as an old setting")
+                    afterChoice.shutdown()
+                }
+            }
         }
 
         test("startup clears only successful history while preserving failed and unfinished requests and their logs") {

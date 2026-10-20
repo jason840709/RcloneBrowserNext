@@ -28,6 +28,7 @@ export default defineConfig({
     name: 'native-app-document',
     writeBundle() {
       copyFileSync(path.join(renderer, 'index.html'), path.join(output, 'index.html'));
+      copyFileSync(path.join(renderer, 'appearance-bootstrap.js'), path.join(output, 'appearance-bootstrap.js'));
       copyFileSync(path.join(renderer, 'favicon.svg'), path.join(output, 'favicon.svg'));
       for (const family of ['blue', 'green']) copyFileSync(path.join(renderer, `favicon-${family}.svg`), path.join(output, `favicon-${family}.svg`));
       copyFileSync(path.join(root, 'THIRD_PARTY_NOTICES.txt'), path.join(output, 'THIRD_PARTY_NOTICES.txt'));

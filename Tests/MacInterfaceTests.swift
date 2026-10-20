@@ -2,15 +2,19 @@
 import Foundation
 @preconcurrency import AppKit
 @preconcurrency import WebKit
+import CoreGraphics
 
-/// Exercises the actual macOS WebKit viewport, rather than simulating zoom in
-/// CSS. The same point conversion is used by Finder drops and mouse side keys.
+/// Exercises AppKit mouse delivery, document-start appearance and the actual
+/// macOS WebKit viewport. No events are posted outside the test's own window.
 @main @MainActor struct MacInterfaceTests {
     private struct Failure: Error, CustomStringConvertible { let description: String }
     private final class Loader: NSObject, WKNavigationDelegate {
         var loaded = false
         var failure: Error?
-        func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) { loaded = true }
+        func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
+            (webView as? RcloneWebView)?.revealInitialDocument()
+            loaded = true
+        }
         func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) { failure = error }
         func webView(_ webView: WKWebView, didFailProvisionalNavigation navigation: WKNavigation!, withError error: Error) { failure = error }
     }
@@ -43,6 +47,59 @@ import Foundation
         catch { failed += 1; print("FAIL \(title): \(error)") }
     }
 
+    private static let document = """
+    <!doctype html><html><head><meta charset="utf-8">
+    <script>window.firstDocumentTheme = window.__rbnInitialAppearance?.theme;
+    window.firstRootTheme = document.documentElement.dataset.theme;</script>
+    <style>
+    html{background:#fff}html[data-theme$="-dark"]{background:#1c1c1c}html[data-theme$="-light"]{background:#f1f1f1}
+    html,body{margin:0;width:100%;height:100%;overflow:hidden}
+    body{display:grid;grid-template-columns:1fr 1fr}
+    section{display:grid;grid-template-rows:1fr 1fr}
+    #left{background:#292a2d}#right{background:#38393d}
+    </style></head><body><section id="left"><div id="left-top"></div><div id="left-bottom"></div></section>
+    <section id="right"><div id="right-top"></div><div id="right-bottom"></div></section>
+    <script>
+    window.historyEvents=[];window.domSideEvents=0;
+    window.__rbnEvent=event=>{if(event.type==='navigateHistory'){
+      const data=event.data;window.historyEvents.push({...data,target:document.elementFromPoint(data.x,data.y)?.id});
+    }};
+    for(const type of ['mousedown','mouseup','auxclick'])document.addEventListener(type,event=>{
+      if(event.button===3||event.button===4)window.domSideEvents++;
+    },true);
+    </script></body></html>
+    """
+
+    private static func sideEvent(button: Int, down: Bool, number: Int, time: TimeInterval,
+                                  x: Double, y: Double, in view: RcloneWebView) throws -> NSEvent {
+        guard let window = view.window, let primary = NSScreen.screens.first else {
+            throw Failure(description: "Missing event window or screen")
+        }
+        let offset = view.bounds.height * CGFloat(y)
+        let point = CGPoint(x: view.bounds.minX + view.bounds.width * CGFloat(x),
+                            y: view.isFlipped ? view.bounds.minY + offset : view.bounds.maxY - offset)
+        let screen = window.convertPoint(toScreen: view.convert(point, to: nil))
+        let quartz = CGPoint(x: screen.x, y: primary.frame.maxY - screen.y)
+        guard let cgEvent = CGEvent(mouseEventSource: nil,
+                                    mouseType: down ? .otherMouseDown : .otherMouseUp,
+                                    mouseCursorPosition: quartz, mouseButton: .center) else {
+            throw Failure(description: "Could not create the auxiliary mouse event")
+        }
+        cgEvent.setIntegerValueField(.mouseEventButtonNumber, value: Int64(button))
+        cgEvent.setIntegerValueField(.mouseEventNumber, value: Int64(number))
+        cgEvent.timestamp = UInt64(time * 1_000_000_000)
+        guard let event = NSEvent(cgEvent: cgEvent) else { throw Failure(description: "Could not create NSEvent") }
+        try require(event.buttonNumber == button && event.eventNumber == number && event.type == (down ? .otherMouseDown : .otherMouseUp), "NSEvent changed the button, event number, or phase")
+        return event
+    }
+
+    private static func history(in view: WKWebView) throws -> [[String: Any]] {
+        guard let result = try evaluate("window.historyEvents", in: view) as? [[String: Any]] else {
+            throw Failure(description: "Missing WebKit history event receipt")
+        }
+        return result
+    }
+
     static func main() {
         let app = NSApplication.shared
         app.setActivationPolicy(.accessory)
@@ -50,21 +107,23 @@ import Foundation
         let configuration = WKWebViewConfiguration()
         configuration.websiteDataStore = .nonPersistent()
         let view = RcloneWebView(frame: NSRect(x: 0, y: 0, width: 1060, height: 680), configuration: configuration)
-        let window = NSWindow(contentRect: view.frame, styleMask: [.titled], backing: .buffered, defer: false)
+        view.pageZoom = RBNInterfaceScale.zoom(100)
+        let initialAppearance = RBNWebAppearance(theme: "purple-dark")
+        view.prepareForInitialLoad(initialAppearance)
+        let window = RcloneBrowserWindow(contentRect: view.frame, styleMask: [.titled], backing: .buffered, defer: false)
         window.isReleasedWhenClosed = false
+        window.backgroundColor = initialAppearance.backgroundColor
         window.contentView = view
+        test("Saved dark background is installed before showing the window or loading HTML") {
+            try require(!window.isVisible && view.url == nil && view.isHidden, "The first WebKit frame became visible before preparation")
+            try require(window.backgroundColor == initialAppearance.backgroundColor && view.underPageBackgroundColor == initialAppearance.backgroundColor,
+                        "The native window and unloaded web view do not share the saved background")
+            try require(abs(view.pageZoom - 0.9) < 0.0001, "New default 100% must use the former 90% size before first load")
+        }
         window.orderFront(nil)
         let loader = Loader()
         view.navigationDelegate = loader
-        view.loadHTMLString("""
-        <!doctype html><meta charset="utf-8"><style>
-        html,body{margin:0;width:100%;height:100%;overflow:hidden}
-        body{display:grid;grid-template-columns:1fr 1fr}
-        section{display:grid;grid-template-rows:1fr 1fr}
-        #left{background:#292a2d}#right{background:#38393d}
-        </style><section id="left"><div id="left-top"></div><div id="left-bottom"></div></section>
-        <section id="right"><div id="right-top"></div><div id="right-bottom"></div></section>
-        """, baseURL: nil)
+        view.loadHTMLString(document, baseURL: nil)
 
         test("Bundled-style interface loads in macOS WebKit") {
             try wait(until: { loader.loaded || loader.failure != nil }, seconds: 20)
@@ -72,16 +131,39 @@ import Foundation
             try require(loader.loaded, "The document did not load")
         }
         if loader.loaded {
-            for scale in [80, 90, 100, 110, 125] {
+            test("Document-start theme precedes page scripts and the first revealed frame") {
+                try require(!view.isHidden, "The loaded document was not revealed")
+                try require(try evaluate("window.firstDocumentTheme === 'purple-dark' && window.firstRootTheme === 'purple-dark' && getComputedStyle(document.documentElement).backgroundColor === 'rgb(28, 28, 28)'", in: view) as? Bool == true,
+                            "The document started with the wrong theme or white background")
+            }
+            test("Reload uses the latest saved light theme without retaining an old startup script") {
+                let appearance = RBNWebAppearance(theme: "green-light")
+                view.prepareForInitialLoad(appearance)
+                window.backgroundColor = appearance.backgroundColor
+                try require(view.isHidden && view.underPageBackgroundColor == appearance.backgroundColor, "The light canvas was not prepared before reload")
+                loader.loaded = false
+                view.loadHTMLString(document, baseURL: nil)
+                try wait(until: { loader.loaded || loader.failure != nil }, seconds: 20)
+                if let error = loader.failure { throw error }
+                try require(!view.isHidden && view.configuration.userContentController.userScripts.count == 1, "Reload kept an outdated appearance script or hid the loaded page")
+                try require(try evaluate("window.firstDocumentTheme === 'green-light' && window.firstRootTheme === 'green-light' && getComputedStyle(document.documentElement).backgroundColor === 'rgb(241, 241, 241)'", in: view) as? Bool == true,
+                            "Reload showed the previous theme")
+                let script = view.configuration.userContentController.userScripts.first
+                view.applyAppearance(appearance)
+                try require(view.configuration.userContentController.userScripts.first === script,
+                            "Saving unchanged appearance recreated the document-start script")
+            }
+            for (scale, effectiveZoom) in [(80, 0.7), (90, 0.8), (100, 0.9), (110, 1.0), (125, 1.15), (120, 1.1), (135, 1.25)] {
                 test("\(scale)% zoom changes the viewport and preserves native pane hit testing") {
-                    view.pageZoom = CGFloat(scale) / 100
+                    view.pageZoom = RBNInterfaceScale.zoom(scale)
+                    try require(abs(Double(view.pageZoom) - effectiveZoom) < 0.0001, "Displayed scale mapped to the wrong visual size")
                     // evaluateJavaScript crosses the WebKit process boundary;
                     // force layout before reading the actual viewport size.
                     guard let viewport = try evaluate("[document.documentElement.clientWidth, document.documentElement.clientHeight]", in: view) as? [NSNumber], viewport.count == 2 else {
                         throw Failure(description: "Missing viewport dimensions")
                     }
-                    let expectedWidth = view.bounds.width / view.pageZoom
-                    let expectedHeight = view.bounds.height / view.pageZoom
+                    let expectedWidth = view.bounds.width / CGFloat(effectiveZoom)
+                    let expectedHeight = view.bounds.height / CGFloat(effectiveZoom)
                     try require(abs(viewport[0].doubleValue - expectedWidth) <= 1.1, "Viewport width did not follow pageZoom: \(viewport)")
                     try require(abs(viewport[1].doubleValue - expectedHeight) <= 1.1, "Viewport height did not follow pageZoom: \(viewport)")
                     // Points just either side of the visual divider catch the
@@ -98,6 +180,84 @@ import Foundation
                         }
                     }
                 }
+            }
+
+            var deliveryErrors = [String]()
+            view.acceptsHistoryNavigation = { true }
+            view.onHistoryNavigation = { direction, point, time, phase in
+                let value: [String: Any] = ["type": "navigateHistory", "data": ["direction": direction,
+                    "x": point.x, "y": point.y, "eventTime": time, "phase": phase]]
+                do {
+                    let data = try JSONSerialization.data(withJSONObject: value)
+                    let json = String(decoding: data, as: UTF8.self)
+                    view.evaluateJavaScript("window.__rbnEvent(\(json))") { _, error in
+                        if let error = error { deliveryErrors.append(error.localizedDescription) }
+                    }
+                } catch { deliveryErrors.append(error.localizedDescription) }
+            }
+            // This route uses the production NSWindow.sendEvent override and
+            // real NSEvents. It deliberately does not invoke the handler itself
+            // or depend on a globally posted input event/Accessibility access.
+            test("AppKit side-button presses reach the correct WebKit panes once per press") {
+                let before = try history(in: view).count
+                let time = ProcessInfo.processInfo.systemUptime
+                for (button, number, x, y) in [(3, 101, 0.46, 0.76), (4, 102, 0.54, 0.24)] {
+                    window.sendEvent(try sideEvent(button: button, down: true, number: number, time: time, x: x, y: y, in: view))
+                    window.sendEvent(try sideEvent(button: button, down: false, number: number, time: time + 0.01, x: x, y: y, in: view))
+                }
+                let events = Array(try history(in: view).dropFirst(before))
+                try require(events.count == 2 && deliveryErrors.isEmpty, "A native press was lost or delivered more than once: \(events), \(deliveryErrors)")
+                try require(events[0]["direction"] as? String == "back" && events[0]["target"] as? String == "left-bottom", "Back was sent to the wrong pane")
+                try require(events[1]["direction"] as? String == "forward" && events[1]["target"] as? String == "right-top", "Forward was sent to the wrong pane")
+                try require(events.allSatisfy { $0["phase"] as? String == "down" && ($0["eventTime"] as? Double ?? 0) > 1e12 }, "The native/DOM pairing metadata is missing")
+                try require(try evaluate("window.domSideEvents", in: view) as? Int == 0, "A consumed native press leaked a second DOM mouse event")
+            }
+            test("Release-only side buttons navigate and duplicate delivery stays consumed") {
+                let before = try history(in: view).count
+                let event = try sideEvent(button: 3, down: false, number: 201,
+                                          time: ProcessInfo.processInfo.systemUptime, x: 0.54, y: 0.76, in: view)
+                window.sendEvent(event)
+                window.sendEvent(event)
+                let events = Array(try history(in: view).dropFirst(before))
+                try require(events.count == 1 && events[0]["phase"] as? String == "up" && events[0]["target"] as? String == "right-bottom",
+                            "A release-only gesture was swallowed, repeated, or sent to the wrong pane")
+            }
+            test("Rapid side-button presses retain separate gestures and repeated down delivery does not") {
+                let before = try history(in: view).count
+                let time = ProcessInfo.processInfo.systemUptime
+                for index in 0..<2 {
+                    let down = try sideEvent(button: 4, down: true, number: 301 + index,
+                                             time: time + Double(index) * 0.015, x: 0.46, y: 0.24, in: view)
+                    window.sendEvent(down)
+                    window.sendEvent(down)
+                    window.sendEvent(try sideEvent(button: 4, down: false, number: 301 + index,
+                                                  time: time + Double(index) * 0.015 + 0.004, x: 0.46, y: 0.24, in: view))
+                }
+                try require(try history(in: view).count == before + 2, "Rapid presses were debounced or duplicate delivery navigated twice")
+            }
+            test("A lost release does not swallow a later release-only gesture in another pane") {
+                let before = try history(in: view).count
+                let time = ProcessInfo.processInfo.systemUptime
+                window.sendEvent(try sideEvent(button: 4, down: true, number: 501,
+                                              time: time, x: 0.54, y: 0.24, in: view))
+                window.sendEvent(try sideEvent(button: 3, down: true, number: 502,
+                                              time: time + 0.02, x: 0.46, y: 0.76, in: view))
+                window.sendEvent(try sideEvent(button: 3, down: false, number: 502,
+                                              time: time + 0.03, x: 0.46, y: 0.76, in: view))
+                window.sendEvent(try sideEvent(button: 4, down: false, number: 503,
+                                              time: time + 0.04, x: 0.46, y: 0.76, in: view))
+                let events = Array(try history(in: view).dropFirst(before))
+                try require(events.count == 3 && events[2]["direction"] as? String == "forward" &&
+                            events[2]["phase"] as? String == "up" && events[2]["target"] as? String == "left-bottom",
+                            "A missing release swallowed the next gesture or retained the previous pane: \(events)")
+            }
+            test("A page that rejects history navigation receives no native callback") {
+                let before = try history(in: view).count
+                view.acceptsHistoryNavigation = { false }
+                defer { view.acceptsHistoryNavigation = { true } }
+                window.sendEvent(try sideEvent(button: 3, down: false, number: 401,
+                                              time: ProcessInfo.processInfo.systemUptime, x: 0.46, y: 0.24, in: view))
+                try require(try history(in: view).count == before, "Navigation bypassed the host readiness guard")
             }
         }
 
