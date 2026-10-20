@@ -175,7 +175,7 @@ enum EnginePlatform {
     static func readAvailable(_ handle: FileHandle, maximum: Int = 32768) throws -> Data {
         var buffer = [UInt8](repeating: 0, count: maximum)
         #if os(Windows)
-        let raw = HANDLE(bitPattern: _get_osfhandle(handle.fileDescriptor))
+        let raw = handle._handle
         var count: DWORD = 0
         let ok = buffer.withUnsafeMutableBytes { ReadFile(raw, $0.baseAddress, DWORD(maximum), &count, nil) }
         if !ok { let code = GetLastError(); if code == ERROR_BROKEN_PIPE { return Data() }; throw windowsError(code) }
@@ -191,7 +191,7 @@ enum EnginePlatform {
 
     static func waitReadable(_ handle: FileHandle) throws -> Bool {
         #if os(Windows)
-        let raw = HANDLE(bitPattern: _get_osfhandle(handle.fileDescriptor))
+        let raw = handle._handle
         var available: DWORD = 0
         if !PeekNamedPipe(raw, nil, 0, nil, &available, nil) {
             let code = GetLastError()
@@ -218,8 +218,10 @@ enum EnginePlatform {
     }
     private static func windowsError(_ code: DWORD = GetLastError()) -> NSError { NSError(domain: "Win32", code: Int(code)) }
     private static func windowsFile(_ url: URL, create: Bool) throws -> FileHandle? {
+        // The SDK imports these two access-mask constants with different integer types.
+        let access = create ? DWORD(GENERIC_WRITE) : DWORD(GENERIC_READ)
         let raw = windowsPath(url.path).withCString(encodedAs: UTF16.self) {
-            CreateFileW($0, DWORD(create ? GENERIC_WRITE : GENERIC_READ), DWORD(FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE), nil,
+            CreateFileW($0, access, DWORD(FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE), nil,
                         DWORD(create ? CREATE_NEW : OPEN_EXISTING), DWORD(FILE_ATTRIBUTE_NORMAL | FILE_FLAG_OPEN_REPARSE_POINT), nil)
         }
         guard let raw = raw, raw != INVALID_HANDLE_VALUE else {

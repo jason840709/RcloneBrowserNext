@@ -1,7 +1,7 @@
 {
   "version": "0.7.0",
   "file_count_excluding_manifest": 180,
-  "total_bytes_excluding_manifest": 6465329,
+  "total_bytes_excluding_manifest": 6465367,
   "files": {
     ".github/workflows/macos.yml": {
       "bytes": 7764,
@@ -264,8 +264,8 @@
       "sha256": "46d2a94e8f1c2d8f8f4a31a0789322e99b2141af8126082b00b76de513f064f3"
     },
     "Sources/Core/EnginePlatform.swift": {
-      "bytes": 11597,
-      "sha256": "fe5def19bc7036d86bc8f59a94242cfac8962515344789cfacc0d2f5d6729d4f"
+      "bytes": 11635,
+      "sha256": "e7afb2a94cfc3c0200bdd6f57b9efcf8eb569e610fddb49827e9625553e214a3"
     },
     "Sources/Core/EngineStorage.swift": {
       "bytes": 14654,
