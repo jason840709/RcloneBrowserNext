@@ -152,11 +152,15 @@ final class RBNStartupSurface: NSView {
         // default white frame, including when the selected theme is light.
         let expected = appearance.backgroundColor.usingColorSpace(.sRGB)!
         let toolbar: CGFloat = appearance.isDark ? 41.0 / 255 : 233.0 / 255
-        return color.alphaComponent > 0.95 && [expected.redComponent, toolbar].contains { component in
-            abs(color.redComponent - component) < 0.025 &&
-            abs(color.greenComponent - component) < 0.025 &&
-            abs(color.blueComponent - component) < 0.025
+        guard color.alphaComponent > 0.95 else { return false }
+        func matches(_ component: CGFloat) -> Bool {
+            let redDifference: CGFloat = abs(color.redComponent - component)
+            let greenDifference: CGFloat = abs(color.greenComponent - component)
+            let blueDifference: CGFloat = abs(color.blueComponent - component)
+            let tolerance: CGFloat = 0.025
+            return redDifference < tolerance && greenDifference < tolerance && blueDifference < tolerance
         }
+        return matches(expected.redComponent) || matches(toolbar)
     }
 }
 

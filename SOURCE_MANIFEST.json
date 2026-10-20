@@ -1,7 +1,7 @@
 {
   "version": "0.8.1",
   "file_count_excluding_manifest": 201,
-  "total_bytes_excluding_manifest": 6883380,
+  "total_bytes_excluding_manifest": 6883669,
   "files": {
     ".github/workflows/macos.yml": {
       "bytes": 8742,
@@ -320,8 +320,8 @@
       "sha256": "c77992d60db0d9c05d91fedc6b32eaad01211e1ddce3b68cba6292c9cd441a55"
     },
     "Sources/Mac/StartupSurface.swift": {
-      "bytes": 10082,
-      "sha256": "7761610d8cc72fda93eb22f7c0da5f34c8d4910ed05ac5af751dbf27eba38e98"
+      "bytes": 10371,
+      "sha256": "89e83c8b2ef1cdfbf3d90be16f4b8ec67c72fc6567fb4b271b7a4ec3042a6659"
     },
     "Test-on-Mac.command": {
       "bytes": 334,
