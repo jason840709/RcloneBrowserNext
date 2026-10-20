@@ -1,6 +1,8 @@
 import Foundation
 #if canImport(Darwin)
 import Darwin
+#elseif os(Windows)
+import ucrt
 #else
 import Glibc
 #endif
@@ -29,6 +31,53 @@ private func reportExpect(_ value: @autoclosure () throws -> Bool, _ message: St
             }
             func count(_ report: EngineTransferReport, _ key: String) -> Int { (report.summary[key] as? NSNumber)?.intValue ?? -1 }
 
+            test("Symbolic links are skipped by default and preserved only by explicit choice") {
+                let raw: [String: Any] = ["source": ["remote": NSNull(), "path": base.appendingPathComponent("from").path],
+                                          "destination": ["remote": NSNull(), "path": base.appendingPathComponent("to").path],
+                                          "mode": "copy", "selection": [[String: Any]](), "dryRun": false, "options": [String: Any]()]
+                let normal = try EngineTransferRequest(raw)
+                try reportExpect(normal.options.text("symlinkMode") == "skip" && !normal.arguments().contains("--links"), "legacy request changed link behavior")
+                var preserve = raw; preserve["options"] = ["symlinkMode": "preserve"]
+                let args = try EngineTransferRequest(preserve).arguments()
+                try reportExpect(args.contains("--links") && !args.contains("--copy-links"), "preserve followed targets")
+                try mustThrow { _ = try EngineTransferOptions(["symlinkMode": "follow"]) }
+                try mustThrow { _ = try EngineTransferOptions(["extraArgs": ["--copy-links"]]) }
+            }
+            test("Exports retain the actual comparison settings and engine version without environment data") {
+                let (report, id) = try fresh()
+                let raw: [String: Any] = ["source": ["remote": NSNull(), "path": base.appendingPathComponent("from").path],
+                                          "destination": ["remote": "archive", "path": "backup"], "mode": "sync",
+                                          "selection": [["name": "資料", "isDir": true]], "dryRun": false,
+                                          "options": ["comparison": "size", "symlinkMode": "preserve", "modifyWindow": "1s", "transfers": 1, "checkers": 10]]
+                let request = try EngineTransferRequest(raw)
+                try report.recordConfiguration(request, engineVersion: "rclone v1.75.2", effectiveModifyWindow: "1s")
+                let item = try rows(id).first
+                let context = item?["configuration"] as? [String: Any], saved = context?["request"] as? [String: Any]
+                let options = saved?["options"] as? [String: Any]
+                try reportExpect(item?["action"] as? String == "configuration" && context?["engineVersion"] as? String == "rclone v1.75.2", "version metadata missing")
+                try reportExpect(context?["effectiveModifyWindow"] as? String == "1s" && options?["comparison"] as? String == "size" && options?["symlinkMode"] as? String == "preserve", "actual comparison settings not retained")
+                try reportExpect(context?["environment"] == nil && context?["configContents"] == nil && context?["password"] == nil, "unrelated private process configuration exported")
+                try reportExpect(EngineJSON.number(report.summary["maxAttempts"]) == 3 && count(report, "copiedEvents") == 0, "configuration changed outcomes")
+            }
+            test("A large valid selection is split into bounded, reconstructable configuration records") {
+                let (report, id) = try fresh()
+                let names = (0..<400).map { "資料-\($0)-" + String(repeating: "a", count: 3000) }
+                let raw: [String: Any] = ["source": ["remote": NSNull(), "path": base.appendingPathComponent("from").path],
+                                          "destination": ["remote": "archive", "path": "backup"], "mode": "copy",
+                                          "selection": names.map { ["name": $0, "isDir": false] as [String: Any] }, "dryRun": false,
+                                          "options": [String: Any]()]
+                try report.recordConfiguration(EngineTransferRequest(raw), engineVersion: "rclone v1.75.2", effectiveModifyWindow: nil)
+                let path = try report.exportPath()
+                let data = try Data(contentsOf: URL(fileURLWithPath: path))
+                let items = try data.split(separator: 10).map { try EngineJSON.object(Data($0)) as! [String: Any] }
+                let configurations = items.compactMap { $0["configuration"] as? [String: Any] }
+                try reportExpect(configurations.first?["kind"] as? String == "header", "oversized metadata was not split")
+                let chunks = configurations.filter { $0["name"] as? String == "request.selection" }
+                let restored = chunks.flatMap { ($0["items"] as? [[String: Any]] ?? []).compactMap { $0["name"] as? String } }
+                try reportExpect(restored == names, "configuration chunks lost or reordered selected paths")
+                try reportExpect(data.split(separator: 10).allSatisfy { $0.count < 1024 * 1024 }, "configuration row exceeds normal page size")
+                try reportExpect(try rows(id).count < items.count, "large first page ignored byte bound")
+            }
             test("Comparison candidates never count as completed transfers") {
                 let (report, id) = try fresh()
                 for line in ["= same.txt", "+ new.txt", "* changed.txt", "- extra.txt", "! unreadable.txt"] {
@@ -64,6 +113,83 @@ private func reportExpect(_ value: @autoclosure () throws -> Bool, _ message: St
                 try reportExpect(try rows(id, "errors").count == 1, "recovered error evidence removed")
                 let path = try report.exportPath(format: "comparison")
                 try reportExpect(try String(contentsOfFile: path) == "+ repeat.txt\n+ repeat.txt\n", "raw retry history truncated")
+            }
+            test("Growing-file retries separate completed bytes from failed size-verification bytes") {
+                let (report, id) = try fresh()
+                func mismatch(_ source: Int, _ destination: Int, _ suffix: String) throws {
+                    try report.consume(["level": "error", "object": "logs/live.jsonl.\(suffix).partial", "objectType": "*local.Object",
+                                        "msg": "corrupted on transfer: sizes differ src(Local file system at /source) \(source) vs dst(Local file system at /backup) \(destination)"], dryRun: false)
+                }
+                try report.consume(["level": "info", "object": "database.sqlite", "msg": "Copied (server-side copy)", "size": 40], dryRun: false)
+                try mismatch(100, 110, "aabbcc01")
+                try report.consume(["level": "error", "msg": "Attempt 1/3 failed with 1 errors and: corrupted on transfer: sizes differ src(Local file system at /source) 100 vs dst(Local file system at /backup) 110"], dryRun: false)
+                try report.consume(["level": "info", "object": "database.sqlite", "msg": "Copied (server-side copy)", "size": 40], dryRun: false)
+                try mismatch(110, 120, "aabbcc02")
+                try report.consume(["level": "error", "msg": "Attempt 2/3 failed with 1 errors"], dryRun: false)
+                try mismatch(120, 150, "aabbcc03")
+                try report.consume(["level": "error", "msg": "Attempt 3/3 failed with 1 errors"], dryRun: false)
+                try report.flush()
+                try reportExpect(count(report, "copiedBytes") == 80 && count(report, "failedCopyBytes") == 380, "byte accounting double-counted an attempt summary or deduplicated actual copies")
+                try reportExpect(count(report, "copiedEvents") == 2 && count(report, "sizeMismatchEvents") == 3, "operation counts are wrong")
+                try reportExpect(count(report, "retryFailures") == 3 && count(report, "lastAttempt") == 3 && count(report, "maxAttempts") == 3, "retry progress missing")
+                try reportExpect(count(report, "growingSourceEvents") == 2, "continued source growth not identified")
+                let errors = try rows(id, "errors")
+                try reportExpect(errors.count == 3 && errors[0]["issue"] as? String == "size-mismatch" && errors[1]["issue"] as? String == "source-growing", "attempt summaries obscured file failures")
+                try reportExpect(errors[2]["relatedPath"] as? String == "logs/live.jsonl" && errors[2]["path"] as? String == "logs/live.jsonl.aabbcc03.partial", "original evidence or display label altered")
+                try reportExpect((errors[2]["sourceSize"] as? NSNumber)?.intValue == 120 && (errors[2]["destinationSize"] as? NSNumber)?.intValue == 150, "size evidence lost")
+            }
+            test("A successful retry stays out of the error list and missing copy sizes stay explicit") {
+                let (report, id) = try fresh()
+                try report.consume(["level": "info", "object": "known.txt", "msg": "Copied (new)", "size": 12], dryRun: false)
+                try report.consume(["level": "info", "object": "unknown.txt", "msg": "Copied (new)"], dryRun: false)
+                try report.consume(["level": "error", "msg": "Attempt 2/3 succeeded"], dryRun: false)
+                try report.flush()
+                try reportExpect(report.summary["copyByteTotalsAvailable"] as? Bool == false && count(report, "copiedBytes") == 12, "partial size sum presented as complete")
+                try reportExpect(try rows(id, "errors").isEmpty && count(report, "lastAttempt") == 2, "successful attempt counted as failure")
+                try reportExpect(try rows(id).last?["action"] as? String == "retry", "successful attempt record dropped")
+            }
+            test("Ignored links and special files are discoverable in skipped records") {
+                let (report, id) = try fresh()
+                try report.consume(["level": "notice", "object": "link", "msg": "Can't follow symlink without -L/--copy-links"], dryRun: false)
+                try report.consume(["level": "notice", "object": "ipc.sock", "msg": "Can't transfer non file/directory"], dryRun: false)
+                try report.flush()
+                let skipped = try rows(id, "skipped")
+                try reportExpect(skipped.count == 2 && count(report, "errorEvents") == 0, "ignored entries missing or mislabeled errors")
+                try reportExpect(skipped.map { $0["issue"] as? String } == ["symlink-ignored", "special-ignored"], "skip reason missing")
+            }
+            test("Cleanup failures are visible even when rclone logs them at info level") {
+                let (report, id) = try fresh()
+                try report.consume(["level": "info", "object": "unfinished.partial", "msg": "Removing failed copy"], dryRun: false)
+                try report.consume(["level": "info", "object": "unfinished.partial", "msg": "Failed to remove failed copy: access denied"], dryRun: false)
+                try report.consume(["level": "error", "object": "Local file system at /backup", "objectType": "*local.Fs", "msg": "not deleting directories as there were IO errors"], dryRun: false)
+                try report.flush()
+                let errors = try rows(id, "errors")
+                try reportExpect(count(report, "cleanupEvents") == 1 && count(report, "cleanupFailureEvents") == 1, "cleanup request confused with success")
+                try reportExpect(errors.count == 2 && errors[0]["issue"] as? String == "cleanup-failed", "cleanup failure hidden in info logs")
+                try reportExpect(errors[1]["issue"] as? String == "deletion-deferred" && errors[1]["path"] == nil, "consequential directory error misattributed")
+            }
+            test("Size diagnostics reject malformed numbers and never reconstruct truncated names") {
+                let (report, id) = try fresh()
+                let longName = String(repeating: "a", count: 110) + ".1234abcd.partial"
+                try report.consume(["level": "error", "object": longName, "objectType": "*local.Object", "msg": "corrupted on transfer: sizes differ src(Local) 3 vs dst(Local) 4"], dryRun: false)
+                // A 101-byte original ending in a multibyte boundary can yield
+                // this 99-byte partial name after rclone's UTF-8 truncation.
+                let truncatedUnicodeName = String(repeating: "a", count: 82) + ".1234abce.partial"
+                try report.consume(["level": "error", "object": truncatedUnicodeName, "objectType": "*local.Object", "msg": "corrupted on transfer: sizes differ src(Local) 4 vs dst(Local) 5"], dryRun: false)
+                for message in ["corrupted on transfer: sizes differ src(Local) -1 vs dst(Local) 3", "corrupted on transfer: sizes differ src(Local) 3 vs dst(Local) 9007199254740992", "corrupted on transfer: sizes differ src(Local) 3 vs dst(Local) 3"] {
+                    try report.consume(["level": "error", "object": "file", "msg": message], dryRun: false)
+                }
+                try report.flush()
+                try reportExpect(count(report, "sizeMismatchEvents") == 2 && count(report, "failedCopyBytes") == 9, "invalid diagnostic numbers counted")
+                try reportExpect(try rows(id, "errors").allSatisfy { $0["relatedPath"] == nil }, "long or unsupported filename reconstructed")
+            }
+            test("Size-failure history remains bounded during large error sets") {
+                let (report, _) = try fresh()
+                for index in 0...256 {
+                    try report.consume(["level": "error", "object": "file-\(index).1234abcd.partial", "objectType": "*local.Object", "msg": "corrupted on transfer: sizes differ src(Local) 3 vs dst(Local) 4"], dryRun: false)
+                }
+                try report.consume(["level": "error", "object": "file-0.1234abce.partial", "objectType": "*local.Object", "msg": "corrupted on transfer: sizes differ src(Local) 4 vs dst(Local) 5"], dryRun: false)
+                try reportExpect(count(report, "growingSourceEvents") == 0 && count(report, "sizeMismatchEvents") == 258, "old failure retained beyond bounded history")
             }
             test("JSONL preserves quotes, Unicode and literal newlines in reported filenames") {
                 let (report, id) = try fresh()
@@ -133,6 +259,9 @@ private func reportExpect(_ value: @autoclosure () throws -> Bool, _ message: St
                 try reportExpect((parsed?["eventCount"] as? NSNumber)?.intValue == 5, "valid summary count lost")
                 try reportExpect((parsed?["successEvents"] as? NSNumber)?.intValue == 0 && (parsed?["matchedEvents"] as? NSNumber)?.intValue == 0, "invalid numeric counter accepted")
                 try reportExpect(parsed?["skippedFiles"] is NSNull && parsed?["secret"] == nil, "unsafe fields restored")
+                try reportExpect(parsed?["copiedBytes"] == nil && parsed?["copyByteTotalsAvailable"] == nil, "legacy bytes fabricated as zero")
+                let current = EngineTransferReport.normalizedSummary(["available": true, "formatVersion": 2, "copyByteTotalsAvailable": true, "copiedBytes": 15, "failedCopyBytes": 24, "lastAttempt": 3, "maxAttempts": 3])
+                try reportExpect(current?["copyByteTotalsAvailable"] as? Bool == true && (current?["copiedBytes"] as? NSNumber)?.intValue == 15 && (current?["lastAttempt"] as? NSNumber)?.intValue == 3, "current summary details lost")
             }
             test("Legacy or queued jobs without a ledger return an unavailable empty page") {
                 let page = try EngineTransferReport.page(directory: base, id: UUID().uuidString)
@@ -199,6 +328,29 @@ private func reportExpect(_ value: @autoclosure () throws -> Bool, _ message: St
                 try reportExpect(count(second, "deletedEvents") == 1, "real deletion absent")
                 try reportExpect((secondStats["checks"] as? NSNumber)?.intValue != count(second, "matchedEvents"), "fixture failed to demonstrate checks also include deletion")
             }
+            test("Real rclone preserves symbolic links locally and round-trips cloud-style link files", available: FileManager.default.isExecutableFile(atPath: binary)) {
+                let source = base.appendingPathComponent("links-source"), local = base.appendingPathComponent("links-local")
+                let archive = base.appendingPathComponent("links-archive"), restored = base.appendingPathComponent("links-restored")
+                for directory in [source, local, archive, restored] { try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true) }
+                let outside = base.appendingPathComponent("link-target.txt")
+                try Data("The linked content stays at its original location.".utf8).write(to: outside)
+                try FileManager.default.createSymbolicLink(atPath: source.appendingPathComponent("link.txt").path, withDestinationPath: "../link-target.txt")
+                let (localReport, _) = try fresh()
+                _ = try runRclone(binary, mode: "copy", source: source, destination: local, report: localReport, additionalArguments: ["--links"])
+                try reportExpect(try FileManager.default.destinationOfSymbolicLink(atPath: local.appendingPathComponent("link.txt").path) == "../link-target.txt", "local backup followed or lost the link")
+                let (archiveReport, _) = try fresh()
+                // Enable translation only at the source to model a cloud
+                // backend storing ordinary .rclonelink objects. The global
+                // --links flag intentionally enables it at every local endpoint.
+                _ = try runRclone(binary, mode: "copy", source: source, destination: archive, report: archiveReport,
+                                  sourceArgument: ":local,links=true:" + source.path)
+                try reportExpect(try String(contentsOf: archive.appendingPathComponent("link.txt.rclonelink")) == "../link-target.txt", "cloud-style representation contains file content instead of its link target")
+                let (restoreReport, _) = try fresh()
+                _ = try runRclone(binary, mode: "copy", source: archive, destination: restored, report: restoreReport,
+                                  destinationArgument: ":local,links=true:" + restored.path)
+                try reportExpect(try FileManager.default.destinationOfSymbolicLink(atPath: restored.appendingPathComponent("link.txt").path) == "../link-target.txt", "link restore did not reproduce the original target")
+                try reportExpect(try String(contentsOf: outside) == "The linked content stays at its original location.", "link backup modified its external target")
+            }
         } catch { failed += 1; print("FAIL setup: \(error)") }
         print("\(passed) passed, \(failed) failed, \(skipped) skipped")
         if failed > 0 { exit(1) }
@@ -230,12 +382,13 @@ private func reportExpect(_ value: @autoclosure () throws -> Bool, _ message: St
             print(String(decoding: try EngineJSON.data(result, pretty: true), as: UTF8.self))
         } catch { print("Benchmark failed: \(error)"); exit(1) }
     }
-    private static func runRclone(_ binary: String, mode: String, source: URL, destination: URL, report: EngineTransferReport) throws -> [String: Any] {
+    private static func runRclone(_ binary: String, mode: String, source: URL, destination: URL, report: EngineTransferReport,
+                                  additionalArguments: [String] = [], sourceArgument: String? = nil, destinationArgument: String? = nil) throws -> [String: Any] {
         let process = Process(), stdout = Pipe(), stderr = Pipe()
         process.executableURL = URL(fileURLWithPath: binary)
         process.arguments = [mode, "--combined=-", "--use-json-log", "--stats=1s", "--stats-log-level=INFO", "--log-level=INFO",
                              "--local-hashes=none", "--transfers=1", "--checkers=10", "--retries=1", "--multi-thread-streams=0",
-                             "--ask-password=false", "--", source.path, destination.path]
+                             "--ask-password=false"] + additionalArguments + ["--", sourceArgument ?? source.path, destinationArgument ?? destination.path]
         var environment = ProcessInfo.processInfo.environment.filter { !$0.key.uppercased().hasPrefix("RCLONE_") }
         environment["RCLONE_CONFIG"] = source.deletingLastPathComponent().appendingPathComponent("empty-rclone.conf").path
         process.environment = environment

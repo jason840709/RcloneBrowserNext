@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Package only tracked source and the two successfully verified CI builds."""
+"""Package tracked source and the successfully verified platform builds."""
 from pathlib import Path
 import argparse
 import hashlib
@@ -44,6 +44,16 @@ def main():
                 raise SystemExit(f'App version does not match {archive.name}')
         shutil.copyfile(archive, output / f'{prefix}_macOS_{arch}.zip')
 
+    for suffix in ('Windows_x64_Setup.exe', 'Linux_amd64.deb'):
+        candidates = list(args.artifacts.rglob(f'{prefix}_{suffix}'))
+        if len(candidates) != 1:
+            raise SystemExit(f'Expected one verified {suffix}, found {len(candidates)}')
+        package = candidates[0]
+        checksum = Path(str(package) + '.sha256').read_text().strip().split(None, 1)
+        if len(checksum) != 2 or checksum[1].strip() != package.name or sha256(package) != checksum[0]:
+            raise SystemExit(f'Checksum does not match {package.name}')
+        shutil.copyfile(package, output / package.name)
+
     tracked = subprocess.check_output(['git', 'ls-files', '-z'], cwd=root).decode().split('\0')
     files = {}
     for relative in sorted(filter(None, tracked)):
@@ -69,7 +79,7 @@ def main():
     with zipfile.ZipFile(source) as packed:
         if packed.testzip() is not None:
             raise SystemExit('Source archive failed CRC verification')
-    checksums = ''.join(f'{sha256(path)}  {path.name}\n' for path in sorted(output.glob('*.zip')))
+    checksums = ''.join(f'{sha256(path)}  {path.name}\n' for path in sorted(output.iterdir()) if path.is_file())
     (output / f'SHA256SUMS_{version}.txt').write_text(checksums)
     print(checksums, end='')
 

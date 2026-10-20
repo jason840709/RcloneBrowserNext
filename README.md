@@ -19,6 +19,8 @@
   <a href="https://github.com/jason840709/RcloneBrowserNext/issues">回報問題</a>
 </p>
 
+0.7.0 加入 Windows x64 與 Linux amd64 相容版。**Mac 仍是主要開發平台**；其他系統共用雙面板介面與傳輸核心。[本版更新](docs/RELEASE_0.7.0.md) · [相容版安裝](docs/BUILD_COMPATIBILITY.md)
+
 ## 這是什麼？
 
 Rclone Browser Next 是由 **Jason Chen** 開發的 macOS [rclone](https://rclone.org/) 圖形介面。

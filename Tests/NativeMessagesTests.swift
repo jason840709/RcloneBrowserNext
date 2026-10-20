@@ -1,6 +1,8 @@
 import Foundation
 #if canImport(Darwin)
 import Darwin
+#elseif os(Windows)
+import ucrt
 #else
 import Glibc
 #endif
@@ -34,12 +36,15 @@ import Glibc
         test("Settings, transfer, tools, updater and Finder errors have English and Japanese") {
             let cases: [(String, String, String)] = [
                 ("設定已在其他操作中更新，請重新整理後再試。", "Another operation updated the settings. Refresh and try again.", "別の操作で設定が更新されました。再読み込みしてからお試しください。"),
-                ("同步需要列出目的地，不能使用「不掃描目的地」。", "Sync needs a destination listing. Turn off 'Do not scan destination'.", "同期には転送先の一覧が必要です。「転送先を走査しない」をオフにしてください。"),
+                ("同步需要列出目標目錄。請關閉「不先列出目標目錄（複製、移動）」。", "Sync needs a destination listing. Turn off Skip listing the destination (copy and move).", "同期には転送先一覧が必要です。「転送先一覧を先に取得しない（コピー・移動）」をオフにしてください。"),
                 ("公開連結只適用於支援分享功能的雲端位置。", "Public links are available only for cloud locations that support sharing.", "公開リンクは、共有に対応するクラウドでのみ作成できます。"),
                 ("下載檔的 SHA-256 不符，已停止安裝。", "The download SHA-256 does not match. Installation stopped.", "ダウンロードしたファイルの SHA-256 が一致しないため、インストールを停止しました。"),
                 ("更新檢查目前不支援 https:// 代理位址。請改用 http:// 或 socks5://；rclone 傳輸仍可使用 https:// 代理。", "Update checks do not currently support https:// proxy addresses. Use http:// or socks5:// for updates; rclone transfers can still use an https:// proxy.", "更新確認では現在 https:// のプロキシアドレスに対応していません。更新には http:// または socks5:// を使用してください。rclone の転送では引き続き https:// プロキシを使用できます。"),
                 ("請拖入原始檔案或資料夾；拖放不會跟隨符號連結。", "Drag the original file or folder. Drag and drop does not follow symbolic links.", "元のファイルまたはフォルダをドラッグしてください。ドラッグ＆ドロップではシンボリックリンクをたどりません。"),
-                ("同步會刪除目的地中來源沒有的檔案；本次未設定刪除數量上限。", "Sync deletes destination files absent from the source. No deletion limit is set for this run.", "同期では転送元に存在しない転送先のファイルを削除します。今回は削除数の上限を設定していません。")
+                ("同步會刪除目的地中來源沒有的檔案；本次未設定刪除數量上限。", "Sync deletes destination files absent from the source. No deletion limit is set for this run.", "同期では転送元に存在しない転送先のファイルを削除します。今回は削除数の上限を設定していません。"),
+                ("工作已停止。", "The job stopped.", "処理を停止しました。"),
+                ("依本次比對與略過設定，無需更新。", "No update is needed under this job's comparison and skip settings.", "この処理の比較・スキップ設定では更新不要です。"),
+                ("檔案有變更，已列入傳輸清單。", "This file has changed and is listed for transfer.", "このファイルに変更があるため、転送対象に追加しました。")
             ]
             for (source, english, japanese) in cases {
                 try expect(RBNNativeStrings.translate(source, language: "en"), english)

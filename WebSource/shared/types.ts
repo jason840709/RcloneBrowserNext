@@ -15,7 +15,7 @@ export interface TransferOptions {
   skipExisting: boolean; updateOnly: boolean; createEmptyDirs: boolean; exclude: string[];
   include: string[]; retries: number; maxDelete: number; preserveMetadata: boolean;
   driveSharedWithMe: boolean;
-  localHashPolicy: 'default' | 'none';
+  localHashPolicy: 'default' | 'none'; symlinkMode: 'skip' | 'preserve';
   deleteMode: 'before' | 'during' | 'after'; deleteExcluded: boolean;
   ignoreChecksum: boolean; modifyWindow: string; checkFirst: boolean; noTraverse: boolean;
   fastList: boolean; oneFileSystem: boolean; noUpdateModtime: boolean;
@@ -49,10 +49,15 @@ export interface JobReportSummary {
   comparisonEvents: number; matchedEvents: number; skippedEvents?: number; candidateEvents: number;
   missingSourceEvents: number; comparisonErrorEvents: number; comparisonMalformed: number;
   comparisonPendingBytes: number; comparisonComplete: boolean; skippedFiles: null; failedFiles: null;
+  copyByteTotalsAvailable?: boolean; copiedBytes?: number; failedCopyBytes?: number; sizeMismatchEvents?: number;
+  growingSourceEvents?: number; retryFailures?: number; lastAttempt?: number; maxAttempts?: number;
+  cleanupEvents?: number; cleanupFailureEvents?: number;
 }
 export interface JobReportItem {
   sequence: number; time: string; status: string; action: string; path?: string;
-  message: string; size?: number; objectType?: string; evidence?: string;
+  message: string; size?: number; objectType?: string; evidence?: string; configuration?: Record<string, unknown>;
+  issue?: 'size-mismatch'|'source-growing'|'source-changed'|'cleanup-failed'|'deletion-deferred'|'symlink-ignored'|'special-ignored';
+  sourceSize?: number; destinationSize?: number; relatedPath?: string; attempt?: number; attemptLimit?: number;
 }
 export interface JobReportPage {available: boolean; items: JobReportItem[]; nextCursor: number|null; summary?: JobReportSummary}
 export interface ClearJobsRequest {ids: string[]; mode: 'finished' | 'stop-and-clear'}
@@ -138,7 +143,7 @@ export const DEFAULT_OPTIONS: TransferOptions = {
   transfers: 4, checkers: 8, bandwidth: '', comparison: 'default', skipExisting: false, updateOnly: false,
   createEmptyDirs: true, exclude: ['.DS_Store', '._*'], include: [], retries: 3, maxDelete: -1,
   preserveMetadata: false, driveSharedWithMe: false,
-  localHashPolicy: 'none', deleteMode: 'during', deleteExcluded: false, ignoreChecksum: false, modifyWindow: '', checkFirst: false,
+  localHashPolicy: 'none', symlinkMode: 'skip', deleteMode: 'during', deleteExcluded: false, ignoreChecksum: false, modifyWindow: '', checkFirst: false,
   noTraverse: false, fastList: false, oneFileSystem: false, noUpdateModtime: false,
   minSize: '', maxSize: '', minAge: '', maxAge: '', maxDepth: -1, connectTimeout: '', ioTimeout: '',
   lowLevelRetries: 10, retrySleep: '', extraArgs: [],

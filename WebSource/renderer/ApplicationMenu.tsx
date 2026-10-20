@@ -4,8 +4,8 @@ import type { Language, Theme } from '../shared/types';
 import type { Translate } from './i18n';
 import { themeIcon } from './appearance';
 
-export default function ApplicationMenu({t, language, theme, onSettings, onHelp, onConfigure, onLanguage, onAbout, onEngineUpdate, onAppUpdate}: {
-  t: Translate; language: Language; theme: Theme; onSettings(): void; onHelp(): void; onConfigure(): void; onLanguage(language: Language): void; onAbout(): void; onEngineUpdate(): void; onAppUpdate(): void;
+export default function ApplicationMenu({t, language, theme, platform, onSettings, onHelp, onConfigure, onLanguage, onAbout, onEngineUpdate, onAppUpdate}: {
+  t: Translate; language: Language; theme: Theme; platform: string; onSettings(): void; onHelp(): void; onConfigure(): void; onLanguage(language: Language): void; onAbout(): void; onEngineUpdate(): void; onAppUpdate(): void;
 }) {
   const root = useRef<HTMLDetailsElement>(null);
   const trigger = useRef<HTMLElement>(null);
@@ -32,7 +32,7 @@ export default function ApplicationMenu({t, language, theme, onSettings, onHelp,
       <button type="button" role="menuitem" onClick={() => select(onAbout)}><Info size={18}/>{t('aboutApp')}</button>
       <div className="menu-separator" role="separator"/>
       <button type="button" role="menuitem" onClick={() => select(onConfigure)}><TerminalWindow size={18}/>{t('configLabel')}</button>
-      <button type="button" role="menuitem" onClick={() => select(onSettings)}><GearSix size={18}/>{t('settings')}<kbd>⌘ ,</kbd></button>
+      <button type="button" role="menuitem" onClick={() => select(onSettings)}><GearSix size={18}/>{t('settings')}<kbd>{platform === 'darwin' ? '⌘ ,' : 'Ctrl ,'}</kbd></button>
       <div className="menu-separator" role="separator"/>
       <div className="menu-section-title">{t('language')}</div>
       <button type="button" role="menuitemradio" aria-checked={language === 'system'} onClick={() => select(() => onLanguage('system'))}><span className="menu-check">{language === 'system' && <Check size={16}/>}</span>{t('systemLanguage')}</button>

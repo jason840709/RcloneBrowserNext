@@ -1,0 +1,2328 @@
+{
+  "release": "0.7.0",
+  "suite": {
+    "startTime": "2026-10-20T14:17:58.047Z",
+    "duration": 186714.24800000002,
+    "expected": 163,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0,
+    "cases": 163,
+    "durationSeconds": 186.7,
+    "receiptSHA256": "e2a06df215a63115fe51e246b6ce9d28d2e4f8b850ded6995ce6bcdd9438de83"
+  },
+  "commands": [
+    "npm run typecheck",
+    "npm run build",
+    "npx playwright test --config tests/playwright.config.ts --reporter=list,json"
+  ],
+  "environment": "Linux Chromium, project-local browser and fonts; production file:// IIFE; deterministic native bridge fixtures",
+  "production": {
+    "Resources/Web/THIRD_PARTY_NOTICES.txt": {
+      "bytes": 6526,
+      "sha256": "401a52547c510b5c231c69f9077b192e2759d282e68f74d13339922f9d9e8552"
+    },
+    "Resources/Web/app.js": {
+      "bytes": 676807,
+      "sha256": "66867001edae44a7f42ff2e937c131e5ac8913c4481c981bbc1f9f0ef8ad5d3d"
+    },
+    "Resources/Web/favicon-blue.svg": {
+      "bytes": 18536,
+      "sha256": "36a26990d1dd782a5f6c0561e2870fa4e71064a1f42f72bf149e401e817f3591"
+    },
+    "Resources/Web/favicon-green.svg": {
+      "bytes": 18537,
+      "sha256": "c86f66312b4b934795e3aef424c4e77dfb5c0863c75857831968492e5ef4ec75"
+    },
+    "Resources/Web/favicon.svg": {
+      "bytes": 18533,
+      "sha256": "5dcf6bb2e77fc4f5670743c49e42e2f107812f56459bf32d30ae9ca021383a1a"
+    },
+    "Resources/Web/index.html": {
+      "bytes": 866,
+      "sha256": "6d64e8836f8ea3c2cdfb0bd3f4e214da93f633390ecbb6512949e65a94801411"
+    },
+    "Resources/Web/style.css": {
+      "bytes": 85879,
+      "sha256": "beb405713f31123c88ff594a21731174c771ddd1cc946bfd9df20054328420c3"
+    }
+  },
+  "sourceSHA256": {
+    "WebSource/renderer/App.tsx": "7443845aba6f7d5ad78145f8d206eb439e5ae593dcb492421b6e1763a2cf706e",
+    "WebSource/renderer/ApplicationMenu.tsx": "b8f02d5185d119b6e48005568782bd28a7f33434c6e35063d95f2cef489da5c9",
+    "WebSource/renderer/BrowserPane.tsx": "5680945ab1208494f92418ba1d9db3b62cae82f2c2fca3fed145dfe4a1c0cc62",
+    "WebSource/renderer/JobReport.tsx": "02b92cf4d999a6c003638f7573c3ce1e39f470bd95465c735b1c20146596fdfe",
+    "WebSource/renderer/Jobs.tsx": "e939f3b74c962d9b373021a1348f5c20f87f7700365b06ebf1efae2bf020ddcf",
+    "WebSource/renderer/LocationPicker.tsx": "6604487925fe7d82e9cf53b84a820bf978ce95a169a4deb15350d000b569620f",
+    "WebSource/renderer/OperationPicker.tsx": "64b405b1b34a3ebe5d0e4ea09a629fb6315a9a3ff9f2f8ccb1933ff591f7bbe1",
+    "WebSource/renderer/PaneMenu.tsx": "97af13feb27bee9f3c7f2faafd63bc1919f8e675cec7411f4bb3e6c5cc2eed40",
+    "WebSource/renderer/Settings.tsx": "98e0fcf3396672b17393424ab1e6944f8e17f056b63992aa7c916e605a875a13",
+    "WebSource/renderer/Tasks.tsx": "a6dc228d0f04107cb579b286669ffb499c776ad25187a328721e1e22c59cb5ae",
+    "WebSource/renderer/Tools.tsx": "a973514b2845c98613ac98b2f7fccc8de259a144cf287e84ef71a93a24e562b4",
+    "WebSource/renderer/TransferOptions.tsx": "9aed1b122c399dcc4ae485065cc740352f1667bac07247a045968d2155ce3dbb",
+    "WebSource/renderer/appearance.ts": "ef301a383f45bd96b61f08d0cbd51a774a21aa36af09402bdfaf8f397499a923",
+    "WebSource/renderer/bridge.ts": "3ee9bf36e12f7e46e92ff63ad1e1866bd0b910e3669673e471d92a09b6d9dcb7",
+    "WebSource/renderer/components.tsx": "c2f2dc15660e9bb3511b3f53c0538ae0b8e7d76569399bcce068c3986890891b",
+    "WebSource/renderer/env.d.ts": "65996936fbb042915f7b74a200fcdde7e410f32a669b1ab9597cfaa4b0faddb5",
+    "WebSource/renderer/i18n.ts": "38a0198fc1e763a588e4f9f07d35ef089dd45a08ce288a639473fbab40dc1bb9",
+    "WebSource/renderer/main.tsx": "98eadf561404b5b5e5177c05c0070248374313b439fb364e5a0f2e696749ae22",
+    "WebSource/renderer/presets.ts": "77e0486eac832511ff077aa44ab07bd904feb618c4c818dca6192d778a75248e",
+    "WebSource/renderer/styles.css": "fe8ae02b11c3d21827771e8bf12d3bc467e4e20823ede98d13a066d672db6d4e",
+    "WebSource/renderer/useBrowser.ts": "ed0c236dd30b71089bd174a298d0f8bdc6d0aa5d87fba8e368a7e44c262691d7",
+    "WebSource/renderer/useHistoryNavigation.ts": "90191bec1c7c0f8b4a1177ee74ede180cd660c2461cc210cd1ee2459b9ef0312",
+    "WebSource/renderer/utils.ts": "7fa63ed66c4fc899ef982be72526d08ed81b5c1e3f09a83777380a731eb1ccd8",
+    "WebSource/shared/types.ts": "2fb81d07416c95f3414309670629c13c039886413b3f52d8adfc51bfef54ae48",
+    "WebSource/tests/native-fixture.ts": "98f961ff1661e9dac728c30ee0c64dbf222885df6d483a0e23d5f42a00cc1073",
+    "WebSource/tests/render-previews.ts": "10994de23ac483d79d80e880773429164655e9c537ee0be8127a2b896f7b783a",
+    "WebSource/tests/revision04.spec.ts": "6c7f500afe4c65e44a564548383e1e4b313ff369884ae2c0f2075ff7d55480fa",
+    "WebSource/tests/revision05.spec.ts": "3a09a7069362e77c11918599e414d0e34c4f12e78ba0db657e267ea07b807b8b",
+    "WebSource/tests/revision06-additions.spec.ts": "a092572cf6bba708871ee5d12118a92c145933cdec9a59ecee958ee056fc9592",
+    "WebSource/tests/revision06.spec.ts": "e31fefb387a9856bea14a53d0791ce0dab8f31e455d69e24eaf04583c9f99490",
+    "WebSource/tests/revision07.spec.ts": "4dabef699553374921c9512c0b630f7422d767e8c5a39008f0b302792ff56180",
+    "WebSource/tests/ui.spec.ts": "30fcf2e3653f64a218c5244ac0691759fd47f6959a7b9ad552ecd4a3f62e33bf"
+  },
+  "uiCopy": {
+    "stringsPerLanguage": 626,
+    "languages": [
+      "zh-TW",
+      "en",
+      "ja"
+    ],
+    "inventorySHA256": "ac3f695b5fe9b284802621a9300708869de4f432c6099e0f5689349ea548dc89",
+    "i18nSHA256": "38a0198fc1e763a588e4f9f07d35ef089dd45a08ce288a639473fbab40dc1bb9"
+  },
+  "visuals": {
+    "count": 34,
+    "geometryScenes": 33,
+    "pageOverflows": 0,
+    "previews": {
+      "floating-toast-en.png": {
+        "bytes": 157330,
+        "sha256": "aa911009d2c04497fccac5ca075b767f859166726c561f5bc693484e822d66f2"
+      },
+      "floating-toast-zh-TW.png": {
+        "bytes": 156824,
+        "sha256": "a844a81244b5d6e1d6fe51465e7cbced7340459e78c6005110578348ae2d04b6"
+      },
+      "locations-en.png": {
+        "bytes": 179455,
+        "sha256": "1c363d9de157c06c0eb5fe35b135b43631a978cd0569902cde8ab4a4da1ead94"
+      },
+      "locations-zh-TW.png": {
+        "bytes": 176252,
+        "sha256": "80203a8beb7c935b13981089a38f9215b27a8e86ebb22d51086fa8cb0c4bb10e"
+      },
+      "main-en.png": {
+        "bytes": 152599,
+        "sha256": "99f69976e99c5f2406c8f2953543dd0c17d315f49f4857660b14a74a1dd93fca"
+      },
+      "main-green-dark-125.png": {
+        "bytes": 80424,
+        "sha256": "dc503cb91662e2deb4c9eceb9b0a4ae57cd46575cc75499ca4ee019a9b760de6"
+      },
+      "main-green-light-125.png": {
+        "bytes": 79591,
+        "sha256": "229e9419a407dda4d5a32ccbe856c8a77e5fb0a8c5fe25d32de85f7ba1455b26"
+      },
+      "main-zh-TW.png": {
+        "bytes": 151638,
+        "sha256": "43984078bc47e8f9398514a48ee35bdea10e4bd23b01fe00ed91c1da81684aa5"
+      },
+      "performance-green-dark-125.png": {
+        "bytes": 55465,
+        "sha256": "af2d6b6b9ddd1f502c70c7a78a78789c6dd4b9aca1be001abb97ba43da476302"
+      },
+      "performance-green-light-125.png": {
+        "bytes": 56339,
+        "sha256": "7893f09d2a0f3a48c84d3047cdf0a420848b4b5b732217db4a49b2825219087a"
+      },
+      "report-comparison-en.png": {
+        "bytes": 126283,
+        "sha256": "4670ef3be028aecdb52993ec6c55bce527891a73e9a394e5cb6c538848b02916"
+      },
+      "report-comparison-zh-TW.png": {
+        "bytes": 124856,
+        "sha256": "b1f1fe2c1d014b35763267bd18371b235d1dd1a0ab86399e54e94d3deb4554fa"
+      },
+      "report-errors-en-125.png": {
+        "bytes": 61713,
+        "sha256": "36017bf53c74a016f5aa9b3352ad50a79a2b2a0ea4ffd4bd561cfe088f2651ef"
+      },
+      "report-errors-en.png": {
+        "bytes": 112603,
+        "sha256": "d09e8d3211b5bcbb8643bcb160e88f01e37a6cf588b8e39adfba47b043029b24"
+      },
+      "report-errors-zh-TW-125.png": {
+        "bytes": 62521,
+        "sha256": "e945536ecee30227e37949260ebcb41706da94dfc5011f41814bf5c81f393b44"
+      },
+      "report-errors-zh-TW.png": {
+        "bytes": 113911,
+        "sha256": "14ae741763e4b0ca552f8e115d7a9635812d8abf4205e9845e132f2ff6e31770"
+      },
+      "report-summary-en.png": {
+        "bytes": 112622,
+        "sha256": "42ee8c9bca22b688e839a4ef85f86fddf6785c3e1ea1f6302529c8f4b208f8cb"
+      },
+      "report-summary-zh-TW.png": {
+        "bytes": 104855,
+        "sha256": "edd496fc2833cdb65b48043ee2708b17744cf441eaf078616320809cfa70b338"
+      },
+      "settings-green-dark-125.png": {
+        "bytes": 41298,
+        "sha256": "9da01aba531b709b3a3d956cc647ab2d854bc16287383442c940d14789cf40af"
+      },
+      "settings-green-light-125.png": {
+        "bytes": 41778,
+        "sha256": "e8075a5e3ff45ba18081ec35967cf9b77c2793a87c66a262a3bce27bc95860f0"
+      },
+      "six-presets-en.png": {
+        "bytes": 185948,
+        "sha256": "303ce6cf51a761e7443dabd16b6f89d4d608307510ad4c84a55e317ba4d3dba0"
+      },
+      "six-presets-zh-TW.png": {
+        "bytes": 178030,
+        "sha256": "c756499a0e380ebe779eb5c3886342997e6a6136c883197c818b98f90a9c6845"
+      },
+      "task-editor-green-dark-125.png": {
+        "bytes": 56632,
+        "sha256": "67c22a5bc158c07191a9b7535d395fdbaecf5d56db239d85c382d84bf4450c79"
+      },
+      "task-editor-green-light-125.png": {
+        "bytes": 57109,
+        "sha256": "29e2e15fadf3f2fc94cfe7ac0d3efd41da57ce7fc7e5cf13520b8527233afe1b"
+      },
+      "tasks-green-dark-125.png": {
+        "bytes": 47590,
+        "sha256": "0718502a8a7999663a665796424f270e16327fc27c8d3210b64606fcef58c167"
+      },
+      "tasks-green-light-125.png": {
+        "bytes": 47303,
+        "sha256": "dfd15cf584bcf0416711fc9dc81eafd4ad0790aff1e9b356f9464431b598143d"
+      },
+      "theme-blue-dark.png": {
+        "bytes": 151697,
+        "sha256": "6f25fbb618a6d7ac50181c30a9a2d35f4f46cc49d5e6b0ad5e96e9125e6f441f"
+      },
+      "theme-blue-light.png": {
+        "bytes": 150253,
+        "sha256": "91b58f795741f1ddd07611563210e1f59f0502ffef6ef3b7b2a5c9a04243dc8f"
+      },
+      "theme-green-dark.png": {
+        "bytes": 151567,
+        "sha256": "8c9eebec2b9e67326f7963aa372ac4ac4e22d891e192a73401c01b9a0ef53428"
+      },
+      "theme-green-light.png": {
+        "bytes": 150239,
+        "sha256": "9ad99c0525e68236ad69512ec2b56ca3c3779d016f688acb69551b9e32792d06"
+      },
+      "theme-purple-dark.png": {
+        "bytes": 151638,
+        "sha256": "43984078bc47e8f9398514a48ee35bdea10e4bd23b01fe00ed91c1da81684aa5"
+      },
+      "theme-purple-light.png": {
+        "bytes": 150508,
+        "sha256": "4038e72360d6183466e68821d6b5da12324a3f7bcec6e383e8026eacc154f96e"
+      },
+      "transfer-green-dark-125.png": {
+        "bytes": 64413,
+        "sha256": "55c3b672943b24fe05ad94a0e857c61733af361083947c2c3826356cd86324d4"
+      },
+      "transfer-green-light-125.png": {
+        "bytes": 65338,
+        "sha256": "b0f1e5661fdf218c1e01a57d3c2c66bbf6f16e0e00f5fa64ed490a0421baa0f0"
+      }
+    },
+    "contrast": {
+      "scope": "Computed palette token contrast for text, metadata, placeholders, primary action states, selected text, notices and control border. Disabled controls excluded. This is not a full WCAG audit.",
+      "checks": [
+        {
+          "theme": "purple-dark",
+          "foreground": "text",
+          "background": "surface",
+          "ratio": 13.79,
+          "minimum": 4.5,
+          "passed": true
+        },
+        {
+          "theme": "purple-dark",
+          "foreground": "text",
+          "background": "toolbar",
+          "ratio": 12.77,
+          "minimum": 4.5,
+          "passed": true
+        },
+        {
+          "theme": "purple-dark",
+          "foreground": "text",
+          "background": "bg",
+          "ratio": 14.95,
+          "minimum": 4.5,
+          "passed": true
+        },
+        {
+          "theme": "purple-dark",
+          "foreground": "text",
+          "background": "row-stripe",
+          "ratio": 11.58,
+          "minimum": 4.5,
+          "passed": true
+        },
+        {
+          "theme": "purple-dark",
+          "foreground": "muted",
+          "background": "surface",
+          "ratio": 8.64,
+          "minimum": 4.5,
+          "passed": true
+        },
+        {
+          "theme": "purple-dark",
+          "foreground": "muted",
+          "background": "toolbar",
+          "ratio": 8.0,
+          "minimum": 4.5,
+          "passed": true
+        },
+        {
+          "theme": "purple-dark",
+          "foreground": "muted",
+          "background": "bg",
+          "ratio": 9.37,
+          "minimum": 4.5,
+          "passed": true
+        },
+        {
+          "theme": "purple-dark",
+          "foreground": "muted",
+          "background": "row-stripe",
+          "ratio": 7.25,
+          "minimum": 4.5,
+          "passed": true
+        },
+        {
+          "theme": "purple-dark",
+          "foreground": "faint",
+          "background": "surface",
+          "ratio": 6.92,
+          "minimum": 4.5,
+          "passed": true
+        },
+        {
+          "theme": "purple-dark",
+          "foreground": "faint",
+          "background": "toolbar",
+          "ratio": 6.41,
+          "minimum": 4.5,
+          "passed": true
+        },
+        {
+          "theme": "purple-dark",
+          "foreground": "faint",
+          "background": "bg",
+          "ratio": 7.51,
+          "minimum": 4.5,
+          "passed": true
+        },
+        {
+          "theme": "purple-dark",
+          "foreground": "faint",
+          "background": "row-stripe",
+          "ratio": 5.81,
+          "minimum": 4.5,
+          "passed": true
+        },
+        {
+          "theme": "purple-dark",
+          "foreground": "accent-foreground",
+          "background": "accent",
+          "ratio": 7.5,
+          "minimum": 4.5,
+          "passed": true
+        },
+        {
+          "theme": "purple-dark",
+          "foreground": "accent-foreground",
+          "background": "accent-hover",
+          "ratio": 8.78,
+          "minimum": 4.5,
+          "passed": true
+        },
+        {
+          "theme": "purple-dark",
+          "foreground": "accent-foreground",
+          "background": "accent-pressed",
+          "ratio": 6.01,
+          "minimum": 4.5,
+          "passed": true
+        },
+        {
+          "theme": "purple-dark",
+          "foreground": "accent-soft-text",
+          "background": "accent-soft",
+          "ratio": 8.18,
+          "minimum": 4.5,
+          "passed": true
+        },
+        {
+          "theme": "purple-dark",
+          "foreground": "success",
+          "background": "success-bg",
+          "ratio": 6.1,
+          "minimum": 4.5,
+          "passed": true
+        },
+        {
+          "theme": "purple-dark",
+          "foreground": "error",
+          "background": "error-bg",
+          "ratio": 5.97,
+          "minimum": 4.5,
+          "passed": true
+        },
+        {
+          "theme": "purple-dark",
+          "foreground": "warning",
+          "background": "warning-bg",
+          "ratio": 6.74,
+          "minimum": 4.5,
+          "passed": true
+        },
+        {
+          "theme": "purple-dark",
+          "foreground": "border",
+          "background": "surface",
+          "ratio": 4.43,
+          "minimum": 3,
+          "passed": true
+        },
+        {
+          "theme": "purple-light",
+          "foreground": "text",
+          "background": "surface",
+          "ratio": 14.94,
+          "minimum": 4.5,
+          "passed": true
+        },
+        {
+          "theme": "purple-light",
+          "foreground": "text",
+          "background": "toolbar",
+          "ratio": 12.63,
+          "minimum": 4.5,
+          "passed": true
+        },
+        {
+          "theme": "purple-light",
+          "foreground": "text",
+          "background": "bg",
+          "ratio": 13.57,
+          "minimum": 4.5,
+          "passed": true
+        },
+        {
+          "theme": "purple-light",
+          "foreground": "text",
+          "background": "row-stripe",
+          "ratio": 12.98,
+          "minimum": 4.5,
+          "passed": true
+        },
+        {
+          "theme": "purple-light",
+          "foreground": "muted",
+          "background": "surface",
+          "ratio": 7.04,
+          "minimum": 4.5,
+          "passed": true
+        },
+        {
+          "theme": "purple-light",
+          "foreground": "muted",
+          "background": "toolbar",
+          "ratio": 5.95,
+          "minimum": 4.5,
+          "passed": true
+        },
+        {
+          "theme": "purple-light",
+          "foreground": "muted",
+          "background": "bg",
+          "ratio": 6.4,
+          "minimum": 4.5,
+          "passed": true
+        },
+        {
+          "theme": "purple-light",
+          "foreground": "muted",
+          "background": "row-stripe",
+          "ratio": 6.12,
+          "minimum": 4.5,
+          "passed": true
+        },
+        {
+          "theme": "purple-light",
+          "foreground": "faint",
+          "background": "surface",
+          "ratio": 5.86,
+          "minimum": 4.5,
+          "passed": true
+        },
+        {
+          "theme": "purple-light",
+          "foreground": "faint",
+          "background": "toolbar",
+          "ratio": 4.95,
+          "minimum": 4.5,
+          "passed": true
+        },
+        {
+          "theme": "purple-light",
+          "foreground": "faint",
+          "background": "bg",
+          "ratio": 5.32,
+          "minimum": 4.5,
+          "passed": true
+        },
+        {
+          "theme": "purple-light",
+          "foreground": "faint",
+          "background": "row-stripe",
+          "ratio": 5.09,
+          "minimum": 4.5,
+          "passed": true
+        },
+        {
+          "theme": "purple-light",
+          "foreground": "accent-foreground",
+          "background": "accent",
+          "ratio": 6.06,
+          "minimum": 4.5,
+          "passed": true
+        },
+        {
+          "theme": "purple-light",
+          "foreground": "accent-foreground",
+          "background": "accent-hover",
+          "ratio": 7.85,
+          "minimum": 4.5,
+          "passed": true
+        },
+        {
+          "theme": "purple-light",
+          "foreground": "accent-foreground",
+          "background": "accent-pressed",
+          "ratio": 9.75,
+          "minimum": 4.5,
+          "passed": true
+        },
+        {
+          "theme": "purple-light",
+          "foreground": "accent-soft-text",
+          "background": "accent-soft",
+          "ratio": 7.56,
+          "minimum": 4.5,
+          "passed": true
+        },
+        {
+          "theme": "purple-light",
+          "foreground": "success",
+          "background": "success-bg",
+          "ratio": 5.16,
+          "minimum": 4.5,
+          "passed": true
+        },
+        {
+          "theme": "purple-light",
+          "foreground": "error",
+          "background": "error-bg",
+          "ratio": 4.9,
+          "minimum": 4.5,
+          "passed": true
+        },
+        {
+          "theme": "purple-light",
+          "foreground": "warning",
+          "background": "warning-bg",
+          "ratio": 5.17,
+          "minimum": 4.5,
+          "passed": true
+        },
+        {
+          "theme": "purple-light",
+          "foreground": "border",
+          "background": "surface",
+          "ratio": 3.5,
+          "minimum": 3,
+          "passed": true
+        },
+        {
+          "theme": "blue-dark",
+          "foreground": "text",
+          "background": "surface",
+          "ratio": 13.79,
+          "minimum": 4.5,
+          "passed": true
+        },
+        {
+          "theme": "blue-dark",
+          "foreground": "text",
+          "background": "toolbar",
+          "ratio": 12.77,
+          "minimum": 4.5,
+          "passed": true
+        },
+        {
+          "theme": "blue-dark",
+          "foreground": "text",
+          "background": "bg",
+          "ratio": 14.95,
+          "minimum": 4.5,
+          "passed": true
+        },
+        {
+          "theme": "blue-dark",
+          "foreground": "text",
+          "background": "row-stripe",
+          "ratio": 11.58,
+          "minimum": 4.5,
+          "passed": true
+        },
+        {
+          "theme": "blue-dark",
+          "foreground": "muted",
+          "background": "surface",
+          "ratio": 8.64,
+          "minimum": 4.5,
+          "passed": true
+        },
+        {
+          "theme": "blue-dark",
+          "foreground": "muted",
+          "background": "toolbar",
+          "ratio": 8.0,
+          "minimum": 4.5,
+          "passed": true
+        },
+        {
+          "theme": "blue-dark",
+          "foreground": "muted",
+          "background": "bg",
+          "ratio": 9.37,
+          "minimum": 4.5,
+          "passed": true
+        },
+        {
+          "theme": "blue-dark",
+          "foreground": "muted",
+          "background": "row-stripe",
+          "ratio": 7.25,
+          "minimum": 4.5,
+          "passed": true
+        },
+        {
+          "theme": "blue-dark",
+          "foreground": "faint",
+          "background": "surface",
+          "ratio": 6.92,
+          "minimum": 4.5,
+          "passed": true
+        },
+        {
+          "theme": "blue-dark",
+          "foreground": "faint",
+          "background": "toolbar",
+          "ratio": 6.41,
+          "minimum": 4.5,
+          "passed": true
+        },
+        {
+          "theme": "blue-dark",
+          "foreground": "faint",
+          "background": "bg",
+          "ratio": 7.51,
+          "minimum": 4.5,
+          "passed": true
+        },
+        {
+          "theme": "blue-dark",
+          "foreground": "faint",
+          "background": "row-stripe",
+          "ratio": 5.81,
+          "minimum": 4.5,
+          "passed": true
+        },
+        {
+          "theme": "blue-dark",
+          "foreground": "accent-foreground",
+          "background": "accent",
+          "ratio": 7.86,
+          "minimum": 4.5,
+          "passed": true
+        },
+        {
+          "theme": "blue-dark",
+          "foreground": "accent-foreground",
+          "background": "accent-hover",
+          "ratio": 9.11,
+          "minimum": 4.5,
+          "passed": true
+        },
+        {
+          "theme": "blue-dark",
+          "foreground": "accent-foreground",
+          "background": "accent-pressed",
+          "ratio": 6.2,
+          "minimum": 4.5,
+          "passed": true
+        },
+        {
+          "theme": "blue-dark",
+          "foreground": "accent-soft-text",
+          "background": "accent-soft",
+          "ratio": 7.54,
+          "minimum": 4.5,
+          "passed": true
+        },
+        {
+          "theme": "blue-dark",
+          "foreground": "success",
+          "background": "success-bg",
+          "ratio": 6.1,
+          "minimum": 4.5,
+          "passed": true
+        },
+        {
+          "theme": "blue-dark",
+          "foreground": "error",
+          "background": "error-bg",
+          "ratio": 5.97,
+          "minimum": 4.5,
+          "passed": true
+        },
+        {
+          "theme": "blue-dark",
+          "foreground": "warning",
+          "background": "warning-bg",
+          "ratio": 6.74,
+          "minimum": 4.5,
+          "passed": true
+        },
+        {
+          "theme": "blue-dark",
+          "foreground": "border",
+          "background": "surface",
+          "ratio": 4.43,
+          "minimum": 3,
+          "passed": true
+        },
+        {
+          "theme": "blue-light",
+          "foreground": "text",
+          "background": "surface",
+          "ratio": 14.94,
+          "minimum": 4.5,
+          "passed": true
+        },
+        {
+          "theme": "blue-light",
+          "foreground": "text",
+          "background": "toolbar",
+          "ratio": 12.63,
+          "minimum": 4.5,
+          "passed": true
+        },
+        {
+          "theme": "blue-light",
+          "foreground": "text",
+          "background": "bg",
+          "ratio": 13.57,
+          "minimum": 4.5,
+          "passed": true
+        },
+        {
+          "theme": "blue-light",
+          "foreground": "text",
+          "background": "row-stripe",
+          "ratio": 12.98,
+          "minimum": 4.5,
+          "passed": true
+        },
+        {
+          "theme": "blue-light",
+          "foreground": "muted",
+          "background": "surface",
+          "ratio": 7.04,
+          "minimum": 4.5,
+          "passed": true
+        },
+        {
+          "theme": "blue-light",
+          "foreground": "muted",
+          "background": "toolbar",
+          "ratio": 5.95,
+          "minimum": 4.5,
+          "passed": true
+        },
+        {
+          "theme": "blue-light",
+          "foreground": "muted",
+          "background": "bg",
+          "ratio": 6.4,
+          "minimum": 4.5,
+          "passed": true
+        },
+        {
+          "theme": "blue-light",
+          "foreground": "muted",
+          "background": "row-stripe",
+          "ratio": 6.12,
+          "minimum": 4.5,
+          "passed": true
+        },
+        {
+          "theme": "blue-light",
+          "foreground": "faint",
+          "background": "surface",
+          "ratio": 5.86,
+          "minimum": 4.5,
+          "passed": true
+        },
+        {
+          "theme": "blue-light",
+          "foreground": "faint",
+          "background": "toolbar",
+          "ratio": 4.95,
+          "minimum": 4.5,
+          "passed": true
+        },
+        {
+          "theme": "blue-light",
+          "foreground": "faint",
+          "background": "bg",
+          "ratio": 5.32,
+          "minimum": 4.5,
+          "passed": true
+        },
+        {
+          "theme": "blue-light",
+          "foreground": "faint",
+          "background": "row-stripe",
+          "ratio": 5.09,
+          "minimum": 4.5,
+          "passed": true
+        },
+        {
+          "theme": "blue-light",
+          "foreground": "accent-foreground",
+          "background": "accent",
+          "ratio": 6.83,
+          "minimum": 4.5,
+          "passed": true
+        },
+        {
+          "theme": "blue-light",
+          "foreground": "accent-foreground",
+          "background": "accent-hover",
+          "ratio": 8.72,
+          "minimum": 4.5,
+          "passed": true
+        },
+        {
+          "theme": "blue-light",
+          "foreground": "accent-foreground",
+          "background": "accent-pressed",
+          "ratio": 10.79,
+          "minimum": 4.5,
+          "passed": true
+        },
+        {
+          "theme": "blue-light",
+          "foreground": "accent-soft-text",
+          "background": "accent-soft",
+          "ratio": 7.33,
+          "minimum": 4.5,
+          "passed": true
+        },
+        {
+          "theme": "blue-light",
+          "foreground": "success",
+          "background": "success-bg",
+          "ratio": 5.16,
+          "minimum": 4.5,
+          "passed": true
+        },
+        {
+          "theme": "blue-light",
+          "foreground": "error",
+          "background": "error-bg",
+          "ratio": 4.9,
+          "minimum": 4.5,
+          "passed": true
+        },
+        {
+          "theme": "blue-light",
+          "foreground": "warning",
+          "background": "warning-bg",
+          "ratio": 5.17,
+          "minimum": 4.5,
+          "passed": true
+        },
+        {
+          "theme": "blue-light",
+          "foreground": "border",
+          "background": "surface",
+          "ratio": 3.5,
+          "minimum": 3,
+          "passed": true
+        },
+        {
+          "theme": "green-dark",
+          "foreground": "text",
+          "background": "surface",
+          "ratio": 13.79,
+          "minimum": 4.5,
+          "passed": true
+        },
+        {
+          "theme": "green-dark",
+          "foreground": "text",
+          "background": "toolbar",
+          "ratio": 12.77,
+          "minimum": 4.5,
+          "passed": true
+        },
+        {
+          "theme": "green-dark",
+          "foreground": "text",
+          "background": "bg",
+          "ratio": 14.95,
+          "minimum": 4.5,
+          "passed": true
+        },
+        {
+          "theme": "green-dark",
+          "foreground": "text",
+          "background": "row-stripe",
+          "ratio": 11.58,
+          "minimum": 4.5,
+          "passed": true
+        },
+        {
+          "theme": "green-dark",
+          "foreground": "muted",
+          "background": "surface",
+          "ratio": 8.64,
+          "minimum": 4.5,
+          "passed": true
+        },
+        {
+          "theme": "green-dark",
+          "foreground": "muted",
+          "background": "toolbar",
+          "ratio": 8.0,
+          "minimum": 4.5,
+          "passed": true
+        },
+        {
+          "theme": "green-dark",
+          "foreground": "muted",
+          "background": "bg",
+          "ratio": 9.37,
+          "minimum": 4.5,
+          "passed": true
+        },
+        {
+          "theme": "green-dark",
+          "foreground": "muted",
+          "background": "row-stripe",
+          "ratio": 7.25,
+          "minimum": 4.5,
+          "passed": true
+        },
+        {
+          "theme": "green-dark",
+          "foreground": "faint",
+          "background": "surface",
+          "ratio": 6.92,
+          "minimum": 4.5,
+          "passed": true
+        },
+        {
+          "theme": "green-dark",
+          "foreground": "faint",
+          "background": "toolbar",
+          "ratio": 6.41,
+          "minimum": 4.5,
+          "passed": true
+        },
+        {
+          "theme": "green-dark",
+          "foreground": "faint",
+          "background": "bg",
+          "ratio": 7.51,
+          "minimum": 4.5,
+          "passed": true
+        },
+        {
+          "theme": "green-dark",
+          "foreground": "faint",
+          "background": "row-stripe",
+          "ratio": 5.81,
+          "minimum": 4.5,
+          "passed": true
+        },
+        {
+          "theme": "green-dark",
+          "foreground": "accent-foreground",
+          "background": "accent",
+          "ratio": 7.92,
+          "minimum": 4.5,
+          "passed": true
+        },
+        {
+          "theme": "green-dark",
+          "foreground": "accent-foreground",
+          "background": "accent-hover",
+          "ratio": 9.59,
+          "minimum": 4.5,
+          "passed": true
+        },
+        {
+          "theme": "green-dark",
+          "foreground": "accent-foreground",
+          "background": "accent-pressed",
+          "ratio": 6.37,
+          "minimum": 4.5,
+          "passed": true
+        },
+        {
+          "theme": "green-dark",
+          "foreground": "accent-soft-text",
+          "background": "accent-soft",
+          "ratio": 8.2,
+          "minimum": 4.5,
+          "passed": true
+        },
+        {
+          "theme": "green-dark",
+          "foreground": "success",
+          "background": "success-bg",
+          "ratio": 6.1,
+          "minimum": 4.5,
+          "passed": true
+        },
+        {
+          "theme": "green-dark",
+          "foreground": "error",
+          "background": "error-bg",
+          "ratio": 5.97,
+          "minimum": 4.5,
+          "passed": true
+        },
+        {
+          "theme": "green-dark",
+          "foreground": "warning",
+          "background": "warning-bg",
+          "ratio": 6.74,
+          "minimum": 4.5,
+          "passed": true
+        },
+        {
+          "theme": "green-dark",
+          "foreground": "border",
+          "background": "surface",
+          "ratio": 4.43,
+          "minimum": 3,
+          "passed": true
+        },
+        {
+          "theme": "green-light",
+          "foreground": "text",
+          "background": "surface",
+          "ratio": 14.94,
+          "minimum": 4.5,
+          "passed": true
+        },
+        {
+          "theme": "green-light",
+          "foreground": "text",
+          "background": "toolbar",
+          "ratio": 12.63,
+          "minimum": 4.5,
+          "passed": true
+        },
+        {
+          "theme": "green-light",
+          "foreground": "text",
+          "background": "bg",
+          "ratio": 13.57,
+          "minimum": 4.5,
+          "passed": true
+        },
+        {
+          "theme": "green-light",
+          "foreground": "text",
+          "background": "row-stripe",
+          "ratio": 12.98,
+          "minimum": 4.5,
+          "passed": true
+        },
+        {
+          "theme": "green-light",
+          "foreground": "muted",
+          "background": "surface",
+          "ratio": 7.04,
+          "minimum": 4.5,
+          "passed": true
+        },
+        {
+          "theme": "green-light",
+          "foreground": "muted",
+          "background": "toolbar",
+          "ratio": 5.95,
+          "minimum": 4.5,
+          "passed": true
+        },
+        {
+          "theme": "green-light",
+          "foreground": "muted",
+          "background": "bg",
+          "ratio": 6.4,
+          "minimum": 4.5,
+          "passed": true
+        },
+        {
+          "theme": "green-light",
+          "foreground": "muted",
+          "background": "row-stripe",
+          "ratio": 6.12,
+          "minimum": 4.5,
+          "passed": true
+        },
+        {
+          "theme": "green-light",
+          "foreground": "faint",
+          "background": "surface",
+          "ratio": 5.86,
+          "minimum": 4.5,
+          "passed": true
+        },
+        {
+          "theme": "green-light",
+          "foreground": "faint",
+          "background": "toolbar",
+          "ratio": 4.95,
+          "minimum": 4.5,
+          "passed": true
+        },
+        {
+          "theme": "green-light",
+          "foreground": "faint",
+          "background": "bg",
+          "ratio": 5.32,
+          "minimum": 4.5,
+          "passed": true
+        },
+        {
+          "theme": "green-light",
+          "foreground": "faint",
+          "background": "row-stripe",
+          "ratio": 5.09,
+          "minimum": 4.5,
+          "passed": true
+        },
+        {
+          "theme": "green-light",
+          "foreground": "accent-foreground",
+          "background": "accent",
+          "ratio": 7.0,
+          "minimum": 4.5,
+          "passed": true
+        },
+        {
+          "theme": "green-light",
+          "foreground": "accent-foreground",
+          "background": "accent-hover",
+          "ratio": 8.57,
+          "minimum": 4.5,
+          "passed": true
+        },
+        {
+          "theme": "green-light",
+          "foreground": "accent-foreground",
+          "background": "accent-pressed",
+          "ratio": 10.0,
+          "minimum": 4.5,
+          "passed": true
+        },
+        {
+          "theme": "green-light",
+          "foreground": "accent-soft-text",
+          "background": "accent-soft",
+          "ratio": 7.26,
+          "minimum": 4.5,
+          "passed": true
+        },
+        {
+          "theme": "green-light",
+          "foreground": "success",
+          "background": "success-bg",
+          "ratio": 5.16,
+          "minimum": 4.5,
+          "passed": true
+        },
+        {
+          "theme": "green-light",
+          "foreground": "error",
+          "background": "error-bg",
+          "ratio": 4.9,
+          "minimum": 4.5,
+          "passed": true
+        },
+        {
+          "theme": "green-light",
+          "foreground": "warning",
+          "background": "warning-bg",
+          "ratio": 5.17,
+          "minimum": 4.5,
+          "passed": true
+        },
+        {
+          "theme": "green-light",
+          "foreground": "border",
+          "background": "surface",
+          "ratio": 3.5,
+          "minimum": 3,
+          "passed": true
+        }
+      ],
+      "passed": true
+    },
+    "fonts": [
+      {
+        "language": "zh-TW",
+        "selector": ".brand",
+        "fonts": [
+          {
+            "familyName": "Noto Sans CJK TC",
+            "postScriptName": "NotoSansCJKtc-Regular",
+            "isCustomFont": false,
+            "glyphCount": 15
+          }
+        ]
+      },
+      {
+        "language": "zh-TW",
+        "selector": ".workspace-title h1",
+        "fonts": [
+          {
+            "familyName": "Noto Sans CJK TC",
+            "postScriptName": "NotoSansCJKtc-Regular",
+            "isCustomFont": false,
+            "glyphCount": 2
+          }
+        ]
+      },
+      {
+        "language": "zh-TW",
+        "selector": ".file-name span",
+        "fonts": [
+          {
+            "familyName": "Noto Sans CJK TC",
+            "postScriptName": "NotoSansCJKtc-Regular",
+            "isCustomFont": false,
+            "glyphCount": 5
+          }
+        ]
+      },
+      {
+        "language": "zh-TW",
+        "selector": ".path-form input",
+        "fonts": [
+          {
+            "familyName": "DejaVu Sans Mono",
+            "postScriptName": "DejaVuSansMono",
+            "isCustomFont": false,
+            "glyphCount": 21
+          }
+        ]
+      },
+      {
+        "language": "en",
+        "selector": ".brand",
+        "fonts": [
+          {
+            "familyName": "DejaVu Sans",
+            "postScriptName": "DejaVuSans-Bold",
+            "isCustomFont": false,
+            "glyphCount": 15
+          }
+        ]
+      },
+      {
+        "language": "en",
+        "selector": ".workspace-title h1",
+        "fonts": [
+          {
+            "familyName": "DejaVu Sans",
+            "postScriptName": "DejaVuSans-Bold",
+            "isCustomFont": false,
+            "glyphCount": 5
+          }
+        ]
+      },
+      {
+        "language": "en",
+        "selector": ".file-name span",
+        "fonts": [
+          {
+            "familyName": "DejaVu Sans",
+            "postScriptName": "DejaVuSans",
+            "isCustomFont": false,
+            "glyphCount": 9
+          }
+        ]
+      },
+      {
+        "language": "en",
+        "selector": ".path-form input",
+        "fonts": [
+          {
+            "familyName": "DejaVu Sans Mono",
+            "postScriptName": "DejaVuSansMono",
+            "isCustomFont": false,
+            "glyphCount": 21
+          }
+        ]
+      }
+    ]
+  },
+  "largeLists": {
+    "fullListPasses": 0,
+    "updates": 25,
+    "wallMilliseconds": 402
+  },
+  "development": [
+    {
+      "run": "initial dropdown classification",
+      "passed": 1,
+      "failed": 0
+    },
+    {
+      "run": "first revision07 tests",
+      "passed": 10,
+      "failed": 12,
+      "finding": "Test locators still referred to the old settings button and Notice class; disabled-option clicking also needed a physical-click simulation. Production source was unchanged for these fixes."
+    },
+    {
+      "run": "corrected revision07 tests",
+      "passed": 22,
+      "failed": 0,
+      "durationSeconds": 21.9
+    },
+    {
+      "run": "candidate full suite",
+      "passed": 162,
+      "failed": 1,
+      "durationSeconds": 198.5,
+      "finding": "Config refresh assertion still queried a native option element. It now opens the visible popup and checks the newly configured remote."
+    },
+    {
+      "run": "Config refresh regression",
+      "passed": 1,
+      "failed": 0
+    },
+    {
+      "run": "IME and keyboard regression",
+      "passed": 1,
+      "failed": 0,
+      "finding": "Enter during Chinese/Japanese composition and WebKit keyCode 229 are left to the input method."
+    }
+  ],
+  "history": {
+    "release": "0.6.0",
+    "manifest": "history/0.6.0/verification.json",
+    "sha256": "5c69a33c742edcdb5c8a5e2768fe6aa60e81e01c2adb9a7dec2164afa28e70af"
+  },
+  "cases": [
+    {
+      "file": "revision04.spec.ts",
+      "title": "system language uses the native primary zh-CN → zh-TW; manual choice survives restart",
+      "status": "expected",
+      "durationMilliseconds": 1446
+    },
+    {
+      "file": "revision04.spec.ts",
+      "title": "system language uses the native primary zh-Hans → zh-TW; manual choice survives restart",
+      "status": "expected",
+      "durationMilliseconds": 1507
+    },
+    {
+      "file": "revision04.spec.ts",
+      "title": "system language uses the native primary ja-JP → ja; manual choice survives restart",
+      "status": "expected",
+      "durationMilliseconds": 1626
+    },
+    {
+      "file": "revision04.spec.ts",
+      "title": "system language uses the native primary de-DE → en; manual choice survives restart",
+      "status": "expected",
+      "durationMilliseconds": 1342
+    },
+    {
+      "file": "revision04.spec.ts",
+      "title": "Remember restores locations, direction, mode and all options without selection or automatic transfers",
+      "status": "expected",
+      "durationMilliseconds": 2171
+    },
+    {
+      "file": "revision04.spec.ts",
+      "title": "startup location edits update a remembered workspace and forgetting removes both old and new defaults",
+      "status": "expected",
+      "durationMilliseconds": 1690
+    },
+    {
+      "file": "revision04.spec.ts",
+      "title": "Tasks save and edit the complete request; Dry Run and Run execute the saved snapshot",
+      "status": "expected",
+      "durationMilliseconds": 2211
+    },
+    {
+      "file": "revision04.spec.ts",
+      "title": "editing destination keeps saved selection; changing source clears it visibly before saving",
+      "status": "expected",
+      "durationMilliseconds": 1281
+    },
+    {
+      "file": "revision04.spec.ts",
+      "title": "rclone connection settings save partial patches, custom IP commits atomically, and task timeouts inherit",
+      "status": "expected",
+      "durationMilliseconds": 1493
+    },
+    {
+      "file": "revision04.spec.ts",
+      "title": "comparison tips work with hover, focus, click and Escape without dismissing the dialog",
+      "status": "expected",
+      "durationMilliseconds": 4093
+    },
+    {
+      "file": "revision04.spec.ts",
+      "title": "location picker classifies native known places, mounted NAS, cloud and ambiguous remotes separately",
+      "status": "expected",
+      "durationMilliseconds": 867
+    },
+    {
+      "file": "revision04.spec.ts",
+      "title": "the application menu exposes native About, engine updates and distinct app release checks",
+      "status": "expected",
+      "durationMilliseconds": 3240
+    },
+    {
+      "file": "revision04.spec.ts",
+      "title": "purple-light: narrow columns leave one separator and full-width zebra pixels through empty space",
+      "status": "expected",
+      "durationMilliseconds": 613
+    },
+    {
+      "file": "revision04.spec.ts",
+      "title": "purple-dark: narrow columns leave one separator and full-width zebra pixels through empty space",
+      "status": "expected",
+      "durationMilliseconds": 615
+    },
+    {
+      "file": "revision04.spec.ts",
+      "title": "blue-light: narrow columns leave one separator and full-width zebra pixels through empty space",
+      "status": "expected",
+      "durationMilliseconds": 581
+    },
+    {
+      "file": "revision04.spec.ts",
+      "title": "blue-dark: narrow columns leave one separator and full-width zebra pixels through empty space",
+      "status": "expected",
+      "durationMilliseconds": 619
+    },
+    {
+      "file": "revision04.spec.ts",
+      "title": "sync tasks round-trip deletion controls including unlimited maximum and never run during editing",
+      "status": "expected",
+      "durationMilliseconds": 1167
+    },
+    {
+      "file": "revision04.spec.ts",
+      "title": "zh-TW: full task editor and network controls fit a compact window and keep borders separated",
+      "status": "expected",
+      "durationMilliseconds": 1526
+    },
+    {
+      "file": "revision04.spec.ts",
+      "title": "en: full task editor and network controls fit a compact window and keep borders separated",
+      "status": "expected",
+      "durationMilliseconds": 1601
+    },
+    {
+      "file": "revision04.spec.ts",
+      "title": "ja: full task editor and network controls fit a compact window and keep borders separated",
+      "status": "expected",
+      "durationMilliseconds": 1529
+    },
+    {
+      "file": "revision05.spec.ts",
+      "title": "empty Tasks has one contained prompt and no phantom selected task or execution controls",
+      "status": "expected",
+      "durationMilliseconds": 1027
+    },
+    {
+      "file": "revision05.spec.ts",
+      "title": "directory failure keeps icon, title, long diagnostic and Retry within one scrollable card",
+      "status": "expected",
+      "durationMilliseconds": 875
+    },
+    {
+      "file": "revision05.spec.ts",
+      "title": "success toast floats without moving panes, closes with motion, and dismisses after five seconds",
+      "status": "expected",
+      "durationMilliseconds": 6728
+    },
+    {
+      "file": "revision05.spec.ts",
+      "title": "reduced-motion toast fades without translating and can be replaced before an old dismissal",
+      "status": "expected",
+      "durationMilliseconds": 909
+    },
+    {
+      "file": "revision05.spec.ts",
+      "title": "new default sync choices are unlimited, during-transfer deletion, and size-time without local hashes",
+      "status": "expected",
+      "durationMilliseconds": 815
+    },
+    {
+      "file": "revision05.spec.ts",
+      "title": "local-nas preset keeps locations, resets skip rules, uses explicit single-direction sync and never auto-runs",
+      "status": "expected",
+      "durationMilliseconds": 608
+    },
+    {
+      "file": "revision05.spec.ts",
+      "title": "nas-cloud preset keeps locations, resets skip rules, uses explicit single-direction sync and never auto-runs",
+      "status": "expected",
+      "durationMilliseconds": 678
+    },
+    {
+      "file": "revision05.spec.ts",
+      "title": "local-cloud preset keeps locations, resets skip rules, uses explicit single-direction sync and never auto-runs",
+      "status": "expected",
+      "durationMilliseconds": 579
+    },
+    {
+      "file": "revision05.spec.ts",
+      "title": "preset hiding persists, does not alter the applied request, and Restore changes only menu visibility",
+      "status": "expected",
+      "durationMilliseconds": 1581
+    },
+    {
+      "file": "revision05.spec.ts",
+      "title": "native side buttons navigate the pane under the pointer and preserve independent forward history per tab",
+      "status": "expected",
+      "durationMilliseconds": 1404
+    },
+    {
+      "file": "revision05.spec.ts",
+      "title": "DOM side-button fallback fires once despite a legacy native flag, and a dialog blocks navigation",
+      "status": "expected",
+      "durationMilliseconds": 1262
+    },
+    {
+      "file": "revision05.spec.ts",
+      "title": "keyboard back and forward use active pane and keep edited text in inputs untouched",
+      "status": "expected",
+      "durationMilliseconds": 622
+    },
+    {
+      "file": "revision05.spec.ts",
+      "title": "purple-dark 1060: roles, connected tabs and one path row remain distinct and fit",
+      "status": "expected",
+      "durationMilliseconds": 723
+    },
+    {
+      "file": "revision05.spec.ts",
+      "title": "purple-dark 1440: roles, connected tabs and one path row remain distinct and fit",
+      "status": "expected",
+      "durationMilliseconds": 573
+    },
+    {
+      "file": "revision05.spec.ts",
+      "title": "purple-light 1060: roles, connected tabs and one path row remain distinct and fit",
+      "status": "expected",
+      "durationMilliseconds": 600
+    },
+    {
+      "file": "revision05.spec.ts",
+      "title": "purple-light 1440: roles, connected tabs and one path row remain distinct and fit",
+      "status": "expected",
+      "durationMilliseconds": 634
+    },
+    {
+      "file": "revision05.spec.ts",
+      "title": "job progress shows one decimal, rolling speed, rough ETA and a retained completed average",
+      "status": "expected",
+      "durationMilliseconds": 538
+    },
+    {
+      "file": "revision05.spec.ts",
+      "title": "all-zero-byte files use count progress and a running near-complete job never claims 100.0 percent",
+      "status": "expected",
+      "durationMilliseconds": 528
+    },
+    {
+      "file": "revision05.spec.ts",
+      "title": "100,000-file panes stay virtualized and progress updates do not repeat full-list mapping, sorting or scanning",
+      "status": "expected",
+      "durationMilliseconds": 2108
+    },
+    {
+      "file": "revision05.spec.ts",
+      "title": "a fresh task-saved toast survives closing its editor while a prior root toast is still visible",
+      "status": "expected",
+      "durationMilliseconds": 1009
+    },
+    {
+      "file": "revision05.spec.ts",
+      "title": "opening the operation menu by keyboard focuses the selected operation, never a preset hide button",
+      "status": "expected",
+      "durationMilliseconds": 584
+    },
+    {
+      "file": "revision05.spec.ts",
+      "title": "zh-TW: NAS-to-cloud advice names the route and explains unavoidable data transfer",
+      "status": "expected",
+      "durationMilliseconds": 694
+    },
+    {
+      "file": "revision05.spec.ts",
+      "title": "en: NAS-to-cloud advice names the route and explains unavoidable data transfer",
+      "status": "expected",
+      "durationMilliseconds": 778
+    },
+    {
+      "file": "revision05.spec.ts",
+      "title": "ja: NAS-to-cloud advice names the route and explains unavoidable data transfer",
+      "status": "expected",
+      "durationMilliseconds": 768
+    },
+    {
+      "file": "revision06-additions.spec.ts",
+      "title": "only the source can be checked, and reversing direction clears selections in every tab",
+      "status": "expected",
+      "durationMilliseconds": 1092
+    },
+    {
+      "file": "revision06-additions.spec.ts",
+      "title": "swapping locations clears old selections rather than applying them to the other endpoint",
+      "status": "expected",
+      "durationMilliseconds": 714
+    },
+    {
+      "file": "revision06-additions.spec.ts",
+      "title": "a focused destination file remains available for file actions without entering transfer selection",
+      "status": "expected",
+      "durationMilliseconds": 811
+    },
+    {
+      "file": "revision06-additions.spec.ts",
+      "title": "Finder drop prepares only its explicit source selection and never auto-starts",
+      "status": "expected",
+      "durationMilliseconds": 808
+    },
+    {
+      "file": "revision06-additions.spec.ts",
+      "title": "folder selection sync keeps the named source scope through Dry Run and explains untouched destination siblings",
+      "status": "expected",
+      "durationMilliseconds": 659
+    },
+    {
+      "file": "revision06-additions.spec.ts",
+      "title": "sync blocks files and mixed selections, and selected folders cannot enable delete-excluded",
+      "status": "expected",
+      "durationMilliseconds": 1097
+    },
+    {
+      "file": "revision06-additions.spec.ts",
+      "title": "a saved sync task can browse folders, edit its scope and restore the explicit source alone",
+      "status": "expected",
+      "durationMilliseconds": 1481
+    },
+    {
+      "file": "revision06-additions.spec.ts",
+      "title": "presetLocalLocal explicitly uses 1 transfers and ten checks without starting",
+      "status": "expected",
+      "durationMilliseconds": 704
+    },
+    {
+      "file": "revision06-additions.spec.ts",
+      "title": "presetCloudCloud explicitly uses 7 transfers and ten checks without starting",
+      "status": "expected",
+      "durationMilliseconds": 666
+    },
+    {
+      "file": "revision06-additions.spec.ts",
+      "title": "presetCloudLocal explicitly uses 1 transfers and ten checks without starting",
+      "status": "expected",
+      "durationMilliseconds": 664
+    },
+    {
+      "file": "revision06-additions.spec.ts",
+      "title": "all six preset choices can be hidden and restored without replacing current options",
+      "status": "expected",
+      "durationMilliseconds": 1140
+    },
+    {
+      "file": "revision06-additions.spec.ts",
+      "title": "all themes use an opaque continuous scrollbar track rather than the table stripe",
+      "status": "expected",
+      "durationMilliseconds": 530
+    },
+    {
+      "file": "revision06-additions.spec.ts",
+      "title": "non-editable labels cannot be dragged into text selection while paths, logs and errors remain copyable",
+      "status": "expected",
+      "durationMilliseconds": 488
+    },
+    {
+      "file": "revision06-additions.spec.ts",
+      "title": "empty Jobs is a single plain message with no card, icon or instructions",
+      "status": "expected",
+      "durationMilliseconds": 374
+    },
+    {
+      "file": "revision06-additions.spec.ts",
+      "title": "a visible success toast passes pointer hits through its text and keeps an operable close button",
+      "status": "expected",
+      "durationMilliseconds": 1041
+    },
+    {
+      "file": "revision06-additions.spec.ts",
+      "title": "side buttons pair a single native-first gesture without disabling the DOM fallback",
+      "status": "expected",
+      "durationMilliseconds": 1142
+    },
+    {
+      "file": "revision06-additions.spec.ts",
+      "title": "side buttons pair a single dom-first gesture without disabling the DOM fallback",
+      "status": "expected",
+      "durationMilliseconds": 1117
+    },
+    {
+      "file": "revision06-additions.spec.ts",
+      "title": "side buttons pair a single dom-delivered-before-native gesture without disabling the DOM fallback",
+      "status": "expected",
+      "durationMilliseconds": 1396
+    },
+    {
+      "file": "revision06-additions.spec.ts",
+      "title": "rapid native/DOM gestures and pure auxclick presses are not direction-debounced",
+      "status": "expected",
+      "durationMilliseconds": 1266
+    },
+    {
+      "file": "revision06-additions.spec.ts",
+      "title": "BrowserBack, Alt arrows and Meta brackets use the focused pane but preserve editing shortcuts",
+      "status": "expected",
+      "durationMilliseconds": 1214
+    },
+    {
+      "file": "revision06-additions.spec.ts",
+      "title": "report loading is lazy, bounded to 100 rows and paginated by opaque cursors without progress polling",
+      "status": "expected",
+      "durationMilliseconds": 1119
+    },
+    {
+      "file": "revision06-additions.spec.ts",
+      "title": "report categories distinguish compared, skipped, successful and recoverable errors without inventing unique file counts",
+      "status": "expected",
+      "durationMilliseconds": 848
+    },
+    {
+      "file": "revision06-additions.spec.ts",
+      "title": "missing reports stay unknown, and report failures or malformed comparison text retain export and retry routes",
+      "status": "expected",
+      "durationMilliseconds": 854
+    },
+    {
+      "file": "revision06-additions.spec.ts",
+      "title": "zh-TW: report comparison copy, errors, pagination and export stay reachable at 125 percent",
+      "status": "expected",
+      "durationMilliseconds": 824
+    },
+    {
+      "file": "revision06-additions.spec.ts",
+      "title": "en: report comparison copy, errors, pagination and export stay reachable at 125 percent",
+      "status": "expected",
+      "durationMilliseconds": 902
+    },
+    {
+      "file": "revision06-additions.spec.ts",
+      "title": "ja: report comparison copy, errors, pagination and export stay reachable at 125 percent",
+      "status": "expected",
+      "durationMilliseconds": 909
+    },
+    {
+      "file": "revision06-additions.spec.ts",
+      "title": "manual report refresh uses the newest writer summary and language changes translate existing comparison rows without polling",
+      "status": "expected",
+      "durationMilliseconds": 860
+    },
+    {
+      "file": "revision06-additions.spec.ts",
+      "title": "a live report announces newer records without fetching until requested and clears the hint after refresh",
+      "status": "expected",
+      "durationMilliseconds": 648
+    },
+    {
+      "file": "revision06.spec.ts",
+      "title": "zh-TW: five interface sizes save immediately through native host, with 100 percent in the middle",
+      "status": "expected",
+      "durationMilliseconds": 2065
+    },
+    {
+      "file": "revision06.spec.ts",
+      "title": "en: five interface sizes save immediately through native host, with 100 percent in the middle",
+      "status": "expected",
+      "durationMilliseconds": 2030
+    },
+    {
+      "file": "revision06.spec.ts",
+      "title": "ja: five interface sizes save immediately through native host, with 100 percent in the middle",
+      "status": "expected",
+      "durationMilliseconds": 1946
+    },
+    {
+      "file": "revision06.spec.ts",
+      "title": "scale keyboard selection and rapid edits survive save rejection without applying CSS zoom",
+      "status": "expected",
+      "durationMilliseconds": 1181
+    },
+    {
+      "file": "revision06.spec.ts",
+      "title": "zh-TW: all six themes change the brand icon, Next text and native setting together",
+      "status": "expected",
+      "durationMilliseconds": 1429
+    },
+    {
+      "file": "revision06.spec.ts",
+      "title": "en: all six themes change the brand icon, Next text and native setting together",
+      "status": "expected",
+      "durationMilliseconds": 1725
+    },
+    {
+      "file": "revision06.spec.ts",
+      "title": "ja: all six themes change the brand icon, Next text and native setting together",
+      "status": "expected",
+      "durationMilliseconds": 1535
+    },
+    {
+      "file": "revision06.spec.ts",
+      "title": "a rejected color change restores the saved brand icon and accent",
+      "status": "expected",
+      "durationMilliseconds": 839
+    },
+    {
+      "file": "revision06.spec.ts",
+      "title": "zh-TW green-dark: 125 percent at the minimum native window keeps panes, settings, transfer and task actions reachable",
+      "status": "expected",
+      "durationMilliseconds": 2688
+    },
+    {
+      "file": "revision06.spec.ts",
+      "title": "zh-TW green-light: 125 percent at the minimum native window keeps panes, settings, transfer and task actions reachable",
+      "status": "expected",
+      "durationMilliseconds": 2572
+    },
+    {
+      "file": "revision06.spec.ts",
+      "title": "en green-dark: 125 percent at the minimum native window keeps panes, settings, transfer and task actions reachable",
+      "status": "expected",
+      "durationMilliseconds": 2664
+    },
+    {
+      "file": "revision06.spec.ts",
+      "title": "en green-light: 125 percent at the minimum native window keeps panes, settings, transfer and task actions reachable",
+      "status": "expected",
+      "durationMilliseconds": 2710
+    },
+    {
+      "file": "revision06.spec.ts",
+      "title": "ja green-dark: 125 percent at the minimum native window keeps panes, settings, transfer and task actions reachable",
+      "status": "expected",
+      "durationMilliseconds": 2642
+    },
+    {
+      "file": "revision06.spec.ts",
+      "title": "ja green-light: 125 percent at the minimum native window keeps panes, settings, transfer and task actions reachable",
+      "status": "expected",
+      "durationMilliseconds": 2821
+    },
+    {
+      "file": "revision06.spec.ts",
+      "title": "Finished trash clears all ended statuses without stopping active jobs or opening a confirmation",
+      "status": "expected",
+      "durationMilliseconds": 728
+    },
+    {
+      "file": "revision06.spec.ts",
+      "title": "all: cancellation leaves every record unchanged, and completed-only excludes failed, stopped and newly arrived jobs",
+      "status": "expected",
+      "durationMilliseconds": 960
+    },
+    {
+      "file": "revision06.spec.ts",
+      "title": "active: cancellation leaves every record unchanged, and completed-only excludes failed, stopped and newly arrived jobs",
+      "status": "expected",
+      "durationMilliseconds": 1085
+    },
+    {
+      "file": "revision06.spec.ts",
+      "title": "completed-only is disabled when there are no green completed records",
+      "status": "expected",
+      "durationMilliseconds": 628
+    },
+    {
+      "file": "revision06.spec.ts",
+      "title": "all: stop-and-clear retains stopping rows until exit, snapshots scope, and rejects late resurrecting events",
+      "status": "expected",
+      "durationMilliseconds": 2447
+    },
+    {
+      "file": "revision06.spec.ts",
+      "title": "active: stop-and-clear retains stopping rows until exit, snapshots scope, and rejects late resurrecting events",
+      "status": "expected",
+      "durationMilliseconds": 2483
+    },
+    {
+      "file": "revision06.spec.ts",
+      "title": "bulk stop failure can be retried; acknowledged retention and forced stopping remain visible",
+      "status": "expected",
+      "durationMilliseconds": 1743
+    },
+    {
+      "file": "revision06.spec.ts",
+      "title": "a new progress event keeps more than 200 interrupted jobs available for manual recovery",
+      "status": "expected",
+      "durationMilliseconds": 1313
+    },
+    {
+      "file": "revision06.spec.ts",
+      "title": "zh-TW: stopping confirmation fits 125 percent, and a stopped job describes retained changes and destination-dependent partial cleanup",
+      "status": "expected",
+      "durationMilliseconds": 753
+    },
+    {
+      "file": "revision06.spec.ts",
+      "title": "en: stopping confirmation fits 125 percent, and a stopped job describes retained changes and destination-dependent partial cleanup",
+      "status": "expected",
+      "durationMilliseconds": 744
+    },
+    {
+      "file": "revision06.spec.ts",
+      "title": "ja: stopping confirmation fits 125 percent, and a stopped job describes retained changes and destination-dependent partial cleanup",
+      "status": "expected",
+      "durationMilliseconds": 753
+    },
+    {
+      "file": "revision06.spec.ts",
+      "title": "blue and green icons preserve canonical v2 vector geometry and contain valid complete ICNS representation lengths",
+      "status": "expected",
+      "durationMilliseconds": 16
+    },
+    {
+      "file": "revision07.spec.ts",
+      "title": "80%: both long location menus stay below their trigger after choosing the last cloud",
+      "status": "expected",
+      "durationMilliseconds": 1124
+    },
+    {
+      "file": "revision07.spec.ts",
+      "title": "90%: both long location menus stay below their trigger after choosing the last cloud",
+      "status": "expected",
+      "durationMilliseconds": 852
+    },
+    {
+      "file": "revision07.spec.ts",
+      "title": "100%: both long location menus stay below their trigger after choosing the last cloud",
+      "status": "expected",
+      "durationMilliseconds": 996
+    },
+    {
+      "file": "revision07.spec.ts",
+      "title": "110%: both long location menus stay below their trigger after choosing the last cloud",
+      "status": "expected",
+      "durationMilliseconds": 1008
+    },
+    {
+      "file": "revision07.spec.ts",
+      "title": "125%: both long location menus stay below their trigger after choosing the last cloud",
+      "status": "expected",
+      "durationMilliseconds": 1076
+    },
+    {
+      "file": "revision07.spec.ts",
+      "title": "location search supports keyboard choice, Escape, Tab and outside dismissal without navigating the pane",
+      "status": "expected",
+      "durationMilliseconds": 1053
+    },
+    {
+      "file": "revision07.spec.ts",
+      "title": "local locations remain selectable while unavailable remote locations stay disabled",
+      "status": "expected",
+      "durationMilliseconds": 593
+    },
+    {
+      "file": "revision07.spec.ts",
+      "title": "known local locations retain their name when a startup path has a trailing separator",
+      "status": "expected",
+      "durationMilliseconds": 417
+    },
+    {
+      "file": "revision07.spec.ts",
+      "title": "zh-TW: task and startup location menus stay below the trigger inside compact modal windows",
+      "status": "expected",
+      "durationMilliseconds": 1192
+    },
+    {
+      "file": "revision07.spec.ts",
+      "title": "en: task and startup location menus stay below the trigger inside compact modal windows",
+      "status": "expected",
+      "durationMilliseconds": 1123
+    },
+    {
+      "file": "revision07.spec.ts",
+      "title": "ja: task and startup location menus stay below the trigger inside compact modal windows",
+      "status": "expected",
+      "durationMilliseconds": 1174
+    },
+    {
+      "file": "revision07.spec.ts",
+      "title": "local path navigation stops at Windows drive and UNC share roots without altering remote or POSIX names",
+      "status": "expected",
+      "durationMilliseconds": 8
+    },
+    {
+      "file": "revision07.spec.ts",
+      "title": "darwin: only supported native tools and appearance settings are exposed",
+      "status": "expected",
+      "durationMilliseconds": 673
+    },
+    {
+      "file": "revision07.spec.ts",
+      "title": "windows: only supported native tools and appearance settings are exposed",
+      "status": "expected",
+      "durationMilliseconds": 694
+    },
+    {
+      "file": "revision07.spec.ts",
+      "title": "linux: only supported native tools and appearance settings are exposed",
+      "status": "expected",
+      "durationMilliseconds": 618
+    },
+    {
+      "file": "revision07.spec.ts",
+      "title": "a Windows custom executable saves its drive-qualified parent installation folder",
+      "status": "expected",
+      "durationMilliseconds": 739
+    },
+    {
+      "file": "revision07.spec.ts",
+      "title": "zh-TW: symbolic-link policy survives defaults and saved-task editing without starting a transfer",
+      "status": "expected",
+      "durationMilliseconds": 1134
+    },
+    {
+      "file": "revision07.spec.ts",
+      "title": "en: symbolic-link policy survives defaults and saved-task editing without starting a transfer",
+      "status": "expected",
+      "durationMilliseconds": 1176
+    },
+    {
+      "file": "revision07.spec.ts",
+      "title": "ja: symbolic-link policy survives defaults and saved-task editing without starting a transfer",
+      "status": "expected",
+      "durationMilliseconds": 1320
+    },
+    {
+      "file": "revision07.spec.ts",
+      "title": "zh-TW: report explains retry bytes, source growth and cleanup failures with exact figures and original evidence",
+      "status": "expected",
+      "durationMilliseconds": 991
+    },
+    {
+      "file": "revision07.spec.ts",
+      "title": "en: report explains retry bytes, source growth and cleanup failures with exact figures and original evidence",
+      "status": "expected",
+      "durationMilliseconds": 991
+    },
+    {
+      "file": "revision07.spec.ts",
+      "title": "ja: report explains retry bytes, source growth and cleanup failures with exact figures and original evidence",
+      "status": "expected",
+      "durationMilliseconds": 1137
+    },
+    {
+      "file": "revision07.spec.ts",
+      "title": "an incomplete copy-byte total is omitted and source-growth history cannot replace an unrelated final error",
+      "status": "expected",
+      "durationMilliseconds": 609
+    },
+    {
+      "file": "ui.spec.ts",
+      "title": "production file bundle uses native IPC, escapes adversarial names and loads no network runtime",
+      "status": "expected",
+      "durationMilliseconds": 515
+    },
+    {
+      "file": "ui.spec.ts",
+      "title": "without native host the UI does not invent filesystem access",
+      "status": "expected",
+      "durationMilliseconds": 273
+    },
+    {
+      "file": "ui.spec.ts",
+      "title": "choosing a single engine location saves and probes immediately; failed update can retry without restart",
+      "status": "expected",
+      "durationMilliseconds": 1063
+    },
+    {
+      "file": "ui.spec.ts",
+      "title": "advanced executable selection updates its parent and manual check can revisit a skipped version",
+      "status": "expected",
+      "durationMilliseconds": 914
+    },
+    {
+      "file": "ui.spec.ts",
+      "title": "rapid theme and language edits persist in order and ignore stale bootstrap replies",
+      "status": "expected",
+      "durationMilliseconds": 1682
+    },
+    {
+      "file": "ui.spec.ts",
+      "title": "rejected setting rolls back and later changes still save",
+      "status": "expected",
+      "durationMilliseconds": 1230
+    },
+    {
+      "file": "ui.spec.ts",
+      "title": "proxy, launch locations, global flags and player apply without a Save action; Escape discards uncommitted text",
+      "status": "expected",
+      "durationMilliseconds": 1715
+    },
+    {
+      "file": "ui.spec.ts",
+      "title": "native menu and Config completion refresh accounts without restarting",
+      "status": "expected",
+      "durationMilliseconds": 989
+    },
+    {
+      "file": "ui.spec.ts",
+      "title": "file columns resize with mouse and keyboard, persist to native Settings and show full years without checkbox ellipses",
+      "status": "expected",
+      "durationMilliseconds": 1193
+    },
+    {
+      "file": "ui.spec.ts",
+      "title": "appearance flags change file rows immediately and tabs retain isolated locations, selection and back history",
+      "status": "expected",
+      "durationMilliseconds": 1834
+    },
+    {
+      "file": "ui.spec.ts",
+      "title": "all original comparison modes and the NAS profile reach the request unchanged",
+      "status": "expected",
+      "durationMilliseconds": 3490
+    },
+    {
+      "file": "ui.spec.ts",
+      "title": "sync exposes delete timing, filters, timeouts, skips and additional parameters; preview is not an operation mode",
+      "status": "expected",
+      "durationMilliseconds": 1404
+    },
+    {
+      "file": "ui.spec.ts",
+      "title": "move never silently carries skip-newer, and left/right direction includes only selected items",
+      "status": "expected",
+      "durationMilliseconds": 1451
+    },
+    {
+      "file": "ui.spec.ts",
+      "title": "native Finder drop prepares the opposite source and never auto-starts or overwrites an open dialog",
+      "status": "expected",
+      "durationMilliseconds": 750
+    },
+    {
+      "file": "ui.spec.ts",
+      "title": "directory tree, exports, public-link creation, mount, stream and native clipboard have working entrances",
+      "status": "expected",
+      "durationMilliseconds": 1638
+    },
+    {
+      "file": "ui.spec.ts",
+      "title": "an unavailable saved startup folder shows an error and allows choosing a replacement",
+      "status": "expected",
+      "durationMilliseconds": 555
+    },
+    {
+      "file": "ui.spec.ts",
+      "title": "legacy move+skip-newer tasks retain their options until the user explicitly fixes the unsafe combination",
+      "status": "expected",
+      "durationMilliseconds": 1055
+    },
+    {
+      "file": "ui.spec.ts",
+      "title": "keyboard menu navigation, native-style settings shortcut and reduced motion stay predictable",
+      "status": "expected",
+      "durationMilliseconds": 608
+    },
+    {
+      "file": "ui.spec.ts",
+      "title": "1060x680 zh-TW purple-light: core controls, typography and live transfer metrics remain visible",
+      "status": "expected",
+      "durationMilliseconds": 565
+    },
+    {
+      "file": "ui.spec.ts",
+      "title": "1060x680 zh-TW purple-dark: core controls, typography and live transfer metrics remain visible",
+      "status": "expected",
+      "durationMilliseconds": 528
+    },
+    {
+      "file": "ui.spec.ts",
+      "title": "1060x680 zh-TW blue-light: core controls, typography and live transfer metrics remain visible",
+      "status": "expected",
+      "durationMilliseconds": 555
+    },
+    {
+      "file": "ui.spec.ts",
+      "title": "1060x680 zh-TW blue-dark: core controls, typography and live transfer metrics remain visible",
+      "status": "expected",
+      "durationMilliseconds": 825
+    },
+    {
+      "file": "ui.spec.ts",
+      "title": "1060x680 en purple-light: core controls, typography and live transfer metrics remain visible",
+      "status": "expected",
+      "durationMilliseconds": 605
+    },
+    {
+      "file": "ui.spec.ts",
+      "title": "1060x680 en purple-dark: core controls, typography and live transfer metrics remain visible",
+      "status": "expected",
+      "durationMilliseconds": 542
+    },
+    {
+      "file": "ui.spec.ts",
+      "title": "1060x680 en blue-light: core controls, typography and live transfer metrics remain visible",
+      "status": "expected",
+      "durationMilliseconds": 534
+    },
+    {
+      "file": "ui.spec.ts",
+      "title": "1060x680 en blue-dark: core controls, typography and live transfer metrics remain visible",
+      "status": "expected",
+      "durationMilliseconds": 517
+    },
+    {
+      "file": "ui.spec.ts",
+      "title": "1060x680 ja purple-light: core controls, typography and live transfer metrics remain visible",
+      "status": "expected",
+      "durationMilliseconds": 514
+    },
+    {
+      "file": "ui.spec.ts",
+      "title": "1060x680 ja purple-dark: core controls, typography and live transfer metrics remain visible",
+      "status": "expected",
+      "durationMilliseconds": 598
+    },
+    {
+      "file": "ui.spec.ts",
+      "title": "1060x680 ja blue-light: core controls, typography and live transfer metrics remain visible",
+      "status": "expected",
+      "durationMilliseconds": 644
+    },
+    {
+      "file": "ui.spec.ts",
+      "title": "1060x680 ja blue-dark: core controls, typography and live transfer metrics remain visible",
+      "status": "expected",
+      "durationMilliseconds": 640
+    },
+    {
+      "file": "ui.spec.ts",
+      "title": "1440x900 zh-TW purple-light: core controls, typography and live transfer metrics remain visible",
+      "status": "expected",
+      "durationMilliseconds": 601
+    },
+    {
+      "file": "ui.spec.ts",
+      "title": "1440x900 zh-TW purple-dark: core controls, typography and live transfer metrics remain visible",
+      "status": "expected",
+      "durationMilliseconds": 605
+    },
+    {
+      "file": "ui.spec.ts",
+      "title": "1440x900 zh-TW blue-light: core controls, typography and live transfer metrics remain visible",
+      "status": "expected",
+      "durationMilliseconds": 586
+    },
+    {
+      "file": "ui.spec.ts",
+      "title": "1440x900 zh-TW blue-dark: core controls, typography and live transfer metrics remain visible",
+      "status": "expected",
+      "durationMilliseconds": 731
+    },
+    {
+      "file": "ui.spec.ts",
+      "title": "1440x900 en purple-light: core controls, typography and live transfer metrics remain visible",
+      "status": "expected",
+      "durationMilliseconds": 630
+    },
+    {
+      "file": "ui.spec.ts",
+      "title": "1440x900 en purple-dark: core controls, typography and live transfer metrics remain visible",
+      "status": "expected",
+      "durationMilliseconds": 602
+    },
+    {
+      "file": "ui.spec.ts",
+      "title": "1440x900 en blue-light: core controls, typography and live transfer metrics remain visible",
+      "status": "expected",
+      "durationMilliseconds": 553
+    },
+    {
+      "file": "ui.spec.ts",
+      "title": "1440x900 en blue-dark: core controls, typography and live transfer metrics remain visible",
+      "status": "expected",
+      "durationMilliseconds": 584
+    },
+    {
+      "file": "ui.spec.ts",
+      "title": "1440x900 ja purple-light: core controls, typography and live transfer metrics remain visible",
+      "status": "expected",
+      "durationMilliseconds": 642
+    },
+    {
+      "file": "ui.spec.ts",
+      "title": "1440x900 ja purple-dark: core controls, typography and live transfer metrics remain visible",
+      "status": "expected",
+      "durationMilliseconds": 821
+    },
+    {
+      "file": "ui.spec.ts",
+      "title": "1440x900 ja blue-light: core controls, typography and live transfer metrics remain visible",
+      "status": "expected",
+      "durationMilliseconds": 692
+    },
+    {
+      "file": "ui.spec.ts",
+      "title": "1440x900 ja blue-dark: core controls, typography and live transfer metrics remain visible",
+      "status": "expected",
+      "durationMilliseconds": 718
+    }
+  ]
+}

@@ -19,6 +19,8 @@
   <a href="https://github.com/jason840709/RcloneBrowserNext/issues">Report an issue</a>
 </p>
 
+Version 0.7.0 adds Windows x64 and Linux amd64 compatibility editions. **Mac remains the primary platform**; all editions share the interface and transfer core. [Release notes](docs/RELEASE_0.7.0.md) · [Compatibility installation](docs/BUILD_COMPATIBILITY.md)
+
 ## What is it?
 
 Rclone Browser Next is a macOS interface for [rclone](https://rclone.org/), developed by **Jason Chen**.

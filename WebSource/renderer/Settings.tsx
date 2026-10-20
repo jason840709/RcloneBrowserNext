@@ -3,7 +3,7 @@ import { ArrowClockwise, ArrowSquareOut, DownloadSimple, TerminalWindow, Key, Fo
 import type { Endpoint, Environment, Settings as AppSettings, SettingsPatch, Theme, UpdateStatus, LocalLocation, RemoteInfo, NetworkOptions } from '../shared/types';
 import type { Translate } from './i18n';
 import { Checkbox, Dialog, Field, Notice, InfoTooltip } from './components';
-import { errorMessage } from './utils';
+import { errorMessage, parentEndpoint } from './utils';
 import { EndpointEditor } from './LocationPicker';
 import { INTERFACE_SCALES } from './appearance';
 
@@ -32,7 +32,7 @@ export default function SettingsDialog({ settings, environment, locations, remot
   const chooseExecutable = () => act(async () => {
     await onFlush();
     const path = await window.rclone.chooseFile('rclone');
-    if (path) await onSave({rclonePath: path, rcloneDirectory: path.slice(0, path.lastIndexOf('/')) || '/'});
+    if (path) await onSave({rclonePath: path, rcloneDirectory: parentEndpoint({remote: null, path}).path});
   });
   const chooseDirectory = () => act(async () => {
     await onFlush();
@@ -69,7 +69,7 @@ export default function SettingsDialog({ settings, environment, locations, remot
   const startupLocation = (side: 'left'|'right'): Endpoint => settings.savedWorkspace?.[side] || settings.initialLocations[side] || (side === 'right' && remotes[0] ? {remote: remotes[0].name, path: ''} : {remote: null, path: home});
   const setStartup = (side: 'left'|'right', value: Endpoint) => patch(settings.savedWorkspace ? {savedWorkspace: {...settings.savedWorkspace, [side]: value}} : {initialLocations: {...settings.initialLocations, [side]: value}});
   const setNetwork = <K extends keyof NetworkOptions>(key: K, value: NetworkOptions[K]) => patch({networkOptions: {[key]: value}});
-  const selectedPath = settings.rclonePath || (settings.rcloneDirectory ? `${settings.rcloneDirectory.replace(/\/$/, '')}/rclone` : '');
+  const selectedPath = settings.rclonePath || (settings.rcloneDirectory ? `${settings.rcloneDirectory.replace(/[\\/]$/, '')}/${environment.platform === 'win32' || environment.platform === 'windows' ? 'rclone.exe' : 'rclone'}` : '');
   const actualPath = pending ? selectedPath : environment.rclonePath || selectedPath;
   return <Dialog title={t('settings')} onClose={onClose} t={t} className="settings-dialog">
     <div className="preferences-layout">
@@ -114,10 +114,10 @@ export default function SettingsDialog({ settings, environment, locations, remot
           <section className="settings-section"><h3>{t('theme')}</h3><div className="theme-picker" role="group" aria-label={t('chooseTheme')}>{themes.map(theme => <button type="button" key={theme.value} className={`theme-option swatch-${theme.value}`} aria-pressed={settings.theme === theme.value} onClick={() => patch({theme: theme.value})}><span className="theme-preview" aria-hidden="true"><i className="theme-bar"/><i className="theme-panel"/><i className="theme-action"/><i className="theme-panel"/></span><span>{t(theme.label)}{settings.theme === theme.value && <Check size={16} weight="bold"/>}</span></button>)}</div></section>
           <section className="settings-section"><h3>{t('language')}</h3><Field label={t('menuLanguage')} hint={t('systemLanguageHint')}><select value={settings.language} onChange={event => patch({language: event.target.value as AppSettings['language']})}><option value="system">{t('systemLanguage')}</option><option value="zh-TW">繁體中文</option><option value="en">English</option><option value="ja">日本語</option></select></Field></section>
           <section className="settings-section"><h3>{t('fileListAppearance')}</h3><div className="checkbox-stack">{(['showHiddenFiles','showFolderIcons','showFileIcons','alternatingRows'] as const).map(key => <label className="checkbox-field" key={key}><input type="checkbox" checked={settings[key]} onChange={event => patch({[key]: event.target.checked})}/>{t(key === 'showHiddenFiles' ? 'showHidden' : key)}</label>)}</div></section>
-          <section className="settings-section"><h3>{t('backgroundBehavior')}</h3><div className="checkbox-stack">{(['showStatusItem','notifyOnCompletion'] as const).map(key => <label className="checkbox-field" key={key}><input type="checkbox" checked={settings[key]} onChange={event => patch({[key]: event.target.checked})}/>{t(key)}</label>)}</div></section>
+          {environment.platform === 'darwin' && <section className="settings-section"><h3>{t('backgroundBehavior')}</h3><div className="checkbox-stack">{(['showStatusItem','notifyOnCompletion'] as const).map(key => <label className="checkbox-field" key={key}><input type="checkbox" checked={settings[key]} onChange={event => patch({[key]: event.target.checked})}/>{t(key)}</label>)}</div></section>}
         </>}
         {tab === 'network' && <><section className="settings-section"><h3>{t('connectionPrefs')}</h3>
-          <fieldset className="proxy-modes"><legend>{t('proxyMode')}</legend><label><input type="radio" name="proxy-mode" checked={settings.proxyMode === 'system'} onChange={() => patch({proxyMode: 'system'})}/>{t('proxySystem')}</label><label><input type="radio" name="proxy-mode" checked={settings.proxyMode === 'manual'} onChange={() => patch({proxyMode: 'manual'})}/>{t('proxyManual')}</label></fieldset>
+          <fieldset className="proxy-modes"><legend>{t('proxyMode')}<InfoTooltip label={t('proxyMode')} text={t('proxySystemHint')}/></legend><label><input type="radio" name="proxy-mode" checked={settings.proxyMode === 'system'} onChange={() => patch({proxyMode: 'system'})}/>{t('proxySystem')}</label><label><input type="radio" name="proxy-mode" checked={settings.proxyMode === 'manual'} onChange={() => patch({proxyMode: 'manual'})}/>{t('proxyManual')}</label></fieldset>
           {settings.proxyMode === 'manual' && <><Field label={t('httpProxy')} hint={t('httpProxyHint')}><CommittedInput label={t('httpProxy')} value={settings.httpProxy} onCommit={value => patch({httpProxy: value.trim()})} placeholder="http://127.0.0.1:8080"/></Field><Field label={t('httpsProxy')}><CommittedInput label={t('httpsProxy')} value={settings.httpsProxy} onCommit={value => patch({httpsProxy: value.trim()})} placeholder="http://127.0.0.1:8080"/></Field><Field label={t('noProxy')} hint={t('noProxyHint')}><CommittedInput label={t('noProxy')} value={settings.noProxy} onCommit={value => patch({noProxy: value.trim()})} placeholder="localhost,127.0.0.1,.local"/></Field></>}
           <p className="section-hint">{t('proxySavedHint')}</p></section>
           <section className="settings-section network-options-section"><h3>{t('rcloneConnections')}</h3><p className="section-hint">{t('rcloneConnectionsHint')}</p>

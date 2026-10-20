@@ -1,6 +1,8 @@
 import Foundation
 #if canImport(Darwin)
 import Darwin
+#elseif os(Windows)
+import ucrt
 #else
 import Glibc
 #endif
@@ -151,11 +153,7 @@ final class RcloneEngine {
     }
 
     private static func blankEnvironment(configPath: String) -> [String: Any] {
-        #if os(macOS)
-        let platform = "darwin"
-        #else
-        let platform = "linux"
-        #endif
+        let platform = EnginePlatform.identifier
         #if arch(arm64)
         let arch = "arm64"
         #else
@@ -174,10 +172,9 @@ final class RcloneEngine {
         if !explicit.isEmpty { candidates = [explicit] }
         else {
             if let directory = snapshot["rcloneDirectory"] as? String, !directory.isEmpty {
-                candidates.append(URL(fileURLWithPath: directory).appendingPathComponent("rclone").path)
+                candidates.append(URL(fileURLWithPath: directory).appendingPathComponent(EnginePlatform.rcloneName).path)
             }
-            candidates += ["/opt/homebrew/bin/rclone", "/usr/local/bin/rclone", "/usr/bin/rclone"]
-            candidates += (ProcessInfo.processInfo.environment["PATH"] ?? "").split(separator: ":").filter { $0.hasPrefix("/") }.map { String($0) + "/rclone" }
+            candidates += EnginePlatform.executableCandidates()
         }
         var seen = Set<String>()
         for candidate in candidates where seen.insert(candidate).inserted {
@@ -208,7 +205,7 @@ final class RcloneEngine {
     /// its selected path have both been committed; this never starts a process.
     func commitRcloneUpdate(path: String) throws {
         let validPath = try EngineJSON.text(path, "rclone 執行檔", maximum: 32768)
-        guard validPath.hasPrefix("/"), FileManager.default.isExecutableFile(atPath: validPath) else {
+        guard EnginePlatform.absoluteLocalPath(validPath), FileManager.default.isExecutableFile(atPath: validPath) else {
             throw EngineError("更新後的 rclone 執行檔無法讀取。")
         }
         try settingsMutationLock.holding {
@@ -216,7 +213,7 @@ final class RcloneEngine {
                 let changed = try stateLock.holding { () -> [String: Any] in
                     guard maintenance, !closing, operationCount == 0, captureChildren.isEmpty,
                           !jobs.values.contains(where: { !EngineJob.terminal.contains($0.status) }) else {
-                        throw EngineError("必須先取得 rclone 更新鎖定，才能保存更新位置。")
+                        throw EngineError("無法保存 rclone 更新位置：更新程序尚未就緒。請重新檢查更新。")
                     }
                     var changed = settings
                     let url = URL(fileURLWithPath: validPath).standardizedFileURL
@@ -352,7 +349,7 @@ final class RcloneEngine {
             }
             try? outputPipe.fileHandleForReading.close(); try? errorPipe.fileHandleForReading.close()
         }
-        do { try process.run() }
+        do { try EnginePlatform.prepare(process); try process.run() }
         catch { throw EngineError("無法啟動 rclone：\(error.localizedDescription)") }
         let timer: DispatchWorkItem? = timeout.map { seconds in
             let item = DispatchWorkItem {
@@ -441,8 +438,8 @@ final class RcloneEngine {
         }
         if let id = id { notify(id, immediate: true) }
     }
-    private static let cancelledMessage = "工作已停止。已完成的檔案變更不會復原；未完成檔案或分段是否清除，取決於 rclone 與目的端，請查看記錄。"
-    private static let forcedStopMessage = "rclone 未在寬限時間內停止，已送出強制停止訊號。目的端可能留有未完成檔案或分段，請檢查目的端。"
+    private static let cancelledMessage = "工作已停止。"
+    private static let forcedStopMessage = "rclone 未回應停止要求，已強制停止。請檢查目標端的未完成檔案。"
     private static func processError(_ stderr: Data, code: Int32) -> String {
         let lines = String(decoding: stderr, as: UTF8.self).split(separator: "\n").suffix(8).map { line -> String in
             if let object = try? EngineJSON.object(Data(line.utf8)) as? [String: Any] { return object["msg"] as? String ?? object["error"] as? String ?? String(line) }
@@ -461,7 +458,7 @@ final class RcloneEngine {
             result["version"] = firstLine; result["rclonePath"] = path; result["available"] = true
             if (result["configPath"] as? String ?? "").isEmpty,
                let config = try? runProcess(["config", "file", "--ask-password=false"], binary: path, timeout: 15) {
-                let paths = String(decoding: config.stdout, as: UTF8.self).split(whereSeparator: \.isNewline).map { $0.trimmingCharacters(in: .whitespaces) }.filter { $0.hasPrefix("/") }
+                let paths = String(decoding: config.stdout, as: UTF8.self).split(whereSeparator: \.isNewline).map { $0.trimmingCharacters(in: .whitespaces) }.filter { EnginePlatform.absoluteLocalPath($0) }
                 result["configPath"] = paths.last ?? ""
             }
         } catch { result["error"] = error.localizedDescription }
@@ -686,15 +683,21 @@ final class RcloneEngine {
         if request.mode == "sync", request.options.text("deleteMode") == "before" { warnings.append("目的地多餘檔案會在傳輸開始前刪除，後續傳輸失敗不會還原這些刪除。") }
         if request.options.text("comparison") == "none" { warnings.append("本次會重新傳送所有範圍內的檔案，即使目的地已有相同內容。") }
         if let precision = EngineLocalTimePrecision.detect(for: request) { warnings.append(precision.message) }
-        if request.options.text("localHashPolicy") == "none" { warnings.append("本機位置不讀取檔案內容計算雜湊。大小和修改時間皆未變的內容差異無法偵測。") }
+        if request.options.text("localHashPolicy") == "none", request.source.remote == nil || request.destination.remote == nil {
+            switch request.options.text("comparison") {
+            case "default": warnings.append("本機比對使用檔案大小與修改時間，不讀取內容計算雜湊。")
+            case "modtime": warnings.append("本機比對只使用修改時間，不讀取內容計算雜湊。")
+            case "size": warnings.append("本機比對只使用檔案大小，不讀取內容計算雜湊。")
+            default: break
+            }
+        }
         else if request.options.flag("ignoreChecksum") { warnings.append("已關閉傳送後的雜湊驗證；傳送前的雜湊比對仍依比對方式執行。") }
         if request.dryRun { warnings.append("預演不會變更檔案，傳輸統計為模擬結果。") }
         if complex {
             warnings.append(request.mode == "sync"
-                ? "選取資料夾與包含規則取交集，執行前會先列出兩側檔名；只在目的地存在且符合規則的檔案也會納入同步刪除。"
-                : "選取項目與包含規則取交集，執行前會先掃描來源。")
+                ? "只處理勾選資料夾內、符合包含規則的檔案。開始前會先列出兩側檔名；此範圍內只有目標存在的檔案也會納入同步刪除。"
+                : "只處理勾選範圍內、符合包含規則的檔案；開始前會先掃描來源。")
         }
-        if request.source.remote != nil, request.destination.remote != nil, request.source.remote != request.destination.remote { warnings.append("不同連線也可能指向同一儲存空間，請確認兩側位置。") }
         return ["command": Self.displayCommand(try resolvedRclonePath(), configuredArguments(arguments)), "warnings": warnings]
     }
 
@@ -803,6 +806,8 @@ final class RcloneEngine {
             if let index = args.firstIndex(of: "--") { args.insert("--combined=-", at: index) }
             let command = Self.displayCommand(try resolvedRclonePath(), configuredArguments(args))
             stateLock.holding { job.command = command }
+            let window = args.first { $0.hasPrefix("--modify-window=") }.map { String($0.dropFirst("--modify-window=".count)) }
+            try reporter.recordConfiguration(job.request, engineVersion: stateLock.holding { environment["version"] as? String }, effectiveModifyWindow: window)
             if let precision = EngineLocalTimePrecision.detect(for: job.request) {
                 try appLog(job, running: running, level: "info", message: precision.message)
             }
@@ -1042,7 +1047,7 @@ final class RcloneEngine {
         guard let rawIDs = raw["ids"] as? [String], rawIDs.count <= 10000,
               rawIDs.allSatisfy(EngineJSON.validID), let mode = raw["mode"] as? String,
               ["finished", "stop-and-clear"].contains(mode), Set(raw.keys).isSubset(of: ["ids", "mode"]) else {
-            throw EngineError("工作清理需要有效的工作編號與清理方式。")
+            throw EngineError("無法清除工作紀錄：傳輸清單或清除方式已失效。請重新整理後再試。")
         }
         var seen = Set<String>()
         let ids = rawIDs.map { $0.lowercased() }.filter { seen.insert($0).inserted }
@@ -1150,7 +1155,7 @@ final class RcloneEngine {
         var output: [String: Any] = [:]
         for (key, label) in [("rclonePath", "rclone 執行檔"), ("rcloneDirectory", "rclone 資料夾"), ("configPath", "設定檔"), ("streamPlayerPath", "播放器")] {
             let text = try EngineJSON.text(merged[key], label, maximum: 32768)
-            guard text.isEmpty || text.hasPrefix("/") else { throw EngineError("\(label)必須使用絕對路徑。") }
+            guard text.isEmpty || EnginePlatform.absoluteLocalPath(text) else { throw EngineError("\(label)必須使用絕對路徑。") }
             output[key] = text.isEmpty ? "" : URL(fileURLWithPath: text).standardizedFileURL.path
         }
         // Choosing a file also chooses its update folder. Choosing only a folder
@@ -1160,7 +1165,7 @@ final class RcloneEngine {
         } else if isPatch, raw["rcloneDirectory"] != nil,
                   raw.count <= 2 || raw["rcloneDirectory"] as? String != defaults["rcloneDirectory"] as? String,
                   let directory = output["rcloneDirectory"] as? String, !directory.isEmpty {
-            output["rclonePath"] = URL(fileURLWithPath: directory).appendingPathComponent("rclone").path
+            output["rclonePath"] = URL(fileURLWithPath: directory).appendingPathComponent(EnginePlatform.rcloneName).path
         }
         let language = try EngineJSON.text(merged["language"], "語言")
         var theme = try EngineJSON.text(merged["theme"], "外觀")
@@ -1191,7 +1196,7 @@ final class RcloneEngine {
         output["defaultTransferOptions"] = try EngineTransferOptions(existingOptions.merging(optionPatch) { _, new in new }).json
         let extraArguments = try EngineTransferOptions.validateExtraArguments(merged["defaultRcloneOptions"])
         guard !extraArguments.contains(where: { EngineNetworkOptions.globalOwnedFlags.contains(String($0.split(separator: "=", maxSplits: 1)[0])) }) else {
-            throw EngineError("TPS 與 HTTP/2 請在「rclone 連線」設定，不要重複填入全域其他選項。")
+            throw EngineError("請在「rclone 連線」設定每秒請求上限與 HTTP/2，並移除「所有工作的額外參數」中的重複設定。")
         }
         output["defaultRcloneOptions"] = extraArguments
         let existingNetwork = defaults["networkOptions"] as? [String: Any] ?? EngineNetworkOptions.defaults
@@ -1430,26 +1435,10 @@ final class RcloneEngine {
 }
 
 private func DarwinOrGlibcKill(_ pid: Int32, _ signal: Int32) -> Int32 {
-    #if canImport(Darwin)
-    return Darwin.kill(pid, signal)
-    #else
-    return Glibc.kill(pid, signal)
-    #endif
+    EnginePlatform.signal(pid, signal)
 }
 
 private func readPipeChunk(_ handle: FileHandle) throws -> Data? {
-    var buffer = [UInt8](repeating: 0, count: 32768)
-    while true {
-        let count: Int = buffer.withUnsafeMutableBytes { bytes in
-            #if canImport(Darwin)
-            return Darwin.read(handle.fileDescriptor, bytes.baseAddress, bytes.count)
-            #else
-            return Glibc.read(handle.fileDescriptor, bytes.baseAddress, bytes.count)
-            #endif
-        }
-        if count == 0 { return nil }
-        if count > 0 { return Data(buffer.prefix(count)) }
-        if errno == EINTR { continue }
-        throw POSIXError(POSIXErrorCode(rawValue: errno) ?? .EIO)
-    }
+    let bytes = try EnginePlatform.readAvailable(handle)
+    return bytes.isEmpty ? nil : bytes
 }

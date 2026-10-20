@@ -3,8 +3,8 @@ import { DotsThree, TreeStructure, DownloadSimple, Link, HardDrives, Play, Colum
 import type { Translate } from './i18n';
 import type { ToolAction } from './Tools';
 
-export default function PaneMenu({t,remote,selectedCount,selectedDirectory,disabled,onAction,onResetColumns}: {
-  t:Translate;remote:boolean;selectedCount:number;selectedDirectory:boolean;disabled:boolean;onAction(action:ToolAction):void;onResetColumns():void;
+export default function PaneMenu({t,remote,canMount,selectedCount,selectedDirectory,disabled,onAction,onResetColumns}: {
+  t:Translate;remote:boolean;canMount:boolean;selectedCount:number;selectedDirectory:boolean;disabled:boolean;onAction(action:ToolAction):void;onResetColumns():void;
 }) {
   const ref=useRef<HTMLDetailsElement>(null);
   const close=()=>{if(ref.current)ref.current.open=false;};
@@ -24,7 +24,7 @@ export default function PaneMenu({t,remote,selectedCount,selectedDirectory,disab
     <button type="button" role="menuitem" disabled={disabled} onClick={()=>action('tree')}><TreeStructure size={17}/>{t('directoryTree')}</button>
     <button type="button" role="menuitem" disabled={disabled} onClick={()=>action('exportCSV')}><DownloadSimple size={17}/>{t('exportFileCSV')}</button>
     <button type="button" role="menuitem" disabled={disabled} onClick={()=>action('exportTXT')}><DownloadSimple size={17}/>{t('exportFileTXT')}</button>
-    {remote&&<><div className="menu-separator" role="separator"/><button type="button" role="menuitem" disabled={disabled||selectedCount!==1} onClick={()=>action('link')}><Link size={17}/>{t('publicLink')}</button><button type="button" role="menuitem" disabled={disabled} onClick={()=>action('mount')}><HardDrives size={17}/>{t('mountRemote')}</button></>}
+    {remote&&<><div className="menu-separator" role="separator"/><button type="button" role="menuitem" disabled={disabled||selectedCount!==1} onClick={()=>action('link')}><Link size={17}/>{t('publicLink')}</button>{canMount&&<button type="button" role="menuitem" disabled={disabled} onClick={()=>action('mount')}><HardDrives size={17}/>{t('mountRemote')}</button>}</>}
     <button type="button" role="menuitem" disabled={disabled||selectedCount!==1||selectedDirectory} onClick={()=>action('stream')}><Play size={17}/>{t('streamFile')}</button><div className="menu-separator" role="separator"/><button type="button" role="menuitem" onClick={()=>{close();onResetColumns();}}><Columns size={17}/>{t('resetColumns')}</button>
   </div></details>;
 }

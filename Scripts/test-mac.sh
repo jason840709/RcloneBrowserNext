@@ -19,7 +19,7 @@ rbn_start_log test
 # Every suite has its own @main. Keep each executable separate and use only
 # Apple's already-installed tools. All compiled tests and data stay here.
 RBN_TEST_RUN="$(/usr/bin/mktemp -d "$RBN_CACHE_ROOT/tests/run.XXXXXX")"
-RBN_TEST_SUITES=(CoreTests UpdaterTests ToolsTests NativeMessagesTests FinderDropTests AppReleaseTests TransferReportTests)
+RBN_TEST_SUITES=(CoreTests UpdaterTests ToolsTests NativeMessagesTests FinderDropTests AppReleaseTests TransferReportTests PlatformTests)
 for RBN_TEST_SUITE in "${RBN_TEST_SUITES[@]}"; do
   RBN_TEST_SOURCE="$RBN_PROJECT_ROOT/Tests/$RBN_TEST_SUITE.swift"
   [[ -s "$RBN_TEST_SOURCE" && ! -L "$RBN_TEST_SOURCE" ]] || rbn_fail "來源包缺少測試檔案：$RBN_TEST_SOURCE" 2

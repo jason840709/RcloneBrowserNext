@@ -82,10 +82,10 @@ final class BrowserAppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegat
             updater.connectionSettings = { [weak self] in self?.engine.settingsSnapshot() ?? [:] }
             appReleaseChecker = try RBNAppReleaseChecker(repository: RBNProject.repository)
 
-            guard let resources = Bundle.main.resourceURL else { throw EngineError("App 缺少資源資料夾。請重新建置。") }
+            guard let resources = Bundle.main.resourceURL else { throw EngineError("App 缺少必要檔案。請重新下載並安裝 Rclone Browser Next。") }
             webRoot = resources.appendingPathComponent("Web", isDirectory: true).resolvingSymlinksInPath().standardizedFileURL
             indexURL = webRoot.appendingPathComponent("index.html")
-            guard fm.fileExists(atPath: indexURL.path) else { throw EngineError("App 缺少介面檔案。請重新建置。") }
+            guard fm.fileExists(atPath: indexURL.path) else { throw EngineError("App 缺少必要檔案。請重新下載並安裝 Rclone Browser Next。") }
 
             let configuration = WKWebViewConfiguration()
             configuration.websiteDataStore = .nonPersistent()
@@ -138,10 +138,10 @@ final class BrowserAppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegat
             NSApp.activate(ignoringOtherApps: true)
         } catch {
             let alert = NSAlert()
-            alert.messageText = "無法開啟 Rclone Browser Next"
-            alert.informativeText = error.localizedDescription
+            alert.messageText = local("無法開啟 Rclone Browser Next", "Could not open Rclone Browser Next", "Rclone Browser Next を開けません")
+            alert.informativeText = localizedError(error)
             alert.alertStyle = .critical
-            alert.addButton(withTitle: "結束")
+            alert.addButton(withTitle: local("結束", "Quit", "終了"))
             alert.runModal()
             NSApp.terminate(nil)
         }
@@ -212,9 +212,9 @@ final class BrowserAppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegat
         let alert = NSAlert()
         alert.icon = NSApp.applicationIconImage
         alert.messageText = "Rclone Browser Next \(RBNProject.version)"
-        alert.informativeText = local("作者：Jason Chen\n\n雙面板 rclone 檔案工具\n使用 macOS AppKit 與 WebKit，rclone 由外部安裝位置提供。\n\nMIT License",
-                                     "Author: Jason Chen\n\nA dual-pane rclone file manager.\nUses macOS AppKit and WebKit with a separate rclone installation.\n\nMIT License",
-                                     "作者：Jason Chen\n\nrclone 用の2ペインファイルマネージャー。\nmacOS の AppKit と WebKit を使用し、rclone は外部のインストール先から実行します。\n\nMIT License")
+        alert.informativeText = local("作者：Jason Chen\n\n在本機、NAS 與雲端之間複製、同步及備份檔案。\n\nMIT License",
+                                     "Author: Jason Chen\n\nCopy, sync and back up files between local folders, NAS and clouds.\n\nMIT License",
+                                     "作者：Jason Chen\n\nローカル、NAS、クラウド間でファイルをコピー、同期、バックアップ。\n\nMIT License")
         alert.addButton(withTitle: local("好", "OK"))
         alert.addButton(withTitle: local("檢查 Rclone Next 更新…", "Check for Rclone Next Updates…", "Rclone Next の更新を確認…"))
         if alert.runModal() == .alertSecondButtonReturn { checkAppUpdatesFromMenu() }
@@ -386,8 +386,8 @@ final class BrowserAppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegat
         let approved = confirm(
             title: hasWork ? local("停止工作並結束？", "Stop jobs and quit?", "処理を停止して終了しますか？") : local("確定結束 Rclone Browser Next？", "Quit Rclone Browser Next?", "Rclone Browser Next を終了しますか？"),
             detail: hasWork
-                ? local("還有工作正在執行或排隊。結束會停止傳輸、掛載與播放；已完成的檔案變更不會復原。", "There are running or queued jobs. Quitting stops transfers, mounts and streams; completed file changes are not undone.", "実行中または待機中の処理があります。終了すると転送、マウント、再生を停止します。完了したファイルの変更は元に戻りません。")
-                : local("目前沒有工作正在執行。", "No jobs are currently running.", "現在実行中の処理はありません。"),
+                ? local("結束會停止傳輸、掛載與播放。未完成的工作會保留在紀錄中，下次可以重試。", "Quitting stops transfers, mounts and streams. Unfinished jobs remain in the history so you can retry them next time.", "終了すると転送、マウント、再生を停止します。未完了の処理は履歴に残り、次回再試行できます。")
+                : "",
             action: hasWork ? local("停止並結束", "Stop and quit", "停止して終了") : local("結束", "Quit", "終了"))
         guard approved else { terminationStarted = false; return .terminateCancel }
         requestQueue.async { [weak self] in
@@ -712,15 +712,20 @@ final class BrowserAppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegat
                               "Source: \(request.source.argument)\nDestination: \(request.destination.argument)")
         if request.mode == "sync" {
             let limit = request.options.integer("maxDelete")
+            let scope = request.selection.isEmpty
+                ? local("\n\n範圍：整個資料夾，依本次篩選規則處理。", "\n\nScope: the whole folder, using this job's filters.", "\n\n対象：フォルダ全体。この転送のフィルターを適用します。")
+                : local("\n\n範圍：以下選取資料夾，依本次篩選規則處理。\n", "\n\nScope: these selected folders, using this job's filters.\n", "\n\n対象：次の選択フォルダ。この転送のフィルターを適用します。\n") + request.selection.prefix(10).map(\.name).joined(separator: "\n") + (request.selection.count > 10 ? local("\n另有 \(request.selection.count - 10) 個資料夾。", "\nAnd \(request.selection.count - 10) more folders.", "\nほか \(request.selection.count - 10) フォルダ。") : "")
             let deletionNotice = limit < 0
-                ? local("\n\n目標中來源沒有的檔案會被刪除，這次未設定刪除數量上限。", "\n\nDestination files absent from the source will be deleted. No deletion-count limit is set.", "\n\nコピー元にないコピー先のファイルを削除します。削除数の上限は設定されていません。")
-                : local("\n\n目標中來源沒有的檔案會被刪除。這次最多刪除 \(limit) 個項目。", "\n\nDestination files absent from the source will be deleted. Maximum deletions: \(limit).", "\n\nコピー元にないコピー先のファイルを削除します。削除数の上限は \(limit) 件です。")
+                ? local("\n\n上述範圍內，目標中來源沒有的檔案會被刪除。這次未設定刪除數量上限。", "\n\nWithin this scope, destination files absent from the source will be deleted. No deletion-count limit is set.", "\n\nこの範囲内で、転送元にない転送先のファイルを削除します。削除数の上限は設定されていません。")
+                : local("\n\n上述範圍內，目標中來源沒有的檔案會被刪除。這次最多刪除 \(limit) 個項目。", "\n\nWithin this scope, destination files absent from the source will be deleted. Maximum deletions: \(limit).", "\n\nこの範囲内で、転送元にない転送先のファイルを削除します。削除数の上限は \(limit) 件です。")
+            let excludedNotice = request.options.flag("deleteExcluded")
+                ? local("\n目標中符合排除規則的檔案也會刪除。", "\nExcluded destination files will also be deleted.", "\n転送先で除外ルールに一致するファイルも削除します。") : ""
             return confirm(title: local("同步到目標？", "Sync to destination?"),
-                           detail: locations + deletionNotice,
+                           detail: locations + scope + deletionNotice + excludedNotice,
                            action: local("開始同步", "Start sync"))
         }
         return confirm(title: local("移動到目標？", "Move to destination?"),
-                       detail: locations + local("\n\n傳輸成功的項目會從來源刪除。", "\n\nSuccessfully transferred items are removed from the source."),
+                       detail: locations + local("\n\n檔案傳送成功，或目標已有依本次設定無需更新的副本時，都會刪除來源檔案。", "\n\nSource files are deleted after a successful transfer, or when the existing destination copy needs no update under this job's settings.", "\n\n転送に成功した場合、または今回の設定で転送先の既存コピーが更新不要と判定された場合、転送元のファイルを削除します。"),
                        action: local("開始移動", "Start move"))
     }
 
@@ -783,7 +788,7 @@ final class BrowserAppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegat
             guard !terminationStarted else { return nil }
             let panel = NSOpenPanel()
             panel.title = local("選擇空的掛載資料夾", "Choose an empty mount folder", "空のマウント先フォルダを選択")
-            panel.message = local("需要可用的 rclone mount 與已安裝的 macFUSE 或 FUSE-T。App 不會安裝驅動程式。", "Requires a working rclone mount and an installed macFUSE or FUSE-T. This app does not install drivers.", "rclone mount と、インストール済みの macFUSE または FUSE-T が必要です。このアプリはドライバーをインストールしません。")
+            panel.message = local("請先安裝 macFUSE 或 FUSE-T，並使用支援 mount 的 rclone。", "Install macFUSE or FUSE-T and use a version of rclone that supports mount.", "macFUSE または FUSE-T をインストールし、mount に対応する rclone を使用してください。")
             panel.canChooseDirectories = true; panel.canChooseFiles = false; panel.canCreateDirectories = true
             panel.allowsMultipleSelection = false
             return panel.runModal() == .OK ? panel.url?.path : nil

@@ -1,0 +1,7 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "main",
+  "description": "Only the bundled main window can use the native request dispatcher.",
+  "windows": ["main"],
+  "permissions": []
+}

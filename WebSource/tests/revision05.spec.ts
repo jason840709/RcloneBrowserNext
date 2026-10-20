@@ -1,7 +1,7 @@
 import {expect, test, type Page} from '@playwright/test';
 import {fileURLToPath, pathToFileURL} from 'node:url';
 import path from 'node:path';
-import {installHostFixture} from './native-fixture';
+import {installHostFixture, selectPlace} from './native-fixture';
 import {translator} from '../renderer/i18n';
 import {DEFAULT_OPTIONS, type Settings} from '../shared/types';
 import {MAC_EXCLUDES} from '../renderer/presets';
@@ -145,6 +145,6 @@ test('opening the operation menu by keyboard focuses the selected operation, nev
 });
 
 for(const language of ['zh-TW','en','ja']as const) test(`${language}: NAS-to-cloud advice names the route and explains unavoidable data transfer`,async({page})=>{
-  const tx=translator(language);await open(page,{settings:{autoCheckUpdates:false,language}});await page.getByTestId('left-pane').locator('.location-select select').selectOption('@local:test-nas-volume');await page.locator('.options-button').click();const d=page.locator('.options-dialog');await expect(d.locator('.comparison-advice')).toContainText(tx('presetNASCloud'));await expect(d.locator('.comparison-advice')).toContainText(tx('comparisonRecommendedSummary'));await expect(d.getByTestId('transfer-comparison')).toHaveValue('nas');
+  const tx=translator(language);await open(page,{settings:{autoCheckUpdates:false,language}});await selectPlace(page.getByTestId('left-pane').locator('.location-trigger'),'@local:test-nas-volume');await page.locator('.options-button').click();const d=page.locator('.options-dialog');await expect(d.locator('.comparison-advice')).toContainText(tx('presetNASCloud'));await expect(d.locator('.comparison-advice')).toContainText(tx('comparisonRecommendedSummary'));await expect(d.getByTestId('transfer-comparison')).toHaveValue('nas');
   await d.getByRole('button',{name:`${tx('comparisonRecommendation')} — ${tx('infoLabel')}`,exact:true}).click();await expect(page.getByRole('tooltip')).toHaveText(tx('comparisonAdviceDetail'));await page.keyboard.press('Escape');await expect(d).toBeVisible();
 });

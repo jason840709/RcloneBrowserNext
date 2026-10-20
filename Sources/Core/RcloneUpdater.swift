@@ -4,6 +4,8 @@ import FoundationNetworking
 #endif
 #if os(macOS)
 import Darwin
+#elseif os(Windows)
+import ucrt
 #else
 import Glibc
 #endif
@@ -84,13 +86,13 @@ final class RcloneUpdater {
     init(workDirectory: URL, fetcher: Fetcher? = nil) throws {
         self.workDirectory = workDirectory
         self.fetcher = fetcher
-        try FileManager.default.createDirectory(at: workDirectory, withIntermediateDirectories: true, attributes: [.posixPermissions: 0o700])
+        try FileManager.default.createDirectory(at: workDirectory, withIntermediateDirectories: true, attributes: EnginePlatform.permissions(0o700))
     }
 
     static func defaultTarget(settings: [String: Any], resolvedPath: String?) throws -> String {
         if let explicit = settings["rclonePath"] as? String, !explicit.isEmpty { return explicit }
         if let directory = settings["rcloneDirectory"] as? String, !directory.isEmpty {
-            return URL(fileURLWithPath: directory, isDirectory: true).appendingPathComponent("rclone").path
+            return URL(fileURLWithPath: directory, isDirectory: true).appendingPathComponent(EnginePlatform.rcloneName).path
         }
         if let path = resolvedPath, !path.isEmpty { return path }
         throw RBNUpdateError("請先選擇存放 rclone 的資料夾。")
@@ -130,9 +132,6 @@ final class RcloneUpdater {
 
     func install(version: String, targetPath: String, currentPath: String?) throws -> [String: Any] {
         guard let release = RcloneRelease(version) else { throw RBNUpdateError("更新版本格式不正確。") }
-        #if !os(macOS)
-        throw RBNUpdateError("下載與安裝 Mac 版 rclone 必須在 Mac 執行。")
-        #else
         let target = try Self.validatedTarget(targetPath)
         let fm = FileManager.default
         let parent = target.deletingLastPathComponent()
@@ -142,9 +141,9 @@ final class RcloneUpdater {
         try fm.createDirectory(at: parent, withIntermediateDirectories: true)
         if fm.fileExists(atPath: target.path) { _ = try versionOf(target.path) }
         let stage = parent.appendingPathComponent(".rbn-update-" + UUID().uuidString, isDirectory: true)
-        try fm.createDirectory(at: stage, withIntermediateDirectories: false, attributes: [.posixPermissions: 0o700])
+        try fm.createDirectory(at: stage, withIntermediateDirectories: false, attributes: EnginePlatform.permissions(0o700))
         defer { try? fm.removeItem(at: stage) }
-        let candidate = stage.appendingPathComponent("rclone")
+        let candidate = stage.appendingPathComponent(EnginePlatform.rcloneName)
         var verification = "HTTPS + SHA-256"
         status("downloading", "正在下載 rclone \(release.version)…")
         // Prefer rclone's own verifier: it checks the signed release checksum.
@@ -152,7 +151,7 @@ final class RcloneUpdater {
         if let current = currentPath, fm.isExecutableFile(atPath: current),
            let local = try? versionOf(current), let parsed = RcloneRelease(local),
            parsed >= RcloneRelease("1.55.0")!,
-           (try? RBNMachO.verify(URL(fileURLWithPath: current), architecture: architecture,
+           (try? RBNNativeBinary.verify(URL(fileURLWithPath: current), architecture: architecture,
                                 systemVersion: systemVersion)) != nil {
             let fetched = try Self.run(current, ["selfupdate", "--stable", "--version", release.version,
                                                   "--output", candidate.path, "--log-level", "INFO"], directory: stage, timeout: 300,
@@ -164,7 +163,7 @@ final class RcloneUpdater {
         } else {
             // An Intel rclone under Rosetta updates itself to Intel. Fetch the
             // hardware-native release here instead of installing the wrong slice.
-            let archiveName = "rclone-\(release.version)-osx-\(architecture).zip"
+            let archiveName = "rclone-\(release.version)-\(RBNNativeBinary.archiveSystem)-\(architecture).zip"
             let root = "https://downloads.rclone.org/\(release.version)/"
             let sums = try fetch(URL(string: root + "SHA256SUMS")!, maximum: 1024 * 1024)
             let expected = try Self.checksum(for: archiveName, in: sums)
@@ -172,14 +171,22 @@ final class RcloneUpdater {
             guard RBNSHA256.hex(archiveData) == expected else { throw RBNUpdateError("下載檔的 SHA-256 不符，已停止安裝。") }
             let archive = stage.appendingPathComponent(archiveName)
             try archiveData.write(to: archive, options: .atomic)
-            let member = "rclone-\(release.version)-osx-\(architecture)/rclone"
-            let listed = try Self.run("/usr/bin/unzip", ["-Z1", archive.path], directory: stage, timeout: 20)
+            let member = "rclone-\(release.version)-\(RBNNativeBinary.archiveSystem)-\(architecture)/\(EnginePlatform.rcloneName)"
+            let archiveTool = EnginePlatform.systemArchiveTool()
+            #if os(Windows)
+            let listArguments = ["-tf", archive.path]
+            let extractArguments = ["-xOf", archive.path, member]
+            #else
+            let listArguments = ["-Z1", archive.path]
+            let extractArguments = ["-p", archive.path, member]
+            #endif
+            let listed = try Self.run(archiveTool, listArguments, directory: stage, timeout: 20)
             guard listed.code == 0, listed.output.split(separator: "\n").filter({ String($0) == member }).count == 1 else {
                 throw RBNUpdateError("下載檔裡沒有唯一的 rclone 執行檔。")
             }
             // Extract one exact member into an already chosen path; never unpack
             // arbitrary archive paths into the user's folder.
-            let extracted = try Self.run("/usr/bin/unzip", ["-p", archive.path, member], directory: stage,
+            let extracted = try Self.run(archiveTool, extractArguments, directory: stage,
                                          timeout: 90, outputFile: candidate)
             guard extracted.code == 0 else { throw RBNUpdateError("rclone 解壓縮失敗，原本的版本保持不變。") }
         }
@@ -189,9 +196,9 @@ final class RcloneUpdater {
               bytes.int64Value < 512 * 1024 * 1024 else {
             throw RBNUpdateError("下載的 rclone 執行檔不完整。")
         }
-        status("verifying", "正在檢查架構、macOS 需求與版本…")
-        let minimum = try RBNMachO.verify(candidate, architecture: architecture, systemVersion: systemVersion)
-        try fm.setAttributes([.posixPermissions: 0o755], ofItemAtPath: candidate.path)
+        status("verifying", "正在檢查執行檔架構與版本…")
+        let minimum = try RBNNativeBinary.verify(candidate, architecture: architecture, systemVersion: systemVersion)
+        try fm.setAttributes(EnginePlatform.permissions(0o755), ofItemAtPath: candidate.path)
         let found = try versionOf(candidate.path)
         guard RcloneRelease(found) == release else { throw RBNUpdateError("下載檔回報的版本與選定版本不符，已停止更新。") }
         status("installing", "正在備份並替換 rclone…")
@@ -204,7 +211,6 @@ final class RcloneUpdater {
         return ["status": "updated", "version": release.version, "latestVersion": release.version,
                 "currentVersion": release.version, "path": target.path, "backupPath": installed ?? "",
                 "verification": verification, "minimumOS": minimum]
-        #endif
     }
 
     static func checksum(for name: String, in data: Data) throws -> String {
@@ -220,7 +226,7 @@ final class RcloneUpdater {
     }
 
     static func validatedTarget(_ path: String) throws -> URL {
-        guard path.hasPrefix("/"), !path.contains("\0"), !path.contains("\n"),
+        guard EnginePlatform.absoluteLocalPath(path), !path.contains("\0"), !path.contains("\n"),
               !path.hasSuffix("/"), !URL(fileURLWithPath: path).lastPathComponent.isEmpty else {
             throw RBNUpdateError("請選擇有效的 rclone 執行檔或資料夾。")
         }
@@ -228,9 +234,13 @@ final class RcloneUpdater {
         let parent = initial.deletingLastPathComponent().resolvingSymlinksInPath()
         let resolved = parent.appendingPathComponent(initial.lastPathComponent)
         let components = resolved.pathComponents
-        let protected = ["/System", "/Library", "/usr", "/bin", "/sbin", "/opt/homebrew", "/opt/local"]
+        let protected = RBNNativeBinary.protectedDirectories
         guard !components.contains(where: { $0.lowercased().hasSuffix(".app") }),
-              !protected.contains(where: { resolved.path == $0 || resolved.path.hasPrefix($0 + "/") }) else {
+              !protected.contains(where: { root in
+                  let value = EnginePlatform.canonicalComparisonPath(resolved.path)
+                  let root = EnginePlatform.canonicalComparisonPath(root)
+                  return value == root || value.hasPrefix(root + "/")
+              }) else {
             throw RBNUpdateError("這個位置由 App 或套件管理工具管理。請另選自己的 rclone 資料夾，再下載更新。")
         }
         if let attrs = try? FileManager.default.attributesOfItem(atPath: initial.path) {
@@ -259,11 +269,11 @@ final class RcloneUpdater {
             if let attrs = try? fm.attributesOfItem(atPath: folder.path), attrs[.type] as? FileAttributeType != .typeDirectory {
                 throw RBNUpdateError("備份位置不是一般資料夾，已停止更新。")
             }
-            try fm.createDirectory(at: folder, withIntermediateDirectories: true, attributes: [.posixPermissions: 0o700])
+            try fm.createDirectory(at: folder, withIntermediateDirectories: true, attributes: EnginePlatform.permissions(0o700))
             let stamp = String(Int(Date().timeIntervalSince1970)) + "-" + UUID().uuidString
             let backupFolder = folder.appendingPathComponent("rbn-" + stamp, isDirectory: true)
-            try fm.createDirectory(at: backupFolder, withIntermediateDirectories: false, attributes: [.posixPermissions: 0o700])
-            let copy = backupFolder.appendingPathComponent("rclone")
+            try fm.createDirectory(at: backupFolder, withIntermediateDirectories: false, attributes: EnginePlatform.permissions(0o700))
+            let copy = backupFolder.appendingPathComponent(EnginePlatform.rcloneName)
             let prior = try Data(contentsOf: target)
             originalHash = RBNSHA256.hex(prior)
             try fm.copyItem(at: target, to: copy)
@@ -288,9 +298,7 @@ final class RcloneUpdater {
         }
         let candidateHandle = try FileHandle(forWritingTo: candidate)
         try candidateHandle.synchronize(); try candidateHandle.close()
-        guard rename(candidate.path, target.path) == 0 else {
-            throw RBNUpdateError("無法替換 rclone：\(String(cString: strerror(errno)))")
-        }
+        try EnginePlatform.replaceFile(candidate.path, target.path)
         do { try validate(target) }
         catch {
             let validationMessage = error.localizedDescription
@@ -300,9 +308,7 @@ final class RcloneUpdater {
                     try fm.copyItem(at: backup, to: restore)
                     let handle = try FileHandle(forWritingTo: restore)
                     try handle.synchronize(); try handle.close()
-                    guard rename(restore.path, target.path) == 0 else {
-                        throw RBNUpdateError(String(cString: strerror(errno)))
-                    }
+                    try EnginePlatform.replaceFile(restore.path, target.path)
                 } catch {
                     throw RBNUpdateError("更新後驗證失敗，自動還原也未完成。\n舊版備份位置：\(backup.path)\n\(error.localizedDescription)")
                 }
@@ -454,7 +460,7 @@ final class RcloneUpdater {
         let stdout = Pipe(), stderr = Pipe()
         var destination: FileHandle?
         if let outputFile = outputFile {
-            guard FileManager.default.createFile(atPath: outputFile.path, contents: nil, attributes: [.posixPermissions: 0o600]) else {
+            guard FileManager.default.createFile(atPath: outputFile.path, contents: nil, attributes: EnginePlatform.permissions(0o600)) else {
                 throw RBNUpdateError("無法建立更新暫存檔。")
             }
             destination = try FileHandle(forWritingTo: outputFile)
@@ -473,7 +479,7 @@ final class RcloneUpdater {
         }
         let finished = DispatchSemaphore(value: 0)
         process.terminationHandler = { _ in finished.signal() }
-        do { try process.run() }
+        do { try EnginePlatform.prepare(process); try process.run() }
         catch {
             try? stdout.fileHandleForWriting.close(); try? stderr.fileHandleForWriting.close()
             try? destination?.close(); _ = group.wait(timeout: .now() + 2)
@@ -481,9 +487,9 @@ final class RcloneUpdater {
         }
         var timedOut = false
         if finished.wait(timeout: .now() + timeout) != .success {
-            timedOut = true; process.terminate()
+            timedOut = true; EnginePlatform.signal(process.processIdentifier, SIGTERM)
             if finished.wait(timeout: .now() + 2) != .success {
-                kill(process.processIdentifier, SIGKILL); _ = finished.wait(timeout: .now() + 2)
+                EnginePlatform.signal(process.processIdentifier, SIGKILL); _ = finished.wait(timeout: .now() + 2)
             }
         }
         try? destination?.close()

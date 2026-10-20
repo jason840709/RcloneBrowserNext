@@ -3,23 +3,41 @@ import type { Endpoint, Language } from '../shared/types';
 export function endpointText(endpoint: Endpoint): string {
   return endpoint.remote ? `${endpoint.remote}:${endpoint.path}` : endpoint.path;
 }
+/** Normalize Windows local paths without changing remote object names. */
+function localPath(path: string): string {
+  return /^[a-z]:[\\/]/i.test(path) || /^\\\\/.test(path) ? path.replace(/\\/g, '/') : path;
+}
+function localRoot(path: string): string {
+  const drive = path.match(/^[a-z]:\//i);
+  if (drive) return drive[0];
+  const share = path.match(/^\/\/[^/]+\/[^/]+/);
+  return share?.[0] || '/';
+}
 export function endpointName(endpoint: Endpoint): string {
   if (endpoint.remote) return endpoint.remote;
-  return endpoint.path.split('/').filter(Boolean).at(-1) || '/';
+  return localPath(endpoint.path).split('/').filter(Boolean).at(-1) || '/';
 }
 export function endpointEqual(a: Endpoint, b: Endpoint): boolean {
-  const normalize = (path: string) => path === '/' ? '/' : path.replace(/\/+$/, '');
-  return a.remote === b.remote && normalize(a.path) === normalize(b.path);
+  const normalize = (endpoint: Endpoint) => {
+    const path = endpoint.remote ? endpoint.path : localPath(endpoint.path);
+    if (!endpoint.remote && path === localRoot(path)) return path.replace(/\/$/, '') || '/';
+    return path === '/' ? '/' : path.replace(/\/+$/, '');
+  };
+  return a.remote === b.remote && normalize(a) === normalize(b);
 }
 export function childEndpoint(endpoint: Endpoint, name: string): Endpoint {
-  const path = endpoint.path === '' && endpoint.remote ? name : `${endpoint.path.replace(/\/+$/, '')}/${name}`;
+  const base = endpoint.remote ? endpoint.path : localPath(endpoint.path);
+  const path = base === '' && endpoint.remote ? name : `${base.replace(/\/+$/, '')}/${name}`;
   return { ...endpoint, path };
 }
 export function parentEndpoint(endpoint: Endpoint): Endpoint {
-  if (endpoint.path === '/') return {...endpoint};
-  const path = endpoint.path.replace(/\/+$/, '');
+  const base = endpoint.remote ? endpoint.path : localPath(endpoint.path);
+  if (base === '/') return {...endpoint};
+  const root = endpoint.remote ? '' : localRoot(base);
+  const path = base.replace(/\/+$/, '');
+  if (!endpoint.remote && (path === root.replace(/\/+$/, '') || path.length < root.length)) return {...endpoint, path: root};
   const slash = path.lastIndexOf('/');
-  return { ...endpoint, path: slash > 0 ? path.slice(0, slash) : slash === 0 || !endpoint.remote ? '/' : '' };
+  return { ...endpoint, path: endpoint.remote && slash === 0 ? '/' : slash >= root.length ? path.slice(0, slash) : root };
 }
 export function formatBytes(value: number): string {
   if (!Number.isFinite(value) || value < 0) return '—';

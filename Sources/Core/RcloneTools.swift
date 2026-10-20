@@ -1,6 +1,8 @@
 import Foundation
 #if canImport(Darwin)
 import Darwin
+#elseif os(Windows)
+import ucrt
 #else
 import Glibc
 #endif
@@ -65,9 +67,7 @@ final class RcloneTools {
             throw EngineError("匯出位置必須是一般檔案，不能是資料夾或符號連結。")
         }
         let temporary = parent.appendingPathComponent(".rbn-export-" + UUID().uuidString)
-        let fd = open(temporary.path, O_WRONLY | O_CREAT | O_EXCL | O_NOFOLLOW, mode_t(0o600))
-        guard fd >= 0 else { throw EngineError("無法在這個資料夾建立匯出檔案。") }
-        let output = FileHandle(fileDescriptor: fd, closeOnDealloc: true)
+        let output = try EnginePlatform.createExclusiveFile(temporary)
         var committed = false
         defer { try? output.close(); if !committed { try? FileManager.default.removeItem(at: temporary) } }
         if !filenamesOnly { try output.write(contentsOf: Data("Path,Size,Modified\n".utf8)) }
@@ -83,7 +83,7 @@ final class RcloneTools {
         if let error = sink.writeError { throw EngineError("寫入匯出檔案失敗：\(error)") }
         try output.synchronize()
         try output.close()
-        guard rename(temporary.path, destination.path) == 0 else { throw EngineError("無法儲存匯出檔案；原檔案未被替換。") }
+        try EnginePlatform.replaceFile(temporary.path, destination.path)
         committed = true
         return ["path": destination.path, "count": sink.recordCount, "format": filenamesOnly ? "txt" : "csv"]
     }
@@ -174,7 +174,7 @@ final class RcloneTools {
     func startStream(context: Context, endpoint: EngineEndpoint, name: String,
                      player: URL, playerArgs: [String] = ["-"]) throws -> [String: Any] {
         let target = try endpoint.child(name)
-        guard player.isFileURL, player.path.hasPrefix("/"), FileManager.default.isExecutableFile(atPath: player.path) else {
+        guard player.isFileURL, EnginePlatform.absoluteLocalPath(player.path), FileManager.default.isExecutableFile(atPath: player.path) else {
             throw EngineError("請選擇已安裝播放器的執行檔。")
         }
         guard playerArgs.count <= 64, playerArgs.reduce(0, { $0 + $1.utf8.count }) <= 16384,
@@ -316,7 +316,7 @@ final class RcloneTools {
 
     private static func makeProcess(context: Context, arguments: [String]) throws -> Process {
         var directory: ObjCBool = false
-        guard context.binary.hasPrefix("/"), FileManager.default.fileExists(atPath: context.binary, isDirectory: &directory), !directory.boolValue,
+        guard EnginePlatform.absoluteLocalPath(context.binary), FileManager.default.fileExists(atPath: context.binary, isDirectory: &directory), !directory.boolValue,
               FileManager.default.isExecutableFile(atPath: context.binary),
               !context.binary.utf8.contains(0), arguments.count <= 256,
               arguments.reduce(0, { $0 + $1.utf8.count }) <= 262144,
@@ -327,15 +327,16 @@ final class RcloneTools {
         process.executableURL = URL(fileURLWithPath: context.binary)
         process.arguments = arguments
         process.environment = context.environment
+        try EnginePlatform.prepare(process)
         return process
     }
 
     private static func terminate(_ process: Process) {
         guard process.isRunning else { return }
-        process.terminate()
+        EnginePlatform.signal(process.processIdentifier, SIGTERM)
         let deadline = Date().addingTimeInterval(2)
         while process.isRunning && Date() < deadline { Thread.sleep(forTimeInterval: 0.02) }
-        if process.isRunning { _ = kill(process.processIdentifier, SIGKILL) }
+        if process.isRunning { EnginePlatform.signal(process.processIdentifier, SIGKILL) }
     }
 
     private struct Result {
@@ -459,23 +460,13 @@ private enum RBNToolsDrains {
         group.enter()
         DispatchQueue.global(qos: .utility).async {
             defer { try? pipe.fileHandleForReading.close(); group.leave() }
-            let fd = pipe.fileHandleForReading.fileDescriptor
-            var buffer = [UInt8](repeating: 0, count: 32768)
             while !stop.value {
-                var request = pollfd(fd: fd, events: Int16(POLLIN), revents: 0)
-                let available = poll(&request, 1, 100)
-                if available < 0 {
-                    if errno == EINTR { continue }
-                    output.recordFailure("poll \(errno)"); break
-                }
-                if available == 0 { continue }
-                let count = read(fd, &buffer, buffer.count)
-                if count == 0 { break }
-                if count < 0 {
-                    if errno == EINTR { continue }
-                    output.recordFailure("read \(errno)"); break
-                }
-                output.append(Data(buffer.prefix(count)))
+                do {
+                    guard try EnginePlatform.waitReadable(pipe.fileHandleForReading) else { continue }
+                    let bytes = try EnginePlatform.readAvailable(pipe.fileHandleForReading)
+                    if bytes.isEmpty { break }
+                    output.append(bytes)
+                } catch { output.recordFailure(error.localizedDescription); break }
             }
         }
     }

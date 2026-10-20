@@ -1,0 +1,521 @@
+{
+  "version": "0.6.0",
+  "test_execution": {
+    "startTime": "2026-10-20T12:10:08.621Z",
+    "duration": 165663.117,
+    "expected": 140,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0,
+    "date_utc": "2026-10-20",
+    "total_cases": 140,
+    "scope": "One complete execution against the final frozen production bundle: all 140 cases passed. No retries, skips or flaky cases."
+  },
+  "aggregate_unique_cases_verified": 140,
+  "aggregate_verification": {
+    "status": "passed",
+    "unique_cases": 140,
+    "all_unique_cases_have_passing_result": true,
+    "method": "Every retained and new case passed in the single final execution. Development runs below are not added to the total."
+  },
+  "development_executions": [
+    {
+      "file": "ui-v06-focused-results.json",
+      "startTime": "2026-10-20T11:28:56.532Z",
+      "duration": 89382.552,
+      "expected": 23,
+      "skipped": 0,
+      "unexpected": 2,
+      "flaky": 0
+    },
+    {
+      "file": "ui-v06-focused-2-results.json",
+      "startTime": "2026-10-20T11:44:02.044Z",
+      "duration": 43038.765999999996,
+      "expected": 26,
+      "skipped": 0,
+      "unexpected": 0,
+      "flaky": 0
+    },
+    {
+      "file": "ui-v06-additions-1-results.json",
+      "startTime": "2026-10-20T12:05:23.346Z",
+      "duration": 35143.689999999995,
+      "expected": 25,
+      "skipped": 0,
+      "unexpected": 1,
+      "flaky": 0
+    }
+  ],
+  "development_findings": [
+    {
+      "test": "Finished Jobs trash after an earlier success notice",
+      "kind": "product defect fixed",
+      "detail": "A top-right toast intercepted a toolbar filter. Success/info toasts now pass pointer events through and root notices sit above the bottom status area; the close button remains interactive."
+    },
+    {
+      "test": "theme icon geometry verification",
+      "kind": "test correction",
+      "detail": "Normalize the SVG title element including its optional attributes before comparing geometry; original path data was unchanged."
+    },
+    {
+      "test": "non-editable labels and copyable job routes",
+      "kind": "test correction",
+      "detail": "Assert the actual opted-in path span rather than the nonselectable route wrapper, and verify selecting its text produces the full path."
+    }
+  ],
+  "production_frozen_for_final_test_and_previews": true,
+  "production_resource_modified_utc": {
+    "Resources/Web/THIRD_PARTY_NOTICES.txt": "2026-10-20T12:09:46.905962+00:00",
+    "Resources/Web/app.js": "2026-10-20T12:09:46.901345+00:00",
+    "Resources/Web/favicon-blue.svg": "2026-10-20T12:09:46.905900+00:00",
+    "Resources/Web/favicon-green.svg": "2026-10-20T12:09:46.905933+00:00",
+    "Resources/Web/favicon.svg": "2026-10-20T12:09:46.905857+00:00",
+    "Resources/Web/index.html": "2026-10-20T12:09:46.905740+00:00",
+    "Resources/Web/style.css": "2026-10-20T12:09:46.905328+00:00"
+  },
+  "browser": "Chrome for Testing 155.0.8059.84, Linux headless, visible scrollbars",
+  "playwright": "1.64.1",
+  "transport": "file:// production IIFE and real native IPC wire format with deterministic test-only host responses",
+  "typecheck": "passed",
+  "production_build": "passed",
+  "languages": [
+    "zh-TW",
+    "en",
+    "ja"
+  ],
+  "language_preference_default": "system",
+  "system_language_resolution": {
+    "zh-CN": "zh-TW",
+    "zh-Hans": "zh-TW",
+    "ja-JP": "ja",
+    "de-DE": "en"
+  },
+  "themes": [
+    "purple-dark",
+    "purple-light",
+    "blue-dark",
+    "blue-light",
+    "green-dark",
+    "green-light"
+  ],
+  "new_install_theme": "purple-dark",
+  "surfaces": "Neutral gray and white; purple, blue and low-saturation green accents.",
+  "interface_scales": [
+    80,
+    90,
+    100,
+    110,
+    125
+  ],
+  "default_interface_scale": 100,
+  "scale_implementation": "Native WKWebView.pageZoom; frontend saves settings without applying CSS zoom. Host fixture emulates CSS viewport changes.",
+  "viewports": [
+    {
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "width": 1060,
+      "height": 680
+    },
+    {
+      "width": 848,
+      "height": 544,
+      "native_window": "1060x680 at 125% pageZoom"
+    }
+  ],
+  "new_default_concurrent_jobs": 0,
+  "new_transfer_defaults": {
+    "comparison": "default",
+    "localHashPolicy": "none",
+    "deleteMode": "during",
+    "maxDelete": -1
+  },
+  "builtin_presets": [
+    "local-local",
+    "local-nas",
+    "local-cloud",
+    "nas-cloud",
+    "cloud-cloud",
+    "cloud-local"
+  ],
+  "preset_concurrency": {
+    "local-local": [
+      1,
+      10
+    ],
+    "local-nas": [
+      1,
+      10
+    ],
+    "cloud-local": [
+      1,
+      10
+    ],
+    "local-cloud": [
+      7,
+      10
+    ],
+    "nas-cloud": [
+      7,
+      10
+    ],
+    "cloud-cloud": [
+      7,
+      10
+    ]
+  },
+  "source_selection": "Source-only checkboxes. Direction and location swap clear all tab selections; Finder drop and Tasks restore only explicit source selections. Folder-only sync retains selection scope; file/mixed sync and selected deleteExcluded are blocked.",
+  "jobs_clear_contract": {
+    "method": "clearJobs",
+    "modes": [
+      "finished",
+      "stop-and-clear"
+    ],
+    "scope": "Snapshot IDs; wait until the host confirms removal; preserve retained IDs and ignore late events for cleared IDs."
+  },
+  "side_button_pairing": "Native epoch time paired with DOM mousedown time using nearest unmatched gesture; DOM fallback remains enabled. Native-first, DOM-first, late native, rapid paired presses, auxclick-only presses and keyboard alternatives passed.",
+  "report_contract": {
+    "categories": [
+      "all",
+      "comparison",
+      "skipped",
+      "success",
+      "errors"
+    ],
+    "ui_page_limit": 100,
+    "cursor": "Opaque byte offset",
+    "load": "Only when opening details, changing report page/category, or pressing Refresh; no report polling on job statistics",
+    "exports": [
+      "jsonl",
+      "comparison"
+    ],
+    "skipped_count": "matchedEvents + skippedEvents, record count only",
+    "error_category_count": "errorEvents + comparisonErrorEvents, record count only",
+    "main_error_count": "stats.errors",
+    "checks_not_used_to_infer_skips": true,
+    "null_unique_file_counts": [
+      "skippedFiles",
+      "failedFiles"
+    ]
+  },
+  "large_list_progress_guard": {
+    "passed": true,
+    "files_per_pane": 100000,
+    "progress_events": 25,
+    "full_size_array_map_filter_sort_passes": 0,
+    "additional_directory_list_requests": 0,
+    "rendered_rows_less_than": 100,
+    "wall_milliseconds": 626.2000000029802,
+    "scope": "Synthetic Linux browser guard, not a macOS CPU or actual NAS throughput benchmark."
+  },
+  "native_mac_execution": false,
+  "real_cloud_or_nas_transfer": false,
+  "palette_contrast": {
+    "passed": true,
+    "checks": 120,
+    "minimum_text_ratio": 4.9,
+    "minimum_control_border_ratio": 3.5,
+    "scope": "Computed palette token contrast for text, metadata, placeholders, primary action states, selected text, notices and control border. Disabled controls excluded. This is not a full WCAG audit."
+  },
+  "green_palette": {
+    "light_accent": "#366249",
+    "light_selection": "#E5EEE8",
+    "dark_accent": "#A8C8B1",
+    "source": "UI derivatives of the supplied chart palette (#DDF3DE/#AADCA9/#8BCF8B), not the unchanged chart fill colors."
+  },
+  "production_files": {
+    "Resources/Web/THIRD_PARTY_NOTICES.txt": {
+      "bytes": 6526,
+      "sha256": "401a52547c510b5c231c69f9077b192e2759d282e68f74d13339922f9d9e8552"
+    },
+    "Resources/Web/app.js": {
+      "bytes": 667242,
+      "sha256": "156a10e241290ac09f87de757879fc57fa90c14b1e4619ba5da1baa01c6ad7af"
+    },
+    "Resources/Web/favicon-blue.svg": {
+      "bytes": 18536,
+      "sha256": "36a26990d1dd782a5f6c0561e2870fa4e71064a1f42f72bf149e401e817f3591"
+    },
+    "Resources/Web/favicon-green.svg": {
+      "bytes": 18537,
+      "sha256": "c86f66312b4b934795e3aef424c4e77dfb5c0863c75857831968492e5ef4ec75"
+    },
+    "Resources/Web/favicon.svg": {
+      "bytes": 18533,
+      "sha256": "5dcf6bb2e77fc4f5670743c49e42e2f107812f56459bf32d30ae9ca021383a1a"
+    },
+    "Resources/Web/index.html": {
+      "bytes": 866,
+      "sha256": "6d64e8836f8ea3c2cdfb0bd3f4e214da93f633390ecbb6512949e65a94801411"
+    },
+    "Resources/Web/style.css": {
+      "bytes": 81721,
+      "sha256": "5bb187fbcb339abbde8ac6f2f5d43ff2f0d7f4784109fd2d6f62d3b35bed91ed"
+    }
+  },
+  "production_bytes": 811961,
+  "theme_icon_files": {
+    "Resources/AppIcon-blue.icns": {
+      "bytes": 628142,
+      "sha256": "e8eb90717b8af68f7abaf058ef177075cc567635d8e7e1b3d0bbb45e27307601"
+    },
+    "Resources/AppIcon-green.icns": {
+      "bytes": 628496,
+      "sha256": "daefd0379146bcf339e590496ede98dc1238af77217074442291264fa8dbb100"
+    }
+  },
+  "v2_icon_geometry_preserved": true,
+  "purple_v2_svg_unchanged": true,
+  "evidence_directory": "WebSource/.build-cache/qa06-final-previews",
+  "full_suite_evidence_directory": "WebSource/.build-cache/qa06-final",
+  "full_suite_results": "WebSource/.build-cache/ui-v06-final-results.json",
+  "raw_result_files": {
+    "WebSource/.build-cache/ui-v06-focused-results.json": {
+      "bytes": 150222,
+      "sha256": "cd77185ff202a8610ae97765f0aff88835b1b1af7eecad51fa76163b2d703eeb"
+    },
+    "WebSource/.build-cache/ui-v06-focused-2-results.json": {
+      "bytes": 31650,
+      "sha256": "7a7da004a8d347525a7507bc2758840bb9f3d246f74ff775d305483b98d32c86"
+    },
+    "WebSource/.build-cache/ui-v06-additions-1-results.json": {
+      "bytes": 38762,
+      "sha256": "85a972a0ae657267130229ba2a0286c16e8601192b5a3857525cf2f83cc30a1a"
+    },
+    "WebSource/.build-cache/ui-v06-final-results.json": {
+      "bytes": 155432,
+      "sha256": "f609ef9e584215f61c7052f8ab913ba80ae475ad7a6e7f6b8ba9bea8f25efd8c"
+    }
+  },
+  "previews": {
+    "floating-toast-en.png": {
+      "bytes": 160304,
+      "sha256": "c183111790a23914c536c97d1e42c76a7e9a404add6edbc85528bd80a53c5013"
+    },
+    "floating-toast-zh-TW.png": {
+      "bytes": 158921,
+      "sha256": "4e6f733ea93beb1ac45cb0d14d5f840bd8763cf10c489fce8eb7706fd767ef6e"
+    },
+    "main-en.png": {
+      "bytes": 152762,
+      "sha256": "4f92328154a8107bf54b10983802e99684ff0efa6ee61486e9a034afb12a8dd9"
+    },
+    "main-green-dark-125.png": {
+      "bytes": 80594,
+      "sha256": "b581bd8372b2c31df722b1a7c549a7b97853d306da3f728141e51382810e80e8"
+    },
+    "main-green-light-125.png": {
+      "bytes": 79792,
+      "sha256": "048409ce901c1625c80a1cfe7a035fea38b2b56a3b8e684e750c0875f386e9d1"
+    },
+    "main-zh-TW.png": {
+      "bytes": 151483,
+      "sha256": "18f91ac77c151381d488e6c4b464a3a1e383e6654afaf39558939b45fd6142d7"
+    },
+    "performance-green-dark-125.png": {
+      "bytes": 55523,
+      "sha256": "671c51c82334b68d6fd8de8c5ce0086e0997d9031c2e67f7c56a9b8dfdf7cf8a"
+    },
+    "performance-green-light-125.png": {
+      "bytes": 56365,
+      "sha256": "ff29532ef9477a53f1a143cdbc4cc152feda1f7f5a3f7068c3ef1bc732d8fe93"
+    },
+    "report-comparison-en.png": {
+      "bytes": 150213,
+      "sha256": "764c54159af01df6af8169d8861e260131073adc0c4903b95acc718725a5042b"
+    },
+    "report-comparison-zh-TW.png": {
+      "bytes": 142091,
+      "sha256": "a85f94b78d88cf38b1850217ee968b9874589e117552b931b211b7dfb1088d92"
+    },
+    "report-errors-en-125.png": {
+      "bytes": 63552,
+      "sha256": "69c4ebab47eb86f43112acaae42f31ad27f43f451dc1d78df2835bfefbf08ba6"
+    },
+    "report-errors-en.png": {
+      "bytes": 113025,
+      "sha256": "61320b696d092e32548cb62eb75ba5f1b556020730398ae7cd62bbcc7d9afdb0"
+    },
+    "report-errors-zh-TW-125.png": {
+      "bytes": 70843,
+      "sha256": "0bcebe38ece821ccbc93d1f1fba1431ee86dee9fa98af8b2f7792153c0f2b5e0"
+    },
+    "report-errors-zh-TW.png": {
+      "bytes": 113500,
+      "sha256": "03a67d42201ab31ed3034d107b24990edbaa27788d7438369864ca8bcc527a4c"
+    },
+    "report-summary-en.png": {
+      "bytes": 121276,
+      "sha256": "a3f55b63db528b207398d8525848cec8d9786818d96ae2262b7d89db88b48dc8"
+    },
+    "report-summary-zh-TW.png": {
+      "bytes": 111516,
+      "sha256": "b5c3cf7bbffda1e5d3023719a0495fa1e9d2143bd416fb78e8a6f6636090bfab"
+    },
+    "settings-green-dark-125.png": {
+      "bytes": 41317,
+      "sha256": "0b59f692988008fe5011e04b082ee31b18608940448d338e2633b9f7a024c0df"
+    },
+    "settings-green-light-125.png": {
+      "bytes": 41787,
+      "sha256": "c1281050e9be47bf3f8cfdb0de206f2a7570643ff917bd6f4c276bbb86cce11f"
+    },
+    "six-presets-en.png": {
+      "bytes": 187330,
+      "sha256": "7547d4443015d844cf33c6a568cd39f8481aabeb0e4fc41b8c11bfd6f7fed7c4"
+    },
+    "six-presets-zh-TW.png": {
+      "bytes": 179745,
+      "sha256": "6305115426ca17101101e835e6a91dcd33780464c61d72a2daea401c2202d3e7"
+    },
+    "task-editor-green-dark-125.png": {
+      "bytes": 56639,
+      "sha256": "9da1537e351a18c4e3cdb0668ada583326f6a9ab02c914707032b3adf9d7e955"
+    },
+    "task-editor-green-light-125.png": {
+      "bytes": 57097,
+      "sha256": "d463855ae6de74fa1b6a3a397f68cb1a4bfb11fafc20456653c4c757ce7c450a"
+    },
+    "tasks-green-dark-125.png": {
+      "bytes": 47711,
+      "sha256": "e95f38aab66844d8b7ba5c379372d601edef7d51bfc2112de2ed89e8cbf20cfd"
+    },
+    "tasks-green-light-125.png": {
+      "bytes": 47428,
+      "sha256": "7097eb7bce904f3f4871236c8db32d22c3630eb1a9fbed9e4f8d515ffa4936c0"
+    },
+    "theme-blue-dark.png": {
+      "bytes": 151503,
+      "sha256": "cf37f0d5580ff300767a9c30b38153917520ddfa81ba9afb785aef4ae5dc44ae"
+    },
+    "theme-blue-light.png": {
+      "bytes": 150138,
+      "sha256": "ae55d54990f12ca14a8bbecd5904a60441c5de9e86476830c24a2c03f55c1381"
+    },
+    "theme-green-dark.png": {
+      "bytes": 151413,
+      "sha256": "6e7c4d85286455393e8558d427652336af4879b9b94a40c65ba364ba4d480ef7"
+    },
+    "theme-green-light.png": {
+      "bytes": 150383,
+      "sha256": "4ea1d48937d2abc496ed194822f470c1a757c658b34c8871a67f8982698116f5"
+    },
+    "theme-purple-dark.png": {
+      "bytes": 151483,
+      "sha256": "18f91ac77c151381d488e6c4b464a3a1e383e6654afaf39558939b45fd6142d7"
+    },
+    "theme-purple-light.png": {
+      "bytes": 150115,
+      "sha256": "cc941f10e62a028c8ef118ea07d42659d77e04dcec8eba567a9c8905a4fa7441"
+    },
+    "transfer-green-dark-125.png": {
+      "bytes": 64477,
+      "sha256": "d8d4db8683d0c3bcba50cdbade303b81182b4369c773902f87bb08fdcc17ee4c"
+    },
+    "transfer-green-light-125.png": {
+      "bytes": 65370,
+      "sha256": "f1ee515103362e27835657feff63aa03176e6ad314a49c46550267687f64c5be"
+    }
+  },
+  "preview_note": "32 final stills from the tested production bundle. Fictional data only. Bilingual main screenshots share internally consistent progress and report counts. 848x544 CSS viewport represents a 1060x680 native window at 125%, not a screenshot of actual macOS execution.",
+  "font_evidence": [
+    {
+      "language": "zh-TW",
+      "selector": ".brand",
+      "fonts": [
+        {
+          "familyName": "Noto Sans CJK TC",
+          "postScriptName": "NotoSansCJKtc-Regular",
+          "isCustomFont": false,
+          "glyphCount": 15
+        }
+      ]
+    },
+    {
+      "language": "zh-TW",
+      "selector": ".workspace-title h1",
+      "fonts": [
+        {
+          "familyName": "Noto Sans CJK TC",
+          "postScriptName": "NotoSansCJKtc-Regular",
+          "isCustomFont": false,
+          "glyphCount": 2
+        }
+      ]
+    },
+    {
+      "language": "zh-TW",
+      "selector": ".file-name span",
+      "fonts": [
+        {
+          "familyName": "Noto Sans CJK TC",
+          "postScriptName": "NotoSansCJKtc-Regular",
+          "isCustomFont": false,
+          "glyphCount": 5
+        }
+      ]
+    },
+    {
+      "language": "zh-TW",
+      "selector": ".path-form input",
+      "fonts": [
+        {
+          "familyName": "DejaVu Sans Mono",
+          "postScriptName": "DejaVuSansMono",
+          "isCustomFont": false,
+          "glyphCount": 21
+        }
+      ]
+    },
+    {
+      "language": "en",
+      "selector": ".brand",
+      "fonts": [
+        {
+          "familyName": "DejaVu Sans",
+          "postScriptName": "DejaVuSans-Bold",
+          "isCustomFont": false,
+          "glyphCount": 15
+        }
+      ]
+    },
+    {
+      "language": "en",
+      "selector": ".workspace-title h1",
+      "fonts": [
+        {
+          "familyName": "DejaVu Sans",
+          "postScriptName": "DejaVuSans-Bold",
+          "isCustomFont": false,
+          "glyphCount": 5
+        }
+      ]
+    },
+    {
+      "language": "en",
+      "selector": ".file-name span",
+      "fonts": [
+        {
+          "familyName": "DejaVu Sans",
+          "postScriptName": "DejaVuSans",
+          "isCustomFont": false,
+          "glyphCount": 9
+        }
+      ]
+    },
+    {
+      "language": "en",
+      "selector": ".path-form input",
+      "fonts": [
+        {
+          "familyName": "DejaVu Sans Mono",
+          "postScriptName": "DejaVuSansMono",
+          "isCustomFont": false,
+          "glyphCount": 21
+        }
+      ]
+    }
+  ]
+}

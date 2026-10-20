@@ -1,7 +1,7 @@
 import {expect, test, type Page} from '@playwright/test';
 import {fileURLToPath, pathToFileURL} from 'node:url';
 import path from 'node:path';
-import {installHostFixture} from './native-fixture';
+import {installHostFixture, selectPlace} from './native-fixture';
 import {translator} from '../renderer/i18n';
 import {DEFAULT_OPTIONS, type Settings, type Theme, type TransferRequest} from '../shared/types';
 const t = translator('zh-TW');
@@ -35,8 +35,8 @@ for (const [preferredLanguage, resolved, docLang] of [['zh-CN','zh-TW','zh-Hant'
 
 test('Remember restores locations, direction, mode and all options without selection or automatic transfers', async ({page,browser}) => {
   await open(page); const left = page.getByTestId('left-pane'), right = page.getByTestId('right-pane');
-  await left.locator('.location-select select').selectOption('lab-nas');
-  await right.locator('.location-select select').selectOption('@local:documents');
+  await selectPlace(left.locator('.location-trigger'),'lab-nas');
+  await selectPlace(right.locator('.location-trigger'),'@local:documents');
   await page.getByRole('button', {name: t('rightToLeft'), exact: true}).click();
   await right.getByText('研究紀錄 01.pdf', {exact: true}).click();
   await page.locator('.options-button').click(); const d = page.locator('.options-dialog');
@@ -63,7 +63,7 @@ test('Remember restores locations, direction, mode and all options without selec
 test('startup location edits update a remembered workspace and forgetting removes both old and new defaults', async ({page,browser}) => {
   const workspace={left:{remote:null,path:'/Users/test/Old'},right:{remote:'lab-nas',path:'OldBackup'},direction:'rl' as const,mode:'sync' as const,options:{...DEFAULT_OPTIONS,comparison:'size' as const,maxDelete:-1}};
   await open(page,{settings:{autoCheckUpdates:false,savedWorkspace:workspace,initialLocations:{left:{remote:null,path:'/Users/test/Legacy'}}}});
-  const d=await settings(page); await d.getByLabel(`${t('left')} ${t('location')}`,{exact:true}).selectOption('@local:documents');
+  const d=await settings(page); await selectPlace(d.getByLabel(`${t('left')} ${t('location')}`,{exact:true}),'@local:documents');
   await d.getByLabel(`${t('right')} ${t('path')}`,{exact:true}).fill('NewBackup');await d.getByLabel(`${t('right')} ${t('path')}`,{exact:true}).press('Enter');await waitSaved(page);
   const saved=await state(page);expect(saved.savedWorkspace).toEqual({...workspace,left:{remote:null,path:'/Users/test/Documents'},right:{remote:'lab-nas',path:'NewBackup'}});
   const next=await browser.newPage();await open(next,{settings:saved});await expect(next.getByLabel(`${t('left')} ${t('path')}`,{exact:true})).toHaveValue('/Users/test/Documents');await expect(next.getByLabel(`${t('right')} ${t('path')}`,{exact:true})).toHaveValue('NewBackup');expect((await calls(next,'startTransfer')).length).toBe(0);await next.close();
@@ -73,9 +73,9 @@ test('startup location edits update a remembered workspace and forgetting remove
 test('Tasks save and edit the complete request; Dry Run and Run execute the saved snapshot', async ({page}) => {
   const errors=await open(page);const d=await taskEditor(page);await d.getByLabel(t('taskName'),{exact:true}).fill('NAS nightly copy');
   await d.getByRole('button',{name:t('rightToLeft'),exact:true}).click();
-  await d.locator('.endpoint-editor').first().locator('select').selectOption('@local:volumes');
+  await selectPlace(d.locator('.endpoint-editor').first().locator('.location-trigger'),'@local:volumes');
   await d.locator('.endpoint-editor').first().locator('.endpoint-path-row input').fill('/Volumes/Media Backup/Archive');await d.locator('.endpoint-editor').first().locator('.endpoint-path-row input').press('Enter');
-  await d.locator('.endpoint-editor').last().locator('select').selectOption('lab-nas');
+  await selectPlace(d.locator('.endpoint-editor').last().locator('.location-trigger'),'lab-nas');
   await d.locator('.endpoint-editor').last().locator('.endpoint-path-row input').fill('Source');await d.locator('.endpoint-editor').last().locator('.endpoint-path-row input').press('Enter');
   await d.getByRole('button',{name:t('browseSelection'),exact:true}).click();
   await d.getByRole('checkbox',{name:'Documents',exact:true}).check();await d.getByRole('checkbox',{name:'研究紀錄 01.pdf',exact:true}).check();
@@ -97,7 +97,7 @@ test('Tasks save and edit the complete request; Dry Run and Run execute the save
 test('editing destination keeps saved selection; changing source clears it visibly before saving', async ({page}) => {
   await open(page);await page.getByTestId('left-pane').getByText('研究紀錄 01.pdf',{exact:true}).click();let d=await taskEditor(page);await d.getByRole('button',{name:t('save'),exact:true}).click();await page.locator('.main-nav button').last().click();await page.getByRole('button',{name:t('editTask'),exact:true}).click();
   d=page.locator('.task-editor-dialog');await d.locator('.endpoint-editor').last().locator('.endpoint-path-row input').fill('ChangedTarget');await d.locator('.endpoint-editor').last().locator('.endpoint-path-row input').press('Enter');await expect(d.locator('.selected-task-items')).toContainText('研究紀錄 01.pdf');
-  await d.locator('.endpoint-editor').first().locator('select').selectOption('@local:downloads');await expect(d).toContainText(t('selectionChangedSource'));await expect(d.locator('.selected-task-items')).toHaveCount(0);await d.getByRole('button',{name:t('save'),exact:true}).click();expect((await calls(page,'saveTask')).at(-1).args[1].selection).toEqual([]);expect((await calls(page,'startTransfer')).length).toBe(0);
+  await selectPlace(d.locator('.endpoint-editor').first().locator('.location-trigger'),'@local:downloads');await expect(d).toContainText(t('selectionChangedSource'));await expect(d.locator('.selected-task-items')).toHaveCount(0);await d.getByRole('button',{name:t('save'),exact:true}).click();expect((await calls(page,'saveTask')).at(-1).args[1].selection).toEqual([]);expect((await calls(page,'startTransfer')).length).toBe(0);
 });
 
 test('rclone connection settings save partial patches, custom IP commits atomically, and task timeouts inherit', async ({page}) => {
@@ -130,12 +130,12 @@ test('comparison tips work with hover, focus, click and Escape without dismissin
 });
 
 test('location picker classifies native known places, mounted NAS, cloud and ambiguous remotes separately', async ({page}) => {
-  await open(page);const select=page.getByTestId('left-pane').locator('.location-select select');
-  expect(await select.locator('optgroup').evaluateAll(groups=>groups.map(g=>({label:(g as HTMLOptGroupElement).label,items:Array.from(g.querySelectorAll('option')).map(o=>o.value)})))).toEqual([
+  await open(page);const select=page.getByTestId('left-pane').locator('.location-trigger');await select.click();
+  expect(await page.locator('.location-popup [role=group]').evaluateAll(groups=>groups.map(g=>({label:g.querySelector('.location-group-label')!.textContent,items:Array.from(g.querySelectorAll<HTMLElement>('[role=option]')).map(o=>o.dataset.value)})))).toEqual([
     {label:t('localPlaces'),items:['@local:home','@local:desktop','@local:documents','@local:downloads','@local:pictures','@local:music','@local:movies','@local:volumes']},
     {label:t('networkPlaces'),items:['@local:test-nas-volume','lab-nas']}, {label:t('cloudPlaces'),items:['research-drive']}, {label:t('otherPlaces'),items:['web-storage']}
   ]);
-  await select.selectOption('@local:test-nas-volume');await expect(page.getByLabel(`${t('left')} ${t('path')}`,{exact:true})).toHaveValue('/Volumes/Media Backup');await select.selectOption('@local:downloads');await expect(page.getByLabel(`${t('left')} ${t('path')}`,{exact:true})).toHaveValue('/Users/test/Downloads');expect((await calls(page,'startTransfer')).length).toBe(0);
+  await page.keyboard.press('Escape');await selectPlace(select,'@local:test-nas-volume');await expect(page.getByLabel(`${t('left')} ${t('path')}`,{exact:true})).toHaveValue('/Volumes/Media Backup');await selectPlace(select,'@local:downloads');await expect(page.getByLabel(`${t('left')} ${t('path')}`,{exact:true})).toHaveValue('/Users/test/Downloads');expect((await calls(page,'startTransfer')).length).toBe(0);
 });
 
 test('the application menu exposes native About, engine updates and distinct app release checks', async ({page,browser}) => {

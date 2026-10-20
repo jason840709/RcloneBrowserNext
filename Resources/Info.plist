@@ -10,8 +10,8 @@
   <key>CFBundleIdentifier</key><string>org.rclone.browser.next.lite</string>
   <key>CFBundleInfoDictionaryVersion</key><string>6.0</string>
   <key>CFBundlePackageType</key><string>APPL</string>
-  <key>CFBundleShortVersionString</key><string>0.6.0</string>
-  <key>CFBundleVersion</key><string>60</string>
+  <key>CFBundleShortVersionString</key><string>0.7.0</string>
+  <key>CFBundleVersion</key><string>70</string>
   <key>CFBundleLocalizations</key><array><string>zh_TW</string><string>en</string><string>ja</string></array>
   <key>LSMinimumSystemVersion</key><string>13.0</string>
   <key>LSApplicationCategoryType</key><string>public.app-category.utilities</string>

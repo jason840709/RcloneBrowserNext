@@ -1,27 +1,29 @@
 import Foundation
 #if canImport(Darwin)
 import Darwin
+#elseif os(Windows)
+import ucrt
 #else
 import Glibc
 #endif
 
 enum EngineStorage {
     static func privateDirectory(_ url: URL) throws {
-        try FileManager.default.createDirectory(at: url, withIntermediateDirectories: true, attributes: [.posixPermissions: 0o700])
-        try FileManager.default.setAttributes([.posixPermissions: 0o700], ofItemAtPath: url.path)
+        try FileManager.default.createDirectory(at: url, withIntermediateDirectories: true, attributes: EnginePlatform.permissions(0o700))
+        try FileManager.default.setAttributes(EnginePlatform.permissions(0o700), ofItemAtPath: url.path)
     }
 
     static func atomicData(_ data: Data, to url: URL) throws {
         let temporary = url.deletingLastPathComponent().appendingPathComponent(".\(url.lastPathComponent).\(UUID().uuidString).tmp")
         defer { try? FileManager.default.removeItem(at: temporary) }
-        guard FileManager.default.createFile(atPath: temporary.path, contents: nil, attributes: [.posixPermissions: 0o600]) else {
+        guard FileManager.default.createFile(atPath: temporary.path, contents: nil, attributes: EnginePlatform.permissions(0o600)) else {
             throw EngineError("無法寫入 \(url.lastPathComponent)。")
         }
         let handle = try FileHandle(forWritingTo: temporary)
         do { try handle.write(contentsOf: data); try handle.synchronize(); try handle.close() }
         catch { try? handle.close(); throw error }
-        guard rename(temporary.path, url.path) == 0 else { throw POSIXError(POSIXErrorCode(rawValue: errno) ?? .EIO) }
-        try FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: url.path)
+        try EnginePlatform.replaceFile(temporary.path, url.path)
+        try FileManager.default.setAttributes(EnginePlatform.permissions(0o600), ofItemAtPath: url.path)
     }
 
     static func atomicJSON(_ value: Any, to url: URL) throws {
@@ -51,12 +53,8 @@ enum EngineStorage {
         }
         var result = candidate.resolvingSymlinksInPath()
         for component in missing.reversed() { result.appendPathComponent(component) }
-        #if os(macOS)
-        // Conservatively refuse case-only overlaps, even on a case-sensitive volume.
-        return result.standardizedFileURL.path.lowercased()
-        #else
-        return result.standardizedFileURL.path
-        #endif
+        // Conservatively refuse case-only overlaps on macOS and Windows.
+        return EnginePlatform.canonicalComparisonPath(result.standardizedFileURL.path)
     }
 
     static func overlaps(_ first: String, _ second: String) -> Bool {
@@ -74,7 +72,7 @@ enum EngineStorage {
             }
         }
         if destination.remote == nil {
-            guard destination.path != "/" else { throw EngineError("請選擇根目錄之下的目的資料夾。") }
+            guard !EnginePlatform.isFilesystemRoot(destination.path) else { throw EngineError("請選擇根目錄之下的目的資料夾。") }
             var directory: ObjCBool = false
             if FileManager.default.fileExists(atPath: destination.path, isDirectory: &directory), !directory.boolValue {
                 throw EngineError("目的位置已存在同名檔案，請選擇資料夾。")
@@ -177,7 +175,7 @@ final class EngineLogWriter {
     init(directory: URL, id: String) throws {
         self.directory = directory; self.id = id
         if !FileManager.default.fileExists(atPath: file.path) {
-            guard FileManager.default.createFile(atPath: file.path, contents: nil, attributes: [.posixPermissions: 0o600]) else {
+            guard FileManager.default.createFile(atPath: file.path, contents: nil, attributes: EnginePlatform.permissions(0o600)) else {
                 throw EngineError("無法建立工作記錄。")
             }
         }
@@ -200,7 +198,7 @@ final class EngineLogWriter {
                     }
                 }
                 let marker = try EngineJSON.data(["time": EngineJSON.now(), "level": "notice", "msg": "記錄輪替；每項工作保留最近 100 MiB。", "appLogRotation": true])
-                guard FileManager.default.createFile(atPath: file.path, contents: nil, attributes: [.posixPermissions: 0o600]) else { throw EngineError("無法輪替工作記錄。") }
+                guard FileManager.default.createFile(atPath: file.path, contents: nil, attributes: EnginePlatform.permissions(0o600)) else { throw EngineError("無法輪替工作記錄。") }
                 handle = try FileHandle(forWritingTo: file)
                 try handle!.write(contentsOf: marker + Data([10])); bytes = marker.count + 1
             }
@@ -220,7 +218,7 @@ final class EngineLogWriter {
         guard FileManager.default.fileExists(atPath: base.path) else { throw EngineError("這項工作尚未產生記錄。") }
         if !FileManager.default.fileExists(atPath: base.path + ".1") { return base.path }
         let target = directory.appendingPathComponent(id + ".export.jsonl")
-        guard FileManager.default.createFile(atPath: target.path, contents: nil, attributes: [.posixPermissions: 0o600]) else { throw EngineError("無法匯出記錄。") }
+        guard FileManager.default.createFile(atPath: target.path, contents: nil, attributes: EnginePlatform.permissions(0o600)) else { throw EngineError("無法匯出記錄。") }
         let writer = try FileHandle(forWritingTo: target)
         defer { try? writer.close() }
         try writer.truncate(atOffset: 0)

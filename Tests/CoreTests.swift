@@ -1551,7 +1551,7 @@ private final class CoreTestSuite {
                 let files = try FileManager.default.contentsOfDirectory(atPath: to.path)
                 try expect(!files.contains { $0.hasPrefix("b-inflight.bin") && $0.hasSuffix(".partial") }, "rclone did not clean its local streaming partial")
                 try expect(files.contains("unrelated.partial"), "cancellation removed another owner's partial file")
-                try expect((stopped["logs"] as? [[String: Any]] ?? []).contains { ($0["message"] as? String ?? "").contains("取決於 rclone 與目的端") }, "cancelled job promised universal cleanup")
+                try expect((stopped["logs"] as? [[String: Any]] ?? []).contains { ($0["message"] as? String ?? "") == "工作已停止。" }, "cancelled job did not record its completed stop")
             }
         }
 

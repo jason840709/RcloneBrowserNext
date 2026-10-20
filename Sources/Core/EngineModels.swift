@@ -2,6 +2,9 @@ import Foundation
 import CoreFoundation
 #if canImport(Darwin)
 import Darwin
+#elseif os(Windows)
+import WinSDK
+import ucrt
 #else
 import Glibc
 #endif
@@ -87,7 +90,7 @@ struct EngineEndpoint {
         let raw = try EngineJSON.dictionary(value, "請選擇位置。")
         let location = try EngineJSON.text(raw["path"], "路徑", maximum: 32768)
         if raw["remote"] is NSNull {
-            guard location.hasPrefix("/"), !location.trimmingCharacters(in: .whitespaces).isEmpty else {
+            guard EnginePlatform.absoluteLocalPath(location), !location.trimmingCharacters(in: .whitespaces).isEmpty else {
                 throw EngineError("本機位置必須是完整的絕對路徑。")
             }
             remote = nil
@@ -109,7 +112,12 @@ struct EngineEndpoint {
     private init(remote: String?, path: String) { self.remote = remote; self.path = path }
     func child(_ name: String) throws -> EngineEndpoint {
         let name = try Self.validName(name)
-        if remote == nil { return EngineEndpoint(remote: nil, path: URL(fileURLWithPath: path).appendingPathComponent(name).path) }
+        if remote == nil {
+            #if os(Windows)
+            guard !name.contains("\\"), !name.contains(":") else { throw EngineError("Windows 檔案名稱不能包含反斜線或冒號。") }
+            #endif
+            return EngineEndpoint(remote: nil, path: URL(fileURLWithPath: path).appendingPathComponent(name).path)
+        }
         return EngineEndpoint(remote: remote, path: path.isEmpty ? name : path + (path.hasSuffix("/") ? "" : "/") + name)
     }
 
@@ -180,9 +188,9 @@ struct EngineNetworkOptions {
         var output = Self.defaults.merging(raw) { _, new in new }
         let mode = try EngineJSON.text(output["bindMode"], "連線位址模式")
         guard ["auto", "ipv4", "ipv6", "address"].contains(mode) else { throw EngineError("連線位址模式不正確。") }
-        let address = try EngineJSON.text(output["bindAddress"], "來源 IP 位址", maximum: 128).trimmingCharacters(in: .whitespaces)
+        let address = try EngineJSON.text(output["bindAddress"], "本機 IP 位址", maximum: 128).trimmingCharacters(in: .whitespaces)
         guard (mode != "address" || !address.isEmpty), address.isEmpty || Self.isIPAddress(address) else {
-            throw EngineError("來源位址請填入有效的 IPv4 或 IPv6，不要填入網卡名稱、網址或連接埠。")
+            throw EngineError("本機 IP 位址請填入有效的 IPv4 或 IPv6，不要填入網卡名稱、網址或連接埠。")
         }
         output["bindMode"] = mode; output["bindAddress"] = address
         for (key, label) in [("connectTimeout", "連線逾時"), ("ioTimeout", "傳輸閒置逾時")] {
@@ -234,7 +242,7 @@ struct EngineTransferOptions {
         "oneFileSystem": false, "noUpdateModtime": false,
         "minSize": "", "maxSize": "", "minAge": "", "maxAge": "", "maxDepth": -1,
         "connectTimeout": "", "ioTimeout": "", "lowLevelRetries": 10,
-        "retrySleep": "", "extraArgs": [String](), "localHashPolicy": "none"
+        "retrySleep": "", "extraArgs": [String](), "localHashPolicy": "none", "symlinkMode": "skip"
     ]
     let json: [String: Any]
 
@@ -252,8 +260,8 @@ struct EngineTransferOptions {
     init(_ value: Any?) throws {
         let raw = try EngineJSON.dictionary(value, "傳輸選項格式不正確。")
         var output = Self.defaults.merging(raw) { _, new in new }
-        for (key, label, range) in [("transfers", "平行傳輸數", 1...64), ("checkers", "平行檢查數", 1...128),
-                                     ("retries", "重試次數", 1...100), ("maxDelete", "最多刪除數", -1...100000),
+        for (key, label, range) in [("transfers", "同時傳輸數", 1...64), ("checkers", "同時檢查檔案數", 1...128),
+                                     ("retries", "工作嘗試次數", 1...100), ("maxDelete", "最多刪除數", -1...100000),
                                      ("lowLevelRetries", "連線重試次數", 1...100), ("maxDepth", "目錄深度", -1...100000)] {
             output[key] = try EngineJSON.integer(output[key], label, range)
         }
@@ -283,6 +291,9 @@ struct EngineTransferOptions {
             throw EngineError("停用本機雜湊讀取時，不能使用雜湊比對。")
         }
         output["localHashPolicy"] = hashPolicy
+        let symlinkMode = try EngineJSON.text(output["symlinkMode"], "符號連結")
+        guard ["skip", "preserve"].contains(symlinkMode) else { throw EngineError("符號連結請選擇略過或保留。") }
+        output["symlinkMode"] = symlinkMode
         for key in ["minSize", "maxSize"] {
             output[key] = try Self.sizeValue(output[key], label: key == "minSize" ? "最小檔案大小" : "最大檔案大小")
         }
@@ -428,13 +439,13 @@ struct EngineTransferRequest {
         // deliberately bypasses destination filters, which would also bypass
         // the selected-folder boundary and delete unselected destination data.
         guard mode != "sync" || selection.isEmpty || !options.flag("deleteExcluded") else {
-            throw EngineError("選取資料夾同步時，不能啟用「刪除已排除的檔案」，以免刪除未選取的目的地內容。")
+            throw EngineError("選取資料夾同步時，請關閉「刪除目標中符合排除規則的檔案」。這個選項會將未選取的目標內容也納入刪除範圍。")
         }
-        guard mode != "sync" || !options.flag("noTraverse") else { throw EngineError("同步需要列出目的地，不能使用「不掃描目的地」。") }
+        guard mode != "sync" || !options.flag("noTraverse") else { throw EngineError("同步需要列出目標目錄。請關閉「不先列出目標目錄（複製、移動）」。") }
         guard mode != "move" || !options.flag("updateOnly") else {
-            throw EngineError("移動時，rclone 可能刪除因目的地較新而略過的來源。請關閉「略過較新」或改用複製。")
+            throw EngineError("移動時，因目標較新而略過傳送的來源檔案也會被刪除。請關閉「略過目標較新的檔案」或改用複製。")
         }
-        guard mode == "sync" || !options.flag("deleteExcluded") else { throw EngineError("刪除已排除的檔案只適用於同步。") }
+        guard mode == "sync" || !options.flag("deleteExcluded") else { throw EngineError("「刪除目標中符合排除規則的檔案」只適用於同步。") }
     }
     var json: [String: Any] {
         var value: [String: Any] = ["source": source.json, "destination": destination.json, "mode": mode,
@@ -475,6 +486,7 @@ struct EngineTransferRequest {
         if o.flag("updateOnly") { result.append("--update") }
         if o.flag("createEmptyDirs") { result.append("--create-empty-src-dirs") }
         if o.flag("preserveMetadata") { result.append("--metadata") }
+        if o.text("symlinkMode") == "preserve" { result.append("--links") }
         if o.flag("driveSharedWithMe") { result.append("--drive-shared-with-me") }
         for (key, flag) in [("ignoreChecksum", "--ignore-checksum"), ("checkFirst", "--check-first"), ("noTraverse", "--no-traverse"),
                             ("fastList", "--fast-list"), ("oneFileSystem", "--one-file-system"), ("noUpdateModtime", "--no-update-modtime")] {
@@ -511,7 +523,7 @@ struct EngineLocalTimePrecision {
     let fileSystems: [String]
 
     var message: String {
-        "偵測到本機檔案系統 \(fileSystems.joined(separator: ", "))，本次自動將修改時間容許誤差設為 \(duration)。同大小檔案在容差內修改可能不會重傳。"
+        "偵測到 \(fileSystems.joined(separator: ", "))，修改時間容許誤差自動設為 \(duration)，避免檔案系統的時間精度造成重傳。"
     }
 
     static func precision(for fileSystem: String) -> (seconds: Double, duration: String)? {

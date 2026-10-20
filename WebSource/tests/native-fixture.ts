@@ -1,5 +1,5 @@
-import type { Page } from '@playwright/test';
-import type { Bootstrap, Job, Settings } from '../shared/types.ts';
+import type { Page, Locator } from '@playwright/test';
+import type { Bootstrap, Job, Settings, RemoteInfo } from '../shared/types.ts';
 import { DEFAULT_OPTIONS } from '../shared/types.ts';
 
 export const unusualName = '<img src=x onerror="window.__unsafe=1"> & "照片".txt';
@@ -7,7 +7,7 @@ export const chosenFolder = '/Users/test/Rclone Engine & Scripts';
 export const chosenExecutable = '/Users/test/Tools/rclone';
 
 export async function installHostFixture(page: Page, options: {
-  available?: boolean; settings?: Partial<Settings>; job?: boolean; cleanPreview?: boolean; fileCount?: number; preferredLanguage?: string; appStatus?: 'current'|'available'|'unpublished'; manualStatus?: 'skipped' | 'updated' | 'current';
+  platform?: string; extraRemotes?: RemoteInfo[]; available?: boolean; settings?: Partial<Settings>; job?: boolean; cleanPreview?: boolean; fileCount?: number; preferredLanguage?: string; appStatus?: 'current'|'available'|'unpublished'; manualStatus?: 'skipped' | 'updated' | 'current';
 } = {}) {
   const available = options.available ?? true;
   const request = {
@@ -26,10 +26,10 @@ export async function installHostFixture(page: Page, options: {
     logs: [{ time: '2026-10-19T09:00:17Z', level: 'info', message: 'Copied (new)', object: '研究資料.zip' }],
   };
   const bootstrap: Bootstrap = {
-    environment: { version: available ? 'v1.75.2' : '', rclonePath: available ? '/Users/test/Engine/rclone' : '', configPath: '/Users/test/.config/rclone/rclone.conf', platform: 'darwin', arch: 'arm64', available },
+    environment: { version: available ? 'v1.75.2' : '', rclonePath: available ? '/Users/test/Engine/rclone' : '', configPath: '/Users/test/.config/rclone/rclone.conf', platform: options.platform || 'darwin', arch: 'arm64', available },
     settings: { rcloneDirectory: '/Users/test/Engine', rclonePath: '', configPath: '', language: 'zh-TW', theme: 'purple-light', interfaceScale: 100, autoCheckUpdates: true, skippedRcloneVersion: '', settingsRevision: 0, settingsSchemaVersion: 6, hiddenBuiltinPresets: [], savedWorkspace: null, networkOptions: {bindMode: 'auto', bindAddress: '', connectTimeout: '1m', ioTimeout: '5m', tpsLimit: 0, tpsBurst: 1, userAgent: '', disableHTTP2: false}, paneColumnWidths: {}, defaultTransferOptions: DEFAULT_OPTIONS, maxConcurrentJobs: 0, proxyMode: 'system', httpProxy: '', httpsProxy: '', noProxy: '', defaultRcloneOptions: [], initialLocations: {}, streamPlayerPath: '', streamPlayerArguments: ['-'], showStatusItem: false, notifyOnCompletion: false, showHiddenFiles: true, showFolderIcons: true, showFileIcons: true, alternatingRows: true, ...options.settings },
     resolvedLanguage: options.settings?.language === 'system' ? (options.preferredLanguage?.startsWith('ja') ? 'ja' : options.preferredLanguage?.startsWith('zh') ? 'zh-TW' : 'en') : options.settings?.language || 'zh-TW',
-    home: '/Users/test', localLocations: [{id: 'home', name: 'test', path: '/Users/test', kind: 'home', group: 'local'}, ...(['desktop','documents','downloads','pictures','music','movies'] as const).map(kind => ({id: kind, name: kind, path: `/Users/test/${kind[0].toUpperCase()}${kind.slice(1)}`, kind, group: 'local' as const})), {id: 'volumes', name: 'Volumes', path: '/Volumes', kind: 'volumes', group: 'local'}, {id: 'test-nas-volume', name: 'Media Backup', path: '/Volumes/Media Backup', kind: 'volume', group: 'network'}], remotes: [{ name: 'research-drive', type: 'drive', group: 'cloud' }, { name: 'lab-nas', type: 'sftp', group: 'network' }, { name: 'web-storage', type: 'webdav', group: 'other' }],
+    home: '/Users/test', localLocations: [{id: 'home', name: 'test', path: '/Users/test', kind: 'home', group: 'local'}, ...(['desktop','documents','downloads','pictures','music','movies'] as const).map(kind => ({id: kind, name: kind, path: `/Users/test/${kind[0].toUpperCase()}${kind.slice(1)}`, kind, group: 'local' as const})), {id: 'volumes', name: 'Volumes', path: '/Volumes', kind: 'volumes', group: 'local'}, {id: 'test-nas-volume', name: 'Media Backup', path: '/Volumes/Media Backup', kind: 'volume', group: 'network'}], remotes: [{ name: 'research-drive', type: 'drive', group: 'cloud' }, { name: 'lab-nas', type: 'sftp', group: 'network' }, { name: 'web-storage', type: 'webdav', group: 'other' }, ...(options.extraRemotes || [])],
     jobs: options.job ? [job] : [], tasks: [],
   };
   await page.addInitScript(({ bootstrap, job, unusualName, chosenFolder, chosenExecutable, manualStatus, cleanPreview, fileCount, preferredLanguage, appStatus }) => {
@@ -184,4 +184,11 @@ export async function installHostFixture(page: Page, options: {
       }, delay);
     }}}};
   }, { bootstrap, job, unusualName, chosenFolder, chosenExecutable, manualStatus: options.manualStatus ?? 'current', cleanPreview: options.cleanPreview ?? false, fileCount: options.fileCount ?? 24, preferredLanguage: options.preferredLanguage || 'zh-TW', appStatus: options.appStatus || 'unpublished' });
+}
+
+/** Choose through the visible popup, including its scrolling and close behavior. */
+export async function selectPlace(trigger: Locator, value: string) {
+  await trigger.click();
+  const option = trigger.page().locator(`.location-popup [role="option"][data-value=${JSON.stringify(value)}]`);
+  await option.click();
 }

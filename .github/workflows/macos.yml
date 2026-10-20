@@ -1,8 +1,8 @@
-name: macOS build and tests
+name: Desktop builds and tests
 
 on:
   push:
-    branches: [main]
+    branches: [main, 'work/0.7.0']
     tags: ['v*']
     paths-ignore:
       - '**/*.md'
@@ -15,7 +15,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: macos-${{ github.workflow }}-${{ github.ref }}
+  group: desktop-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -55,9 +55,93 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
+  compat-linux:
+    name: Linux x64 compatibility
+    runs-on: ubuntu-24.04
+    timeout-minutes: 50
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: SwiftyLab/setup-swift@d60245579ea3836a3f2fa65ebbe1e8891d577c76
+        with:
+          swift-version: '6.1.2'
+      - name: Install CI window libraries and pinned Rust
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libgtk-3-dev libxdo-dev libayatana-appindicator3-dev librsvg2-dev libssl-dev patchelf xvfb xterm
+          rustup toolchain install 1.90.0 --profile minimal
+          rustup override set 1.90.0
+      - name: Download a pinned rclone fixture
+        run: python3 Scripts/ci-compat-rclone.py
+      - name: Build the Linux installer
+        run: bash Scripts/build-compat-linux.sh
+      - name: Verify platform file operations
+        run: |
+          swiftc -swift-version 5 Sources/Core/*.swift Tests/PlatformTests.swift -o .build-cache/compat/runtime/platform-tests
+          .build-cache/compat/runtime/platform-tests "$GITHUB_WORKSPACE/.build-cache/ci-engine/rclone"
+      - name: Exercise transfers and cancellation with the bundled runtime
+        run: python3 Scripts/test-compat.py --engine .build-cache/compat/runtime/rbn-engine --rclone .build-cache/ci-engine/rclone --clean-runtime --output .build-cache/compat/smoke-linux.json
+      - name: Open the native window and verify its bridge
+        run: xvfb-run -a python3 Scripts/test-compat-ui.py --output .build-cache/compat/smoke-ui-linux.json
+      - name: Retain installer and test evidence
+        uses: actions/upload-artifact@v7
+        with:
+          name: RcloneBrowserNext-Linux-x64
+          path: |
+            Distribution/*.deb
+            Distribution/*.sha256
+            .build-cache/compat/smoke-*.json
+            .build-cache/compat/package-*.json
+          if-no-files-found: error
+          retention-days: 30
+
+  compat-windows:
+    name: Windows x64 compatibility
+    runs-on: windows-2025
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: ilammy/msvc-dev-cmd@0b201ec74fa43914dc39ae48a89fd1d8cb592756
+      - uses: SwiftyLab/setup-swift@d60245579ea3836a3f2fa65ebbe1e8891d577c76
+        with:
+          swift-version: '6.1.2'
+      - name: Install pinned Rust in CI
+        run: |
+          rustup toolchain install 1.90.0 --profile minimal
+          rustup override set 1.90.0
+      - name: Download a pinned rclone fixture
+        run: python Scripts/ci-compat-rclone.py
+      - name: Build the Windows installer
+        run: ./Scripts/build-compat-windows.ps1
+      - name: Verify platform file operations
+        run: |
+          $rbnCore = Get-ChildItem Sources/Core/*.swift | Sort-Object Name | ForEach-Object { $_.FullName }
+          & swiftc -swift-version 5 @rbnCore Tests/PlatformTests.swift -o .build-cache/compat/runtime/platform-tests.exe
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          & ./.build-cache/compat/runtime/platform-tests.exe "$env:GITHUB_WORKSPACE/.build-cache/ci-engine/rclone.exe"
+          exit $LASTEXITCODE
+      - name: Exercise transfers and cancellation with the bundled runtime
+        run: python Scripts/test-compat.py --engine .build-cache/compat/runtime/rbn-engine.exe --rclone .build-cache/ci-engine/rclone.exe --clean-runtime --output .build-cache/compat/smoke-windows.json
+      - name: Open the native window and verify its bridge
+        run: python Scripts/test-compat-ui.py --output .build-cache/compat/smoke-ui-windows.json
+      - name: Retain installer and test evidence
+        uses: actions/upload-artifact@v7
+        with:
+          name: RcloneBrowserNext-Windows-x64
+          path: |
+            Distribution/*.exe
+            Distribution/*.sha256
+            .build-cache/compat/smoke-*.json
+            .build-cache/compat/package-*.json
+          if-no-files-found: error
+          retention-days: 30
+
   release:
     name: Publish a new verified version
-    needs: macos
+    needs: [macos, compat-linux, compat-windows]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -84,7 +168,7 @@ jobs:
       - uses: actions/download-artifact@v8
         if: steps.version.outputs.publish == 'true'
         with:
-          pattern: RcloneBrowserNext-macOS-*
+          pattern: RcloneBrowserNext-*
           path: .release-artifacts
       - name: Prepare source, native builds and checksums
         if: steps.version.outputs.publish == 'true'

@@ -1,16 +1,39 @@
 import Foundation
 import CoreFoundation
-#if canImport(Darwin)
-import Darwin
-#else
-import Glibc
-#endif
 
 /// An append-only account of evidence emitted by rclone, not a second directory
 /// scan. Comparison decisions and successful operations deliberately remain
 /// separate: retries can repeat a path, and a successful copy during a move can
 /// still be followed by a failure to delete the source.
 final class EngineTransferReport {
+    /// Used only once for a job's configuration (or a few bounded metadata
+    /// chunks for very large selections), never for the per-file hot path.
+    private indirect enum ConfigurationValue: Encodable {
+        case null, boolean(Bool), number(Double), string(String)
+        case array([ConfigurationValue]), object([String: ConfigurationValue])
+        init(_ raw: Any) throws {
+            if raw is NSNull { self = .null }
+            else if let number = raw as? NSNumber {
+                if CFGetTypeID(number) == CFBooleanGetTypeID() { self = .boolean(number.boolValue) }
+                else if number.doubleValue.isFinite { self = .number(number.doubleValue) }
+                else { throw EngineError("傳輸設定格式不正確。") }
+            } else if let text = raw as? String { self = .string(text) }
+            else if let values = raw as? [Any] { self = .array(try values.map { try ConfigurationValue($0) }) }
+            else if let values = raw as? [String: Any] { self = .object(try values.mapValues { try ConfigurationValue($0) }) }
+            else { throw EngineError("傳輸設定格式不正確。") }
+        }
+        func encode(to encoder: Encoder) throws {
+            var container = encoder.singleValueContainer()
+            switch self {
+            case .null: try container.encodeNil()
+            case .boolean(let value): try container.encode(value)
+            case .number(let value): try container.encode(value)
+            case .string(let value): try container.encode(value)
+            case .array(let value): try container.encode(value)
+            case .object(let value): try container.encode(value)
+            }
+        }
+    }
     /// A fixed schema avoids validating and sorting a generic object graph for
     /// every file. JSONEncoder still handles all string escaping, including
     /// literal newlines and Unicode, without hand-written JSON concatenation.
@@ -28,6 +51,13 @@ final class EngineTransferReport {
         let path: String?
         let size: Int64?
         let sigil: String?
+        let issue: String?
+        let sourceSize: Int64?
+        let destinationSize: Int64?
+        let relatedPath: String?
+        let attempt: Int64?
+        let attemptLimit: Int64?
+        let configuration: ConfigurationValue?
 
         init(_ value: [String: Any], sequence: Int64) {
             self.sequence = sequence
@@ -37,6 +67,13 @@ final class EngineTransferReport {
             message = value["message"] as! String; object = value["object"] as? String
             objectType = value["objectType"] as? String; path = value["path"] as? String
             size = EngineTransferReport.validCounter(value["size"]); sigil = value["sigil"] as? String
+            issue = value["issue"] as? String
+            sourceSize = EngineTransferReport.validCounter(value["sourceSize"])
+            destinationSize = EngineTransferReport.validCounter(value["destinationSize"])
+            relatedPath = value["relatedPath"] as? String
+            attempt = EngineTransferReport.validCounter(value["attempt"])
+            attemptLimit = EngineTransferReport.validCounter(value["attemptLimit"])
+            configuration = value["configuration"] as? ConfigurationValue
         }
     }
 
@@ -66,17 +103,26 @@ final class EngineTransferReport {
         "comparisonEvents", "matchedEvents", "skippedEvents", "candidateEvents", "missingSourceEvents",
         "comparisonErrorEvents", "comparisonMalformed", "comparisonPendingBytes"
     ]
+    private static let detailCounterKeys = [
+        "copiedBytes", "failedCopyBytes", "copySizeMissingEvents", "sizeMismatchEvents", "growingSourceEvents",
+        "retryFailures", "lastAttempt", "maxAttempts", "cleanupEvents", "cleanupFailureEvents"
+    ]
     private static let maximumRecordBytes = 2 * 1024 * 1024
     private let lock = NSLock()
     private let encoder = JSONEncoder()
     private let directory: URL
     private let id: String
     private var outputs: [String: Output] = [:]
-    private var counts = Dictionary(uniqueKeysWithValues: EngineTransferReport.counterKeys.map { ($0, Int64(0)) })
+    private var counts = Dictionary(uniqueKeysWithValues: (EngineTransferReport.counterKeys + EngineTransferReport.detailCounterKeys).map { ($0, Int64(0)) })
     private var lastVisible = ProcessInfo.processInfo.systemUptime
     private var observedTime = EngineJSON.now()
     private var observedSecond = Int(ProcessInfo.processInfo.systemUptime)
     private var comparisonComplete = false
+    // Only failures need this short history. It is independent of the number of
+    // files in a transfer and performs no filesystem reads or content hashing.
+    private struct SizeObservation { let source: Int64; let destination: Int64; let sequence: Int64 }
+    private var recentSizeFailures: [String: SizeObservation] = [:]
+    private static let maximumSizeHistory = 256
 
     var comparisonPath: String { directory.appendingPathComponent(id + Self.suffixes["raw"]!).path }
 
@@ -87,15 +133,55 @@ final class EngineTransferReport {
         do {
             for (kind, suffix) in Self.suffixes {
                 let url = directory.appendingPathComponent(id + suffix)
-                let fd = open(url.path, O_WRONLY | O_CREAT | O_EXCL | O_NOFOLLOW | O_CLOEXEC, mode_t(0o600))
-                guard fd >= 0 else { throw Self.fileError("無法建立逐檔記錄") }
+                let handle = try EnginePlatform.createExclusiveFile(url)
                 created.append(url)
-                outputs[kind] = Output(FileHandle(fileDescriptor: fd, closeOnDealloc: true))
+                outputs[kind] = Output(handle)
             }
         } catch {
             outputs.removeAll()
             for url in created { try? FileManager.default.removeItem(at: url) }
             throw error
+        }
+    }
+
+    /// Export the validated request with the engine version and the exact
+    /// modify-window argument used for this run. Credentials, config contents
+    /// and the process environment are outside this snapshot.
+    func recordConfiguration(_ request: EngineTransferRequest, engineVersion: String?, effectiveModifyWindow: String?) throws {
+        var metadata: [String: Any] = ["kind": "complete", "schemaVersion": 1,
+                                       "request": request.json, "engineVersion": engineVersion as Any? ?? NSNull(),
+                                       "effectiveModifyWindow": effectiveModifyWindow as Any? ?? NSNull()]
+        var records: [[String: Any]] = []
+        if try EngineJSON.data(metadata).count <= Self.maximumRecordBytes / 2 { records = [metadata] }
+        else {
+            // A large, valid selection must not fail just because a single
+            // metadata row would exceed the report's normal record/page limit.
+            var basic = request.json, options = request.options.json
+            var collections: [(String, [Any])] = [("request.selection", request.selection.map(\.json))]
+            basic.removeValue(forKey: "selection")
+            for key in ["include", "exclude", "extraArgs"] {
+                collections.append(("request.options." + key, options.removeValue(forKey: key) as? [Any] ?? []))
+            }
+            basic["options"] = options
+            metadata["kind"] = "header"; metadata["request"] = basic
+            metadata["collections"] = Dictionary(uniqueKeysWithValues: collections.map { ($0.0, $0.1.count) })
+            records.append(metadata)
+            for (name, items) in collections {
+                for start in stride(from: 0, to: items.count, by: 32) {
+                    records.append(["kind": "collection", "name": name, "offset": start,
+                                    "items": Array(items[start..<min(start + 32, items.count)])])
+                }
+            }
+        }
+        let values = try records.map { try ConfigurationValue($0) }
+        try lock.holding {
+            counts["maxAttempts"] = Int64(request.options.integer("retries"))
+            for value in values {
+                try append(["time": EngineJSON.now(), "status": "info", "action": "configuration",
+                            "evidence": "app-configuration", "message": "傳輸設定", "configuration": value], destinations: ["all"])
+                increment("informationEvents")
+            }
+            try makeVisible()
         }
     }
 
@@ -109,16 +195,18 @@ final class EngineTransferReport {
         let objectType = raw["objectType"] as? String
         let isFilesystem = objectType?.hasSuffix(".Fs") == true || objectType?.hasSuffix(".fs") == true
         let path = object.flatMap { !$0.isEmpty && !isFilesystem ? $0 : nil }
-        // cmd.Run logs a successful high-level retry with Errorf. It is not an
-        // actual failure and must not become a spurious row in the error list.
-        let retrySucceeded = message.hasPrefix("Attempt ") && message.hasSuffix(" succeeded")
-        let isError = ["error", "fatal", "alert", "emergency"].contains(level) && !retrySucceeded
+        // cmd.Run emits attempt summaries at error level, including successful
+        // retries. Preserve these as retry records, separate from file failures.
+        let retry = Self.retryDetails(message)
+        let cleanupFailed = message.hasPrefix("Failed to remove failed copy:") || message.hasPrefix("Failed to remove failed partial copy:")
+        let isError = (["error", "fatal", "alert", "emergency"].contains(level) && retry == nil) || cleanupFailed
         let skipped = raw["skipped"] as? String
         // Object-free startup/version messages are already in the ordinary log.
-        guard object != nil || isError || skipped != nil else { return }
+        guard object != nil || isError || skipped != nil || retry != nil else { return }
 
-        var status = "info", action = "information"
-        if isError { status = "error"; action = Self.errorAction(message) }
+        var status = "info", action = "information", issue: String?
+        if retry != nil { action = "retry" }
+        else if isError { status = "error"; action = Self.errorAction(message) }
         else if let skipped = skipped {
             status = dryRun ? "planned" : "skipped"; action = skipped
         } else if message.hasPrefix("Copied (") || message.hasPrefix("Multi-thread Copied (") {
@@ -129,7 +217,16 @@ final class EngineTransferReport {
             status = dryRun ? "planned" : "success"; action = "delete"
         } else if message == "Moved into backup dir" {
             status = dryRun ? "planned" : "success"; action = "backup"
+        } else if message == "Can't follow symlink without -L/--copy-links" {
+            status = "skipped"; action = "symlink"; issue = "symlink-ignored"
+        } else if message == "Can't transfer non file/directory" {
+            status = "skipped"; action = "special"; issue = "special-ignored"
         }
+        if cleanupFailed { issue = "cleanup-failed"; action = "cleanup" }
+        else if message == "Removing failed copy" { action = "cleanup" }
+        else if message == "not deleting directories as there were IO errors" || message == "not deleting files as there were IO errors" {
+            issue = "deletion-deferred"
+        } else if isError && message.contains("can't copy - source file is being updated") { issue = "source-changed" }
 
         var record: [String: Any] = [
             "time": raw["time"] as? String ?? EngineJSON.now(), "status": status,
@@ -140,6 +237,34 @@ final class EngineTransferReport {
         if let objectType = objectType { record["objectType"] = objectType }
         if let size = Self.validCounter(raw["size"]) { record["size"] = size }
         try lock.holding {
+            counts["lastAttempt"] = max(counts["lastAttempt"]!, 1)
+            if let retry = retry {
+                record["attempt"] = retry.attempt; record["attemptLimit"] = retry.limit
+                counts["lastAttempt"] = max(counts["lastAttempt"]!, retry.attempt)
+                counts["maxAttempts"] = max(counts["maxAttempts"]!, retry.limit)
+                if retry.failed { increment("retryFailures") }
+            }
+            // Only the direct per-file verification message contributes bytes.
+            // Attempt summaries repeat its text, but are deliberately excluded.
+            if isError, let path = path, let sizes = Self.sizeMismatch(message) {
+                issue = "size-mismatch"; record["action"] = "copy"
+                record["sourceSize"] = sizes.source; record["destinationSize"] = sizes.destination
+                increment("sizeMismatchEvents"); increment("failedCopyBytes", by: sizes.destination)
+                let related = Self.localOriginalPath(path, objectType: objectType)
+                if let related = related { record["relatedPath"] = related }
+                let key = related ?? path
+                if let previous = recentSizeFailures[key], sizes.destination > sizes.source,
+                   previous.destination > previous.source, sizes.source > previous.source,
+                   sizes.source >= previous.destination {
+                    issue = "source-growing"; increment("growingSourceEvents")
+                }
+                if recentSizeFailures[key] == nil, recentSizeFailures.count >= Self.maximumSizeHistory,
+                   let oldest = recentSizeFailures.min(by: { $0.value.sequence < $1.value.sequence })?.key {
+                    recentSizeFailures.removeValue(forKey: oldest)
+                }
+                recentSizeFailures[key] = SizeObservation(source: sizes.source, destination: sizes.destination, sequence: counts["eventCount"]!)
+            }
+            if let issue = issue { record["issue"] = issue }
             var destinations = ["all"]
             if status == "success" { destinations.append("success") }
             if status == "error" { destinations.append("errors") }
@@ -147,7 +272,11 @@ final class EngineTransferReport {
             try append(record, destinations: destinations)
             if status == "success" {
                 increment("successEvents")
-                if action == "copy" { increment("copiedEvents") }
+                if action == "copy" {
+                    increment("copiedEvents")
+                    if let size = Self.validCounter(raw["size"]) { increment("copiedBytes", by: size) }
+                    else { increment("copySizeMissingEvents") }
+                }
                 if action == "move" { increment("movedEvents") }
                 if action == "delete" { increment("deletedEvents") }
             } else if status == "error" {
@@ -155,6 +284,8 @@ final class EngineTransferReport {
             } else if status == "planned" { increment("plannedEvents") }
             else if status == "skipped" { increment("skippedEvents") }
             else { increment("informationEvents") }
+            if message == "Removing failed copy" { increment("cleanupEvents") }
+            if cleanupFailed { increment("cleanupFailureEvents") }
             try periodicallyMakeVisible()
         }
     }
@@ -185,17 +316,18 @@ final class EngineTransferReport {
                 try periodicallyMakeVisible(); return
             }
             let path = String(line.dropFirst(2))
+            if counts["lastAttempt"] == 0 { counts["lastAttempt"] = 1 }
             let status: String, action: String, message: String
             var destinations = ["all", "comparison"]
             switch sigil {
             case "=":
-                status = "matched"; action = "match"; message = "依目前比對或略過規則，不需複製。"
+                status = "matched"; action = "match"; message = "依本次比對與略過設定，無需更新。"
                 destinations.append("skipped")
-            case "+": status = "candidate"; action = "missing-destination"; message = "目的地缺少此檔案；這是比對結果，尚非傳輸成功紀錄。"
-            case "*": status = "candidate"; action = "different"; message = "來源與目的不同；這是比對結果，尚非傳輸成功紀錄。"
-            case "-": status = "comparison"; action = "missing-source"; message = "只有目的地有此檔案；是否刪除依工作模式與設定而定。"
+            case "+": status = "candidate"; action = "missing-destination"; message = "目標缺少此檔案，已列入傳輸清單。"
+            case "*": status = "candidate"; action = "different"; message = "檔案有變更，已列入傳輸清單。"
+            case "-": status = "comparison"; action = "missing-source"; message = "只有目標有此檔案。"
             default:
-                status = "comparison-error"; action = "comparison-error"; message = "rclone 回報 ! 比對狀態；實際錯誤原因請查看錯誤紀錄。"
+                status = "comparison-error"; action = "comparison-error"; message = "此檔案處理失敗，原因列於錯誤紀錄。"
                 destinations.append("errors")
             }
             try append(["time": comparisonTime(), "timeKind": "observed", "status": status, "action": action,
@@ -225,8 +357,9 @@ final class EngineTransferReport {
     var summary: [String: Any] {
         lock.holding {
             var value: [String: Any] = counts.mapValues { $0 as Any }
-            value["available"] = true; value["formatVersion"] = 1
+            value["available"] = true; value["formatVersion"] = 2
             value["comparisonComplete"] = comparisonComplete
+            value["copyByteTotalsAvailable"] = counts["copySizeMissingEvents"] == 0
             // These are event ledgers, not a deduplicated final-state database.
             value["skippedFiles"] = NSNull(); value["failedFiles"] = NSNull()
             return value
@@ -235,10 +368,15 @@ final class EngineTransferReport {
 
     static func normalizedSummary(_ value: Any?) -> [String: Any]? {
         guard let raw = value as? [String: Any], raw["available"] as? Bool == true else { return nil }
-        var result: [String: Any] = ["available": true, "formatVersion": 1,
+        let version = min(validCounter(raw["formatVersion"]) ?? 1, 2)
+        var result: [String: Any] = ["available": true, "formatVersion": version,
                                    "comparisonComplete": raw["comparisonComplete"] as? Bool ?? false,
                                    "skippedFiles": NSNull(), "failedFiles": NSNull()]
         for key in counterKeys { result[key] = validCounter(raw[key]) ?? 0 }
+        if version >= 2 {
+            for key in detailCounterKeys { result[key] = validCounter(raw[key]) ?? 0 }
+            result["copyByteTotalsAvailable"] = raw["copyByteTotalsAvailable"] as? Bool == true && validCounter(raw["copiedBytes"]) != nil && validCounter(raw["failedCopyBytes"]) != nil
+        }
         return result
     }
 
@@ -307,7 +445,7 @@ final class EngineTransferReport {
         try validateID(id)
         for suffix in suffixes.values {
             let path = directory.appendingPathComponent(id + suffix).path
-            if unlink(path) != 0 && errno != ENOENT { throw fileError("無法移除逐檔記錄") }
+            try EnginePlatform.removeFileIfPresent(path)
         }
         // Export snapshots are generated exclusively by this class. Validate the
         // complete name before unlinking; do not match arbitrary prefix siblings.
@@ -317,7 +455,7 @@ final class EngineTransferReport {
             guard let dot = tail.lastIndex(of: "."), ["jsonl", "txt"].contains(String(tail[tail.index(after: dot)...])),
                   UUID(uuidString: String(tail[..<dot])) != nil else { continue }
             let path = directory.appendingPathComponent(name).path
-            if unlink(path) != 0 && errno != ENOENT { throw fileError("無法移除逐檔記錄快照") }
+            try EnginePlatform.removeFileIfPresent(path)
         }
     }
 
@@ -330,7 +468,10 @@ final class EngineTransferReport {
         increment("eventCount")
     }
 
-    private func increment(_ key: String) { counts[key, default: 0] += 1 }
+    private func increment(_ key: String, by value: Int64 = 1) {
+        // Match JavaScript's exact integer range when publishing counters.
+        counts[key] = min(9_007_199_254_740_991, counts[key, default: 0] + value)
+    }
     private func periodicallyMakeVisible() throws {
         if ProcessInfo.processInfo.systemUptime - lastVisible >= 1 { try makeVisible() }
     }
@@ -343,8 +484,48 @@ final class EngineTransferReport {
         if second != observedSecond { observedSecond = second; observedTime = EngineJSON.now() }
         return observedTime
     }
+    private static func retryDetails(_ message: String) -> (attempt: Int64, limit: Int64, failed: Bool)? {
+        guard message.hasPrefix("Attempt ") else { return nil }
+        let parts = message.dropFirst(8).split(separator: " ", maxSplits: 1)
+        guard parts.count == 2 else { return nil }
+        let numbers = parts[0].split(separator: "/", omittingEmptySubsequences: false)
+        guard numbers.count == 2, let attempt = Int64(numbers[0]), let limit = Int64(numbers[1]),
+              attempt > 0, limit >= attempt, limit <= 1_000_000 else { return nil }
+        let result = parts[1]
+        guard result == "succeeded" || result.hasPrefix("failed with ") else { return nil }
+        return (attempt, limit, result != "succeeded")
+    }
+    private static func sizeMismatch(_ message: String) -> (source: Int64, destination: Int64)? {
+        guard message.utf8.count <= 65536, message.hasPrefix("corrupted on transfer: sizes differ src("),
+              let separator = message.range(of: " vs dst(", options: .backwards) else { return nil }
+        func trailingSize(_ text: Substring) -> Int64? {
+            guard let marker = text.range(of: ") ", options: .backwards) else { return nil }
+            let raw = text[marker.upperBound...]
+            guard !raw.isEmpty, raw.utf8.allSatisfy({ $0 >= 48 && $0 <= 57 }),
+                  let value = Int64(raw), value <= 9_007_199_254_740_991 else { return nil }
+            return value
+        }
+        guard let source = trailingSize(message[..<separator.lowerBound]),
+              let destination = trailingSize(message[separator.upperBound...]), source != destination else { return nil }
+        return (source, destination)
+    }
+    private static func localOriginalPath(_ path: String, objectType: String?) -> String? {
+        // The app owns partial-file flags and clears RCLONE_* environment flags.
+        // Local copies use rclone's default .<8 hex>.partial suffix. For an
+        // original leaf above 100 bytes, rclone replaces its last 17 bytes;
+        // UTF-8 boundary repair can shorten that result by up to 3 more bytes.
+        // A reported leaf of 98+ bytes may therefore already be truncated.
+        // This derived label is used for display/correlation, never file access.
+        guard objectType == "*local.Object", let leaf = path.split(separator: "/", omittingEmptySubsequences: false).last,
+              leaf.utf8.count <= 97, leaf.utf8.count > 17, path.hasSuffix(".partial") else { return nil }
+        let beforePartial = path.dropLast(8)
+        guard beforePartial.count >= 9 else { return nil }
+        let suffix = beforePartial.suffix(9)
+        guard suffix.first == ".", suffix.dropFirst().utf8.allSatisfy({ ($0 >= 48 && $0 <= 57) || ($0 >= 97 && $0 <= 102) }) else { return nil }
+        return String(beforePartial.dropLast(9))
+    }
     private static func errorAction(_ message: String) -> String {
-        if message.hasPrefix("Failed to copy:") || message.hasPrefix("Not deleting source as copy failed:") { return "copy" }
+        if message.hasPrefix("Failed to copy:") || message.hasPrefix("Not deleting source as copy failed:") || message.hasPrefix("corrupted on transfer:") { return "copy" }
         if message.hasPrefix("Couldn't move:") { return "move" }
         if message.hasPrefix("Couldn't delete:") { return "delete" }
         if message.hasPrefix("partial file rename failed:") { return "rename" }
@@ -361,22 +542,7 @@ final class EngineTransferReport {
         guard EngineJSON.validID(id) else { throw EngineError("工作編號格式不正確。") }
     }
     private static func readerIfPresent(_ url: URL) throws -> FileHandle? {
-        let fd = open(url.path, O_RDONLY | O_NOFOLLOW | O_CLOEXEC)
-        guard fd >= 0 else {
-            if errno == ENOENT { return nil }
-            throw fileError("無法讀取逐檔記錄")
-        }
-        let handle = FileHandle(fileDescriptor: fd, closeOnDealloc: true)
-        var info = stat()
-        #if canImport(Darwin)
-        let typeMask = mode_t(Darwin.S_IFMT), regularFile = mode_t(Darwin.S_IFREG)
-        #else
-        let typeMask = mode_t(Glibc.S_IFMT), regularFile = mode_t(Glibc.S_IFREG)
-        #endif
-        guard fstat(fd, &info) == 0, (info.st_mode & typeMask) == regularFile else {
-            try? handle.close(); throw EngineError("逐檔記錄必須是一般檔案。")
-        }
-        return handle
+        try EnginePlatform.readRegularFile(url)
     }
     private static func capture(directory: URL, id: String, format: String) throws -> (FileHandle, UInt64) {
         try validateID(id)
@@ -412,9 +578,7 @@ final class EngineTransferReport {
         defer { try? reader.close() }
         let ext = format == "jsonl" ? "jsonl" : "txt"
         let url = directory.appendingPathComponent(id + ".report-export-" + UUID().uuidString.lowercased() + "." + ext)
-        let fd = open(url.path, O_WRONLY | O_CREAT | O_EXCL | O_NOFOLLOW | O_CLOEXEC, mode_t(0o600))
-        guard fd >= 0 else { throw fileError("無法建立逐檔記錄快照") }
-        let writer = FileHandle(fileDescriptor: fd, closeOnDealloc: true)
+        let writer = try EnginePlatform.createExclusiveFile(url)
         var remaining = length
         do {
             while remaining > 0 {
@@ -427,8 +591,5 @@ final class EngineTransferReport {
         } catch {
             try? writer.close(); try? FileManager.default.removeItem(at: url); throw error
         }
-    }
-    private static func fileError(_ message: String) -> EngineError {
-        EngineError("\(message)：\(String(cString: strerror(errno)))")
     }
 }
