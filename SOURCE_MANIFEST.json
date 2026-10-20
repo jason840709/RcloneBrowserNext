@@ -4,7 +4,7 @@
   "timezone": "Asia/Taipei",
   "scope": "GitHub publication; original test evidence preserved separately",
   "file_count_excluding_manifest": 91,
-  "total_bytes_excluding_manifest": 3490834,
+  "total_bytes_excluding_manifest": 3490835,
   "files": {
     ".github/workflows/macos.yml": {
       "bytes": 1409,
@@ -75,8 +75,8 @@
       "sha256": "8d924106175e155587e8e1b594329fc06b3d14bb19a856f9a3de9dd597e22101"
     },
     "Scripts/test-mac.sh": {
-      "bytes": 2018,
-      "sha256": "98f52bbbd34d91937f8ff8b7238d79136d0a0876a8d95ca1b680a60a452f3922"
+      "bytes": 2019,
+      "sha256": "277066f6f7d9d39d877bf301ff3a6e59a566886a4087af41907cac9c4e37f2f4"
     },
     "Scripts/verify-mac.sh": {
       "bytes": 4782,

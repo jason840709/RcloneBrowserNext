@@ -32,7 +32,7 @@ for RBN_TEST_SUITE in "${RBN_TEST_SUITES[@]}"; do
     -target "$RBN_TARGET_ARCH-apple-macosx$RBN_MINIMUM_MACOS" \
     -sdk "$RBN_SDK" \
     -module-cache-path "$SWIFT_MODULECACHE_PATH" \
-    -Xcc "-fmodules-cache-path=$CLANG_MODULECACHE_PATH" \
+    -Xcc "-fmodules-cache-path=$CLANG_MODULE_CACHE_PATH" \
     "${RBN_CORE_SOURCES[@]}" "$RBN_TEST_SOURCE" \
     -framework Foundation \
     -o "$RBN_TEST_RUN/$RBN_TEST_SUITE"
