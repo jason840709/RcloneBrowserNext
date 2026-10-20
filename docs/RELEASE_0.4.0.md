@@ -25,6 +25,6 @@ This release provides a **source build package**, requiring macOS 13+ and an exi
 
 ## 來源與驗證
 
-Next 由 Jason Chen 獨立開發，參考 rclone、mmozeiko／RcloneBrowser、kapitainsky／RcloneBrowser 及 downer08tutti／RcloneBrowser2；並非上述專案的官方新版。詳見首頁與致謝。
+Next 由 Jason Chen 獨立開發，參考 rclone、mmozeiko／RcloneBrowser、kapitainsky／RcloneBrowser；並非上述專案的官方新版。詳見首頁與致謝。
 
 原交付的測試結果與限制保留在 `docs/VALIDATION.zh-TW.md`，其數字不代表本次重新執行測試。此次發布整理以文件、圖示、截圖、來源完整性與連結檢查為主；實際 CI 狀態請查看 Actions。

@@ -35,4 +35,4 @@
 
 CI不等於在使用者的Mac上操作過介面：實體滑鼠側鍵、真實NAS／雲端傳輸速度，以及下載後Gatekeeper體驗，仍需實際環境確認。完整測試範圍與比較方式取捨見來源中的驗證及NAS文件。
 
-作者：**Jason Chen**。程式採MIT授權；圖示由Jason Chen提供。感謝rclone、Rclone Browser與RcloneBrowser2的原作者與維護者。
+作者：**Jason Chen**。程式採MIT授權；圖示由Jason Chen提供。感謝 rclone、mmozeiko／RcloneBrowser 與 kapitainsky／RcloneBrowser 的原作者及維護者。

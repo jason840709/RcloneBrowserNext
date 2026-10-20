@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 560 112" width="560" height="112" role="img" aria-labelledby="title description">
+  <title id="title">給 Mac 的雙面板 rclone 圖形介面。</title>
+  <desc id="description">本機、NAS、雲端，左右自由選。</desc>
+  <style>
+    .card { fill: #f7f6f9; stroke: #9c8cad; }
+    .lead { fill: #352c40; }
+    .detail { fill: #62566f; }
+    @media (prefers-color-scheme: dark) {
+      .card { fill: #252429; stroke: #93849f; }
+      .lead { fill: #f0eaf7; }
+      .detail { fill: #c6bcd2; }
+    }
+    text { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang TC', 'Noto Sans CJK TC', sans-serif; text-anchor: middle; }
+  </style>
+  <rect class="card" x="1" y="1" width="558" height="110" rx="14" stroke-width="1.5" stroke-dasharray="5 6"/>
+  <text class="lead" x="280" y="47" font-size="22" font-weight="600">給 Mac 的雙面板 rclone 圖形介面。</text>
+  <text class="detail" x="280" y="80" font-size="19">本機、NAS、雲端，左右自由選。</text>
+</svg>

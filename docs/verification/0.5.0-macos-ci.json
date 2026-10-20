@@ -1,0 +1,402 @@
+{
+  "version": "0.5.0",
+  "repository": "jason840709/RcloneBrowserNext",
+  "commit": "36aef715a687b83657e5f99707cacc0c8dcc9f51",
+  "run_id": 39408177020,
+  "run_url": "https://github.com/jason840709/RcloneBrowserNext/actions/runs/39408177020",
+  "observed_at_utc": "2026-10-20T10:37:51Z",
+  "success": true,
+  "architectures": {
+    "arm64": {
+      "job_id": 118579126025,
+      "url": "https://github.com/jason840709/RcloneBrowserNext/actions/runs/39408177020/job/118579126025",
+      "status": "completed",
+      "conclusion": "success",
+      "suites": [
+        {
+          "name": "CoreTests",
+          "passed": 42,
+          "failed": 0,
+          "skipped": 1
+        },
+        {
+          "name": "UpdaterTests",
+          "passed": 20,
+          "failed": 0,
+          "skipped": 0
+        },
+        {
+          "name": "ToolsTests",
+          "passed": 12,
+          "failed": 0,
+          "skipped": 0
+        },
+        {
+          "name": "NativeMessagesTests",
+          "passed": 13,
+          "failed": 0,
+          "skipped": 0
+        },
+        {
+          "name": "FinderDropTests",
+          "passed": 5,
+          "failed": 0,
+          "skipped": 0
+        },
+        {
+          "name": "AppReleaseTests",
+          "passed": 8,
+          "failed": 0,
+          "skipped": 0
+        }
+      ],
+      "totals": {
+        "passed": 100,
+        "failed": 0,
+        "skipped": 1
+      },
+      "app_size_mib": 2.5,
+      "app_size_measurement": "du -sk, disk allocation, excludes external rclone",
+      "verified_architecture": "arm64",
+      "minimum_macos": "13.0",
+      "version": "0.5.0",
+      "macos_version": "15.7.9",
+      "swift_version": "Apple Swift 6.1.2 (swiftlang-6.1.2.1.2 clang-1700.0.13.5)",
+      "native_sdk_compile_link": true,
+      "build_no_launch": true,
+      "signature": {
+        "type": "ad-hoc local signature",
+        "verification_passed": true,
+        "evidence": [
+          "valid on disk",
+          "satisfies its Designated Requirement"
+        ],
+        "verification_runs": 2,
+        "developer_id_or_notarization": false
+      },
+      "executable_sha256": "23c4e6d209c07c423fd47a874d920635db039c8c8e4e2ebcc55c4f44bc4a9679",
+      "warnings": [
+        {
+          "file": "Sources/Mac/AppMain.swift",
+          "line": 850,
+          "column": 56,
+          "kind": "deprecation",
+          "message": "'openFile(_:withApplication:)' was deprecated in macOS 11.0: Use -[NSWorkspace openURLs:withApplicationAtURL:configuration:completionHandler:] instead."
+        }
+      ],
+      "skip_reasons": [
+        "NAS kernel read instrumentation requires Linux inotify; portable NAS transfer/comparison tests still ran and passed."
+      ],
+      "benchmark": {
+        "snapshots": 10000,
+        "seconds": 0.090273,
+        "max_samples": 64
+      },
+      "real_rclone_version": "1.75.2",
+      "log": "macos-arm64.log"
+    },
+    "x86_64": {
+      "job_id": 118579125710,
+      "url": "https://github.com/jason840709/RcloneBrowserNext/actions/runs/39408177020/job/118579125710",
+      "status": "completed",
+      "conclusion": "success",
+      "suites": [
+        {
+          "name": "CoreTests",
+          "passed": 42,
+          "failed": 0,
+          "skipped": 1
+        },
+        {
+          "name": "UpdaterTests",
+          "passed": 20,
+          "failed": 0,
+          "skipped": 0
+        },
+        {
+          "name": "ToolsTests",
+          "passed": 12,
+          "failed": 0,
+          "skipped": 0
+        },
+        {
+          "name": "NativeMessagesTests",
+          "passed": 13,
+          "failed": 0,
+          "skipped": 0
+        },
+        {
+          "name": "FinderDropTests",
+          "passed": 5,
+          "failed": 0,
+          "skipped": 0
+        },
+        {
+          "name": "AppReleaseTests",
+          "passed": 8,
+          "failed": 0,
+          "skipped": 0
+        }
+      ],
+      "totals": {
+        "passed": 100,
+        "failed": 0,
+        "skipped": 1
+      },
+      "app_size_mib": 2.55,
+      "app_size_measurement": "du -sk, disk allocation, excludes external rclone",
+      "verified_architecture": "x86_64",
+      "minimum_macos": "13.0",
+      "version": "0.5.0",
+      "macos_version": "15.7.9",
+      "swift_version": "Apple Swift 6.1.2 (swiftlang-6.1.2.1.2 clang-1700.0.13.5)",
+      "native_sdk_compile_link": true,
+      "build_no_launch": true,
+      "signature": {
+        "type": "ad-hoc local signature",
+        "verification_passed": true,
+        "evidence": [
+          "valid on disk",
+          "satisfies its Designated Requirement"
+        ],
+        "verification_runs": 2,
+        "developer_id_or_notarization": false
+      },
+      "executable_sha256": "e7821451a942409351c203bcad49122ceaa1097308d7d91fbf2b24cc6ea0d764",
+      "warnings": [
+        {
+          "file": "Sources/Mac/AppMain.swift",
+          "line": 850,
+          "column": 56,
+          "kind": "deprecation",
+          "message": "'openFile(_:withApplication:)' was deprecated in macOS 11.0: Use -[NSWorkspace openURLs:withApplicationAtURL:configuration:completionHandler:] instead."
+        }
+      ],
+      "skip_reasons": [
+        "NAS kernel read instrumentation requires Linux inotify; portable NAS transfer/comparison tests still ran and passed."
+      ],
+      "benchmark": {
+        "snapshots": 10000,
+        "seconds": 0.171147,
+        "max_samples": 64
+      },
+      "real_rclone_version": "1.75.2",
+      "log": "macos-x86_64.log"
+    }
+  },
+  "combined_assertion_runs": {
+    "passed": 200,
+    "failed": 0,
+    "skipped": 2
+  },
+  "release": {
+    "job_id": 118582600401,
+    "url": "https://github.com/jason840709/RcloneBrowserNext/actions/runs/39408177020/job/118582600401",
+    "status": "completed",
+    "conclusion": "success",
+    "release_url": "https://github.com/jason840709/RcloneBrowserNext/releases/tag/v0.5.0",
+    "download_artifacts_success": true,
+    "prepare_source_native_builds_and_checksums_success": true,
+    "publish_create_success": true,
+    "published_at_log_utc": "2026-10-20T10:37:29.9923316Z",
+    "artifacts": [
+      {
+        "name": "Rclone_Browser_Next_0.5.0_Mac_Local_Build.zip",
+        "sha256": "a0f9752ca50ff0f486a38e2e34e62ab9990d25e418057f5cf0770aacce00e676"
+      },
+      {
+        "name": "Rclone_Browser_Next_0.5.0_macOS_arm64.zip",
+        "sha256": "e15ddac702bd5cc667e437b94f5a9d6f466d1523393dcdaf74552b8d184fd1bb"
+      },
+      {
+        "name": "Rclone_Browser_Next_0.5.0_macOS_x86_64.zip",
+        "sha256": "9ad9325e5df65f4abc65aae1a74715fc0d5eb5a4b768b20c47782298310fea4e"
+      }
+    ],
+    "log": "release.log"
+  },
+  "scope": {
+    "actual_native_sdk_compile_and_link": true,
+    "actual_macos_core_test_execution": true,
+    "actual_rclone_process_integration": true,
+    "gui_launch_or_interactive_macos_verification": false,
+    "physical_nas_or_live_cloud_account_verification": false,
+    "explanation": "CI built and signed the app without launching the GUI, then executed six suites against real rclone 1.75.2 and local/alias-backed fixtures. It did not exercise a physical NAS, a live user cloud account, Finder double-click launch or Gatekeeper approval. One Linux-only kernel-read instrumentation case was skipped on each macOS runner. Passing codesign verification is not Apple Developer ID signing or notarization."
+  },
+  "jobs": [
+    {
+      "id": 118579125710,
+      "name": "macOS x86_64",
+      "status": "completed",
+      "conclusion": "success",
+      "run_id": 39408177020,
+      "logs_url": null,
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1
+        },
+        {
+          "name": "Run actions/checkout@v7",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2
+        },
+        {
+          "name": "Download a pinned rclone into this checkout",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3
+        },
+        {
+          "name": "Build and verify the complete macOS app",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4
+        },
+        {
+          "name": "Run core tests with real rclone",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5
+        },
+        {
+          "name": "Retain locally signed builds and checksums",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6
+        },
+        {
+          "name": "Post Run actions/checkout@v7",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 12
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 13
+        }
+      ]
+    },
+    {
+      "id": 118579126025,
+      "name": "macOS arm64",
+      "status": "completed",
+      "conclusion": "success",
+      "run_id": 39408177020,
+      "logs_url": null,
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1
+        },
+        {
+          "name": "Run actions/checkout@v7",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2
+        },
+        {
+          "name": "Download a pinned rclone into this checkout",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3
+        },
+        {
+          "name": "Build and verify the complete macOS app",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4
+        },
+        {
+          "name": "Run core tests with real rclone",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5
+        },
+        {
+          "name": "Retain locally signed builds and checksums",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6
+        },
+        {
+          "name": "Post Run actions/checkout@v7",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 12
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 13
+        }
+      ]
+    },
+    {
+      "id": 118582600401,
+      "name": "Publish a new verified version",
+      "status": "completed",
+      "conclusion": "success",
+      "run_id": 39408177020,
+      "logs_url": null,
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1
+        },
+        {
+          "name": "Run actions/checkout@v7",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2
+        },
+        {
+          "name": "Check whether this version is already published",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3
+        },
+        {
+          "name": "Run actions/download-artifact@v8",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4
+        },
+        {
+          "name": "Prepare source, native builds and checksums",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5
+        },
+        {
+          "name": "Publish without replacing an existing release",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6
+        },
+        {
+          "name": "Post Run actions/checkout@v7",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 12
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 13
+        }
+      ]
+    }
+  ]
+}

@@ -16,7 +16,7 @@ Rclone Browser Next 0.5.0 延續原版的位置瀏覽、傳輸設定、工作與
 
 原版 `MainWindow::addTransfer` 直接建立 `QProcess`；`mJobCount` 用來計數，沒有整體並行上限。Next 自 0.4.0 起預設亦不限制工作數，另提供可選上限。單一 rclone 工作的 `--transfers` 與 `--checkers` 仍各自有效。
 
-公開參考：[原版來源](https://github.com/kapitainsky/RcloneBrowser/tree/45bf7411839b0919c488a3e3a0a5272b50c9fc7b)、[RcloneBrowser2](https://github.com/downer08tutti/RcloneBrowser2)。原始碼的分工與操作語意可對照；這不是將 Qt 程式碼直接改名的 fork。
+公開參考：[原版來源](https://github.com/kapitainsky/RcloneBrowser/tree/45bf7411839b0919c488a3e3a0a5272b50c9fc7b)。原始碼的分工與操作語意可對照；這不是將 Qt 程式碼直接改名的 fork。
 
 ## 傳輸與 Tasks
 

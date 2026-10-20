@@ -1,3 +1,5 @@
+> 歷史文件：保留 0.4.0 的功能說明；公開致謝依作者於 2026-10-20 指定的名單更新。目前版本請看 [專案首頁](../../../README.md)。
+
 # Rclone Browser Next
 
 A dual-pane macOS file manager for [rclone](https://rclone.org/), by **Jason Chen**.
@@ -51,4 +53,4 @@ Native app/engine update downloads support system proxies, manual HTTP CONNECT a
 
 Author: **Jason Chen**. MIT license; see [LICENSE](LICENSE).
 
-The workflows and feature inventory were studied from [Rclone Browser](https://github.com/kapitainsky/RcloneBrowser) and [RcloneBrowser2](https://github.com/downer08tutti/RcloneBrowser2). This Swift/AppKit host is a separate implementation. ForkLift informed the dual-pane interaction design; its code and private resources are not distributed here. rclone remains a separately installed project. The app icon was supplied by Jason Chen. Third-party web notices are included in `Resources/Web/THIRD_PARTY_NOTICES.txt`.
+The workflows and feature inventory were studied from [Rclone Browser](https://github.com/kapitainsky/RcloneBrowser). This Swift/AppKit host is a separate implementation. ForkLift informed the dual-pane interaction design; its code and private resources are not distributed here. rclone remains a separately installed project. The app icon was supplied by Jason Chen. Third-party web notices are included in `Resources/Web/THIRD_PARTY_NOTICES.txt`.

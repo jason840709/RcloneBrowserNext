@@ -4,7 +4,9 @@
 
 ## 結果與範圍
 
-**六套 Swift 測試共 101 項通過；介面 86 個不同案例驗證通過。** Swift 各套取本輪最後一次成功執行的結果，初次測試和後續修正回歸不重複計數。Core 與另外五套測試核對的是同一份最終 Core 產品來源；全部無失敗、略過或編譯警告。正式介面的執行組成與範圍列於下方，測試資料與交付資源雜湊保留在 JSON 記錄。
+**Linux 六套 Swift 測試共 101 項通過；介面有 86 個不同案例通過。Apple Silicon 與 Intel 的 macOS CI 也已完成，各為 100 項通過、0 失敗、1 項略過。** 不同平台執行同一批案例，分開列出，沒有加總成更多不同的測試。
+
+Linux 各套取本輪最後一次成功執行的結果，初次測試和後續修正回歸不重複計數。Core 與另外五套測試核對的是同一份最終 Core 產品來源；Linux 全部無失敗、略過或編譯警告。macOS 的略過原因與既有 API 警告見下方 CI 記錄。正式介面的執行組成、測試資料與交付資源雜湊保留在 JSON 記錄。
 
 Swift 環境是 Linux x86_64、Swift 6.0.3（Swift 5 語言模式），使用經官方校驗值核對的 rclone v1.75.2。測試只使用獨立暫存檔案、alias 遠端與 loopback HTTP 回應，沒有接觸日常備份、真實 NAS 或雲端帳號。
 
@@ -42,7 +44,7 @@ CoreTests 會啟動真正的 rclone，驗證結果與檔案內容，並非只檢
 - 新起始值是 `maxDelete=-1`、`deleteMode=during`、`localHashPolicy=none`。舊全域預設只遷移一次；已儲存作業與工作環境保留原本參數，稀疏的舊記錄也先補回舊預設，不因升級擴大刪除範圍。
 - 本機→NAS 方案實際使用單檔傳輸、10 個檢查工作及 `--multi-thread-streams=0`。隱藏方案資料只接受三個已知 ID，去除重複並限制長度。
 - rclone 回報 `speed=0`、`eta=null` 但容量持續增加時，仍可由既有統計估算速度與 ETA。測試涵蓋停滯、同秒取樣、缺少 elapsed、計數重設、不合法數值、只剩檔案數的 ETA 與完成後平均速度。
-- 單一工作的速度視窗最多保留 64 個數值樣本。10,000 次純數值更新的 Linux 微型測試約 0.069 秒；這不含每檔資料列，不能當作 Mac、NAS 或整體傳輸效能實測。
+- 單一工作的速度視窗最多保留 64 個數值樣本。10,000 次純數值更新的 Linux 微型測試約 0.068 秒；這不含每檔資料列，不能當作 Mac、NAS 或整體傳輸效能實測。
 - `--local-hashes=none` 的已存在檔案若修改時間不同，可能直接重傳；`--no-update-modtime` 不被誤認成停用本機雜湊的替代方案。
 
 Linux inotify 只驗證該測試條件下的本機後端讀取。在 Mac 執行時此案例會明確略過；不能把預期通過數當成實際 Mac 結果。
@@ -83,19 +85,41 @@ TypeScript 型別檢查與正式建置通過。Playwright 從 `file://` 載入�
 
 App 的 `.icns` 與介面 SVG 圖示維持使用者提供的 v2，SHA-256 與來源相符，沒有重新繪製。
 
-## Mac 與 GitHub：尚未完成的驗證
+## macOS CI：雙架構建置、簽章與整合測試
 
-最終 Core／Mac Swift 來源通過 arm64、x86_64 的語法解析；九個 shell 入口語法與 Info.plist 已檢查。Info.plist 為 0.5.0、build 50、最低 macOS 13.0、三種本地化與 v2 圖示。
+[GitHub Actions run 39408177020](https://github.com/jason840709/RcloneBrowserNext/actions/runs/39408177020) 對應來源 commit `36aef715a687b83657e5f99707cacc0c8dcc9f51`。2026-10-20，Apple Silicon、Intel 與 Release 三個工作全部完成並成功；[0.5.0 Release](https://github.com/jason840709/RcloneBrowserNext/releases/tag/v0.5.0) 已產生完整原生 App 與本機建置包。
 
-**語法解析不是 Apple SDK 型別檢查。** 此環境沒有 macOS SDK，沒有完成 Mac 連結、實機啟動、codesign 或 Gatekeeper 驗證。Cmd-Q、AppKit 選單、WKWebView 橋接、Finder 拖放、Terminal Config、通知、狀態列及掛載 API 均有實作與來源審查，但仍待 Mac 實機驗證。
+| 測試套件 | Apple Silicon | Intel |
+| --- | --- | --- |
+| CoreTests | 42 通過、1 略過 | 42 通過、1 略過 |
+| UpdaterTests | 20 通過 | 20 通過 |
+| ToolsTests | 12 通過 | 12 通過 |
+| NativeMessagesTests | 13 通過 | 13 通過 |
+| FinderDropTests | 5 通過 | 5 通過 |
+| AppReleaseTests | 8 通過 | 8 通過 |
+| **各架構合計** | **100 通過、0 失敗、1 略過** | **100 通過、0 失敗、1 略過** |
 
-滑鼠側鍵使用視窗內的 AppKit 事件監聽：按下時傳入左右面板座標、消耗同一側鍵的按下與放開事件，避免 WebKit 再導航一次；原生或 HTML 對話框開啟時不操作歷史。監聽器在換視窗與離開時清理。以上做過靜態與官方 API 對照，尚未用實體滑鼠或滑鼠廠商自訂驅動程式驗證。
+略過的是使用 Linux inotify 的檔案讀取監測，macOS 不提供這個 API；其他可攜的 NAS 比對與傳輸案例仍實際執行。兩架構使用 macOS 15.7.9、Apple Swift 6.1.2 與 rclone 1.75.2，App 最低系統為 macOS 13.0。
 
-公開專案已由作者建立於 [jason840709/RcloneBrowserNext](https://github.com/jason840709/RcloneBrowserNext)，並已發布 0.4.0。整合 0.5 時保留了該專案的 Clang module cache 修正，以及兩個 APFS 測試 fixture 的串流設定；它們只影響測試，不會停用一般操作中的 APFS 複製加速。
+- 原生 Apple SDK 編譯與連結成功，產物分別驗證為 `arm64` 及 `x86_64`，版本為 0.5.0、build 50。
+- 完整資源裝入後才建立 ad-hoc 簽章；兩個架構各兩次通過 `codesign` 檢查，包含 `valid on disk` 與 `satisfies its Designated Requirement`。
+- App 磁碟用量由 `du -sk` 測得為 **2.50 MiB（Apple Silicon）／2.55 MiB（Intel）**，不含獨立安裝的 rclone。它與 ZIP 大小、檔案邏輯位元組數是不同的測量。
+- 兩架構各有一項既有 `NSWorkspace.openFile(_:withApplication:)` 棄用警告，位於 `Sources/Mac/AppMain.swift:850`；沒有編譯錯誤。
+- 10,000 次進度數值快照，在 arm64 runner 為 0.090273 秒、Intel runner 為 0.171147 秒，最多保留 64 個樣本。這是 CI 微型量測，不能推論使用者 Mac 或實體 NAS 的整體傳輸效能。
 
-0.5 的 Apple Silicon 與 Intel 建置、簽章及核心測試由 [GitHub Actions](https://github.com/jason840709/RcloneBrowserNext/actions) 執行。本頁上方的 101 項是 Linux 實際結果，不代指 Mac 通過數；Mac 的執行結果另以對應 commit 的 CI 記錄為準。發布工作只會在兩個 Mac 工作都成功、且該版本尚未存在時建立 Release，不覆寫現有版本。
+完整結果與原生主程式 SHA-256 見 [macOS CI JSON](verification/0.5.0-macos-ci.json)。Mac 的實際結果與前述 Linux 的 101 項分開保存；本頁後續文件排版更新沒有改動該 commit 的產品來源或已發布原生 ZIP。
 
-交付物是 **Mac 本機建置包**，不是宣稱在 Mac 驗證完成的預編譯 App。`Build-on-Mac.command` 使用既有 Apple 工具，編譯來源、裝入完整資源、建立 ad-hoc 本機簽章並驗證。它不安裝額外工具、不下載 Web 開發依賴、不關閉 Gatekeeper，也不把本機簽章當成 Developer ID 或 Apple 公證。
+### 仍需要實際使用環境確認的範圍
+
+CI 使用 `--no-launch` 建置，沒有操作互動 GUI，也沒有連線到使用者的實體 NAS 或雲端帳號。Cmd-Q、AppKit 選單、WKWebView、Finder 拖放、Terminal Config、系統通知、選單列與掛載仍需在實際桌面環境確認。ad-hoc 簽章完整性驗證不等於 Developer ID 簽章或 Apple 公證，也不保證瀏覽器下載後可直接通過 Gatekeeper。
+
+滑鼠側鍵使用視窗內的 AppKit 事件監聽：按下時傳入左右面板座標、消耗同一側鍵的按下與放開事件，避免 WebKit 重複導航；原生或 HTML 對話框開啟時不操作歷史。監聽器在換視窗與離開時清理。已核對原生編譯、事件訊息契約及前端歷史行為，尚未用實體滑鼠或廠商自訂驅動程式驗證。
+
+整合時保留了作者儲存庫的 Clang module cache 修正，以及兩個 APFS 測試 fixture 的串流設定；後者只影響測試，不會停用一般操作中的 APFS 複製加速。發布流程只有在兩個 Mac 工作成功且版本尚未存在時才建立 Release，既有附件不被後續文件修改取代。
+
+### 下載與本機建置
+
+Release 提供 Apple Silicon、Intel 原生 App，以及完整 **Mac 本機建置包**。`Build-on-Mac.command` 使用 Mac 既有的 Apple 開發工具，編譯來源、裝入完整資源、建立 ad-hoc 本機簽章並驗證。一般建置不安裝額外工具、不下載 Web 開發依賴、不關閉 Gatekeeper；編譯快取與產物放在同一專案資料夾。
 
 ## 自行重跑
 

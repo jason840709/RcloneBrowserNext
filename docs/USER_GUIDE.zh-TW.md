@@ -116,4 +116,4 @@ Finder 掛載的 SMB 路徑，對 rclone 屬於本機檔案系統。計算這些
 
 保留並擴充原版 Remotes／Jobs／Tasks 的操作流程與功能分類，使用 Swift／AppKit 建立新的 macOS host。這不是直接搬運原版 Qt 程式碼的 fork；設計與行為的對照列在 [功能對照](FEATURE_MATRIX.zh-TW.md)。
 
-作者為 **Jason Chen**，程式採 MIT 授權。圖示由 Jason Chen 提供；第三方前端套件授權隨 Web 資源附上。參考專案：[Rclone Browser](https://github.com/kapitainsky/RcloneBrowser)、[RcloneBrowser2](https://github.com/downer08tutti/RcloneBrowser2)；ForkLift 僅供操作與版面參考，沒有重分發它的程式碼或私有資源。
+作者為 **Jason Chen**，程式採 MIT 授權。圖示由 Jason Chen 提供；第三方前端套件授權隨 Web 資源附上。參考專案：[Rclone Browser](https://github.com/kapitainsky/RcloneBrowser)；ForkLift 僅供操作與版面參考，沒有重分發它的程式碼或私有資源。
