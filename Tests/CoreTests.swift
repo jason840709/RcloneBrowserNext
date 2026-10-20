@@ -635,7 +635,10 @@ private final class CoreTestSuite {
             let from = try folder("history-limit/source"), area = try folder("history-limit-engine")
             let state = try folder("history-limit-engine/state"), destinations = try (0..<3).map { try folder("history-limit/target-\($0)") }
             try file(from, "large.bin", Data(repeating: 0x6a, count: 4 * 1024 * 1024))
-            let savedRequest = try EngineTransferRequest(request(from, destinations[0], options: ["bandwidth": "1K"]))
+            // Keep these jobs active while checking queue and history behavior;
+            // APFS clones can finish immediately despite the bandwidth limit.
+            let activeOptions: [String: Any] = ["bandwidth": "1K", "extraArgs": ["--local-no-clone"]]
+            let savedRequest = try EngineTransferRequest(request(from, destinations[0], options: activeOptions))
             let task = EngineTask(id: UUID().uuidString.lowercased(), name: "不受歷史上限影響", request: savedRequest,
                                   createdAt: "2023-01-01T00:00:00Z", updatedAt: "2023-01-01T00:00:00Z")
             let old = (0..<202).map { index -> EngineJob in
@@ -650,7 +653,7 @@ private final class CoreTestSuite {
             _ = try engine.invoke("saveSettings", arguments: [["rclonePath": rclone, "maxConcurrentJobs": 1]])
             let retained = try engine.invoke("listJobs", arguments: []) as! [[String: Any]]
             try expect(retained.count == 200 && !retained.contains { $0["id"] as? String == old[0].id || $0["id"] as? String == old[1].id }, "wrong ended-history retention")
-            let ids = try destinations.map { try submit(engine, request(from, $0, options: ["bandwidth": "1K"])) }
+            let ids = try destinations.map { try submit(engine, request(from, $0, options: activeOptions)) }
             let pending = try engine.invoke("listJobs", arguments: []) as! [[String: Any]]
             try expect(pending.count == 203 && pending.filter { $0["status"] as? String == "queued" }.count == 2, "history cap blocked or evicted pending jobs")
             _ = try engine.invoke("saveSettings", arguments: [["maxConcurrentJobs": 0]])
