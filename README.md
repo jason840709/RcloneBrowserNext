@@ -105,7 +105,6 @@ App 採 **ad-hoc 本機簽章**，尚未取得 Developer ID 簽章與 Apple 公�
 - [rclone](https://rclone.org/) 與其開發者：提供儲存服務連線與檔案傳輸引擎。
 - [mmozeiko／RcloneBrowser](https://github.com/mmozeiko/RcloneBrowser)：原始 Rclone Browser 專案與圖形操作的基礎。
 - [kapitainsky／RcloneBrowser](https://github.com/kapitainsky/RcloneBrowser)：延續原專案的維護版本，提供本專案研究的功能與工作流程。
-- ForkLift：雙面板操作與版面參考；本專案沒有散布它的程式碼或私有資源。
 
 Next 是以 Swift／AppKit 與 React 實作的獨立專案，並非原版的官方新版。
 第三方前端套件聲明隨 [Web 資源](Resources/Web/THIRD_PARTY_NOTICES.txt) 附上。
