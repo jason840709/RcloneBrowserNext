@@ -610,6 +610,17 @@ private final class CoreTestSuite {
             }
         }
 
+        test("an empty session and saved tasks do not require quit confirmation") {
+            let from = try folder("quit-empty/source"), to = try folder("quit-empty/destination")
+            let engine = try self.engine("quit-empty-engine", useRclone: false)
+            defer { engine.shutdown() }
+            try expect(!engine.quitSummary().requiresConfirmation, "empty session requested confirmation")
+            _ = try engine.invoke("saveTask", arguments: ["尚未執行的作業", request(from, to)])
+            let summary = engine.quitSummary()
+            try expect(!summary.requiresConfirmation && summary.activeJobs == 0 && summary.failedJobs == 0 && summary.unfinishedJobs == 0,
+                       "a saved task was treated as an unfinished transfer")
+        }
+
         test("startup clears only successful history while preserving failed and unfinished requests and their logs") {
             let from = try folder("restart-history/source"), to = try folder("restart-history/destination")
             let area = try folder("restart-history-engine"), state = try folder("restart-history-engine/state"), logs = try folder("restart-history-engine/state/logs")
@@ -625,6 +636,9 @@ private final class CoreTestSuite {
             defer { engine.shutdown() }
             let jobs = try engine.invoke("listJobs", arguments: []) as! [[String: Any]]
             try expect(jobs.count == 7 && !engine.hasActiveJobs, "startup removed unfinished history or restarted work")
+            let quit = engine.quitSummary()
+            try expect(quit.requiresConfirmation && quit.activeJobs == 0 && quit.failedJobs == 1 && quit.unfinishedJobs == 6,
+                       "quit ignored failed, cancelled, interrupted or restored unfinished history")
             try expect(!jobs.contains { $0["id"] as? String == saved[0].id }, "completed history remained after startup")
             for (index, old) in saved.enumerated() where index > 0 {
                 let current = try job(engine, old.id)
@@ -923,6 +937,8 @@ private final class CoreTestSuite {
                 Thread.sleep(forTimeInterval: 0.03)
             }
             try expect(stopping["status"] as? String == "cancelling" && stopping["endedAt"] == nil, "stopping process was prematurely marked ended")
+            try expect(engine.quitSummary().requiresConfirmation && engine.quitSummary().activeJobs == 1,
+                       "a cancelling process was considered safe for a silent quit")
             let pending = stopping["cancellation"] as? [String: Any] ?? [:]
             try expect(pending["lastSignal"] as? String == "SIGINT" && pending["forced"] as? Bool == false && pending["processExited"] as? Bool == false, "first stop signal was not a graceful interrupt")
             try expect(done.wait(timeout: .now() + 18) == .success && results.errors.isEmpty, "forced stop failed or hung: \(results.errors)")
@@ -963,10 +979,38 @@ private final class CoreTestSuite {
                          "real interrupt preserves completed and prior destination files", "bulk stop is limited to confirmation IDs",
                          "selected-folder sync deletion boundaries", "selected sync include/exclude intersection on both sides",
                          "selected sync includes with a missing destination", "repeated sync and timestamp quantization",
-                         "independent per-file reports preserve retries, errors and complete pagination"] { skip(name) }
+                         "independent per-file reports preserve retries, errors and complete pagination",
+                         "quit decision after successful retries and explicit history cleanup"] { skip(name) }
             return
         }
         print("Integration executable: \(rclone)")
+
+        test("quit becomes silent after successful work while retries keep original failures visible") {
+            let from = try folder("quit-retry/source"), to = try folder("quit-retry/destination")
+            let state = try folder("quit-retry-engine/state")
+            try file(from, "take.txt")
+            let failed = EngineJob(request: try EngineTransferRequest(request(from, to)), command: "previous failed copy")
+            failed.status = "failed"; failed.error = "Previous copy failed"; failed.endedAt = EngineJSON.now()
+            try EngineStorage.atomicJSON([failed.json], to: state.appendingPathComponent("jobs.json"))
+            let engine = try self.engine("quit-retry-engine"); defer { engine.shutdown() }
+            try expect(engine.quitSummary().failedJobs == 1 && engine.quitSummary().requiresConfirmation, "restored failure did not request confirmation")
+            let retried = try engine.invoke("retryJob", arguments: [failed.id]) as! [String: Any]
+            let retryID = retried["id"] as! String
+            let result = try wait(engine, retryID)
+            try expect(result["status"] as? String == "completed" && retryID != failed.id, "retry did not finish successfully")
+            let deadline = Date().addingTimeInterval(3)
+            while engine.quitSummary().activeJobs > 0 && Date() < deadline { Thread.sleep(forTimeInterval: 0.01) }
+            let retained = engine.quitSummary()
+            try expect(retained.activeJobs == 0 && retained.failedJobs == 1 && retained.requiresConfirmation,
+                       "successful retry silently discarded the original failed history")
+            _ = try engine.invoke("clearJobs", arguments: [["ids": [failed.id], "mode": "finished"]])
+            let complete = engine.quitSummary()
+            try expect(!complete.requiresConfirmation && complete.activeJobs == 0 && complete.failedJobs == 0 && complete.unfinishedJobs == 0,
+                       "completed-only history still requested confirmation")
+            let rows = try engine.invoke("listJobs", arguments: []) as! [[String: Any]]
+            try expect(rows.count == 1 && rows[0]["id"] as? String == retryID, "quit decision changed successful history")
+            try expect(try Data(contentsOf: from.appendingPathComponent("take.txt")) == Data(contentsOf: to.appendingPathComponent("take.txt")), "retry did not copy the real file")
+        }
 
         test("real rclone networking honors loopback binding, user agent, TPS pacing and per-task overrides") {
             let server = try TestHTTPBackend(); defer { server.stop() }
@@ -1021,6 +1065,9 @@ private final class CoreTestSuite {
             let ids = try destinations.map { try submit(engine, request(from, $0, options: activeOptions)) }
             let pending = try engine.invoke("listJobs", arguments: []) as! [[String: Any]]
             try expect(pending.count == 203 && pending.filter { $0["status"] as? String == "queued" }.count == 2, "history cap blocked or evicted pending jobs")
+            let quit = engine.quitSummary()
+            try expect(quit.requiresConfirmation && quit.activeJobs == 3 && quit.failedJobs == 200,
+                       "quit snapshot lost queued jobs or retained failed history")
             _ = try engine.invoke("saveSettings", arguments: [["maxConcurrentJobs": 0]])
             for id in ids { try expect(try job(engine, id)["status"] as? String == "running", "unlimited setting did not immediately launch every queued job") }
             let tasks = try engine.invoke("listTasks", arguments: []) as! [[String: Any]]

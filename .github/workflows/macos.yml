@@ -2,7 +2,7 @@ name: Desktop builds and tests
 
 on:
   push:
-    branches: [main, 'work/0.7.0', 'work/0.8.0']
+    branches: [main, 'work/0.7.0', 'work/0.8.0', 'work/0.8.1']
     tags: ['v*']
     paths-ignore:
       - '**/*.md'
@@ -52,6 +52,32 @@ jobs:
           path: |
             Distribution/*.zip
             Distribution/*.sha256
+          if-no-files-found: error
+          retention-days: 30
+
+  macos-current:
+    name: macOS 26 native interface
+    runs-on: macos-26
+    timeout-minutes: 25
+    env:
+      RBN_BUILD_ARCH: arm64
+      RBN_NATIVE_TESTS_ONLY: 1
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Download the pinned rclone fixture
+        run: /bin/bash Scripts/ci-rclone.sh
+      - name: Build and verify the complete app on current macOS
+        run: /bin/bash Scripts/build-mac.sh --no-launch
+      - name: Verify startup pixels, native navigation and persistent Finder icons
+        run: /bin/bash Scripts/test-mac.sh "$GITHUB_WORKSPACE/.build-cache/ci-engine/rclone"
+      - name: Retain native verification logs
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: RcloneBrowserNext-macOS26-verification
+          path: .build-cache/logs/*.log
           if-no-files-found: error
           retention-days: 30
 
@@ -142,7 +168,7 @@ jobs:
 
   release:
     name: Publish a new verified version
-    needs: [macos, compat-linux, compat-windows]
+    needs: [macos, macos-current, compat-linux, compat-windows]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 10

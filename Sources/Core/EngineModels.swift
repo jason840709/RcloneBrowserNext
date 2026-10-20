@@ -734,6 +734,17 @@ struct EngineJobCancellation {
     }
 }
 
+struct EngineQuitSummary {
+    let activeJobs: Int
+    let failedJobs: Int
+    let unfinishedJobs: Int
+    var requiresConfirmation: Bool { activeJobs > 0 || failedJobs > 0 || unfinishedJobs > 0 }
+    var json: [String: Any] {
+        ["activeJobCount": activeJobs, "failedJobCount": failedJobs, "unfinishedJobCount": unfinishedJobs,
+         "requiresConfirmation": requiresConfirmation]
+    }
+}
+
 final class EngineJob {
     static let terminal: Set<String> = ["completed", "failed", "cancelled", "interrupted"]
     // Unfinished requests must remain available after a restart, even if more

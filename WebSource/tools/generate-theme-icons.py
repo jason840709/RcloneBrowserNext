@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Recolor Jason Chen's v2 vector profiles and package transparent runtime icons.
+"""Build all three transparent application icons from the v2 vector profiles.
 
 Requires an existing Inkscape executable. No dependency installation is performed.
 Only fill/stroke/color values and SVG titles change; the eye/body paths are retained.
@@ -18,11 +18,12 @@ import xml.etree.ElementTree as ET
 WEB = Path(__file__).resolve().parents[1]
 ROOT = WEB.parent
 OUT = WEB / '.build-cache/theme-icons'
+ORIGINAL = ['#D6C9E7', '#AD91C2', '#7D6391', '#3E2D50', '#68517C', '#59416C', '#352440', '#432E54']
 PALETTES = {
+    'purple': ORIGINAL,
     'blue': ['#CDDDED', '#98B4D2', '#6487AC', '#2D4057', '#4E6A88', '#435C78', '#26384C', '#354B63'],
     'green': ['#D1E4D6', '#A5C4AE', '#72967E', '#2B4132', '#526F5B', '#45624E', '#243A2B', '#364F3E'],
 }
-ORIGINAL = ['#D6C9E7', '#AD91C2', '#7D6391', '#3E2D50', '#68517C', '#59416C', '#352440', '#432E54']
 ENTRIES = [
     (b'icp4', 16, 16), (b'icp5', 32, 32), (b'icp6', 64, 64),
     (b'ic07', 128, 128), (b'ic08', 256, 256), (b'ic09', 512, 512),
@@ -56,10 +57,12 @@ def main():
         profiles = {}
         for name, source in sources.items():
             svg = re.sub(r'#[0-9A-Fa-f]{6}', lambda match: mapping.get(match.group().upper(), match.group()), source)
-            svg = svg.replace('三重對稱粉紫蛇圖示', f'三重對稱蛇圖示 — {family}')
+            if family != 'purple':
+                svg = svg.replace('三重對稱粉紫蛇圖示', f'三重對稱蛇圖示 — {family}')
             assert shape(source) == shape(svg), f'Geometry changed: {family}/{name}'
             target = folder / f'{name}.svg'; target.write_text(svg); profiles[name] = target
-        (WEB / f'renderer/favicon-{family}.svg').write_text(profiles['small'].read_text())
+        suffix = '' if family == 'purple' else f'-{family}'
+        (WEB / f'renderer/favicon{suffix}.svg').write_text(profiles['small'].read_text())
         payload = b''; sizes=[]
         for tag, logical, physical in ENTRIES:
             selected = profile(logical)
@@ -68,7 +71,7 @@ def main():
             data=png.read_bytes(); assert data[:8] == b'\x89PNG\r\n\x1a\n'
             payload += tag + struct.pack('>I', len(data)+8) + data
             sizes.append({'type': tag.decode(), 'logical': logical, 'pixels': physical, 'profile': selected})
-        icon = ROOT / f'Resources/AppIcon-{family}.icns'
+        icon = ROOT / f'Resources/AppIcon{suffix}.icns'
         icon.write_bytes(b'icns' + struct.pack('>I', len(payload)+8) + payload)
         manifest['families'][family] = {'colors': colors, 'bytes': icon.stat().st_size, 'sha256': hashlib.sha256(icon.read_bytes()).hexdigest(), 'geometryPreserved': True, 'representations': sizes}
     (OUT / 'icon-verification.json').write_text(json.dumps(manifest, indent=2)+'\n')

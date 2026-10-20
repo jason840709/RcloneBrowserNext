@@ -102,7 +102,16 @@ impl Host {
         if packet.len() > 8 * 1024 * 1024 { return Err(self.text("這次選取的內容超過單次請求上限，請分批處理。", "This selection exceeds one request. Process it in smaller groups.", "選択項目が 1 回の要求の上限を超えています。分けて実行してください。")); }
         packet.push(b'\n');
         let (tx, rx) = mpsc::channel(); self.pending.lock().unwrap().insert(id.clone(), tx);
-        let write = self.input.lock().unwrap().as_mut().ok_or("The engine is closing.").and_then(|stdin| stdin.write_all(&packet).map_err(|_| "Cannot contact the engine."));
+        let write = {
+            let mut input = self.input.lock().unwrap();
+            // Check under the pipe lock: a dialog opened before Quit must not
+            // submit a new transfer after the quit snapshot has been taken.
+            if self.quitting.load(Ordering::SeqCst) && !["_state", "_shutdown", "_endConfiguration"].contains(&method) {
+                Err("The app is closing.")
+            } else {
+                input.as_mut().ok_or("The engine is closing.").and_then(|stdin| stdin.write_all(&packet).map_err(|_| "Cannot contact the engine."))
+            }
+        };
         if let Err(error) = write { self.pending.lock().unwrap().remove(&id); return Err(error.into()); }
         let reply = rx.recv_timeout(timeout);
         self.pending.lock().unwrap().remove(&id);
@@ -458,6 +467,11 @@ async fn dispatch(app: AppHandle, window: WebviewWindow, host: tauri::State<'_, 
     })
 }
 
+fn quit_needs_confirmation(state: &Value) -> bool {
+    state["activeJobs"].as_bool() == Some(true) || state["activeTools"].as_bool() == Some(true) ||
+        state["quit"]["requiresConfirmation"].as_bool() == Some(true)
+}
+
 fn start_quit(app: AppHandle, host: Arc<Host>) {
     if host.quitting.swap(true, Ordering::SeqCst) { return; }
     thread::spawn(move || {
@@ -473,8 +487,8 @@ fn start_quit(app: AppHandle, host: Arc<Host>) {
             if state["configuring"].as_bool() == Some(true) { return Err(host.text("請先關閉帳號設定視窗。", "Close the account setup terminal first.", "先にアカウント設定の端末を閉じてください。")); }
             let active = state["activeJobs"].as_bool() == Some(true) || state["activeTools"].as_bool() == Some(true);
             let detail = if active { host.text("結束會停止傳輸與播放。已完成的檔案變更會保留；未完成的傳輸工作會留在紀錄中，下次可重新執行。", "Quitting stops transfers and streams. Completed file changes are kept. Unfinished transfer jobs remain in history so you can run them again next time.", "終了すると転送と再生を停止します。完了したファイルの変更は保持します。未完了の転送ジョブは履歴に残り、次回もう一度実行できます。") }
-                else { String::new() };
-            if !confirmed(&app, &host, host.text("確定結束 Rclone Browser Next？", "Quit Rclone Browser Next?", "Rclone Browser Next を終了しますか？"), detail, host.text("結束", "Quit", "終了")) { return Ok(false); }
+                else { host.text("還有失敗或未完成的工作。工作紀錄會保留，下次可重試。", "Some jobs failed or are unfinished. Their history is kept so you can retry them next time.", "失敗または未完了のジョブがあります。履歴は保持され、次回再試行できます。") };
+            if quit_needs_confirmation(&state) && !confirmed(&app, &host, host.text("確定結束 Rclone Browser Next？", "Quit Rclone Browser Next?", "Rclone Browser Next を終了しますか？"), detail, host.text("結束", "Quit", "終了")) { return Ok(false); }
             if host.alive.load(Ordering::SeqCst) {
                 if let Err(error) = host.call("_shutdown", vec![]) {
                     if host.alive.load(Ordering::SeqCst) { return Err(error); }
@@ -636,5 +650,18 @@ mod tests {
         for (displayed, expected) in [(80, 0.7), (90, 0.8), (100, 0.9), (110, 1.0), (120, 1.1), (125, 1.15), (135, 1.25)] {
             assert!((interface_zoom(displayed) - expected).abs() < 0.000001);
         }
+    }
+    #[test] fn quit_is_silent_only_without_unfinished_or_failed_work() {
+        let successful = json!({"activeJobs": false, "activeTools": false,
+            "quit": {"activeJobCount": 0, "failedJobCount": 0, "unfinishedJobCount": 0, "requiresConfirmation": false}});
+        assert!(!quit_needs_confirmation(&successful));
+        for state in [
+            json!({"activeJobs": true, "quit": {"requiresConfirmation": true}}),
+            json!({"activeJobs": false, "quit": {"failedJobCount": 1, "requiresConfirmation": true}}),
+            json!({"activeJobs": false, "quit": {"unfinishedJobCount": 1, "requiresConfirmation": true}}),
+            json!({"activeTools": true, "quit": {"requiresConfirmation": false}}),
+        ] { assert!(quit_needs_confirmation(&state)); }
+        // A helper that has already exited has no running work to interrupt.
+        assert!(!quit_needs_confirmation(&Value::Null));
     }
 }

@@ -33,11 +33,13 @@ struct RBNWebAppearance {
     }
 }
 
-/// WebKit's private content views need not forward auxiliary mouse events up
-/// the responder chain. Route this window's side buttons before hit testing.
+/// WebKit's private content views need not forward navigation events up the
+/// responder chain. Route mouse buttons and driver-generated swipes first.
 final class RcloneBrowserWindow: NSWindow {
+    weak var browserView: RcloneWebView?
+
     override func sendEvent(_ event: NSEvent) {
-        if let browser = contentView as? RcloneWebView,
+        if let browser = browserView ?? contentView as? RcloneWebView,
            browser.handleHistoryEvent(event, routedByWindow: true) { return }
         super.sendEvent(event)
     }
@@ -59,6 +61,7 @@ final class RcloneWebView: WKWebView {
         let button: Int
         let timestamp: TimeInterval
         let number: Int
+        let phase: NSEvent.Phase
     }
     private var handledHistoryEvents = [HistoryEventID]()
 
@@ -98,10 +101,10 @@ final class RcloneWebView: WKWebView {
         super.viewDidMoveToWindow()
         stopHistoryMonitoring()
         guard window != nil else { return }
-        // WKWebView's content view can consume auxiliary buttons before the
-        // responder chain reaches this view. A local monitor handles only this
-        // window; it needs no global input or Accessibility permission.
-        historyEventMonitor = NSEvent.addLocalMonitorForEvents(matching: [.otherMouseDown, .otherMouseUp]) { [weak self] event in
+        // Logi Options translates MX Master Back/Forward into .swipe events;
+        // they never produce otherMouseDown or a DOM mouse event. Handle this
+        // AppKit route too, scoped to this window, without global input access.
+        historyEventMonitor = NSEvent.addLocalMonitorForEvents(matching: [.otherMouseDown, .otherMouseUp, .swipe]) { [weak self] event in
             self?.handleHistoryEvent(event) == true ? nil : event
         }
     }
@@ -114,12 +117,45 @@ final class RcloneWebView: WKWebView {
         if !handleHistoryEvent(event) { super.otherMouseUp(with: event) }
     }
 
-    fileprivate func handleHistoryEvent(_ event: NSEvent, routedByWindow: Bool = false) -> Bool {
-        guard event.type == .otherMouseDown || event.type == .otherMouseUp,
-              event.buttonNumber == 3 || event.buttonNumber == 4 else { return false }
-        guard let window = window, window.attachedSheet == nil,
-              NSApp.modalWindow == nil, acceptsHistoryNavigation?() == true,
-              onHistoryNavigation != nil else { return false }
+    override func swipe(with event: NSEvent) {
+        if !handleHistoryEvent(event) { super.swipe(with: event) }
+    }
+
+    // WebKit's default actions navigate its HTML back-forward list. This app
+    // has one document and keeps folder history inside each pane instead.
+    override func goBack(_ sender: Any?) { navigateHistoryCommand("back") }
+    override func goForward(_ sender: Any?) { navigateHistoryCommand("forward") }
+
+    override func validateUserInterfaceItem(_ item: NSValidatedUserInterfaceItem) -> Bool {
+        if item.action == #selector(goBack(_:)) || item.action == #selector(goForward(_:)) {
+            return historyNavigationAllowed
+        }
+        return super.validateUserInterfaceItem(item)
+    }
+
+    private var historyNavigationAllowed: Bool {
+        guard let window = window else { return false }
+        return window.attachedSheet == nil && NSApp.modalWindow == nil &&
+            acceptsHistoryNavigation?() == true && onHistoryNavigation != nil
+    }
+
+    private func navigateHistoryCommand(_ direction: String) {
+        guard historyNavigationAllowed else { return }
+        // Commands use the active pane. The web handler preserves text-editing
+        // shortcuts and applies the same modal guards as the mouse route.
+        onHistoryNavigation?(direction, CGPoint(x: -1, y: -1), Date().timeIntervalSince1970 * 1000, "command")
+    }
+
+    func handleHistoryEvent(_ event: NSEvent, routedByWindow: Bool = false) -> Bool {
+        let isSwipe = event.type == .swipe
+        if isSwipe {
+            guard event.deltaX.isFinite, event.deltaY.isFinite,
+                  abs(event.deltaX) > abs(event.deltaY) else { return false }
+        } else {
+            guard event.type == .otherMouseDown || event.type == .otherMouseUp,
+                  event.buttonNumber == 3 || event.buttonNumber == 4 else { return false }
+        }
+        guard let window = window, historyNavigationAllowed else { return false }
         let location: CGPoint
         if event.window === window {
             location = convert(event.locationInWindow, from: nil)
@@ -132,11 +168,23 @@ final class RcloneWebView: WKWebView {
             return false
         }
         guard bounds.contains(location) else { return false }
-        let identity = HistoryEventID(type: event.type, button: event.buttonNumber,
-                                      timestamp: event.timestamp, number: event.eventNumber)
+        // A Logitech swipe commonly arrives only as .ended. Do not require a
+        // preceding .began and do not confuse it with horizontal wheel scroll.
+        // If a driver supplies intermediate/cancelled phases, consume them
+        // without turning an unfinished gesture into folder navigation.
+        if isSwipe && event.phase != [] && !event.phase.contains(.ended) { return true }
+        let button = isSwipe ? (event.deltaX > 0 ? 3 : 4) : event.buttonNumber
+        let identity = HistoryEventID(type: event.type, button: button,
+                                      timestamp: event.timestamp, number: isSwipe ? 0 : event.eventNumber,
+                                      phase: isSwipe ? event.phase : [])
         if handledHistoryEvents.contains(identity) { return true }
         handledHistoryEvents.append(identity)
         if handledHistoryEvents.count > 16 { handledHistoryEvents.removeFirst() }
+        let eventTime = (Date().timeIntervalSince1970 - ProcessInfo.processInfo.systemUptime + event.timestamp) * 1000
+        if isSwipe {
+            onHistoryNavigation?(button == 3 ? "back" : "forward", documentPoint(from: location), eventTime, "swipe")
+            return true
+        }
         // AppKit gives a matching down/up pair the same event number. A lost
         // release must not make a later release-only press look like that old
         // pair merely because both used the same button.
@@ -147,7 +195,6 @@ final class RcloneWebView: WKWebView {
             // Match this physical press with a possible WebKit DOM fallback.
             // Epoch milliseconds avoid dropping a second fast press merely
             // because it has the same direction as the first one.
-            let eventTime = (Date().timeIntervalSince1970 - ProcessInfo.processInfo.systemUptime + event.timestamp) * 1000
             onHistoryNavigation?(event.buttonNumber == 3 ? "back" : "forward",
                                  documentPoint(from: location), eventTime,
                                  event.type == .otherMouseDown ? "down" : "up")

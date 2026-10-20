@@ -2,8 +2,10 @@ import {useEffect, useRef} from 'react';
 
 type Direction = 'back'|'forward';
 type Phase = 'down'|'up';
-type Gesture = {direction: Direction; domDown?: number; domUp?: number; nativeTime?: number; nativePhase?: Phase; dispatched: boolean; receivedAt: number; timer?: ReturnType<typeof setTimeout>};
+type NativePhase = Phase|'swipe'|'command';
+type Gesture = {direction: Direction; domDown?: number; domUp?: number; nativeTime?: number; nativePhase?: NativePhase; dispatched: boolean; receivedAt: number; timer?: ReturnType<typeof setTimeout>};
 const eventEpoch = (stamp: number) => stamp > 1e12 ? stamp : performance.timeOrigin + stamp;
+const isEditing = (target: EventTarget|null) => target instanceof HTMLElement && Boolean(target.closest('input,textarea,select,[contenteditable="true"]'));
 
 /** Pair native and DOM copies of the same physical press without debouncing
  * successive presses. The native host may miss events translated by a driver. */
@@ -29,10 +31,18 @@ export function useHistoryNavigation(navigate: (direction: Direction, x?: number
       const detail=(event as CustomEvent).detail;
       if (detail?.direction !== 'back' && detail?.direction !== 'forward') return;
       const direction=detail.direction as Direction;
-      const phase: Phase = detail.phase === 'up' ? 'up' : 'down';
+      const phase: NativePhase = detail.phase === 'swipe' || detail.phase === 'command' || detail.phase === 'up' ? detail.phase : 'down';
+      if (phase === 'command' && isEditing(document.activeElement)) return;
       const time=typeof detail.eventTime === 'number' && Number.isFinite(detail.eventTime) ? detail.eventTime : Date.now();
       const list=recent();
       if (list.some(item => item.direction===direction && item.nativeTime===time && item.nativePhase===phase)) return;
+      // A driver-generated native swipe is a completed navigation action, not
+      // a mouse down/up pair. Keep it separate from nearby physical clicks.
+      if (phase === 'swipe' || phase === 'command') {
+        list.push({direction,nativeTime:time,nativePhase:phase,dispatched:true,receivedAt:Date.now()});
+        callback.current(direction,detail.x,detail.y);
+        return;
+      }
       const domTime = (item: Gesture) => phase === 'up' ? item.domUp : item.domDown ?? item.domUp;
       let match=list.filter(item => item.direction===direction && item.nativeTime===undefined && domTime(item)!==undefined && Math.abs(domTime(item)!-time)<=80).sort((a,b)=>Math.abs(domTime(a)!-time)-Math.abs(domTime(b)!-time))[0];
       // If the host saw only the release, it can arrive after a long DOM press.
@@ -85,7 +95,7 @@ export function useHistoryNavigation(navigate: (direction: Direction, x?: number
       dispatchDOM(gesture, event.clientX, event.clientY);
     };
     const key = (event: KeyboardEvent) => {
-      if ((event.target as HTMLElement)?.closest?.('input,textarea,select,[contenteditable="true"]')) return;
+      if (isEditing(event.target)) return;
       const modifier=event.metaKey||event.ctrlKey;
       const direction=event.key==='BrowserBack'||event.altKey&&event.key==='ArrowLeft'||modifier&&(event.code==='BracketLeft'||event.key==='[') ? 'back'
         : event.key==='BrowserForward'||event.altKey&&event.key==='ArrowRight'||modifier&&(event.code==='BracketRight'||event.key===']') ? 'forward' : null;

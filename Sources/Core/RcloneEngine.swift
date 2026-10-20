@@ -56,6 +56,21 @@ final class RcloneEngine {
     }
     var hasActiveJobs: Bool { stateLock.holding { jobs.values.contains { !EngineJob.terminal.contains($0.status) } } }
 
+    /// Read one consistent job snapshot for the native quit decision. A terminal
+    /// status still finishing its report/state write counts as active until its
+    /// worker exits. Saved tasks have not started and do not enter this decision.
+    func quitSummary() -> EngineQuitSummary {
+        stateLock.holding {
+            var activeCount = 0, failedCount = 0, unfinishedCount = 0
+            for job in jobs.values {
+                if active[job.id] != nil || !EngineJob.terminal.contains(job.status) { activeCount += 1 }
+                else if job.status == "failed" { failedCount += 1 }
+                else if job.status != "completed" { unfinishedCount += 1 }
+            }
+            return EngineQuitSummary(activeJobs: activeCount, failedJobs: failedCount, unfinishedJobs: unfinishedCount)
+        }
+    }
+
     init(stateDirectory: URL, defaultRcloneDirectory: URL) throws {
         self.stateDirectory = stateDirectory.standardizedFileURL
         self.defaultRcloneDirectory = defaultRcloneDirectory.standardizedFileURL

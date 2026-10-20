@@ -1,38 +1,47 @@
 {
-  "release": "0.8.0",
+  "release": "0.8.1",
   "suite": {
-    "startTime": "2026-10-20T17:19:35.055Z",
-    "duration": 174873.111,
-    "expected": 176,
+    "startTime": "2026-10-20T19:10:20.142Z",
+    "duration": 166411.191,
+    "expected": 181,
     "skipped": 0,
     "unexpected": 0,
     "flaky": 0,
-    "cases": 176,
-    "durationSeconds": 174.9,
+    "cases": 181,
+    "durationSeconds": 166.4,
     "retries": 0,
-    "receiptSHA256": "ec23e9c44a5e7bbee9cfd1156deb9289c9cdc587051d06330d6f3b10ffdf6b6f"
+    "receiptSHA256": "2756da32b96d83f65c0ecc755b31f7037b25beb3735928eb8963989a6c86e30a"
   },
   "targetedSuite": {
-    "startTime": "2026-10-20T17:19:10.688Z",
-    "duration": 14258.275,
-    "expected": 13,
+    "startTime": "2026-10-20T18:54:56.591Z",
+    "duration": 13882.853,
+    "expected": 16,
     "skipped": 0,
     "unexpected": 0,
     "flaky": 0,
-    "durationSeconds": 14.3,
-    "receiptSHA256": "0d412d73232fef0860b265bfd63d25f84ddcc11948000186bf35fbafd94212ff"
+    "cases": 16,
+    "durationSeconds": 13.9,
+    "retries": 0,
+    "receiptSHA256": "f14e65e61055d550acfd07e495445f8c8a7b3f7882286892f99d074d5c0ab132",
+    "scope": "Earlier navigation-focused regression before the final icon/footer bundle rebuild",
+    "sameProductionBundleAsFullRun": false
   },
   "commands": [
     "npm run typecheck",
     "npm run build",
-    "node node_modules/playwright/cli.js test --config tests/playwright.config.ts tests/revision08.spec.ts --reporter=list,json",
-    "node node_modules/playwright/cli.js test --config tests/playwright.config.ts --reporter=list,json"
+    "npx playwright test --config tests/playwright.config.ts --reporter=json"
   ],
   "environment": {
     "browser": "Chrome Headless Shell 156.0.8078.4",
+    "playwrightVersion": "1.64.1",
     "playwrightRevision": "1248",
     "platform": "Linux",
-    "fonts": "Project-local Noto Sans CJK TC and JP",
+    "fonts": "Project-local Noto Sans CJK TC and JP through FONTCONFIG_FILE",
+    "fontSHA256": {
+      "WebSource/.build-cache/fonts/fonts.conf": "59b936ef7f7c321635de53b674d780eb3a0a1e5ce36620b267e3a63b7f7a885b",
+      "WebSource/.build-cache/fonts/NotoSansCJKtc-Regular.otf": "dce08bd4fd91aa8aa76ed8fea4b694c2dfb8550f67871e326843212ddbeb88b4",
+      "WebSource/.build-cache/fonts/NotoSansCJKjp-Regular.otf": "68a3fc98800b2a27b371f2fb79991daf3633bd89309d4ffaa6946fd587f375b5"
+    },
     "document": "Production Resources/Web/index.html via file://",
     "host": "Deterministic native-bridge fixtures",
     "browserArchive": {
@@ -51,8 +60,8 @@
       "sha256": "401a52547c510b5c231c69f9077b192e2759d282e68f74d13339922f9d9e8552"
     },
     "Resources/Web/app.js": {
-      "bytes": 680609,
-      "sha256": "2eb6496357be31506625fdf030c6b1441702f46fdb6f9fb982e258c5a0224077"
+      "bytes": 680848,
+      "sha256": "77c7f2e43216890b3dfa728860c38fd4d5afca3f394c6d29ecf7c4bd4b222bd1"
     },
     "Resources/Web/appearance-bootstrap.js": {
       "bytes": 494,
@@ -80,9 +89,9 @@
     }
   },
   "sourceSHA256": {
-    "WebSource/package-lock.json": "cf2661e046adeb2cf693636ce5908db9c1c4ba09023d33fe08c23750aa282e47",
-    "WebSource/package.json": "17160945cf8d9b473731e051266701754ae4e2c8a355144bfb52629f8b8863d3",
-    "WebSource/renderer/App.tsx": "95c18b62a3796eeb03f6b9b16c80f41d7604df697a1a7bcbad580183695163c1",
+    "WebSource/package-lock.json": "e120fa040403b93adb56a3df88838115c304292747658535424be265fb4d479f",
+    "WebSource/package.json": "3e2918bf19c95b3ac995f74bf053495cd9cc4fc71c8c10a118a0c33da7d66d87",
+    "WebSource/renderer/App.tsx": "ab9f9d0265902458209d2b53ea404859f0fef4a462ab1e70f90a3ca420b32a57",
     "WebSource/renderer/ApplicationMenu.tsx": "b8f02d5185d119b6e48005568782bd28a7f33434c6e35063d95f2cef489da5c9",
     "WebSource/renderer/BrowserPane.tsx": "47ee140db0af2722ba00dbec7e1f57562313fbe7bb1c87a73c8dafb9f244df3c",
     "WebSource/renderer/JobReport.tsx": "02b92cf4d999a6c003638f7573c3ce1e39f470bd95465c735b1c20146596fdfe",
@@ -96,7 +105,7 @@
     "WebSource/renderer/TransferOptions.tsx": "9aed1b122c399dcc4ae485065cc740352f1667bac07247a045968d2155ce3dbb",
     "WebSource/renderer/appearance-bootstrap.js": "662ee8ad52661096b62115903ba44b7a37a00475c67f26ad9f1358c5a1f3c5d6",
     "WebSource/renderer/appearance.ts": "8ae97f26a4cf3f094b45f2609efc61e3f9db5c28b1b88ba17f3a1c6fae58f71a",
-    "WebSource/renderer/bridge.ts": "0070be36ac2ef2a7fac05fa758a2d19cd61b2a14bee38b4a091912dd9707208c",
+    "WebSource/renderer/bridge.ts": "7c7e827c9b45ff93ac92dc1a9adc698616f106ab873924a41bd01aba75ea5ef6",
     "WebSource/renderer/components.tsx": "c2f2dc15660e9bb3511b3f53c0538ae0b8e7d76569399bcce068c3986890891b",
     "WebSource/renderer/env.d.ts": "65996936fbb042915f7b74a200fcdde7e410f32a669b1ab9597cfaa4b0faddb5",
     "WebSource/renderer/favicon-blue.svg": "36a26990d1dd782a5f6c0561e2870fa4e71064a1f42f72bf149e401e817f3591",
@@ -108,7 +117,7 @@
     "WebSource/renderer/presets.ts": "77e0486eac832511ff077aa44ab07bd904feb618c4c818dca6192d778a75248e",
     "WebSource/renderer/styles.css": "d186841d78f7c04e6c597517965295aa686c1d03ee62ba04596876bf336661dd",
     "WebSource/renderer/useBrowser.ts": "29f083fc75c39b1d19d680093b096b8cf60a27a4385856f0cd3d3b538487acd3",
-    "WebSource/renderer/useHistoryNavigation.ts": "bc45428e582702c085054690888b11db3451e86d031675f5eafc7993a5613e38",
+    "WebSource/renderer/useHistoryNavigation.ts": "0644536d40affc111abb3179aea4c859d4d4b865aff6477b4e1644690cd2719d",
     "WebSource/renderer/utils.ts": "7fa63ed66c4fc899ef982be72526d08ed81b5c1e3f09a83777380a731eb1ccd8",
     "WebSource/shared/types.ts": "d6a64f75cbdb158a6fe02a9ef0cd622ef3dee15a239e75df4b568ef28ef7df0e",
     "WebSource/tests/native-fixture.ts": "f7b8c50f64e3f7097aad0a3cc19363b66c215d380e41a01c3d654f0468ea8cef",
@@ -120,10 +129,16 @@
     "WebSource/tests/revision06.spec.ts": "d23b2711162a3f33e54550f87a002dbce757d5f9a726e5c5346510850a6d6ea6",
     "WebSource/tests/revision07.spec.ts": "60d0d7af39b77062d94337a70d50e325b92f9434323f46235798dd0964393123",
     "WebSource/tests/revision08.spec.ts": "71a1e5b5d87af9cf2cf3d7d0546c37aff51b09e1d52f33cf90e99e99c118c1af",
+    "WebSource/tests/revision081-navigation.spec.ts": "4cc6c9cd2d1edb023391777c8c93727cd644b925a9238af9da51f37df7a39c00",
     "WebSource/tests/ui.spec.ts": "30fcf2e3653f64a218c5244ac0691759fd47f6959a7b9ad552ecd4a3f62e33bf",
     "WebSource/vite.config.ts": "ddeaa777d9a7522e42dc94267ddcc0f3ce751826c291086206e902235cae13fd"
   },
   "productionAndSourceUnchangedAfterTests": true,
+  "sourceSnapshot": {
+    "capturedAt": "2026-10-20T19:10:19.754525+00:00",
+    "timing": "before-full-run",
+    "allRecordedHashesMatchAfterFullRun": true
+  },
   "coverage": {
     "sideButtons": [
       "Independent pane and tab history",
@@ -162,460 +177,512 @@
         135
       ],
       "legacyVisibility": "Only the currently selected legacy value is added; selecting a standard value restores the five standard choices."
-    }
+    },
+    "nativeHistoryMessages": [
+      "Injected swipe messages navigate the pointed pane while preserving both forward histories",
+      "An exact duplicate message is ignored; two rapid distinct swipe messages both navigate",
+      "Injected native command messages use the active pane and preserve focused input/contenteditable editing",
+      "The production operation dialog blocks swipe and command messages",
+      "Ordinary horizontal wheel scrolling leaves folder history unchanged"
+    ]
   },
+  "newCases": [
+    {
+      "file": "revision081-navigation.spec.ts",
+      "title": "native driver swipes navigate the pointed pane while preserving both forward histories"
+    },
+    {
+      "file": "revision081-navigation.spec.ts",
+      "title": "duplicate swipe delivery is ignored while two rapid distinct swipes both navigate"
+    },
+    {
+      "file": "revision081-navigation.spec.ts",
+      "title": "native menu commands use the active pane and preserve focused text editing"
+    },
+    {
+      "file": "revision081-navigation.spec.ts",
+      "title": "an open operation dialog blocks driver swipes and native menu navigation"
+    },
+    {
+      "file": "revision081-navigation.spec.ts",
+      "title": "ordinary horizontal wheel scrolling does not navigate folder history"
+    }
+  ],
   "visuals": {
     "suiteScreenshotCount": 79,
     "inspections": [
       {
-        "run": "targeted",
-        "file": "revision08-migrated-120-pe-ac099-er-choosing-the-new-default/scale-legacy-120.png",
-        "sha256": "6f5250df08580b56a55e8f00031ec1e3e3dc3b8838cc5cf9c3681d4a54ca215f",
-        "observation": "Six sorted scale choices fit on one row; 120% is selected and only 100% is marked as the default."
-      },
-      {
-        "run": "targeted",
-        "file": "revision08-migrated-135-pe-e1a33-er-choosing-the-new-default/scale-legacy-135.png",
-        "sha256": "a19626ec2fab93ac094a8d376bafa1d8401d3a722a8d9ac400cd376ecbaf84d8",
-        "observation": "The 135% legacy choice remains visible at the retained 1.25 zoom; the settings footer and Close action remain reachable."
+        "run": "full",
+        "file": "ui-1060x680-zh-TW-purple-l-9d11d-sfer-metrics-remain-visible/layout.png",
+        "sha256": "ffd30cf0ed9bd9682cf870dc0a71794f80f2bd89df1e5819343af83ba2ceccd9",
+        "observation": "Traditional Chinese minimum-window layout keeps both panes, transfer controls, live progress and the 0.8.1 footer visible; the purple three-ring mark has no rectangular background."
       },
       {
         "run": "full",
-        "file": "revision06-ja-five-interfa-a642d-h-100-percent-in-the-middle/scale-ja-125.png",
-        "sha256": "826f89498fe1bc82c2f1282eb0a3bfbd690e2b4dbdd286de4f30245c44a5e54d",
-        "observation": "Five standard choices and Japanese labels fit; 125% is selected and the dialog footer remains visible."
-      },
-      {
-        "run": "full",
-        "file": "revision06-ja-green-light--1704c--and-task-actions-reachable/task-editor-125.png",
-        "sha256": "3ada765bedbebc4310b5f6526e014bad2b3fe55294878560cd4e67ccb1482dcb",
-        "observation": "Japanese task fields and filters remain readable in the compact light theme; Cancel and Save remain visible."
+        "file": "ui-1060x680-en-blue-dark-c-1cef8-sfer-metrics-remain-visible/layout.png",
+        "sha256": "6254da7f6f8ee8a845903c42c60a150391ec380a6cecb9c3a754c904ed215b01",
+        "observation": "English dark-blue minimum-window layout keeps both panes, queue metrics and the 0.8.1 footer visible; the header mark follows the blue theme."
       },
       {
         "run": "full",
         "file": "revision07-125-both-long-l-26c28-ter-choosing-the-last-cloud/locations-125.png",
-        "sha256": "1b773176921a314411d4d75055ccdc634595c50d8e3622c6df98777cc84145c0",
-        "observation": "The long location menu opens below its trigger, contains the last selected cloud row and keeps its own scrollbar."
+        "sha256": "75b4b211da8fd9e8f1384b3b820e27a0f707ad5d33d140c3d702ff73267a25c6",
+        "observation": "The location menu opens below its trigger at 125%, keeps its internal scrollbar and shows the selected final cloud-60 row."
       },
       {
         "run": "full",
-        "file": "ui-1060x680-zh-TW-purple-l-9d11d-sfer-metrics-remain-visible/layout.png",
-        "sha256": "0bd59d754a5d29e8b2d99403f8448b075b34570d9968b4e1bcf72bc2245b236f",
-        "observation": "Both panes, transfer controls, live job details and the 0.8.0 footer fit the 1060 by 680 CSS viewport."
+        "file": "revision06-ja-green-light--1704c--and-task-actions-reachable/task-editor-125.png",
+        "sha256": "73164f82ead55335e8b23f9dfc547a2315af06f3d8ff29e14162f74651f015d3",
+        "observation": "Japanese light-green task editor at 125% keeps filter labels, text areas, Cancel and Save inside the visible dialog."
+      },
+      {
+        "run": "full",
+        "file": "revision08-migrated-135-pe-e1a33-er-choosing-the-new-default/scale-legacy-135.png",
+        "sha256": "e61ae6e93891ad47f203f9ed0bbba4c3c6e5b3449bc7ec25cea92001bc00ed1b",
+        "observation": "The migrated 135% selection remains the sixth sorted option, 100% alone is marked as default, and the settings Close action remains visible."
+      },
+      {
+        "run": "full",
+        "file": "revision07-en-report-expla-add9c-gures-and-original-evidence/report-breakdown-en.png",
+        "sha256": "9ee9e21b3a0359ea4d70787fe7e66405e812e8b731e391866cecfe068e459beb",
+        "observation": "The English error report separates successful-copy bytes and size-check-failure bytes, displays source and written sizes, and retains the original rclone messages with an internal report scrollbar."
       }
     ],
     "screenshots": [
       {
         "file": "revision04-blue-dark-narro-cf38f--pixels-through-empty-space/zebra-blue-dark.png",
-        "bytes": 94258,
-        "sha256": "733866972f763accad5f2b3055c564838bc5e8a0a249ec9ece03e226199d65b8"
+        "bytes": 94290,
+        "sha256": "ef61b3981716d3fcf37b8e2d13b00188a55145205877c97d8701f30b48e72eda"
       },
       {
         "file": "revision04-blue-light-narr-fe610--pixels-through-empty-space/zebra-blue-light.png",
-        "bytes": 93810,
-        "sha256": "fb05337cf7d1d5a8b0009a4eceb423ca9ff92efb7e172112007fcb69e8aa55e1"
+        "bytes": 93909,
+        "sha256": "22dbb906e09099d4f2a2600c28eafdd2f64f56e1101080670516936b4b4e63cc"
       },
       {
         "file": "revision04-en-full-task-ed-c4f99--and-keep-borders-separated/network-en.png",
-        "bytes": 97924,
-        "sha256": "bff3a593b5c7fed725d39e2be87db9e48490293a377005e10f46a08ecd1bf852"
+        "bytes": 97931,
+        "sha256": "4dfb8769b586e909f9d5a7c20ff39210641c4073d12fa385ad74f3764f2d2d62"
       },
       {
         "file": "revision04-en-full-task-ed-c4f99--and-keep-borders-separated/task-en-filtersTab.png",
-        "bytes": 84400,
-        "sha256": "09dd698ba3aaddd2861696202ca5c46d3c049d2b780ad433dfc15b4a1749a43e"
+        "bytes": 84396,
+        "sha256": "a08439d9958113e5a53cd3734fb01a7a5eec6b201a5e4365e47309d05ac85b75"
       },
       {
         "file": "revision04-en-full-task-ed-c4f99--and-keep-borders-separated/task-en-locationsTab.png",
-        "bytes": 94323,
-        "sha256": "a65d803eb6b51c628a18338ee66a26e0374dd478bac053e10f0cff815ee440d0"
+        "bytes": 94322,
+        "sha256": "9089faea20ea7248ec8c369199d37f565d1271cc6059f41c92cfde31be8eb171"
       },
       {
         "file": "revision04-en-full-task-ed-c4f99--and-keep-borders-separated/task-en-modeAndComparison.png",
-        "bytes": 100916,
-        "sha256": "1e230140e1ea4a9db0a87e89fa8d685ebe7cc0a8ba0a7f00295ad8f836287ffb"
+        "bytes": 100917,
+        "sha256": "066c97518bb7400294d66ac33b8210858bc9837dd2376769aa073b6961786b5e"
       },
       {
         "file": "revision04-en-full-task-ed-c4f99--and-keep-borders-separated/task-en-transferPerformance.png",
-        "bytes": 96921,
-        "sha256": "2eb154d0893b4920f341b6060eeb92c5c976c504348809ea7b020e590c769990"
+        "bytes": 96917,
+        "sha256": "a0b1be6429ab1419fccc7fa97c457e45d42e8e14b014192cb0dea40cfa3a169f"
       },
       {
         "file": "revision04-ja-full-task-ed-98074--and-keep-borders-separated/network-ja.png",
-        "bytes": 101360,
-        "sha256": "7343d7ea222b337bcedf068290f50298ab254ef67f8e63de87c1ead7f385a005"
+        "bytes": 101375,
+        "sha256": "206d9a1729d0812b291cf166331aed5b13d5a6934c20a6faf7cfbbb463429fe0"
       },
       {
         "file": "revision04-ja-full-task-ed-98074--and-keep-borders-separated/task-ja-filtersTab.png",
-        "bytes": 89669,
-        "sha256": "09fea02ede58fdd653e69942843e789f965a36c269d6caf7d9de40e821a49e36"
+        "bytes": 89679,
+        "sha256": "d00c98a7aef50e7b4c3803e8000c9ee09aeffc5ed9c171c7a4d58a6e560ad39e"
       },
       {
         "file": "revision04-ja-full-task-ed-98074--and-keep-borders-separated/task-ja-locationsTab.png",
-        "bytes": 93884,
-        "sha256": "d56a5d473969b2ea03546ac1940a4c71f5d1366f4c657aedf1043ef68e036603"
+        "bytes": 93896,
+        "sha256": "eed485dbe90b8a5936c3afe2737aa9e857f98431021b840a441faaa70590adf8"
       },
       {
         "file": "revision04-ja-full-task-ed-98074--and-keep-borders-separated/task-ja-modeAndComparison.png",
-        "bytes": 109280,
-        "sha256": "9f429b21a638dd7b560563c1a89c95517929f5dec202e223827ac6e0bc530b3e"
+        "bytes": 109292,
+        "sha256": "ea420214a817b300de31f0c351fbfcf911608e70f417ea6d1e104cbcb3f01806"
       },
       {
         "file": "revision04-ja-full-task-ed-98074--and-keep-borders-separated/task-ja-transferPerformance.png",
-        "bytes": 98134,
-        "sha256": "bfd109d4bc881414d612eb7f10306ed1ff3979b050c99a375b7579f1630ec1bc"
+        "bytes": 98146,
+        "sha256": "365126af1bae15534c379f62baeec37a60f0d688a4d27743a6b255d6de272a1f"
       },
       {
         "file": "revision04-purple-dark-nar-141ee--pixels-through-empty-space/zebra-purple-dark.png",
-        "bytes": 94301,
-        "sha256": "001d6938447c74d1ce17010b0d3d9352cc1644d91b8bdd50c9063b5b0f17555e"
+        "bytes": 94358,
+        "sha256": "e433edd3f65f0b18551bf18b05cabc7c6b7607b12a11f679bfb6b15440470f15"
       },
       {
         "file": "revision04-purple-light-na-d2a92--pixels-through-empty-space/zebra-purple-light.png",
-        "bytes": 93768,
-        "sha256": "d613e3c20302156e69bd5f8874ded14b147484b1de3d23bb061acbbdd0c60097"
+        "bytes": 93836,
+        "sha256": "ce42d359fa728bbbe68d624fd8065701c531e6652a9cf931fc27ac5aca503412"
       },
       {
         "file": "revision04-zh-TW-full-task-5feac--and-keep-borders-separated/network-zh-TW.png",
-        "bytes": 95350,
-        "sha256": "1793687b3b42348a165e9018738b88616317049ac7047b0391568a25d9725ac5"
+        "bytes": 95365,
+        "sha256": "621d405b18975a7cd5665ea002a017cebce411324d0bd395f1632f6c90093b16"
       },
       {
         "file": "revision04-zh-TW-full-task-5feac--and-keep-borders-separated/task-zh-TW-filtersTab.png",
-        "bytes": 85978,
-        "sha256": "917fbc92896c8711709610666a7dc7dca3cc682c5a810f069d8ae741d1de7b00"
+        "bytes": 85986,
+        "sha256": "a9312edb23267f433d216f57acd105ec25941bd9b2c0c8d20ea35f9aaeb0fe32"
       },
       {
         "file": "revision04-zh-TW-full-task-5feac--and-keep-borders-separated/task-zh-TW-locationsTab.png",
-        "bytes": 92852,
-        "sha256": "6c68f9bb272dbe770fb53409eee941713d247d57c9dbf3a186c2582bb39c473b"
+        "bytes": 92857,
+        "sha256": "f60fba76d2b368d4044e125a4a8b763b961a63889bd00a61608de65e83c0af1c"
       },
       {
         "file": "revision04-zh-TW-full-task-5feac--and-keep-borders-separated/task-zh-TW-modeAndComparison.png",
-        "bytes": 106768,
-        "sha256": "c4e4a93323864e388bf98bfb71c51d397368b685b96ba6949fe629dc01ae15e9"
+        "bytes": 106771,
+        "sha256": "47c2ef2c8641ccc5c39baa9d9921cce0d08491204b5b61ac5dbfa9a65c40cc56"
       },
       {
         "file": "revision04-zh-TW-full-task-5feac--and-keep-borders-separated/task-zh-TW-transferPerformance.png",
-        "bytes": 100772,
-        "sha256": "0880435e0c288840838cf0e4429f42f8583f1a9be54f60aadf6dea663142aba3"
+        "bytes": 100779,
+        "sha256": "b98b6bb41e40e0001b40c28808446d51b37637c7cb82ba1bd9402d1841597f07"
       },
       {
         "file": "revision05-directory-failu-4cdc7--within-one-scrollable-card/contained-error.png",
-        "bytes": 195376,
-        "sha256": "da622fab24864ea8ed34e642d579f75c0569d39ec03a9945509e68a0a4468724"
+        "bytes": 195457,
+        "sha256": "9f0160238611bd99b3a4b58cd8f200595608f77ca6c491c2fe225cc15fdd0436"
       },
       {
         "file": "revision05-empty-Tasks-has-da857--task-or-execution-controls/empty-tasks.png",
-        "bytes": 34825,
-        "sha256": "926bf1584257634fa0612fab303f336f7b0a808f67dfcb1ea6296121a1074f80"
+        "bytes": 34838,
+        "sha256": "5c2cac5fd316318c1591cb17a1fd5e0417c64a4e3f592254941e88d822f67b01"
       },
       {
         "file": "revision05-preset-hiding-p-6abfb-hanges-only-menu-visibility/preset-menu.png",
-        "bytes": 167902,
-        "sha256": "9ce49b695c7c9c2019c11373e41267a6f05bf0bf8cd7eedea8c69397acba0736"
+        "bytes": 167196,
+        "sha256": "27940a5691266727838c72a43857c6a8655d4ee980e7e3ea3f3fbd8abb9503d1"
       },
       {
         "file": "revision05-purple-dark-106-183a3-row-remain-distinct-and-fit/connected-tabs.png",
-        "bytes": 87907,
-        "sha256": "24adaf4742bb6e2d17038d8b8b05a786f2f5032ec0ac57072c3d3fe26552c9fd"
+        "bytes": 87925,
+        "sha256": "7ac1c6a9f555eb568c615a35c5c9833abfebf20e0fe8fea9da80140e830d407b"
       },
       {
         "file": "revision05-purple-dark-144-f06b5-row-remain-distinct-and-fit/connected-tabs.png",
-        "bytes": 92132,
-        "sha256": "d3971b451d2dd00d6791080e4f80770d63b29644bd594b24207b62a0ac2a423f"
+        "bytes": 92169,
+        "sha256": "41fa31782b52a2059d12dc922e34eb6384ae30a9b4fdb2c6bd6086cfa09b35db"
       },
       {
         "file": "revision05-purple-light-10-7581b-row-remain-distinct-and-fit/connected-tabs.png",
-        "bytes": 87363,
-        "sha256": "74d7d0b4ca77bebca784beb933226e1cd8a4594c215afe3c112f03a1361a7462"
+        "bytes": 87232,
+        "sha256": "9790d956b30f2d46d4f8162ac22e83cd5ce4a87569c873b7fc62ba4ada09b1ed"
       },
       {
         "file": "revision05-purple-light-14-d7764-row-remain-distinct-and-fit/connected-tabs.png",
-        "bytes": 91589,
-        "sha256": "ca777d66daac94bd5501fe4b818513c72668a8d7848ea1bbd11d87546e025c74"
+        "bytes": 91759,
+        "sha256": "bd1c85ba73d2d39a561089c5cfcf9bd7a1a348c2945691514bf68dc361a5b5f6"
       },
       {
         "file": "revision05-success-toast-f-e2ecf-ismisses-after-five-seconds/floating-success.png",
-        "bytes": 139332,
-        "sha256": "1744d39fa644f15aa6771902ac24ef8fd4699b661989cbeae77782676b5d4df3"
+        "bytes": 139404,
+        "sha256": "94a70764660a0c852c89d9663994840a17736c2fc27cab8b2ab6d5d6b1f3fc2b"
       },
       {
         "file": "revision06-active-stop-and-b91de-ts-late-resurrecting-events/stopping.png",
-        "bytes": 136757,
-        "sha256": "104114507f533ac8d9c949f6a56eb4a83fc8274d08c0a7ec22569630cf9108ac"
+        "bytes": 136789,
+        "sha256": "38e6d75c6619512729966db186f77db6e053fdc8069bf12cd31306dbe5f8df45"
       },
       {
         "file": "revision06-additions-a-vis-cf62f-ps-an-operable-close-button/toast-visible.png",
-        "bytes": 138897,
-        "sha256": "78cd1c3e58356f2937e4584e6349e619e38bc886d673e37ca2834198a8f39768"
+        "bytes": 138816,
+        "sha256": "43799c36a24843980e8adebdc8ce70d9e70b6b968c37848ec149f789c4c7361a"
       },
       {
         "file": "revision06-additions-en-re-1d763-ay-reachable-at-125-percent/report-125.png",
-        "bytes": 60912,
-        "sha256": "6f120a0436d456a6da612f9298239df25687a3637c150fd720620b653e4e2d87"
+        "bytes": 60949,
+        "sha256": "da51cdbac8482f98d632a491e9c1959678992ff6a8bfc01601c20821926ae64a"
       },
       {
         "file": "revision06-additions-ja-re-4106e-ay-reachable-at-125-percent/report-125.png",
-        "bytes": 69799,
-        "sha256": "21517dcd923f90b81de7cd4ad486cfce7737d33d935abcbdee08fa5b1fd7103b"
+        "bytes": 69834,
+        "sha256": "523c31ce1e0572fda13052a5c4dc790153dd0495cf36f6c19bd592a85d4bde72"
       },
       {
         "file": "revision06-additions-zh-TW-426a1-ay-reachable-at-125-percent/report-125.png",
-        "bytes": 68230,
-        "sha256": "3205a9968bc75e6f1ede818ecb97f343f6b6471116364111975b774bf4c6de47"
+        "bytes": 68263,
+        "sha256": "020889d1787467ffccd12f6642f1d1958ebf2df1d53553deb6765b3b52c3f067"
       },
       {
         "file": "revision06-all-stop-and-cl-5ae1d-ts-late-resurrecting-events/stopping.png",
-        "bytes": 191016,
-        "sha256": "ec806734d33354af70349a485ae2c0d8bf5b1baede575ab51c9ab0363fc33ea4"
+        "bytes": 191065,
+        "sha256": "4e4866b48ac8967a26ac9abaad7d6793712125c5fd06758b6dd67a103ba1a467"
       },
       {
         "file": "revision06-en-five-interfa-64706-h-100-percent-in-the-middle/scale-en-125.png",
-        "bytes": 54678,
-        "sha256": "71ac07a2894432de37132a4064da4958db26eb11fe4503d732b3096082bb3377"
+        "bytes": 54645,
+        "sha256": "59d387e40e4278f3ee4cd3ea7bd6502bd680bc8c3d34e8fdfe3fb32b99b03653"
       },
       {
         "file": "revision06-en-green-dark-1-84dd4--and-task-actions-reachable/task-editor-125.png",
-        "bytes": 48702,
-        "sha256": "7ce14fe875a4499aa8f2d6d95fdf92eb00e69b1bba3a7469812511dc1b95375b"
+        "bytes": 48677,
+        "sha256": "0169238802644b879b0523c0db4543b0de535525d5a12764b1e3ce99fd59d8da"
       },
       {
         "file": "revision06-en-green-light--e8070--and-task-actions-reachable/task-editor-125.png",
-        "bytes": 49181,
-        "sha256": "8294f0081419bb6f27aa34280094c830f5add1cd9fea4da72a1d8daaa949aa3f"
+        "bytes": 49169,
+        "sha256": "3530c0f8785632312117f224afd99216d8307032b2931f27f063a3982c4e6205"
       },
       {
         "file": "revision06-ja-five-interfa-a642d-h-100-percent-in-the-middle/scale-ja-125.png",
-        "bytes": 52335,
-        "sha256": "826f89498fe1bc82c2f1282eb0a3bfbd690e2b4dbdd286de4f30245c44a5e54d"
+        "bytes": 52325,
+        "sha256": "1929297fb6bd1eaf791ec32d1911839d4753d5d741c51b644deb0013bdd79a6f"
       },
       {
         "file": "revision06-ja-green-dark-1-f3f13--and-task-actions-reachable/task-editor-125.png",
-        "bytes": 54596,
-        "sha256": "a2fb36bde343f3489d62359079a39a1c034d8ba9de3c73f05c820859d3067480"
+        "bytes": 54590,
+        "sha256": "02e6af564e0b543ae9e1cad470567d81b896c546277d2cbc56335199a26a0c80"
       },
       {
         "file": "revision06-ja-green-light--1704c--and-task-actions-reachable/task-editor-125.png",
-        "bytes": 55059,
-        "sha256": "3ada765bedbebc4310b5f6526e014bad2b3fe55294878560cd4e67ccb1482dcb"
+        "bytes": 55048,
+        "sha256": "73164f82ead55335e8b23f9dfc547a2315af06f3d8ff29e14162f74651f015d3"
       },
       {
         "file": "revision06-zh-TW-five-inte-995b4-h-100-percent-in-the-middle/scale-zh-TW-125.png",
-        "bytes": 49655,
-        "sha256": "3d96743d7b3e99a0b636152501c8423b8c43686c12709056b245138e4085d861"
+        "bytes": 49636,
+        "sha256": "b5d8678eba5dee56568554c483e4253b828330a2665d76f47b557271db148a75"
       },
       {
         "file": "revision06-zh-TW-green-dar-9b0d9--and-task-actions-reachable/task-editor-125.png",
-        "bytes": 51830,
-        "sha256": "4a75b5d5ee8f8532f1ae8674c989dd9ff411083eb4f232999e3cda10e0a9cbc2"
+        "bytes": 51805,
+        "sha256": "60093bf615298ec277f21a071111103041e29a54a6287206d3821beb32db9995"
       },
       {
         "file": "revision06-zh-TW-green-lig-abd71--and-task-actions-reachable/task-editor-125.png",
-        "bytes": 52357,
-        "sha256": "51c64f2c1487a0179276f31ab02ca63911a8fd192601184d941b9416fdd27f86"
+        "bytes": 52361,
+        "sha256": "cd448c37dc623d26e00729b34565d9842af83df9b3f999c5f9a0a35e7e831d8d"
       },
       {
         "file": "revision07-100-both-long-l-0e480-ter-choosing-the-last-cloud/locations-100.png",
-        "bytes": 143159,
-        "sha256": "23ce96f0f96337e0dd414a32e8ba87cfcd4360b88135e4c9fd5c78e5ba5518ae"
+        "bytes": 143197,
+        "sha256": "7eeaae3f73687138adf95bccb170d79af8dffdaaa4f6690764749f7fbbe055c4"
       },
       {
         "file": "revision07-110-both-long-l-bf010-ter-choosing-the-last-cloud/locations-110.png",
-        "bytes": 119822,
-        "sha256": "4add53673ffca198733bacdc06d5e955674776fdcada1f670b1d2aac82e33296"
+        "bytes": 119857,
+        "sha256": "8c18b448fa2e04176a1ad0baf28ccbb67eb780a51ed8735ecfbd58ba03aac500"
       },
       {
         "file": "revision07-125-both-long-l-26c28-ter-choosing-the-last-cloud/locations-125.png",
-        "bytes": 99489,
-        "sha256": "1b773176921a314411d4d75055ccdc634595c50d8e3622c6df98777cc84145c0"
+        "bytes": 99429,
+        "sha256": "75b4b211da8fd9e8f1384b3b820e27a0f707ad5d33d140c3d702ff73267a25c6"
       },
       {
         "file": "revision07-80-both-long-lo-380a3-ter-choosing-the-last-cloud/locations-80.png",
-        "bytes": 185497,
-        "sha256": "993f1d0df96ee5b768ea998e32b0cc4dce9bd19eaa37c29439d24239ca327171"
+        "bytes": 185533,
+        "sha256": "4ea964524c39a1aa92774a420c5ea8197561274aa93a0d90107a96340b6b5961"
       },
       {
         "file": "revision07-90-both-long-lo-492e0-ter-choosing-the-last-cloud/locations-90.png",
-        "bytes": 159523,
-        "sha256": "a63d3c7ddb1a4881e5fdb6486e21dac9e674c44d29756131a92cc7ae59db6376"
+        "bytes": 159556,
+        "sha256": "ea2111def8ba74d8fa9f15b16dfb07566aee2b5c18073f945a391bc831e6c645"
       },
       {
         "file": "revision07-en-report-expla-add9c-gures-and-original-evidence/report-breakdown-en.png",
-        "bytes": 95587,
-        "sha256": "97e58e412b9304a9a5f14f77c97baacb1b701750e83d6598de795489fa291936"
+        "bytes": 95625,
+        "sha256": "9ee9e21b3a0359ea4d70787fe7e66405e812e8b731e391866cecfe068e459beb"
       },
       {
         "file": "revision07-en-task-and-sta-3642a-nside-compact-modal-windows/startup-popup-en.png",
-        "bytes": 49030,
-        "sha256": "64f53e84eea5bbe39b28b42616c2eac4bcd6972f71e6b9bc9f717f6279987aad"
+        "bytes": 49029,
+        "sha256": "bf7c3e4a3852b04aa0e7d13d165742ac240a6c58356b53b7efd846b444b17b0f"
       },
       {
         "file": "revision07-ja-report-expla-cc76d-gures-and-original-evidence/report-breakdown-ja.png",
-        "bytes": 103644,
-        "sha256": "dbf539e1b135730389c535107b882fce43ce6bee9ef3f41ac9198134403d2e1f"
+        "bytes": 103680,
+        "sha256": "a8d95bd7673f3fbc94279ffedc886bfec1385d82ca37c7f3a9d7c7f59a1e99b3"
       },
       {
         "file": "revision07-ja-task-and-sta-4be59-nside-compact-modal-windows/startup-popup-ja.png",
-        "bytes": 48888,
-        "sha256": "cb4cb5fe786842ee354a7832e1b225e8f45d2ecd492e337ae121c89e8c26d5cb"
+        "bytes": 48896,
+        "sha256": "e47f90598141cddd5e551ebd31aca03261beff521306900c6ddbb7ca55a9e664"
       },
       {
         "file": "revision07-zh-TW-report-ex-4ff24-gures-and-original-evidence/report-breakdown-zh-TW.png",
-        "bytes": 99877,
-        "sha256": "f7e69ca29e6d25306504517c644e555de9bc832d47928e0f034cf9b872ab1f7e"
+        "bytes": 99907,
+        "sha256": "dcd94f2ec67ababd641053f22aa312b3aecd5c790b1513224aaf968f095005ac"
       },
       {
         "file": "revision07-zh-TW-task-and--d77e8-nside-compact-modal-windows/startup-popup-zh-TW.png",
-        "bytes": 49043,
-        "sha256": "76f4193674f714b0b41a063274dbcca1b5af62c61f78aef71da72231bb69e163"
+        "bytes": 49041,
+        "sha256": "d338fea3d7cefb65485b67107843b9c018df3e5a841f6e35f02564a908e77228"
       },
       {
         "file": "revision08-migrated-120-pe-ac099-er-choosing-the-new-default/scale-legacy-120.png",
-        "bytes": 61765,
-        "sha256": "6f5250df08580b56a55e8f00031ec1e3e3dc3b8838cc5cf9c3681d4a54ca215f"
+        "bytes": 61745,
+        "sha256": "14cdb4fe21d72deb26ad434fa024c2c0dbc51cf49b4c7362f68fcb488a0430ba"
       },
       {
         "file": "revision08-migrated-135-pe-e1a33-er-choosing-the-new-default/scale-legacy-135.png",
-        "bytes": 42466,
-        "sha256": "a19626ec2fab93ac094a8d376bafa1d8401d3a722a8d9ac400cd376ecbaf84d8"
+        "bytes": 42456,
+        "sha256": "e61ae6e93891ad47f203f9ed0bbba4c3c6e5b3449bc7ec25cea92001bc00ed1b"
       },
       {
         "file": "ui-1060x680-en-blue-dark-c-1cef8-sfer-metrics-remain-visible/layout.png",
-        "bytes": 98715,
-        "sha256": "050d83e7c76073f132254ade813010ee93b96d96e2523dbfa83c952537027e11"
+        "bytes": 98974,
+        "sha256": "6254da7f6f8ee8a845903c42c60a150391ec380a6cecb9c3a754c904ed215b01"
       },
       {
         "file": "ui-1060x680-en-blue-light--5495f-sfer-metrics-remain-visible/layout.png",
-        "bytes": 97723,
-        "sha256": "04fb067b27dc592baeed16b4aa1b8eecfa5296df557bb7f298e5095f6ca34780"
+        "bytes": 97765,
+        "sha256": "d9843c94328a255e691bad7b99654568c7078368abc0b66b9a0b048c56cb8515"
       },
       {
         "file": "ui-1060x680-en-purple-dark-358c7-sfer-metrics-remain-visible/layout.png",
-        "bytes": 98866,
-        "sha256": "d7fef4fd34d69615746e8bc2cdf4f2fdb88598a537eafd2850ae9b99456f4a9b"
+        "bytes": 98903,
+        "sha256": "18fbdf6d0812e267142386cf0dfa37af80d4cc88a09bf47b219e76d0b102b959"
       },
       {
         "file": "ui-1060x680-en-purple-ligh-9483c-sfer-metrics-remain-visible/layout.png",
-        "bytes": 97630,
-        "sha256": "3feebc3cea05906b426eb924c90f2d0b8f6686f924d94d8ef7f8589aa056367f"
+        "bytes": 97408,
+        "sha256": "baca4d610df932abbc1312c18ac463ee619c766a2a5d5e39d83b021cdb86f856"
       },
       {
         "file": "ui-1060x680-ja-blue-dark-c-eec5e-sfer-metrics-remain-visible/layout.png",
-        "bytes": 105498,
-        "sha256": "0eb33cb00543fb370847a6397f2ea0f1adb7ba4dec90547e868483c5d2e89041"
+        "bytes": 105527,
+        "sha256": "b4e3bfe0a8c78631d4d3a72325dc9c09b0a46244ef98d593e5df0938e3163b11"
       },
       {
         "file": "ui-1060x680-ja-blue-light--c82a7-sfer-metrics-remain-visible/layout.png",
-        "bytes": 104549,
-        "sha256": "4e1828119772c6a42a037b96a612b4fbff2383aeeda22c7ac5a95408ed263b43"
+        "bytes": 104345,
+        "sha256": "e762eeaca6182b91b18d417c5dff4fcb35c5e6413815ca0437f3a4d8d9a62863"
       },
       {
         "file": "ui-1060x680-ja-purple-dark-bf1c9-sfer-metrics-remain-visible/layout.png",
-        "bytes": 105165,
-        "sha256": "3b45e4cc466795296a74834c1b692f1a1c0648ca47c0e3b60bfc0c7dab6154a9"
+        "bytes": 105399,
+        "sha256": "4a0890a8cbb3dec0ad3675974a8737bb5286a3be45ea53d321c87a5016b0dcc8"
       },
       {
         "file": "ui-1060x680-ja-purple-ligh-57990-sfer-metrics-remain-visible/layout.png",
-        "bytes": 104630,
-        "sha256": "30e08c1c01bb22fcc4f0bf66c230705aed196062a7769033bddbcf175bfc9667"
+        "bytes": 104427,
+        "sha256": "81b9cb0b70e2a4117316b55e375b4d2ee7b53de9ccf5b6f23cdd6ce812c0c491"
       },
       {
         "file": "ui-1060x680-zh-TW-blue-dar-2e002-sfer-metrics-remain-visible/layout.png",
-        "bytes": 103384,
-        "sha256": "fcbbe3a34df7653405349e8d649a0dafaa3e9de58501f07760cf5b579f7e035b"
+        "bytes": 103434,
+        "sha256": "4636facc3f8528d4f474d8d45d568a7a8a113d5cbf3ff39dd2e79136114becba"
       },
       {
         "file": "ui-1060x680-zh-TW-blue-lig-9cafe-sfer-metrics-remain-visible/layout.png",
-        "bytes": 102514,
-        "sha256": "7801adf1f72581a97a5baa28907a6a048aba9aa0c0fd727420b75c7dc4989beb"
+        "bytes": 102555,
+        "sha256": "9b84fd4877ef8d449137034768e23f39d1752a3fc90bafd1d9344046b74c6d16"
       },
       {
         "file": "ui-1060x680-zh-TW-purple-d-99df8-sfer-metrics-remain-visible/layout.png",
-        "bytes": 103120,
-        "sha256": "efaee868b05144ba7c2ec80f6b035bf481cfcc6cb34db012461d7b819abe11a6"
+        "bytes": 103154,
+        "sha256": "a537c851371451c832e6a2084556a077950926469cc021281ad28448d9f8c28e"
       },
       {
         "file": "ui-1060x680-zh-TW-purple-l-9d11d-sfer-metrics-remain-visible/layout.png",
-        "bytes": 102440,
-        "sha256": "0bd59d754a5d29e8b2d99403f8448b075b34570d9968b4e1bcf72bc2245b236f"
+        "bytes": 102484,
+        "sha256": "ffd30cf0ed9bd9682cf870dc0a71794f80f2bd89df1e5819343af83ba2ceccd9"
       },
       {
         "file": "ui-1440x900-en-blue-dark-c-016ff-sfer-metrics-remain-visible/layout.png",
-        "bytes": 141463,
-        "sha256": "45585bafe3da73feefcdcfeb5658e6f250546abd324df10e7e9116da54e7b6a8"
+        "bytes": 141499,
+        "sha256": "97b5025d254f8980487b7cff29d6c1447415380e6264eded35e4235682830f5c"
       },
       {
         "file": "ui-1440x900-en-blue-light--8792d-sfer-metrics-remain-visible/layout.png",
-        "bytes": 140711,
-        "sha256": "42fd516abb68ab32ad47397e65880719ea61c58071759075a608bfa801fa71eb"
+        "bytes": 140754,
+        "sha256": "dd72807274c96af996e5a03bff26a337e4c29599966fb1a519f8d4429aceb70e"
       },
       {
         "file": "ui-1440x900-en-purple-dark-ea107-sfer-metrics-remain-visible/layout.png",
-        "bytes": 141387,
-        "sha256": "606ef588572dbb3885630f879b01f7dee3dca9649e60d2967a54079361f178af"
+        "bytes": 141423,
+        "sha256": "ae599359e1bc10ae8980e00d7fcf2b63a49488906e57eb8b7c4aaea5f5741724"
       },
       {
         "file": "ui-1440x900-en-purple-ligh-79275-sfer-metrics-remain-visible/layout.png",
-        "bytes": 140532,
-        "sha256": "d7e9bfbea11659b410d9730ca877fd894f40c9893670417795dcd07572fe1378"
+        "bytes": 140575,
+        "sha256": "99e868788acbb08e359f2375047216330a67d867a016bc120eb97c8d31dadf61"
       },
       {
         "file": "ui-1440x900-ja-blue-dark-c-cee18-sfer-metrics-remain-visible/layout.png",
-        "bytes": 147261,
-        "sha256": "2451eee32be36c86b7d330486ba6662cb63b954d093b736e746b2ffa0459e88c"
+        "bytes": 147298,
+        "sha256": "709dd0d952ce6924327b364e14b5db7d7f711db404b69e4d54e79fa3ffc4e848"
       },
       {
         "file": "ui-1440x900-ja-blue-light--e066a-sfer-metrics-remain-visible/layout.png",
-        "bytes": 146177,
-        "sha256": "27f99416ba9c6b9fdcfd6822c8ff2d30e0159cd7754d2c097b7997d5af96e1f2"
+        "bytes": 146220,
+        "sha256": "8a26268f7fa5bb66e0add6c08cec3b8bcb5553412bd69649d8bff8710dfb0da8"
       },
       {
         "file": "ui-1440x900-ja-purple-dark-f41f4-sfer-metrics-remain-visible/layout.png",
-        "bytes": 147181,
-        "sha256": "f0b0bad4e463e4e7dd724989400ceb556868ee35b8474c0009c4a131f24913ac"
+        "bytes": 147214,
+        "sha256": "7dde012ab0eb7306737e591138ed6f48b2657fd1396665df2b8ffed19294c786"
       },
       {
         "file": "ui-1440x900-ja-purple-ligh-47ee0-sfer-metrics-remain-visible/layout.png",
-        "bytes": 146136,
-        "sha256": "7d21413f098308eb998ca158ce0aab8c75150ead6d02fa2cef8faa8fac25a1d2"
+        "bytes": 146188,
+        "sha256": "4072cd4892583e5eaf31fa87d86723277a22b8b6ee5f24687c7e43d70a9828cd"
       },
       {
         "file": "ui-1440x900-zh-TW-blue-dar-bab00-sfer-metrics-remain-visible/layout.png",
-        "bytes": 144308,
-        "sha256": "842013f954031d1934618fa0a425f167ad67750f360f2223f930f41f6dff0c7a"
+        "bytes": 144346,
+        "sha256": "95d71e32a6c4117ac16ed21b12386a99a36b2b7344ad91baebf44ce876290704"
       },
       {
         "file": "ui-1440x900-zh-TW-blue-lig-2fce0-sfer-metrics-remain-visible/layout.png",
-        "bytes": 143582,
-        "sha256": "7406d5f9fcb6b6261d4f1c5ee33df12f5d1d946d3feb0c0b182d2a6f24d0386a"
+        "bytes": 143628,
+        "sha256": "518f97e5fa294ed3a89af3ffebfa20bf72f5f54f08e9f661fcaf8d32b64e5212"
       },
       {
         "file": "ui-1440x900-zh-TW-purple-d-f8951-sfer-metrics-remain-visible/layout.png",
-        "bytes": 144250,
-        "sha256": "49babf226cab78ed58e7ef54f5efbeedc7c71823ccd82e73217a027edf8e0420"
+        "bytes": 144287,
+        "sha256": "8a3e0e485e3dbeba49d44426a031b9aa8f4ddf3d051c59510f797a521869912d"
       },
       {
         "file": "ui-1440x900-zh-TW-purple-l-06a0a-sfer-metrics-remain-visible/layout.png",
-        "bytes": 143581,
-        "sha256": "62dd742284749dff7fd312a6692347bb62286ba481cb35095f08c63943a28297"
+        "bytes": 143628,
+        "sha256": "9715fae3721811e2a958f1c04f58b5c2d351d2f306cc3eac0fdc061990baa718"
       }
     ]
   },
   "largeLists": {
     "fullListPasses": 0,
     "updates": 25,
-    "wallMilliseconds": 397.8999999910593
+    "wallMilliseconds": 404.20000000298023
+  },
+  "nativeMacVerification": {
+    "status": "pending_macOS_CI_at_web_receipt",
+    "includedInWebPassCount": false,
+    "suites": [
+      "MacInterfaceTests",
+      "MacStartupTests",
+      "MacIconTests",
+      "MacNavigationIntegrationTests"
+    ],
+    "runner": "Scripts/test-mac.sh",
+    "navigationIntegration": "Production React bundle in actual WKWebView with asynchronous Core RcloneEngine and isolated real folders",
+    "swipeInput": "NSEvent test double; physical MX Master 3S / Logi Options+ events were not recorded",
+    "scope": "AppKit routing, native startup pixels, persistent Finder icons and real-engine navigation have separate Mac receipts."
   },
   "development": [
     {
-      "event": "Sandbox blocked Chromium IPC before app navigation",
-      "resolution": "The permitted browser context was used for all completed UI runs.",
+      "event": "The first targeted attempt could not launch the default Playwright browser because its cache was absent",
+      "resolution": "The existing pinned project-local browser was selected; the 16-case navigation run completed successfully.",
       "countedInFinalResult": false
     },
     {
-      "event": "First targeted run exposed a stale held-button record after a missing release",
-      "resolution": "The DOM handler now checks the physical buttons mask before pairing later events; the rebuilt 13-case targeted suite and full suite passed.",
+      "event": "The initial complete attempt was blocked during Chrome launch by Linux sandbox IPC permissions",
+      "stats": {
+        "startTime": "2026-10-20T19:07:58.285Z",
+        "duration": 83063.57500000001,
+        "expected": 2,
+        "skipped": 0,
+        "unexpected": 179,
+        "flaky": 0
+      },
+      "receiptSHA256": "1fa2b5d0fef87ca76183ef6ba7bc6d299d914d2fe558ebf26bcebf583491aad0",
+      "resolution": "The complete suite was rerun in the approved local browser execution context.",
       "countedInFinalResult": false
     }
   ],
@@ -634,6 +701,11 @@
       "release": "0.7.0",
       "manifest": "history/0.7.0/verification.json",
       "sha256": "d214679fb87241d16fbe7da3f8379c64ac0c0cbb4e25373ca5beb477e70bf418"
+    },
+    {
+      "release": "0.8.0",
+      "manifest": "history/0.8.0/verification.json",
+      "sha256": "e54107f55670933fe92fb2d996e3df05186b921f41ba57564e54995ae905e236"
     }
   ],
   "cases": [
@@ -644,7 +716,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 983,
+          "durationMilliseconds": 840,
           "retry": 0,
           "attachments": []
         }
@@ -657,7 +729,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 1074,
+          "durationMilliseconds": 778,
           "retry": 0,
           "attachments": []
         }
@@ -670,7 +742,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 980,
+          "durationMilliseconds": 890,
           "retry": 0,
           "attachments": []
         }
@@ -683,7 +755,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 1083,
+          "durationMilliseconds": 798,
           "retry": 0,
           "attachments": []
         }
@@ -696,7 +768,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 1919,
+          "durationMilliseconds": 1601,
           "retry": 0,
           "attachments": []
         }
@@ -709,7 +781,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 1512,
+          "durationMilliseconds": 1022,
           "retry": 0,
           "attachments": []
         }
@@ -722,7 +794,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 2663,
+          "durationMilliseconds": 2175,
           "retry": 0,
           "attachments": []
         }
@@ -735,7 +807,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 899,
+          "durationMilliseconds": 985,
           "retry": 0,
           "attachments": []
         }
@@ -748,7 +820,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 1266,
+          "durationMilliseconds": 1243,
           "retry": 0,
           "attachments": []
         }
@@ -761,7 +833,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 3407,
+          "durationMilliseconds": 3465,
           "retry": 0,
           "attachments": []
         }
@@ -774,7 +846,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 565,
+          "durationMilliseconds": 555,
           "retry": 0,
           "attachments": []
         }
@@ -787,7 +859,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 2397,
+          "durationMilliseconds": 2393,
           "retry": 0,
           "attachments": []
         }
@@ -800,7 +872,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 488,
+          "durationMilliseconds": 436,
           "retry": 0,
           "attachments": []
         }
@@ -813,7 +885,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 454,
+          "durationMilliseconds": 518,
           "retry": 0,
           "attachments": []
         }
@@ -826,7 +898,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 438,
+          "durationMilliseconds": 436,
           "retry": 0,
           "attachments": []
         }
@@ -839,7 +911,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 458,
+          "durationMilliseconds": 474,
           "retry": 0,
           "attachments": []
         }
@@ -852,7 +924,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 1209,
+          "durationMilliseconds": 1028,
           "retry": 0,
           "attachments": []
         }
@@ -865,7 +937,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 1272,
+          "durationMilliseconds": 1185,
           "retry": 0,
           "attachments": []
         }
@@ -878,7 +950,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 1185,
+          "durationMilliseconds": 1128,
           "retry": 0,
           "attachments": []
         }
@@ -891,7 +963,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 1359,
+          "durationMilliseconds": 1142,
           "retry": 0,
           "attachments": []
         }
@@ -904,7 +976,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 1022,
+          "durationMilliseconds": 840,
           "retry": 0,
           "attachments": []
         }
@@ -917,7 +989,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 635,
+          "durationMilliseconds": 607,
           "retry": 0,
           "attachments": []
         }
@@ -930,7 +1002,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 6407,
+          "durationMilliseconds": 6430,
           "retry": 0,
           "attachments": []
         }
@@ -943,7 +1015,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 839,
+          "durationMilliseconds": 726,
           "retry": 0,
           "attachments": []
         }
@@ -956,7 +1028,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 724,
+          "durationMilliseconds": 629,
           "retry": 0,
           "attachments": []
         }
@@ -969,7 +1041,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 607,
+          "durationMilliseconds": 484,
           "retry": 0,
           "attachments": []
         }
@@ -982,7 +1054,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 606,
+          "durationMilliseconds": 454,
           "retry": 0,
           "attachments": []
         }
@@ -995,7 +1067,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 509,
+          "durationMilliseconds": 490,
           "retry": 0,
           "attachments": []
         }
@@ -1008,7 +1080,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 1512,
+          "durationMilliseconds": 1359,
           "retry": 0,
           "attachments": []
         }
@@ -1021,7 +1093,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 938,
+          "durationMilliseconds": 994,
           "retry": 0,
           "attachments": []
         }
@@ -1034,7 +1106,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 1069,
+          "durationMilliseconds": 1030,
           "retry": 0,
           "attachments": []
         }
@@ -1047,7 +1119,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 504,
+          "durationMilliseconds": 468,
           "retry": 0,
           "attachments": []
         }
@@ -1060,7 +1132,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 471,
+          "durationMilliseconds": 415,
           "retry": 0,
           "attachments": []
         }
@@ -1073,7 +1145,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 448,
+          "durationMilliseconds": 413,
           "retry": 0,
           "attachments": []
         }
@@ -1086,7 +1158,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 452,
+          "durationMilliseconds": 403,
           "retry": 0,
           "attachments": []
         }
@@ -1099,7 +1171,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 478,
+          "durationMilliseconds": 449,
           "retry": 0,
           "attachments": []
         }
@@ -1112,7 +1184,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 376,
+          "durationMilliseconds": 383,
           "retry": 0,
           "attachments": []
         }
@@ -1125,7 +1197,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 320,
+          "durationMilliseconds": 312,
           "retry": 0,
           "attachments": []
         }
@@ -1138,13 +1210,13 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 3268,
+          "durationMilliseconds": 2085,
           "retry": 0,
           "attachments": [
             {
               "name": "large-list-progress-audit",
               "contentType": "application/json",
-              "sha256": "f4a821399e2ece2e2d659b9533879ac82246d87e74fd9b108c447bf595b45343"
+              "sha256": "0e81b56483b79b11d350195454bb5e2144a75355cc564e2dcd1ebcd3feae9a7e"
             }
           ]
         }
@@ -1157,7 +1229,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 940,
+          "durationMilliseconds": 965,
           "retry": 0,
           "attachments": []
         }
@@ -1170,7 +1242,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 475,
+          "durationMilliseconds": 391,
           "retry": 0,
           "attachments": []
         }
@@ -1183,7 +1255,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 577,
+          "durationMilliseconds": 547,
           "retry": 0,
           "attachments": []
         }
@@ -1196,7 +1268,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 602,
+          "durationMilliseconds": 615,
           "retry": 0,
           "attachments": []
         }
@@ -1209,7 +1281,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 627,
+          "durationMilliseconds": 594,
           "retry": 0,
           "attachments": []
         }
@@ -1222,7 +1294,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 985,
+          "durationMilliseconds": 986,
           "retry": 0,
           "attachments": []
         }
@@ -1235,7 +1307,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 633,
+          "durationMilliseconds": 567,
           "retry": 0,
           "attachments": []
         }
@@ -1248,7 +1320,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 763,
+          "durationMilliseconds": 785,
           "retry": 0,
           "attachments": []
         }
@@ -1261,7 +1333,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 754,
+          "durationMilliseconds": 733,
           "retry": 0,
           "attachments": []
         }
@@ -1274,7 +1346,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 544,
+          "durationMilliseconds": 533,
           "retry": 0,
           "attachments": []
         }
@@ -1287,7 +1359,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 893,
+          "durationMilliseconds": 801,
           "retry": 0,
           "attachments": []
         }
@@ -1300,7 +1372,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 1606,
+          "durationMilliseconds": 1291,
           "retry": 0,
           "attachments": []
         }
@@ -1313,7 +1385,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 568,
+          "durationMilliseconds": 558,
           "retry": 0,
           "attachments": []
         }
@@ -1326,7 +1398,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 561,
+          "durationMilliseconds": 507,
           "retry": 0,
           "attachments": []
         }
@@ -1339,7 +1411,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 521,
+          "durationMilliseconds": 529,
           "retry": 0,
           "attachments": []
         }
@@ -1352,7 +1424,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 1055,
+          "durationMilliseconds": 1082,
           "retry": 0,
           "attachments": []
         }
@@ -1365,7 +1437,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 402,
+          "durationMilliseconds": 366,
           "retry": 0,
           "attachments": []
         }
@@ -1378,7 +1450,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 489,
+          "durationMilliseconds": 370,
           "retry": 0,
           "attachments": []
         }
@@ -1391,7 +1463,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 325,
+          "durationMilliseconds": 293,
           "retry": 0,
           "attachments": []
         }
@@ -1404,7 +1476,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 915,
+          "durationMilliseconds": 896,
           "retry": 0,
           "attachments": []
         }
@@ -1417,7 +1489,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 772,
+          "durationMilliseconds": 757,
           "retry": 0,
           "attachments": []
         }
@@ -1430,7 +1502,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 761,
+          "durationMilliseconds": 872,
           "retry": 0,
           "attachments": []
         }
@@ -1443,7 +1515,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 870,
+          "durationMilliseconds": 900,
           "retry": 0,
           "attachments": []
         }
@@ -1456,7 +1528,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 901,
+          "durationMilliseconds": 840,
           "retry": 0,
           "attachments": []
         }
@@ -1469,7 +1541,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 866,
+          "durationMilliseconds": 799,
           "retry": 0,
           "attachments": []
         }
@@ -1482,7 +1554,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 992,
+          "durationMilliseconds": 1026,
           "retry": 0,
           "attachments": []
         }
@@ -1495,7 +1567,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 615,
+          "durationMilliseconds": 585,
           "retry": 0,
           "attachments": []
         }
@@ -1508,7 +1580,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 743,
+          "durationMilliseconds": 686,
           "retry": 0,
           "attachments": []
         }
@@ -1521,7 +1593,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 801,
+          "durationMilliseconds": 705,
           "retry": 0,
           "attachments": []
         }
@@ -1534,7 +1606,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 726,
+          "durationMilliseconds": 674,
           "retry": 0,
           "attachments": []
         }
@@ -1547,7 +1619,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 757,
+          "durationMilliseconds": 711,
           "retry": 0,
           "attachments": []
         }
@@ -1560,7 +1632,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 612,
+          "durationMilliseconds": 650,
           "retry": 0,
           "attachments": []
         }
@@ -1573,7 +1645,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 491,
+          "durationMilliseconds": 584,
           "retry": 0,
           "attachments": []
         }
@@ -1586,7 +1658,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 1872,
+          "durationMilliseconds": 1901,
           "retry": 0,
           "attachments": []
         }
@@ -1599,7 +1671,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 1915,
+          "durationMilliseconds": 1891,
           "retry": 0,
           "attachments": []
         }
@@ -1612,7 +1684,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 1880,
+          "durationMilliseconds": 1847,
           "retry": 0,
           "attachments": []
         }
@@ -1625,7 +1697,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 1050,
+          "durationMilliseconds": 1039,
           "retry": 0,
           "attachments": []
         }
@@ -1638,7 +1710,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 1219,
+          "durationMilliseconds": 1295,
           "retry": 0,
           "attachments": []
         }
@@ -1651,7 +1723,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 1525,
+          "durationMilliseconds": 1297,
           "retry": 0,
           "attachments": []
         }
@@ -1664,7 +1736,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 1385,
+          "durationMilliseconds": 1718,
           "retry": 0,
           "attachments": []
         }
@@ -1677,7 +1749,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 873,
+          "durationMilliseconds": 771,
           "retry": 0,
           "attachments": []
         }
@@ -1690,7 +1762,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 3175,
+          "durationMilliseconds": 2643,
           "retry": 0,
           "attachments": []
         }
@@ -1703,7 +1775,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 2567,
+          "durationMilliseconds": 2494,
           "retry": 0,
           "attachments": []
         }
@@ -1716,7 +1788,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 2706,
+          "durationMilliseconds": 2694,
           "retry": 0,
           "attachments": []
         }
@@ -1729,7 +1801,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 2778,
+          "durationMilliseconds": 2422,
           "retry": 0,
           "attachments": []
         }
@@ -1742,7 +1814,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 2921,
+          "durationMilliseconds": 2560,
           "retry": 0,
           "attachments": []
         }
@@ -1755,7 +1827,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 3090,
+          "durationMilliseconds": 2719,
           "retry": 0,
           "attachments": []
         }
@@ -1768,7 +1840,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 642,
+          "durationMilliseconds": 527,
           "retry": 0,
           "attachments": []
         }
@@ -1781,7 +1853,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 1015,
+          "durationMilliseconds": 851,
           "retry": 0,
           "attachments": []
         }
@@ -1794,7 +1866,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 1093,
+          "durationMilliseconds": 813,
           "retry": 0,
           "attachments": []
         }
@@ -1807,7 +1879,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 546,
+          "durationMilliseconds": 461,
           "retry": 0,
           "attachments": []
         }
@@ -1820,7 +1892,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 2472,
+          "durationMilliseconds": 2106,
           "retry": 0,
           "attachments": []
         }
@@ -1833,7 +1905,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 2490,
+          "durationMilliseconds": 2189,
           "retry": 0,
           "attachments": []
         }
@@ -1846,7 +1918,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 1546,
+          "durationMilliseconds": 1441,
           "retry": 0,
           "attachments": []
         }
@@ -1859,7 +1931,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 1161,
+          "durationMilliseconds": 1001,
           "retry": 0,
           "attachments": []
         }
@@ -1872,7 +1944,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 706,
+          "durationMilliseconds": 627,
           "retry": 0,
           "attachments": []
         }
@@ -1885,7 +1957,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 727,
+          "durationMilliseconds": 596,
           "retry": 0,
           "attachments": []
         }
@@ -1898,7 +1970,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 654,
+          "durationMilliseconds": 608,
           "retry": 0,
           "attachments": []
         }
@@ -1911,7 +1983,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 17,
+          "durationMilliseconds": 18,
           "retry": 0,
           "attachments": []
         }
@@ -1924,7 +1996,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 1018,
+          "durationMilliseconds": 956,
           "retry": 0,
           "attachments": []
         }
@@ -1937,7 +2009,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 1167,
+          "durationMilliseconds": 821,
           "retry": 0,
           "attachments": []
         }
@@ -1950,7 +2022,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 999,
+          "durationMilliseconds": 719,
           "retry": 0,
           "attachments": []
         }
@@ -1963,7 +2035,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 865,
+          "durationMilliseconds": 872,
           "retry": 0,
           "attachments": []
         }
@@ -1976,7 +2048,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 861,
+          "durationMilliseconds": 726,
           "retry": 0,
           "attachments": []
         }
@@ -1989,7 +2061,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 990,
+          "durationMilliseconds": 761,
           "retry": 0,
           "attachments": []
         }
@@ -2002,7 +2074,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 541,
+          "durationMilliseconds": 357,
           "retry": 0,
           "attachments": []
         }
@@ -2015,7 +2087,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 322,
+          "durationMilliseconds": 284,
           "retry": 0,
           "attachments": []
         }
@@ -2028,7 +2100,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 1190,
+          "durationMilliseconds": 927,
           "retry": 0,
           "attachments": []
         }
@@ -2041,7 +2113,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 1128,
+          "durationMilliseconds": 911,
           "retry": 0,
           "attachments": []
         }
@@ -2054,7 +2126,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 1147,
+          "durationMilliseconds": 1001,
           "retry": 0,
           "attachments": []
         }
@@ -2067,7 +2139,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 5,
+          "durationMilliseconds": 6,
           "retry": 0,
           "attachments": []
         }
@@ -2080,7 +2152,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 627,
+          "durationMilliseconds": 523,
           "retry": 0,
           "attachments": []
         }
@@ -2093,7 +2165,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 577,
+          "durationMilliseconds": 496,
           "retry": 0,
           "attachments": []
         }
@@ -2106,7 +2178,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 675,
+          "durationMilliseconds": 488,
           "retry": 0,
           "attachments": []
         }
@@ -2119,7 +2191,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 729,
+          "durationMilliseconds": 560,
           "retry": 0,
           "attachments": []
         }
@@ -2132,7 +2204,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 1132,
+          "durationMilliseconds": 1186,
           "retry": 0,
           "attachments": []
         }
@@ -2145,7 +2217,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 1035,
+          "durationMilliseconds": 1008,
           "retry": 0,
           "attachments": []
         }
@@ -2158,7 +2230,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 1092,
+          "durationMilliseconds": 1018,
           "retry": 0,
           "attachments": []
         }
@@ -2171,7 +2243,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 908,
+          "durationMilliseconds": 672,
           "retry": 0,
           "attachments": []
         }
@@ -2184,7 +2256,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 802,
+          "durationMilliseconds": 749,
           "retry": 0,
           "attachments": []
         }
@@ -2197,7 +2269,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 861,
+          "durationMilliseconds": 732,
           "retry": 0,
           "attachments": []
         }
@@ -2210,7 +2282,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 452,
+          "durationMilliseconds": 395,
           "retry": 0,
           "attachments": []
         }
@@ -2223,7 +2295,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 1239,
+          "durationMilliseconds": 1171,
           "retry": 0,
           "attachments": []
         }
@@ -2236,7 +2308,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 1157,
+          "durationMilliseconds": 1139,
           "retry": 0,
           "attachments": []
         }
@@ -2249,7 +2321,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 881,
+          "durationMilliseconds": 872,
           "retry": 0,
           "attachments": []
         }
@@ -2262,7 +2334,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 771,
+          "durationMilliseconds": 701,
           "retry": 0,
           "attachments": []
         }
@@ -2275,7 +2347,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 819,
+          "durationMilliseconds": 826,
           "retry": 0,
           "attachments": []
         }
@@ -2288,7 +2360,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 845,
+          "durationMilliseconds": 783,
           "retry": 0,
           "attachments": []
         }
@@ -2301,7 +2373,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 979,
+          "durationMilliseconds": 980,
           "retry": 0,
           "attachments": []
         }
@@ -2314,7 +2386,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 966,
+          "durationMilliseconds": 975,
           "retry": 0,
           "attachments": []
         }
@@ -2327,7 +2399,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 995,
+          "durationMilliseconds": 987,
           "retry": 0,
           "attachments": []
         }
@@ -2340,7 +2412,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 985,
+          "durationMilliseconds": 957,
           "retry": 0,
           "attachments": []
         }
@@ -2353,7 +2425,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 988,
+          "durationMilliseconds": 991,
           "retry": 0,
           "attachments": []
         }
@@ -2366,7 +2438,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 782,
+          "durationMilliseconds": 709,
           "retry": 0,
           "attachments": []
         }
@@ -2379,7 +2451,72 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 793,
+          "durationMilliseconds": 746,
+          "retry": 0,
+          "attachments": []
+        }
+      ]
+    },
+    {
+      "file": "revision081-navigation.spec.ts",
+      "title": "native driver swipes navigate the pointed pane while preserving both forward histories",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMilliseconds": 714,
+          "retry": 0,
+          "attachments": []
+        }
+      ]
+    },
+    {
+      "file": "revision081-navigation.spec.ts",
+      "title": "duplicate swipe delivery is ignored while two rapid distinct swipes both navigate",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMilliseconds": 707,
+          "retry": 0,
+          "attachments": []
+        }
+      ]
+    },
+    {
+      "file": "revision081-navigation.spec.ts",
+      "title": "native menu commands use the active pane and preserve focused text editing",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMilliseconds": 787,
+          "retry": 0,
+          "attachments": []
+        }
+      ]
+    },
+    {
+      "file": "revision081-navigation.spec.ts",
+      "title": "an open operation dialog blocks driver swipes and native menu navigation",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMilliseconds": 730,
+          "retry": 0,
+          "attachments": []
+        }
+      ]
+    },
+    {
+      "file": "revision081-navigation.spec.ts",
+      "title": "ordinary horizontal wheel scrolling does not navigate folder history",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMilliseconds": 635,
           "retry": 0,
           "attachments": []
         }
@@ -2392,7 +2529,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 359,
+          "durationMilliseconds": 302,
           "retry": 0,
           "attachments": []
         }
@@ -2405,7 +2542,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 194,
+          "durationMilliseconds": 136,
           "retry": 0,
           "attachments": []
         }
@@ -2418,7 +2555,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 892,
+          "durationMilliseconds": 911,
           "retry": 0,
           "attachments": []
         }
@@ -2431,7 +2568,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 708,
+          "durationMilliseconds": 655,
           "retry": 0,
           "attachments": []
         }
@@ -2444,7 +2581,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 1443,
+          "durationMilliseconds": 1450,
           "retry": 0,
           "attachments": []
         }
@@ -2457,7 +2594,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 867,
+          "durationMilliseconds": 839,
           "retry": 0,
           "attachments": []
         }
@@ -2470,7 +2607,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 1327,
+          "durationMilliseconds": 1326,
           "retry": 0,
           "attachments": []
         }
@@ -2483,7 +2620,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 605,
+          "durationMilliseconds": 648,
           "retry": 0,
           "attachments": []
         }
@@ -2496,7 +2633,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 691,
+          "durationMilliseconds": 817,
           "retry": 0,
           "attachments": []
         }
@@ -2509,7 +2646,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 1405,
+          "durationMilliseconds": 1772,
           "retry": 0,
           "attachments": []
         }
@@ -2522,7 +2659,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 2978,
+          "durationMilliseconds": 3192,
           "retry": 0,
           "attachments": []
         }
@@ -2535,7 +2672,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 1396,
+          "durationMilliseconds": 1233,
           "retry": 0,
           "attachments": []
         }
@@ -2548,7 +2685,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 1380,
+          "durationMilliseconds": 1338,
           "retry": 0,
           "attachments": []
         }
@@ -2561,7 +2698,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 593,
+          "durationMilliseconds": 587,
           "retry": 0,
           "attachments": []
         }
@@ -2574,7 +2711,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 1537,
+          "durationMilliseconds": 1475,
           "retry": 0,
           "attachments": []
         }
@@ -2587,7 +2724,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 342,
+          "durationMilliseconds": 322,
           "retry": 0,
           "attachments": []
         }
@@ -2600,7 +2737,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 698,
+          "durationMilliseconds": 659,
           "retry": 0,
           "attachments": []
         }
@@ -2613,7 +2750,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 454,
+          "durationMilliseconds": 436,
           "retry": 0,
           "attachments": []
         }
@@ -2626,7 +2763,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 401,
+          "durationMilliseconds": 480,
           "retry": 0,
           "attachments": []
         }
@@ -2639,7 +2776,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 426,
+          "durationMilliseconds": 428,
           "retry": 0,
           "attachments": []
         }
@@ -2652,7 +2789,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 421,
+          "durationMilliseconds": 443,
           "retry": 0,
           "attachments": []
         }
@@ -2665,7 +2802,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 425,
+          "durationMilliseconds": 421,
           "retry": 0,
           "attachments": []
         }
@@ -2678,7 +2815,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 373,
+          "durationMilliseconds": 381,
           "retry": 0,
           "attachments": []
         }
@@ -2704,7 +2841,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 406,
+          "durationMilliseconds": 443,
           "retry": 0,
           "attachments": []
         }
@@ -2717,7 +2854,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 394,
+          "durationMilliseconds": 387,
           "retry": 0,
           "attachments": []
         }
@@ -2730,7 +2867,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 375,
+          "durationMilliseconds": 475,
           "retry": 0,
           "attachments": []
         }
@@ -2743,7 +2880,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 442,
+          "durationMilliseconds": 412,
           "retry": 0,
           "attachments": []
         }
@@ -2756,7 +2893,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 402,
+          "durationMilliseconds": 420,
           "retry": 0,
           "attachments": []
         }
@@ -2769,7 +2906,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 455,
+          "durationMilliseconds": 453,
           "retry": 0,
           "attachments": []
         }
@@ -2782,7 +2919,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 427,
+          "durationMilliseconds": 472,
           "retry": 0,
           "attachments": []
         }
@@ -2795,7 +2932,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 422,
+          "durationMilliseconds": 432,
           "retry": 0,
           "attachments": []
         }
@@ -2808,7 +2945,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 413,
+          "durationMilliseconds": 473,
           "retry": 0,
           "attachments": []
         }
@@ -2821,7 +2958,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 426,
+          "durationMilliseconds": 424,
           "retry": 0,
           "attachments": []
         }
@@ -2834,7 +2971,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 390,
+          "durationMilliseconds": 444,
           "retry": 0,
           "attachments": []
         }
@@ -2847,7 +2984,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 432,
+          "durationMilliseconds": 473,
           "retry": 0,
           "attachments": []
         }
@@ -2860,7 +2997,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 418,
+          "durationMilliseconds": 489,
           "retry": 0,
           "attachments": []
         }
@@ -2873,7 +3010,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 398,
+          "durationMilliseconds": 413,
           "retry": 0,
           "attachments": []
         }
@@ -2886,7 +3023,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 420,
+          "durationMilliseconds": 436,
           "retry": 0,
           "attachments": []
         }
@@ -2899,7 +3036,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 430,
+          "durationMilliseconds": 460,
           "retry": 0,
           "attachments": []
         }
@@ -2912,7 +3049,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 431,
+          "durationMilliseconds": 472,
           "retry": 0,
           "attachments": []
         }
@@ -2925,7 +3062,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 436,
+          "durationMilliseconds": 456,
           "retry": 0,
           "attachments": []
         }

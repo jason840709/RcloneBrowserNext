@@ -93,6 +93,41 @@ import CoreGraphics
         return event
     }
 
+    /// AppKit has no public factory for .swipe. Use an NSEvent test double for
+    /// the documented swipe properties, then send it through the production
+    /// NSWindow route. Chromium uses the same approach in its Cocoa swipe tests.
+    /// This is driver-event coverage, not a physical MX Master hardware test.
+    private final class SwipeEvent: NSEvent {
+        var horizontal: CGFloat = 0
+        var vertical: CGFloat = 0
+        var gesturePhase: NSEvent.Phase = .ended
+        var eventTime: TimeInterval = 0
+        var eventLocation: CGPoint = .zero
+        weak var eventWindow: NSWindow?
+        override var type: NSEvent.EventType { .swipe }
+        override var deltaX: CGFloat { horizontal }
+        override var deltaY: CGFloat { vertical }
+        override var phase: NSEvent.Phase { gesturePhase }
+        override var timestamp: TimeInterval { eventTime }
+        override var locationInWindow: NSPoint { eventLocation }
+        override var window: NSWindow? { eventWindow }
+        override var windowNumber: Int { eventWindow?.windowNumber ?? 0 }
+    }
+
+    private static func swipeEvent(horizontal: CGFloat, vertical: CGFloat = 0,
+                                   phase: NSEvent.Phase = .ended, time: TimeInterval,
+                                   x: Double, y: Double, in view: RcloneWebView) throws -> SwipeEvent {
+        guard let window = view.window else { throw Failure(description: "Missing swipe window") }
+        let offset = view.bounds.height * CGFloat(y)
+        let point = CGPoint(x: view.bounds.minX + view.bounds.width * CGFloat(x),
+                            y: view.isFlipped ? view.bounds.minY + offset : view.bounds.maxY - offset)
+        let event = SwipeEvent()
+        event.horizontal = horizontal; event.vertical = vertical; event.gesturePhase = phase
+        event.eventTime = time; event.eventWindow = window
+        event.eventLocation = view.convert(point, to: nil)
+        return event
+    }
+
     private static func history(in view: WKWebView) throws -> [[String: Any]] {
         guard let result = try evaluate("window.historyEvents", in: view) as? [[String: Any]] else {
             throw Failure(description: "Missing WebKit history event receipt")
@@ -258,6 +293,100 @@ import CoreGraphics
                 window.sendEvent(try sideEvent(button: 3, down: false, number: 401,
                                               time: ProcessInfo.processInfo.systemUptime, x: 0.46, y: 0.24, in: view))
                 try require(try history(in: view).count == before, "Navigation bypassed the host readiness guard")
+            }
+
+            test("Logitech-style ended-only swipes reach the pointed pane without any mouse button event") {
+                let before = try history(in: view).count
+                let time = ProcessInfo.processInfo.systemUptime
+                let back = try swipeEvent(horizontal: 1, time: time, x: 0.54, y: 0.76, in: view)
+                window.sendEvent(back)
+                // Local monitor, window routing and responder fallback can all
+                // see one event. Replaying that event must remain one action.
+                window.sendEvent(back)
+                view.swipe(with: back)
+                window.sendEvent(try swipeEvent(horizontal: -1, time: time + 0.015, x: 0.46, y: 0.24, in: view))
+                let events = Array(try history(in: view).dropFirst(before))
+                try require(events.count == 2, "Ended-only swipes were lost or dispatched more than once: \(events)")
+                try require(events[0]["direction"] as? String == "back" && events[0]["target"] as? String == "right-bottom",
+                            "The back swipe did not use the pointed right pane")
+                try require(events[1]["direction"] as? String == "forward" && events[1]["target"] as? String == "left-top",
+                            "The forward swipe did not use the pointed left pane")
+                try require(events.allSatisfy { $0["phase"] as? String == "swipe" }, "Swipe events were incorrectly paired as mouse button phases")
+            }
+            test("Rapid discrete swipes remain distinct inside a native startup container") {
+                let before = try history(in: view).count
+                let container = NSView(frame: view.frame)
+                window.browserView = view
+                window.contentView = container
+                container.addSubview(view)
+                defer { view.removeFromSuperview(); window.contentView = view; window.browserView = nil }
+                let time = ProcessInfo.processInfo.systemUptime
+                for index in 0..<2 {
+                    window.sendEvent(try swipeEvent(horizontal: 1, phase: [], time: time + Double(index) * 0.01,
+                                                    x: 0.46, y: 0.24, in: view))
+                }
+                try require(try history(in: view).count == before + 2, "A content container or time debounce swallowed a swipe")
+            }
+            test("Vertical swipes, cancellation and horizontal wheel scrolling do not become back commands") {
+                let before = try history(in: view).count
+                let time = ProcessInfo.processInfo.systemUptime
+                try require(!view.handleHistoryEvent(try swipeEvent(horizontal: 0, vertical: 1, time: time, x: 0.46, y: 0.24, in: view)),
+                            "A vertical swipe was captured as folder navigation")
+                for phase in [NSEvent.Phase.began, .changed, .cancelled] {
+                    _ = view.handleHistoryEvent(try swipeEvent(horizontal: 1, phase: phase, time: time + 0.01,
+                                                              x: 0.46, y: 0.24, in: view))
+                }
+                guard let scroll = CGEvent(scrollWheelEvent2Source: nil, units: .pixel, wheelCount: 2,
+                                           wheel1: 0, wheel2: 30, wheel3: 0), let event = NSEvent(cgEvent: scroll) else {
+                    throw Failure(description: "Could not create horizontal wheel event")
+                }
+                try require(!view.handleHistoryEvent(event), "Horizontal wheel scrolling was captured as folder navigation")
+                try require(try history(in: view).count == before, "A cancelled or unrelated gesture navigated")
+            }
+            test("A swipe outside this view or from another window cannot navigate its folders") {
+                let before = try history(in: view).count
+                let time = ProcessInfo.processInfo.systemUptime
+                let outside = try swipeEvent(horizontal: 1, time: time, x: -0.1, y: 0.24, in: view)
+                try require(!view.handleHistoryEvent(outside, routedByWindow: true), "An out-of-bounds swipe was handled")
+                let foreign = try swipeEvent(horizontal: 1, time: time, x: 0.46, y: 0.24, in: view)
+                let other = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 200, height: 100), styleMask: [.titled], backing: .buffered, defer: false)
+                other.isReleasedWhenClosed = false
+                defer { other.close() }
+                foreign.eventWindow = other
+                try require(!view.handleHistoryEvent(foreign, routedByWindow: true), "A foreign window's swipe was handled")
+                try require(try history(in: view).count == before, "An unrelated window or location navigated")
+            }
+            test("Native menu keyboard equivalents route to folder history instead of WebKit page history") {
+                let before = try history(in: view).count
+                try require(!view.canGoBack && !view.canGoForward, "The test unexpectedly has HTML page history")
+                let menu = NSMenu(title: "Go")
+                let back = NSMenuItem(title: "Back", action: #selector(RcloneWebView.goBack(_:)), keyEquivalent: "[")
+                let forward = NSMenuItem(title: "Forward", action: #selector(RcloneWebView.goForward(_:)), keyEquivalent: "]")
+                back.target = view; forward.target = view
+                back.keyEquivalentModifierMask = [.command]; forward.keyEquivalentModifierMask = [.command]
+                menu.addItem(back); menu.addItem(forward)
+                try require(view.validateUserInterfaceItem(back), "Folder history action was disabled by WebKit's empty page history")
+                for (character, code) in [("[", UInt16(33)), ("]", UInt16(30))] {
+                    guard let key = NSEvent.keyEvent(with: .keyDown, location: .zero, modifierFlags: [.command],
+                                                    timestamp: ProcessInfo.processInfo.systemUptime, windowNumber: window.windowNumber,
+                                                    context: nil, characters: character, charactersIgnoringModifiers: character,
+                                                    isARepeat: false, keyCode: code) else {
+                        throw Failure(description: "Could not create native history keyboard shortcut")
+                    }
+                    try require(menu.performKeyEquivalent(with: key), "The native menu did not accept Command-\(character)")
+                }
+                let events = Array(try history(in: view).dropFirst(before))
+                try require(events.count == 2 && events[0]["direction"] as? String == "back" && events[1]["direction"] as? String == "forward",
+                            "Native menu actions did not reach folder history")
+                try require(events.allSatisfy { $0["phase"] as? String == "command" && ($0["x"] as? Double) == -1 },
+                            "A native keyboard command did not select the active pane")
+                view.acceptsHistoryNavigation = { false }
+                defer { view.acceptsHistoryNavigation = { true } }
+                try require(!view.validateUserInterfaceItem(back), "A blocked host still enabled native navigation")
+                view.goBack(nil)
+                _ = view.handleHistoryEvent(try swipeEvent(horizontal: 1, time: ProcessInfo.processInfo.systemUptime,
+                                                           x: 0.46, y: 0.24, in: view))
+                try require(try history(in: view).count == before + 2, "A blocked host accepted a command or swipe")
             }
         }
 

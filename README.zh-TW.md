@@ -6,7 +6,7 @@ Rclone Browser Next 是給 macOS 使用的雙面板 rclone 圖形介面。左右
 
 [專案首頁](README.md) · [English](README.en.md) · [Mac 建置說明](docs/BUILD_MAC.zh-TW.md) · [功能對照](docs/FEATURE_MATRIX.zh-TW.md) · [修改記錄](docs/CHANGELOG.zh-TW.md)
 
-0.7.0 另提供 Windows／Linux [相容版安裝包](docs/BUILD_COMPATIBILITY.md)。以下原生操作以 Mac 版為主，共用的傳輸設定與報告適用於三個平台。
+另提供 Windows／Linux [相容版安裝包](docs/BUILD_COMPATIBILITY.md)。以下原生操作以 Mac 版為主，共用的傳輸設定與報告適用於三個平台。
 
 ## 開始使用
 
@@ -165,7 +165,7 @@ App 選單中有兩項更新：
 
 ### 外觀與語言
 
-外觀變更立即套用，提供深紫、淺紫、深藍、淺藍、深綠、淺綠。主畫面左上角、執行中的 Dock 圖示與選單列圖示會跟著紫／藍／綠色系切換。Finder 中的 App 檔案圖示維持紫色；切換主題不會改寫已簽章的 App 資源。
+外觀變更立即套用，提供深紫、淺紫、深藍、淺藍、深綠、淺綠。主畫面、載入畫面、Dock 與選單列圖示跟著紫／藍／綠色系切換。App 放在可寫入的位置時，也會保存 Finder 的自訂圖示，結束後仍保留所選顏色。請先把 App 從磁碟映像或唯讀位置移到「應用程式」再設定圖示。
 
 介面大小提供 **80%、90%、100%、110%、125%** 五段，預設是中間的 **100%**。文字、圖示、按鈕和間距一起縮放，選完立即套用並記住；macOS 自己的選單、檔案選擇視窗與系統確認框仍遵循系統顯示設定。
 

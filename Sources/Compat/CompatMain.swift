@@ -58,7 +58,8 @@ final class CompatEngineHost {
         case "_preferences":
             return ["settings": engine.settingsSnapshot(), "resolvedLanguage": language]
         case "_state":
-            return ["activeJobs": engine.hasActiveJobs, "activeTools": tools.hasActiveSessions,
+            let quit = engine.quitSummary()
+            return ["activeJobs": quit.activeJobs > 0, "activeTools": tools.hasActiveSessions, "quit": quit.json,
                     "configuring": controlLock.holding { configuring }, "settings": engine.settingsSnapshot(), "resolvedLanguage": language]
         case "_normalizeTransfer": return try engine.normalizedRequest(argument(0) ?? NSNull()).json
         case "_shutdown":
@@ -219,7 +220,10 @@ enum CompatMain {
                       let method = raw["method"] as? String, method.count <= 80,
                       let arguments = raw["args"] as? [Any], arguments.count <= 8 else { continue }
                 group.enter()
-                queue.async {
+                // Quit snapshots follow every already-submitted operation. The
+                // native host blocks new submissions while deciding to quit.
+                let flags: DispatchWorkItemFlags = ["_state", "_shutdown"].contains(method) ? .barrier : []
+                queue.async(flags: flags) {
                     defer { group.leave() }
                     do { host.send(["id": id, "result": try host.handle(method, arguments: arguments)]) }
                     catch { host.send(["id": id, "error": host.translatedError(error.localizedDescription)]) }

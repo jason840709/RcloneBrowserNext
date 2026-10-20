@@ -33,7 +33,7 @@
 | 位置 | 內容 |
 | --- | --- |
 | 專案內 `Rclone Browser Next.app` | 在這台 Mac 建好的 App |
-| 專案內 `.build-cache` | Swift／Clang module cache、編譯暫存、記錄、九套 Swift 測試資料 |
+| 專案內 `.build-cache` | Swift／Clang module cache、編譯暫存、記錄、Swift 測試資料 |
 | 專案內 `Distribution` | 本機 App ZIP 與 SHA-256 校驗檔 |
 | 專案內 `Backups` | 重新建置前的 App |
 | 所選 rclone 資料夾 | 外部引擎、引擎更新暫存及備份 |
@@ -52,11 +52,13 @@
 
 這是 **ad-hoc 本機簽章，沒有 Developer ID，也未經 Apple 公證**。簽章完整與 Gatekeeper 信任不是同一項檢查，不能保證把本機 ZIP 傳給另一台 Mac 就完全不會遇到阻擋。腳本不遞迴移除隔離標籤、不關閉 Gatekeeper、不修改系統安全設定。
 
-## 驗證 App 與執行九套測試
+## 驗證 App 與執行測試
 
 `Verify-App.command` 檢查同資料夾 App 的版本、架構、最低 macOS、依賴、資源及簽章。它不登入雲端、不驗證 Finder 拖放或實際傳輸。
 
-`Test-on-Mac.command` 分別建立、簽署並執行以下九套 Swift 測試：
+先以 `Build-on-Mac.command --no-launch` 建好 App，再執行 `Test-on-Mac.command`。圖示測試需要同資料夾內已簽章的 `Rclone Browser Next.app`，會在副本上檢查圖示保存與簽章。
+
+`Test-on-Mac.command` 分別建立、簽署並執行以下十二套 Swift 測試：
 
 | 測試 | 用途 |
 | --- | --- |
@@ -69,14 +71,20 @@
 | TransferReportTests | 逐檔報告、重試、來源增長、匯出與大型分頁 |
 | PlatformTests | 平台路徑、檔案操作與程序控制 |
 | MacInterfaceTests | 真實 WebKit 的主題啟動、縮放、原生側鍵事件與圖示 |
+| MacStartupTests | 正式 Web 成品的六主題啟動、原生載入層交接、白色畫面阻擋與重試 |
+| MacIconTests | 三色圖示透明度、程序結束後的 Finder 圖示、App 資源與簽章 |
+| MacNavigationIntegrationTests | 原生滑鼠／命令、正式 React 介面與真實 rclone 的完整資料夾導覽 |
 
-這些測試的資料都在專案 `.build-cache/tests`，不使用日常備份、雲端帳號、現有掛載或既有播放器。完整 rclone 案例需要提供可執行、與本機相容的引擎：
+測試記錄與工作目錄位於專案 `.build-cache/tests`；圖示測試另外使用系統暫存中的 App 副本，完成後移除。測試使用獨立資料，不使用日常備份、雲端帳號、現有掛載或既有播放器。完整 rclone 案例需要提供可執行、與本機相容的引擎：
 
 ```bash
+/bin/bash "/你的專案資料夾/Build-on-Mac.command" --no-launch
 /bin/bash "/你的專案資料夾/Test-on-Mac.command" "/你選擇的資料夾/rclone"
 ```
 
-沒有提供 rclone 時，需要真實引擎的案例會清楚標示略過，不代表全部案例通過。NativeMessagesTests 驗證文字邊界，不是 AppKit 視窗測試；FinderDropTests 是檔案資料驗證，不是真正從 Finder 拖動滑鼠。
+沒有提供 rclone 時，需要真實引擎的案例及 `MacNavigationIntegrationTests` 會標示略過。CI 一律提供固定版本的真實引擎。NativeMessagesTests 驗證文字邊界；FinderDropTests 驗證檔案資料。
+
+要只執行四套原生介面測試，可在上述測試指令前加上 `RBN_NATIVE_TESTS_ONLY=1`。macOS 26 的額外 CI 工作使用這個模式；兩個 macOS 15 架構執行完整十二套。
 
 每次發行的通過數量、測試版本與實際執行平台列在 [驗證記錄](VALIDATION.zh-TW.md)。Web 介面的開發測試是獨立流程，一般 Mac 建置不下載測試瀏覽器。
 

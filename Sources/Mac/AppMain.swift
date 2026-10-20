@@ -13,6 +13,8 @@ final class BrowserAppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegat
                                 WKNavigationDelegate, WKScriptMessageHandler, WKUIDelegate {
     private var window: NSWindow!
     private var webView: WKWebView!
+    private var startupSurface: RBNStartupSurface?
+    private var startupNavigation: WKNavigation?
     private var engine: RcloneEngine!
     private var updater: RcloneUpdater!
     private var appReleaseChecker: RBNAppReleaseChecker!
@@ -96,7 +98,7 @@ final class BrowserAppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegat
             browserView.prepareForInitialLoad(initialAppearance)
             browserView.acceptsHistoryNavigation = { [weak self] in
                 guard let self = self else { return false }
-                return self.pageReady && !self.terminationStarted && self.isBundledDocument(self.webView?.url)
+                return self.pageReady && self.startupSurface?.isCoverVisible != true && !self.terminationStarted && self.isBundledDocument(self.webView?.url)
             }
             browserView.onHistoryNavigation = { [weak self] direction, point, eventTime, phase in
                 self?.sendEvent(type: "navigateHistory", data: ["direction": direction, "x": point.x, "y": point.y,
@@ -130,12 +132,23 @@ final class BrowserAppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegat
             window.isReleasedWhenClosed = false
             window.delegate = self
             window.backgroundColor = initialAppearance.backgroundColor
-            window.contentView = webView
+            let family = initialAppearance.theme.components(separatedBy: "-").first ?? "purple"
+            let initialIconName = family == "purple" ? "AppIcon.icns" : "AppIcon-\(family).icns"
+            let initialIcon = NSImage(contentsOf: resources.appendingPathComponent(initialIconName))
+            let surface = RBNStartupSurface(browserView: browserView, appearance: initialAppearance,
+                icon: initialIcon, message: local("正在啟動…", "Starting…", "起動中…"))
+            surface.onRetry = { [weak self] in
+                self?.loadStartupDocument()
+            }
+            surface.onLoadTimeout = { [weak self] in self?.showStartupTimeout() }
+            startupSurface = surface
+            window.contentView = surface
+            (window as? RcloneBrowserWindow)?.browserView = browserView
             window.center()
             applyAppearance()
             installMenus()
             applyInterfacePreferences()
-            webView.loadFileURL(indexURL, allowingReadAccessTo: webRoot)
+            loadStartupDocument()
             window.makeKeyAndOrderFront(nil)
             NSApp.activate(ignoringOtherApps: true)
         } catch {
@@ -195,6 +208,16 @@ final class BrowserAppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegat
         }
         editItem.submenu = editMenu
         menuBar.addItem(editItem)
+        let goItem = NSMenuItem()
+        let goMenu = NSMenu(title: local("前往", "Go", "移動"))
+        let back = NSMenuItem(title: local("上一頁", "Back", "戻る"), action: #selector(RcloneWebView.goBack(_:)), keyEquivalent: "[")
+        back.target = webView
+        goMenu.addItem(back)
+        let forward = NSMenuItem(title: local("下一頁", "Forward", "進む"), action: #selector(RcloneWebView.goForward(_:)), keyEquivalent: "]")
+        forward.target = webView
+        goMenu.addItem(forward)
+        goItem.submenu = goMenu
+        menuBar.addItem(goItem)
         let windowItem = NSMenuItem()
         let windowMenu = NSMenu(title: local("視窗", "Window", "ウインドウ"))
         windowMenu.addItem(withTitle: local("縮到最小", "Minimize", "しまう"), action: #selector(NSWindow.performMiniaturize(_:)), keyEquivalent: "m")
@@ -384,12 +407,14 @@ final class BrowserAppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegat
                            detail: local("請先完成帳號設定、目錄匯出或目前進行中的操作，再結束 App。", "Finish account setup, directory exports, and the current operation before quitting.", "アカウント設定、一覧の書き出し、または進行中の操作を完了してから終了してください。"))
             return .terminateCancel
         }
-        let hasWork = engine.hasActiveJobs || toolsManager.hasActiveSessions
-        let approved = confirm(
+        let quit = engine.quitSummary()
+        let hasWork = quit.activeJobs > 0 || toolsManager.hasActiveSessions
+        let needsConfirmation = quit.requiresConfirmation || toolsManager.hasActiveSessions
+        let approved = !needsConfirmation || confirm(
             title: hasWork ? local("停止工作並結束？", "Stop jobs and quit?", "処理を停止して終了しますか？") : local("確定結束 Rclone Browser Next？", "Quit Rclone Browser Next?", "Rclone Browser Next を終了しますか？"),
             detail: hasWork
                 ? local("結束會停止傳輸、掛載與播放。未完成的工作會保留在紀錄中，下次可以重試。", "Quitting stops transfers, mounts and streams. Unfinished jobs remain in the history so you can retry them next time.", "終了すると転送、マウント、再生を停止します。未完了の処理は履歴に残り、次回再試行できます。")
-                : "",
+                : local("還有失敗或未完成的工作。工作紀錄會保留，下次可重試。", "There are failed or unfinished jobs. Their history will be kept so you can retry them next time.", "失敗または未完了の処理があります。履歴は保存され、次回再試行できます。"),
             action: hasWork ? local("停止並結束", "Stop and quit", "停止して終了") : local("結束", "Quit", "終了"))
         guard approved else { terminationStarted = false; return .terminateCancel }
         requestQueue.async { [weak self] in
@@ -431,18 +456,23 @@ final class BrowserAppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegat
         window?.backgroundColor = appearance.backgroundColor
         (webView as? RcloneWebView)?.applyAppearance(appearance)
         let family = theme.hasPrefix("green-") ? "green" : (theme.hasPrefix("blue-") || ["dark", "light"].contains(theme) ? "blue" : "purple")
-        guard family != currentIconFamily else { return }
+        if family == currentIconFamily {
+            startupSurface?.applyAppearance(appearance, icon: themeIcons[family])
+            return
+        }
         if themeIcons[family] == nil, let resources = Bundle.main.resourceURL {
             let filename = family == "purple" ? "AppIcon.icns" : "AppIcon-\(family).icns"
             themeIcons[family] = NSImage(contentsOf: resources.appendingPathComponent(filename))
                 ?? NSImage(contentsOf: resources.appendingPathComponent("AppIcon.icns"))
         }
         if let icon = themeIcons[family] {
-            // This changes the running app and Dock only. Do not modify the
-            // signed bundle or the Finder icon when a user changes themes.
             NSApp.applicationIconImage = icon
+            // Finder's custom file icon survives this process. Its filesystem
+            // metadata is separate from the signed Contents directory.
+            _ = RBNAppIconAppearance.persist(icon, at: Bundle.main.bundleURL)
             currentIconFamily = family
         }
+        startupSurface?.applyAppearance(appearance, icon: themeIcons[family])
     }
 
     private func onMain<T>(_ body: () throws -> T) rethrows -> T {
@@ -462,19 +492,45 @@ final class BrowserAppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegat
     }
 
     func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
-        guard isBundledDocument(webView.url) else { return }
+        guard navigation === startupNavigation, isBundledDocument(webView.url) else { return }
         pageReady = true
-        (webView as? RcloneWebView)?.revealInitialDocument()
+        startupSurface?.revealWhenReady { [weak self] _ in self?.showStartupTimeout() }
         for event in queuedEvents { evaluate(function: "__rbnEvent", value: event) }
         queuedEvents.removeAll()
     }
 
     func webView(_ webView: WKWebView, didFailProvisionalNavigation navigation: WKNavigation!, withError error: Error) {
-        presentError(error)
+        guard navigation === startupNavigation, (error as NSError).code != NSURLErrorCancelled else { return }
+        showStartupFailure(error)
     }
 
     func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
-        presentError(error)
+        guard navigation === startupNavigation, (error as NSError).code != NSURLErrorCancelled else { return }
+        showStartupFailure(error)
+    }
+
+    func webViewWebContentProcessDidTerminate(_ webView: WKWebView) {
+        showStartupTimeout()
+    }
+
+    private func loadStartupDocument() {
+        pageReady = false
+        startupSurface?.beginLoading(message: local("正在啟動…", "Starting…", "起動中…"))
+        startupNavigation = webView.loadFileURL(indexURL, allowingReadAccessTo: webRoot)
+    }
+
+    private func showStartupTimeout() {
+        pageReady = false
+        startupNavigation = nil
+        startupSurface?.showFailure(
+            local("畫面未能載入，請重試。", "The interface could not load. Try again.", "画面を読み込めませんでした。再試行してください。"),
+            retryTitle: local("重試", "Retry", "再試行"))
+    }
+
+    private func showStartupFailure(_ error: Error) {
+        pageReady = false
+        startupNavigation = nil
+        startupSurface?.showFailure(localizedError(error), retryTitle: local("重試", "Retry", "再試行"))
     }
 
     func webView(_ webView: WKWebView, createWebViewWith configuration: WKWebViewConfiguration,

@@ -4,8 +4,8 @@ macOS is the primary platform. The compatibility editions reuse the bundled web 
 
 ## Install
 
-- **Windows x64:** run `Rclone_Browser_Next_0.8.0_Windows_x64_Setup.exe`. Installation is per user. If WebView2 is absent, the installer downloads Microsoft's official Evergreen bootstrapper. The installer includes the Swift runtime; Swift, Rust and Node.js are not needed to run the app.
-- **Ubuntu 24.04 amd64:** install `Rclone_Browser_Next_0.8.0_Linux_amd64.deb` with your package installer or `sudo apt install ./Rclone_Browser_Next_0.8.0_Linux_amd64.deb`. The package includes Swift runtime libraries and declares its WebKitGTK, GTK, ICU and other system dependencies. Other distributions require matching dependencies or a source build.
+- **Windows x64:** run `Rclone_Browser_Next_0.8.1_Windows_x64_Setup.exe`. Installation is per user. If WebView2 is absent, the installer downloads Microsoft's official Evergreen bootstrapper. The installer includes the Swift runtime; Swift, Rust and Node.js are not needed to run the app.
+- **Ubuntu 24.04 amd64:** install `Rclone_Browser_Next_0.8.1_Linux_amd64.deb` with your package installer or `sudo apt install ./Rclone_Browser_Next_0.8.1_Linux_amd64.deb`. The package includes Swift runtime libraries and declares its WebKitGTK, GTK, ICU and other system dependencies. Other distributions require matching dependencies or a source build.
 
 In Settings, choose an existing rclone executable or an installation folder for the app's rclone downloader. Account setup opens rclone's interactive configuration in a terminal. Existing rclone configuration files can be selected directly.
 

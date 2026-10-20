@@ -131,6 +131,7 @@ with tempfile.TemporaryDirectory(prefix="fixture-", dir=cache) as value:
             assert boot["environment"]["platform"] == ("win32" if os.name == "nt" else "linux"), boot["environment"]
             assert boot["resolvedLanguage"] == "en"
             assert any(x["name"] == "資料夾" for x in client.call("list", endpoint(source)))
+            assert client.call("_state")["quit"] == {"activeJobCount": 0, "failedJobCount": 0, "unfinishedJobCount": 0, "requiresConfirmation": False}
         check("bootstrap, engine discovery and Unicode listing", bootstrap)
         if os.name == "nt":
             def account_launcher():
@@ -201,6 +202,32 @@ with tempfile.TemporaryDirectory(prefix="fixture-", dir=cache) as value:
             client.call("_importTasks", str(tasks_file))
             assert any(t["name"] == "測試作業" for t in client.call("listTasks"))
         check("complete reports and task export/import", reports_and_tasks)
+        def quit_policy():
+            def settled():
+                deadline = time.monotonic() + 5
+                while time.monotonic() < deadline:
+                    state = client.call("_state")
+                    if state["quit"]["activeJobCount"] == 0:
+                        return state["quit"]
+                    time.sleep(0.02)
+                raise AssertionError("Completed job worker did not finish saving its state")
+            assert settled()["requiresConfirmation"] is False, "Successful jobs or saved tasks requested a quit confirmation"
+            missing = "quit-retry.txt"
+            failed_request = {**request, "mode": "copy", "selection": [{"name": missing, "isDir": False}],
+                              "options": {**request["options"], "retries": 1}}
+            failed = client.wait(client.call("startTransfer", failed_request)["id"])
+            assert failed["status"] == "failed", failed
+            state = settled()
+            assert state["failedJobCount"] == 1 and state["requiresConfirmation"] is True, state
+            (source / missing).write_bytes(b"retry now succeeds\n")
+            retry = client.wait(client.call("retryJob", failed["id"])["id"])
+            assert retry["status"] == "completed" and retry["id"] != failed["id"], retry
+            state = settled()
+            assert state["failedJobCount"] == 1 and state["requiresConfirmation"] is True, "Retry erased the original failed row"
+            client.call("clearJobs", {"ids": [failed["id"]], "mode": "finished"})
+            assert settled()["requiresConfirmation"] is False
+            assert (target / missing).read_bytes() == b"retry now succeeds\n"
+        check("quit state follows successful jobs, failed retries and explicit history cleanup", quit_policy)
         def cancellation():
             paths = {}
             for group in ["a", "b"]:
@@ -221,6 +248,8 @@ with tempfile.TemporaryDirectory(prefix="fixture-", dir=cache) as value:
                 time.sleep(0.1)
             else:
                 raise AssertionError("Cancellation fixture did not reach an in-progress write")
+            state = client.call("_state")
+            assert state["activeJobs"] is True and state["quit"]["activeJobCount"] == 2 and state["quit"]["requiresConfirmation"] is True, state
             first = paths["a"][0]
             client.call("cancelJob", first)
             stopped = client.wait(first, timeout=20)
@@ -228,6 +257,7 @@ with tempfile.TemporaryDirectory(prefix="fixture-", dir=cache) as value:
             assert stopped["cancellation"]["forced"] is False and stopped["cancellation"]["processExited"] is True, stopped["cancellation"]
             assert client.job(paths["b"][0])["status"] == "running", "Stopping one job affected another"
             client.call("cancelJob", paths["b"][0]); client.wait(paths["b"][0], timeout=20)
+            assert client.call("_state")["quit"]["requiresConfirmation"] is True, "Stopped transfers were treated as successful"
             for _, dest in paths.values():
                 assert (dest / "000-complete.txt").read_bytes() == b"completed file stays\n"
                 assert (dest / "999-in-progress.bin").read_bytes() == b"previous complete version\n"
@@ -242,6 +272,8 @@ with tempfile.TemporaryDirectory(prefix="fixture-", dir=cache) as value:
             assert all(j["status"] != "completed" for j in jobs)
             assert len([j for j in jobs if j["status"] == "cancelled"]) == 2
             assert client.call("listTasks")
+            state = client.call("_state")["quit"]
+            assert state["activeJobCount"] == 0 and state["unfinishedJobCount"] == 2 and state["requiresConfirmation"] is True, state
         check("restart clears successful history and retains stopped jobs and tasks", restart)
     finally:
         client.close()
