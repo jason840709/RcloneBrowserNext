@@ -26,6 +26,6 @@
 
 ## Mac 原生驗證
 
-本 Web 紀錄產生時，Mac 原生 CI 尚待完成。`Scripts/test-mac.sh` 另外執行 `MacInterfaceTests`、`MacStartupTests`、`MacIconTests`、`MacNavigationIntegrationTests`，涵蓋 AppKit 輸入、原生啟動畫面、Finder 圖示保存，以及正式 React／WKWebView／Core 引擎的資料夾導航。原生 swipe 測試使用 `NSEvent` 測試替身；本輪 Web 測試沒有操作實體 MX Master 3S 或 Logi Options+。
+本 Web 紀錄產生時，Mac 原生 CI 尚待完成。`Scripts/test-mac.sh` 另外執行 `MacInterfaceTests`、`MacStartupTests`、`MacIconTests`、`MacNavigationIntegrationTests`，涵蓋 AppKit 輸入、原生啟動畫面、執行期間的主題圖示與 App 簽章，以及正式 React／WKWebView／Core 引擎的資料夾導航。原生 swipe 測試使用 `NSEvent` 測試替身；本輪 Web 測試沒有操作實體 MX Master 3S 或 Logi Options+。
 
 [0.8.0 完整紀錄](history/0.8.0/verification.json) 已原樣保存，另保留 [0.7.0](history/0.7.0/verification.json)、[0.6.0](history/0.6.0/verification.json) 與[接續工作前的 0.7.0](history/0.7.0-before-recovery/verification.json)。重現指令見[英文說明](README.md)。瀏覽器、Playwright 版本與 Noto CJK 字型雜湊記錄於 JSON。

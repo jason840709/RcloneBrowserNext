@@ -70,7 +70,7 @@ jobs:
         run: /bin/bash Scripts/ci-rclone.sh
       - name: Build and verify the complete app on current macOS
         run: /bin/bash Scripts/build-mac.sh --no-launch
-      - name: Verify startup pixels, native navigation and persistent Finder icons
+      - name: Verify startup pixels, native navigation and icon signatures
         run: /bin/bash Scripts/test-mac.sh "$GITHUB_WORKSPACE/.build-cache/ci-engine/rclone"
       - name: Retain native verification logs
         if: always()

@@ -1,11 +1,11 @@
 {
   "version": "0.8.1",
   "file_count_excluding_manifest": 201,
-  "total_bytes_excluding_manifest": 6890107,
+  "total_bytes_excluding_manifest": 6890208,
   "files": {
     ".github/workflows/macos.yml": {
-      "bytes": 8742,
-      "sha256": "c48e6195941e105b9d62adf37c36c5ea4ed547a5d742367b645d8daf36894e0f"
+      "bytes": 8734,
+      "sha256": "3600065e0197aa9da7cdb65a4ac57342ed6564bcc8e9a6a869d836f626ce3522"
     },
     ".gitignore": {
       "bytes": 259,
@@ -132,16 +132,16 @@
       "sha256": "f91c2bfcb1423973c04aab64fe1bddb1f40cd498562d4697b134c8b3a386544f"
     },
     "README.en.md": {
-      "bytes": 8276,
-      "sha256": "bcb25d3ace18d923e8305bea8173de557cff66c40be4dfc78908654bb9f43654"
+      "bytes": 8307,
+      "sha256": "3b9c36cb305becd8a1afd703050c45cb6133322a653245f51e728a3cee98882d"
     },
     "README.md": {
-      "bytes": 7396,
-      "sha256": "1b913608e42f8b8c340c57b1db7d4b65dfa72b6b43425ef91fcc3c516378e9e7"
+      "bytes": 7410,
+      "sha256": "33c02911599313d7ca5f8d08048f6c3354f3e24f9be3b796c048be61fa2aed08"
     },
     "README.zh-TW.md": {
-      "bytes": 20906,
-      "sha256": "b9f62717debacb78e43bbd7e7722229e445d85cfa4baa4ead966684c05cfee80"
+      "bytes": 20848,
+      "sha256": "fa1c4b3205c08f3d4e46788f07a41612647a4e78528f6e8e9087317bb833a71f"
     },
     "Resources/AppIcon-blue.icns": {
       "bytes": 628142,
@@ -308,12 +308,12 @@
       "sha256": "5982f8dca69c7b4cb2e7b2cb7b9c11a959fbda49062703e6b97192689934beaa"
     },
     "Sources/Mac/AppIconAppearance.swift": {
-      "bytes": 1434,
-      "sha256": "5691cb0ce7bf436d47f8a53df161b6d19cc2196d2346a64626f105cc08c6a95b"
+      "bytes": 593,
+      "sha256": "b4ee3c4eb1108d3bdbe1ffa9b10377c255fcb9bd3407c7dbddb35c17dec2f5da"
     },
     "Sources/Mac/AppMain.swift": {
-      "bytes": 77054,
-      "sha256": "b09a19982c7b5682c5c418276d1d0d72773fa49fcd727ef4fd18a830086f8f64"
+      "bytes": 76824,
+      "sha256": "bf53e036e99762efb3cd66d96ee9bc01d7086acec28bc2236ff2dbf775103bb8"
     },
     "Sources/Mac/RcloneWebView.swift": {
       "bytes": 12026,
@@ -340,8 +340,8 @@
       "sha256": "6ef88a57f8d807d3886e8c240338484f98bf3988f5ac1da4252b3708da97d314"
     },
     "Tests/MacIconTests.swift": {
-      "bytes": 11647,
-      "sha256": "cdf0b7f8f93e57055e98ede4c5327db3d118c67ba5253c7f5d7d1a7c304b2baa"
+      "bytes": 12585,
+      "sha256": "bb7d7178d919e7b1f27160717153f78aea66306e92b6efcf3ee81769efef4574"
     },
     "Tests/MacInterfaceTests.swift": {
       "bytes": 28725,
@@ -532,12 +532,12 @@
       "sha256": "d6a64f75cbdb158a6fe02a9ef0cd622ef3dee15a239e75df4b568ef28ef7df0e"
     },
     "WebSource/tests/README.md": {
-      "bytes": 3849,
-      "sha256": "578795823db9f3c17f4819977ecc6dde924e553820132c12515458ce1c2faf58"
+      "bytes": 3879,
+      "sha256": "6574c424ebcce18b91dc20827e94d0e3344cf6fed699ad12cb33e3ebc20874c1"
     },
     "WebSource/tests/VERIFICATION.zh-TW.md": {
-      "bytes": 3109,
-      "sha256": "d295684aaa351da4bc860aa57010295b486a5e015c873251100ff069cdf942de"
+      "bytes": 3131,
+      "sha256": "1de5a4a3b323d951ad67d4e38cd6f1b2769dc9ba8b9ceeaf03cc8a5e8c024980"
     },
     "WebSource/tests/check-contrast.py": {
       "bytes": 1928,
@@ -636,8 +636,8 @@
       "sha256": "30fcf2e3653f64a218c5244ac0691759fd47f6959a7b9ad552ecd4a3f62e33bf"
     },
     "WebSource/tests/verification.json": {
-      "bytes": 97909,
-      "sha256": "58ceee4478454cc5c745a9215d10452bc530583cca36a0133b6d96898bb09414"
+      "bytes": 97924,
+      "sha256": "ec1b8d9b8d2166ef51079d83e51e3334b12c8b6d9d606733bd8a48da8bc3d22f"
     },
     "WebSource/tools/generate-theme-icons.py": {
       "bytes": 4519,
@@ -660,16 +660,16 @@
       "sha256": "f0e1919b9b863c702f2761d79795eb2bdb2550575730708fa086fbab4f43fc05"
     },
     "docs/BUILD_MAC.zh-TW.md": {
-      "bytes": 8801,
-      "sha256": "ead98013092efae07757e99108cdc6b2a358f8fa3c8b14ff8ce9e01a9cc091c2"
+      "bytes": 8839,
+      "sha256": "7c4a510f37b008d8de9d9855c304aa5e124505ccbff220858e5a1f0f35b6f360"
     },
     "docs/CHANGELOG.zh-TW.md": {
-      "bytes": 10102,
-      "sha256": "c0b579a61d9c2eb3b3540f45f327d1d16e19ae8762cd16c29a688117fa587d43"
+      "bytes": 10085,
+      "sha256": "602321300e8bd02ec89297c9659385d23dde274ef06c9c25f1963aa825f10e94"
     },
     "docs/DEVELOPMENT.md": {
-      "bytes": 20565,
-      "sha256": "ec662135dcb697149087f607bf0764fc91a5c0780ac00f87e7a66d8a303add3f"
+      "bytes": 20903,
+      "sha256": "847d033684221455a84895c8f5d083ab839e8b8490b33249cf46faf5e8341f22"
     },
     "docs/FEATURE_MATRIX.zh-TW.md": {
       "bytes": 7764,
@@ -704,8 +704,8 @@
       "sha256": "cb66e7e6c6d817d10565ce292e6e9cd6385c87d102d92c5a3114a3b2b6587688"
     },
     "docs/RELEASE_0.8.1.md": {
-      "bytes": 2459,
-      "sha256": "6ec58e5b2f1b29a6e425f54942df7a9d084928811c4ce1a76776c14595ed4ce8"
+      "bytes": 2258,
+      "sha256": "894b31cf56cc1debf8ad9c447135c8e4337af98b59c3bec0623807198fc297bd"
     },
     "docs/RESEARCH_0.5.0.md": {
       "bytes": 10720,
@@ -724,8 +724,8 @@
       "sha256": "8eca5e72ede9871af4f1a35d7561aede169ff414c281f6a5a46b5b243bc0d06c"
     },
     "docs/VALIDATION.zh-TW.md": {
-      "bytes": 1801,
-      "sha256": "9faf534f667bc853cfd84e7f2c95d040e344a1d05ee97c0b77aeed726f3518ec"
+      "bytes": 1831,
+      "sha256": "319cc9eec7afec4bde109c2e6a47e180c65d09ed9529f59652def5b5b8a41144"
     },
     "docs/VALIDATION_0.6.0.zh-TW.md": {
       "bytes": 12820,

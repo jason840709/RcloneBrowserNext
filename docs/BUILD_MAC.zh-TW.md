@@ -56,7 +56,7 @@
 
 `Verify-App.command` 檢查同資料夾 App 的版本、架構、最低 macOS、依賴、資源及簽章。它不登入雲端、不驗證 Finder 拖放或實際傳輸。
 
-先以 `Build-on-Mac.command --no-launch` 建好 App，再執行 `Test-on-Mac.command`。圖示測試需要同資料夾內已簽章的 `Rclone Browser Next.app`，會在副本上檢查圖示保存與簽章。
+先以 `Build-on-Mac.command --no-launch` 建好 App，再執行 `Test-on-Mac.command`。圖示測試需要同資料夾內已簽章的 `Rclone Browser Next.app`，會檢查主題圖示，並在 App 副本核對資源與簽章。
 
 `Test-on-Mac.command` 分別建立、簽署並執行以下十二套 Swift 測試：
 
@@ -72,7 +72,7 @@
 | PlatformTests | 平台路徑、檔案操作與程序控制 |
 | MacInterfaceTests | 真實 WebKit 的主題啟動、縮放、原生側鍵事件與圖示 |
 | MacStartupTests | 正式 Web 成品的六主題啟動、原生載入層交接、白色畫面阻擋與重試 |
-| MacIconTests | 三色圖示透明度、程序結束後的 Finder 圖示、App 資源與簽章 |
+| MacIconTests | 三色素材透明度、執行期間的主題圖示、固定 bundle 圖示、App 資源與簽章 |
 | MacNavigationIntegrationTests | 原生滑鼠／命令、正式 React 介面與真實 rclone 的完整資料夾導覽 |
 
 測試記錄與工作目錄位於專案 `.build-cache/tests`；圖示測試另外使用系統暫存中的 App 副本，完成後移除。測試使用獨立資料，不使用日常備份、雲端帳號、現有掛載或既有播放器。完整 rclone 案例需要提供可執行、與本機相容的引擎：

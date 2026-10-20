@@ -26,7 +26,7 @@ The suite produced **79 screenshots**. **6 captures were inspected directly**; t
 
 ## Native macOS verification
 
-Native macOS CI was pending when this Web receipt was generated. `Scripts/test-mac.sh` runs `MacInterfaceTests`, `MacStartupTests`, `MacIconTests` and `MacNavigationIntegrationTests` separately. They cover AppKit input routing, native startup frames, persistent Finder icons, and the actual React/WKWebView/Core-engine navigation chain. Native swipe tests supply an `NSEvent` test double; a physical MX Master 3S and Logi Options+ were not exercised in this Web run.
+Native macOS CI was pending when this Web receipt was generated. `Scripts/test-mac.sh` runs `MacInterfaceTests`, `MacStartupTests`, `MacIconTests` and `MacNavigationIntegrationTests` separately. They cover AppKit input routing, native startup frames, runtime theme icons and bundle-signature preservation, and the actual React/WKWebView/Core-engine navigation chain. Native swipe tests supply an `NSEvent` test double; a physical MX Master 3S and Logi Options+ were not exercised in this Web run.
 
 The completed [0.8.0 record](history/0.8.0/verification.json) is preserved unchanged, alongside [0.7.0](history/0.7.0/verification.json), [0.6.0](history/0.6.0/verification.json) and [pre-recovery 0.7.0](history/0.7.0-before-recovery/verification.json).
 

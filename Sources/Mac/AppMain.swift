@@ -466,10 +466,7 @@ final class BrowserAppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegat
                 ?? NSImage(contentsOf: resources.appendingPathComponent("AppIcon.icns"))
         }
         if let icon = themeIcons[family] {
-            NSApp.applicationIconImage = icon
-            // Finder's custom file icon survives this process. Its filesystem
-            // metadata is separate from the signed Contents directory.
-            _ = RBNAppIconAppearance.persist(icon, at: Bundle.main.bundleURL)
+            RBNAppIconAppearance.apply(icon)
             currentIconFamily = family
         }
         startupSurface?.applyAppearance(appearance, icon: themeIcons[family])

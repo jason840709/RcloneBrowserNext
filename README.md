@@ -19,7 +19,7 @@
   <a href="https://github.com/jason840709/RcloneBrowserNext/issues">回報問題</a>
 </p>
 
-0.8.1 補修主畫面載入前的白色閃爍與 Mac 滑鼠前進／後退，依工作狀態決定是否確認結束，並讓已選圖示色系保留在 Finder 與 Dock。**Mac 仍是主要開發平台**，另提供 Windows x64 與 Linux amd64 相容版。[本版更新](docs/RELEASE_0.8.1.md) · [相容版安裝](docs/BUILD_COMPATIBILITY.md)
+0.8.1 補修主畫面載入前的白色閃爍與 Mac 滑鼠前進／後退，依工作狀態決定是否確認結束，並讓載入畫面與執行中的 Dock 圖示使用已選色系。**Mac 仍是主要開發平台**，另提供 Windows x64 與 Linux amd64 相容版。[本版更新](docs/RELEASE_0.8.1.md) · [相容版安裝](docs/BUILD_COMPATIBILITY.md)
 
 ## 這是什麼？
 

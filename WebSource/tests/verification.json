@@ -663,7 +663,7 @@
     "runner": "Scripts/test-mac.sh",
     "navigationIntegration": "Production React bundle in actual WKWebView with asynchronous Core RcloneEngine and isolated real folders",
     "swipeInput": "NSEvent test double; physical MX Master 3S / Logi Options+ events were not recorded",
-    "scope": "AppKit routing, native startup pixels, persistent Finder icons and real-engine navigation have separate Mac receipts."
+    "scope": "AppKit routing, native startup pixels, runtime theme icons, bundle signatures and real-engine navigation have separate Mac receipts."
   },
   "development": [
     {

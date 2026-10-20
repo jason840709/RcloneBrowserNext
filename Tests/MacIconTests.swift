@@ -2,8 +2,8 @@
 import Foundation
 @preconcurrency import AppKit
 
-/// Tests the installed app's file icon, including a setter process that has
-/// already exited. Uses a temporary copy of the built, signed application.
+/// Tests the running application's theme image and transparent icon resources.
+/// A temporary copy of the signed app must retain its fixed icon and signature.
 @main struct MacIconTests {
     private struct Failure: Error, CustomStringConvertible { let description: String }
     private static var passed = 0
@@ -129,14 +129,9 @@ import Foundation
         let application = NSApplication.shared
         application.setActivationPolicy(.accessory)
         application.finishLaunching()
+        let previousIcon = application.applicationIconImage
+        defer { application.applicationIconImage = previousIcon }
         let args = CommandLine.arguments
-        if args.count == 5 && args[1] == "--persist" {
-            guard let image = NSImage(contentsOfFile: args[4]), image.isValid else { exit(2) }
-            application.applicationIconImage = image
-            let ok = RBNAppIconAppearance.persist(image, at: URL(fileURLWithPath: args[3], isDirectory: true))
-            print("fileIconPersisted=\(ok);family=\(args[2])")
-            exit(ok ? 0 : 3)
-        }
         guard args.count == 3 else {
             print("FAIL Usage: MacIconTests Resources BuiltApp.app")
             exit(1)
@@ -147,6 +142,7 @@ import Foundation
         let fixture = temporary.appendingPathComponent("Rclone Browser Next.app", isDirectory: true)
         defer { try? FileManager.default.removeItem(at: temporary) }
         var originalContents = [String: Data]()
+        var originalEntries = [String]()
         var expected = [String: [UInt8]]()
         var setupOK = false
         test("Copies the built signed app into an isolated icon fixture") {
@@ -154,6 +150,7 @@ import Foundation
             try FileManager.default.copyItem(at: original, to: fixture)
             try verifySignature(fixture)
             originalContents = try contents(fixture)
+            originalEntries = try FileManager.default.contentsOfDirectory(atPath: fixture.path).sorted()
             try require(!originalContents.isEmpty, "Empty signed app fixture")
             setupOK = true
         }
@@ -170,37 +167,52 @@ import Foundation
         }
         if setupOK && expected.count == families.count {
             for family in ["blue", "green", "purple"] {
-                test("\(family) Finder icon survives its setter process exiting without a background tile") {
-                    let message = try run(URL(fileURLWithPath: args[0]), ["--persist", family, fixture.path, iconURL(family, in: resources).path])
-                    try require(message.contains("fileIconPersisted=true"), "The file icon write was not accepted")
-                    let deadline = Date().addingTimeInterval(5)
-                    var matched = false
-                    var scores = [String: Double]()
-                    repeat {
-                        let actual = try raster(NSWorkspace.shared.icon(forFile: fixture.path))
-                        scores = expected.mapValues { distance(actual, $0) }
-                        let closest = scores.min { $0.value < $1.value }?.key
-                        let centerAlpha = actual[(64 * 128 + 64) * 4 + 3]
-                        matched = closest == family && (scores[family] ?? .infinity) < 20 && transparentFraction(actual) > 0.4 && centerAlpha < 32
-                        if matched { break }
-                        _ = RunLoop.current.run(mode: .default, before: Date().addingTimeInterval(0.05))
-                    } while Date() < deadline
-                    try require(matched, "The stopped app's file icon did not match \(family): \(scores)")
+                test("\(family) runtime application icon uses the selected transparent artwork") {
+                    guard let image = NSImage(contentsOf: iconURL(family, in: resources)) else {
+                        throw Failure(description: "Cannot decode \(family) image")
+                    }
+                    try require(RBNAppIconAppearance.apply(image), "The runtime icon was not accepted")
+                    guard let currentImage = application.applicationIconImage else {
+                        throw Failure(description: "The running application has no icon")
+                    }
+                    let actual = try raster(currentImage)
+                    let scores = expected.mapValues { distance(actual, $0) }
+                    let closest = scores.min { $0.value < $1.value }?.key
+                    let centerAlpha = actual[(64 * 128 + 64) * 4 + 3]
+                    try require(closest == family && (scores[family] ?? .infinity) < 20,
+                                "The runtime icon did not match \(family): \(scores)")
+                    try require(transparentFraction(actual) > 0.4 && centerAlpha < 32,
+                                "The runtime icon lost its transparent background or ring interiors")
                 }
-                test("\(family) file icon preserves every signed Contents byte and strict signature validity") {
+                test("\(family) runtime icon preserves every signed Contents byte and strict signature validity") {
                     try require(try contents(fixture) == originalContents, "A theme change modified the signed Contents")
+                    try require(try FileManager.default.contentsOfDirectory(atPath: fixture.path).sorted() == originalEntries,
+                                "A theme change added a file to the app bundle")
                     try verifySignature(fixture)
                 }
             }
-            test("A missing application path rejects persistence without creating files") {
-                guard let image = NSImage(contentsOf: iconURL("blue", in: resources)) else { throw Failure(description: "Missing blue icon") }
-                let missing = temporary.appendingPathComponent("Missing.app", isDirectory: true)
-                try require(!RBNAppIconAppearance.persist(image, at: missing), "Unexpectedly accepted a missing bundle")
-                try require(!FileManager.default.fileExists(atPath: missing.path), "Created an unsolicited application")
+            test("Resetting the runtime icon retains the fixed purple bundle icon and strict signature") {
+                application.applicationIconImage = nil
+                let infoURL = fixture.appendingPathComponent("Contents/Info.plist")
+                let plist = try PropertyListSerialization.propertyList(from: Data(contentsOf: infoURL), options: [], format: nil)
+                guard let info = plist as? [String: Any] else { throw Failure(description: "Cannot read the bundle Info.plist") }
+                try require(info["CFBundleIconFile"] as? String == "AppIcon.icns", "The bundle's default icon changed")
+                let bundledIcon = fixture.appendingPathComponent("Contents/Resources/AppIcon.icns")
+                try require(try Data(contentsOf: bundledIcon) == Data(contentsOf: iconURL("purple", in: resources)),
+                            "The fixed bundle icon no longer matches the supplied purple artwork")
+                try require(try contents(fixture) == originalContents, "Resetting the runtime icon changed signed Contents")
+                try require(try FileManager.default.contentsOfDirectory(atPath: fixture.path).sorted() == originalEntries,
+                            "Resetting the runtime icon added a file to the app bundle")
+                try verifySignature(fixture)
             }
         }
         print("\nMacIconTests: \(passed) passed, \(failed) failed, 0 skipped")
-        if failed > 0 { exit(1) }
+        if failed > 0 {
+            // exit does not unwind Swift defer blocks.
+            application.applicationIconImage = previousIcon
+            try? FileManager.default.removeItem(at: temporary)
+            exit(1)
+        }
     }
 }
 #endif
