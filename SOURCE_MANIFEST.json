@@ -1,7 +1,7 @@
 {
   "version": "0.9.0",
   "file_count_excluding_manifest": 219,
-  "total_bytes_excluding_manifest": 7388733,
+  "total_bytes_excluding_manifest": 7397359,
   "files": {
     ".github/workflows/macos.yml": {
       "bytes": 8748,
@@ -276,12 +276,12 @@
       "sha256": "079dd137946bde9627eb0d6cbc8ab4081813d10de76133813333f34e1a38a8d0"
     },
     "Scripts/windows/probe-filesystem.py": {
-      "bytes": 28402,
-      "sha256": "51565be3048c52a2ebb8e916f1bac62c4ddd45a62c60a6a160d6ddaafe8bcfd7"
+      "bytes": 29185,
+      "sha256": "582f225e56070d26263a47dff37fc6663e38736571f93805d59a04f54762bd63"
     },
     "Scripts/windows/probe-ui.py": {
-      "bytes": 30559,
-      "sha256": "5e6a6b6cdd58b842926f7304257a4a5a3751b38e76f0be7d0ef6cc8c95484bea"
+      "bytes": 38402,
+      "sha256": "814ca1067b39f9abb50ef470ed0b1f8ffdd32f0d84a501f37947b3d4122e48bf"
     },
     "Scripts/windows/verify-mac-unchanged.py": {
       "bytes": 2935,

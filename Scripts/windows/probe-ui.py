@@ -29,6 +29,7 @@ import subprocess
 import tempfile
 import time
 import traceback
+import urllib.parse
 import urllib.request
 
 
@@ -180,19 +181,132 @@ def fixed_drives() -> list[str]:
             if mask & (1 << index) and kernel32.GetDriveTypeW(f"{chr(65 + index)}:\\") == 3]
 
 
-async def wait_cdp(port: int, process: subprocess.Popen, timeout: float = 90) -> dict:
+def run_powershell(script: str, *, extra_environment: dict | None = None) -> subprocess.CompletedProcess:
+    environment = dict(os.environ)
+    environment.update(extra_environment or {})
+    system = Path(os.environ.get("SystemRoot", r"C:\Windows"))
+    executable = system / "System32/WindowsPowerShell/v1.0/powershell.exe"
+    prefix = "$ErrorActionPreference='Stop'; [Console]::OutputEncoding=[System.Text.UTF8Encoding]::new($false); "
+    return subprocess.run([str(executable), "-NoLogo", "-NoProfile", "-NonInteractive", "-Command", prefix + script],
+                          env=environment, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=20)
+
+
+def native_diagnostics(pid: int, output: Path) -> dict:
+    """Inspect only the launched app family; desktop capture is CI-only evidence."""
+    result = {"appProcessID": pid}
+    pids = {pid}
+    try:
+        process_result = run_powershell(
+            f"$rows=@(Get-CimInstance Win32_Process); $ids=@({pid}); "
+            "for($i=0;$i -lt 32;$i++){ $next=@($rows | Where-Object { $ids -contains [int]$_.ParentProcessId } | "
+            "ForEach-Object { [int]$_.ProcessId }); $joined=@(@($ids)+@($next) | Sort-Object -Unique); "
+            "if($joined.Count -eq $ids.Count){break}; $ids=$joined }; "
+            "$family=@($rows | Where-Object { $ids -contains [int]$_.ProcessId } | "
+            "Select-Object ProcessId,ParentProcessId,Name,ExecutablePath,CommandLine); "
+            "ConvertTo-Json -InputObject $family -Depth 4 -Compress")
+        if process_result.returncode:
+            raise RuntimeError(process_result.stderr[-4000:])
+        result["processes"] = json.loads(process_result.stdout.strip() or "[]")
+        pids.update(int(row["ProcessId"]) for row in result["processes"])
+    except Exception as error:
+        result["processEvidenceError"] = str(error)
+    try:
+        user32 = ctypes.windll.user32
+        callback_type = ctypes.WINFUNCTYPE(wintypes.BOOL, wintypes.HWND, wintypes.LPARAM)
+        user32.EnumWindows.argtypes = [callback_type, wintypes.LPARAM]
+        user32.EnumChildWindows.argtypes = [wintypes.HWND, callback_type, wintypes.LPARAM]
+        user32.GetWindowThreadProcessId.argtypes = [wintypes.HWND, ctypes.POINTER(wintypes.DWORD)]
+        user32.GetClassNameW.argtypes = [wintypes.HWND, wintypes.LPWSTR, ctypes.c_int]
+        user32.GetWindowTextW.argtypes = [wintypes.HWND, wintypes.LPWSTR, ctypes.c_int]
+        user32.GetWindowRect.argtypes = [wintypes.HWND, ctypes.POINTER(wintypes.RECT)]
+        user32.IsWindowVisible.argtypes = [wintypes.HWND]
+        user32.SendMessageTimeoutW.argtypes = [wintypes.HWND, wintypes.UINT, wintypes.WPARAM,
+                                             wintypes.LPARAM, wintypes.UINT, wintypes.UINT,
+                                             ctypes.POINTER(ctypes.c_size_t)]
+        user32.SendMessageTimeoutW.restype = wintypes.LPARAM
+
+        def describe(hwnd, child=False):
+            title, class_name = ctypes.create_unicode_buffer(4096), ctypes.create_unicode_buffer(256)
+            user32.GetWindowTextW(hwnd, title, len(title))
+            user32.GetClassNameW(hwnd, class_name, len(class_name))
+            if child and class_name.value in {"Static", "Button", "Edit", "SysLink"}:
+                # GetWindowText cannot retrieve every cross-process control's
+                # body; bounded WM_GETTEXT also covers a native error dialog.
+                received = ctypes.c_size_t()
+                user32.SendMessageTimeoutW(hwnd, 0x000D, len(title), ctypes.addressof(title), 0x0002, 200,
+                                           ctypes.byref(received))
+            rect = wintypes.RECT()
+            user32.GetWindowRect(hwnd, ctypes.byref(rect))
+            return {"hwnd": int(hwnd), "class": class_name.value, "text": title.value,
+                    "visible": bool(user32.IsWindowVisible(hwnd)),
+                    "rect": {"x": rect.left, "y": rect.top,
+                             "width": rect.right - rect.left, "height": rect.bottom - rect.top}}
+
+        windows = []
+
+        @callback_type
+        def visit(hwnd, _):
+            owner = wintypes.DWORD()
+            user32.GetWindowThreadProcessId(hwnd, ctypes.byref(owner))
+            if owner.value in pids:
+                window = {**describe(hwnd), "pid": owner.value, "controls": []}
+
+                @callback_type
+                def visit_child(child, _):
+                    window["controls"].append(describe(child, True))
+                    return len(window["controls"]) < 80
+
+                user32.EnumChildWindows(hwnd, visit_child, 0)
+                windows.append(window)
+            return len(windows) < 30
+
+        user32.EnumWindows(visit, 0)
+        result["windows"] = windows
+    except Exception as error:
+        result["windowEvidenceError"] = str(error)
+    try:
+        # This script already refuses non-Actions users. The picture is only
+        # an internal diagnostic of this disposable synthetic CI desktop.
+        screenshot = output / "native-desktop-incomplete.png"
+        capture = run_powershell(
+            "Add-Type -AssemblyName System.Windows.Forms; Add-Type -AssemblyName System.Drawing; "
+            "$bounds=[System.Windows.Forms.SystemInformation]::VirtualScreen; "
+            "$bitmap=[System.Drawing.Bitmap]::new($bounds.Width,$bounds.Height); "
+            "$graphics=[System.Drawing.Graphics]::FromImage($bitmap); "
+            "try { $graphics.CopyFromScreen($bounds.Location,[System.Drawing.Point]::Empty,$bounds.Size); "
+            "$bitmap.Save($env:RBN_WINDOWS_PROBE_SHOT,[System.Drawing.Imaging.ImageFormat]::Png); "
+            "@{width=$bounds.Width;height=$bounds.Height} | ConvertTo-Json -Compress } "
+            "finally { $graphics.Dispose(); $bitmap.Dispose() }",
+            extra_environment={"RBN_WINDOWS_PROBE_SHOT": str(screenshot)})
+        if capture.returncode:
+            raise RuntimeError(capture.stderr[-4000:])
+        result["desktopScreenshot"] = {"file": screenshot.name, "size": json.loads(capture.stdout)}
+    except Exception as error:
+        result["desktopEvidenceError"] = str(error)
+    return result
+
+
+async def wait_cdp(port: int, process: subprocess.Popen, evidence: dict, timeout: float = 90) -> dict:
     deadline = time.monotonic() + timeout
     last_error = ""
+    # urllib's default opener can inherit a runner/Windows registry proxy even
+    # for 127.0.0.1. CDP is a direct local socket and must never use that proxy.
+    opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
+    evidence.update({"httpProxyPolicy": "Explicit ProxyHandler({}) bypass for loopback only", "attempts": 0})
     while time.monotonic() < deadline:
         if process.poll() is not None:
             raise RuntimeError(f"product_startup_exit: app exited with {process.returncode} before CDP was available")
         try:
             def read():
-                with urllib.request.urlopen(f"http://127.0.0.1:{port}/json/version", timeout=1) as response:
+                with socket.create_connection(("127.0.0.1", port), timeout=1):
+                    evidence["tcpConnected"] = True
+                with opener.open(f"http://127.0.0.1:{port}/json/version", timeout=2) as response:
                     return json.load(response)
+            evidence["attempts"] += 1
             return await asyncio.to_thread(read)
         except Exception as error:
             last_error = str(error)
+            evidence["lastError"] = last_error
             await asyncio.sleep(0.2)
     raise RuntimeError(f"cdp_attachment_unavailable: the app is still running; no conclusion about control behavior. {last_error}")
 
@@ -258,9 +372,20 @@ async def inspect(args, report: dict) -> None:
         process = subprocess.Popen([str(args.app)], cwd=args.app.parent, env=environment,
                                    stdin=subprocess.DEVNULL, stdout=log, stderr=subprocess.STDOUT)
         report["appProcessID"] = process.pid
-        report["cdp"] = {"address": f"http://127.0.0.1:{port}", "version": await wait_cdp(port, process)}
+        report["cdp"] = {"address": f"http://127.0.0.1:{port}", "port": port, "tcpConnected": False,
+                          "browserArguments": environment["WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS"],
+                          "webviewProfile": environment["WEBVIEW2_USER_DATA_FOLDER"],
+                          "proxyEnvironmentNames": [key for key in os.environ if key.upper() in
+                                                    {"HTTP_PROXY", "HTTPS_PROXY", "ALL_PROXY", "NO_PROXY"}]}
+        report["cdp"]["version"] = await wait_cdp(port, process, report["cdp"])
+        websocket = report["cdp"]["version"].get("webSocketDebuggerUrl", "")
+        address = urllib.parse.urlsplit(websocket)
+        if address.scheme != "ws" or address.hostname not in {"127.0.0.1", "localhost", "::1"} or address.port != port:
+            raise RuntimeError("cdp_invalid_endpoint: expected the launched app's loopback WebSocket debugger")
         async with async_playwright() as playwright:
-            browser = await playwright.chromium.connect_over_cdp(f"http://127.0.0.1:{port}", timeout=15000)
+            # Use the advertised local websocket directly; no second HTTP
+            # discovery request through a differently configured proxy stack.
+            browser = await playwright.chromium.connect_over_cdp(websocket, timeout=15000)
             deadline = time.monotonic() + 30
             while page is None and time.monotonic() < deadline:
                 for candidate_context in browser.contexts:
@@ -446,6 +571,8 @@ async def inspect(args, report: dict) -> None:
         report["passed"] = False
         report["incompleteReason"] = str(error)
         report["incompleteTraceback"] = traceback.format_exc()
+        if process is not None:
+            report["nativeEvidence"] = await asyncio.to_thread(native_diagnostics, process.pid, output)
         if page is not None:
             try:
                 report["incompleteDOM"] = await page.evaluate(DOM_SNAPSHOT)

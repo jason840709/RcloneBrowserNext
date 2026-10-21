@@ -254,14 +254,26 @@ def create_sparse_file(path: Path, size: int) -> dict[str, Any]:
                                       wintypes.DWORD, wintypes.LPVOID, wintypes.DWORD,
                                       ctypes.POINTER(wintypes.DWORD), wintypes.LPVOID]
     kernel.DeviceIoControl.restype = wintypes.BOOL
+    kernel.SetFilePointerEx.argtypes = [wintypes.HANDLE, ctypes.c_longlong,
+                                       ctypes.POINTER(ctypes.c_longlong), wintypes.DWORD]
+    kernel.SetFilePointerEx.restype = wintypes.BOOL
+    kernel.SetEndOfFile.argtypes = [wintypes.HANDLE]
+    kernel.SetEndOfFile.restype = wintypes.BOOL
     kernel.GetCompressedFileSizeW.argtypes = [wintypes.LPCWSTR, ctypes.POINTER(wintypes.DWORD)]
     kernel.GetCompressedFileSizeW.restype = wintypes.DWORD
     with path.open("xb") as target:
         returned = wintypes.DWORD()
-        if not kernel.DeviceIoControl(msvcrt.get_osfhandle(target.fileno()), 0x000900C4,
+        handle = msvcrt.get_osfhandle(target.fileno())
+        if not kernel.DeviceIoControl(handle, 0x000900C4,
                                       None, 0, None, 0, ctypes.byref(returned), None):
             raise ctypes.WinError(ctypes.get_last_error())
-        target.truncate(size)
+        # Python's Windows truncate uses the CRT resize path, which may write
+        # zeroes and allocate gigabytes even after FSCTL_SET_SPARSE. Extend the
+        # NTFS sparse stream directly, without writing any file content.
+        if not kernel.SetFilePointerEx(handle, size, None, 0):  # FILE_BEGIN
+            raise ctypes.WinError(ctypes.get_last_error())
+        if not kernel.SetEndOfFile(handle):
+            raise ctypes.WinError(ctypes.get_last_error())
     attributes = path.stat()
     if attributes.st_size != size or not attributes.st_file_attributes & 0x200:
         raise RuntimeError("Sparse fixture was not created with the exact requested logical size")
