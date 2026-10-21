@@ -238,7 +238,9 @@ enum WindowsLocalFileSystem {
                     }
                 case .finish(let path, let handle):
                     var disposition = FILE_DISPOSITION_INFO()
-                    disposition.DeleteFile = 1 // BOOLEAN, not Win32 BOOL.
+                    // Without -Xcc -DUNICODE, fileapi.h's DeleteFile macro
+                    // expands this WinBase.h field to DeleteFileA on import.
+                    disposition.DeleteFileA = 1 // BOOLEAN, not Win32 BOOL.
                     guard SetFileInformationByHandle(handle.value, FileDispositionInfo, &disposition,
                                                      DWORD(MemoryLayout<FILE_DISPOSITION_INFO>.size)) else {
                         throw error("Delete", path, GetLastError())

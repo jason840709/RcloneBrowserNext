@@ -1,7 +1,7 @@
 {
   "version": "0.9.0",
   "file_count_excluding_manifest": 230,
-  "total_bytes_excluding_manifest": 7527148,
+  "total_bytes_excluding_manifest": 7528763,
   "files": {
     ".github/workflows/macos.yml": {
       "bytes": 8748,
@@ -324,8 +324,8 @@
       "sha256": "026696e25dcd54b5397cc4f13f27b9c4dccda534a2f5c44eef032c63fd2a9124"
     },
     "Sources/Compat/WindowsLocalFileSystem.swift": {
-      "bytes": 16321,
-      "sha256": "e35d13ba50717679477eb92d97e80cf43fc3d8937a875503c78cf0ed8a8ddb9e"
+      "bytes": 16476,
+      "sha256": "fa96edb1c519e087dfae48033bc3fca1498f4835a28aa58f8353f7791e8ec370"
     },
     "Sources/Core/AppReleaseChecker.swift": {
       "bytes": 8814,
@@ -848,8 +848,8 @@
       "sha256": "319cc9eec7afec4bde109c2e6a47e180c65d09ed9529f59652def5b5b8a41144"
     },
     "docs/WINDOWS_0.9.0_R1.md": {
-      "bytes": 7331,
-      "sha256": "1741bf67f7acdf9b232bfa7e6adec36d438dd25b3e0a6ad0052fb1329d6918e9"
+      "bytes": 8791,
+      "sha256": "976ec072c31944c5d69722992c47bb3eab1cac984f52291ac040a54e6266d5e2"
     },
     "docs/archive/0.4.0/README.original.md": {
       "bytes": 5073,
