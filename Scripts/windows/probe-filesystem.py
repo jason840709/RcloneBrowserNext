@@ -2,9 +2,10 @@
 """Diagnose an installed Windows helper without rebuilding it or changing user data.
 
 Each case starts a fresh helper with its own state and an empty rclone directory.
-Only the configured-bootstrap case enables the supplied rclone, with an empty
-configuration. Home and the system drive are read only; all created files and
-junctions are disposable fixtures. Sparse files consume negligible disk space.
+The configured-bootstrap and system-drive preview checks enable the supplied
+rclone with an empty configuration. Home and the system drive are read only;
+all created files and junctions are disposable fixtures. Sparse files consume
+negligible disk space. A transfer preview never starts a transfer.
 
 Product failures are evidence, not a script failure: they are written to JSON
 and the process exits 0. Invalid inputs, fixture failures and output failures
@@ -19,16 +20,19 @@ from ctypes import wintypes
 from datetime import datetime, timezone
 import hashlib
 import json
+import ntpath
 import os
 from pathlib import Path
 import platform
 import queue
+import shlex
 import subprocess
 import sys
 import tempfile
 import threading
 import time
 from typing import Any, Callable
+import uuid
 
 
 SCHEMA_VERSION = 1
@@ -338,6 +342,210 @@ def inspect_listing(client: Client, path: Path | str, record: dict[str, Any],
         raise ProductFailure("metadata_mismatch", "Missing entry or incorrect metadata: " + ", ".join(mismatches))
 
 
+def inspect_system_drive_root(client: Client, system_drive: Path, record: dict[str, Any],
+                              rclone: Path, config: Path, destination: Path) -> None:
+    drive = ntpath.splitdrive(str(system_drive))[0]
+    # Keep these as strings: Path("C:/") would erase the UI's original spelling.
+    variants = [("backslash", drive + "\\"), ("forward-slash", drive + "/")]
+    system_root = Path(os.environ.get("SystemRoot", drive + "\\Windows"))
+    system_directory = system_root.name
+    record.update(path=str(system_drive), rootVariants=dict(variants),
+                  previewDestination=str(destination), previewOnly=True, checks=[])
+    failures: list[dict[str, str]] = []
+
+    def check(name: str, action: Callable[[dict[str, Any]], None]) -> None:
+        observation: dict[str, Any] = {"name": name, "status": "running"}
+        record["checks"].append(observation)
+        first_request = len(client.requests)
+        try:
+            action(observation)
+            observation["status"] = "passed"
+        except ProductFailure as error:
+            observation["status"] = "failed"
+            observation["failure"] = {"kind": error.kind, "message": str(error)}
+            failures.append({"check": name, **observation["failure"]})
+        except Exception as error:
+            observation["status"] = "infrastructure_error"
+            observation["failure"] = {"kind": type(error).__name__, "message": str(error)}
+            failures.append({"check": name, **observation["failure"]})
+        finally:
+            # Indexes refer to the complete, unmodified helper.requests array.
+            observation["requestIndexes"] = list(range(first_request, len(client.requests)))
+
+    for spelling, source in variants:
+        check("list-" + spelling, lambda item, path=source: inspect_listing(
+            client, path, item, {system_directory: {"isDir": True}}))
+
+    def prepare_destination(item: dict[str, Any]) -> None:
+        # Core correctly refuses a root source and a destination inside it.
+        # Hosted Windows runners place this owned fixture on D:, outside C:.
+        if ntpath.splitdrive(str(destination))[0].casefold() == drive.casefold():
+            raise RuntimeError("Root preview needs an owned fixture on a different drive from the system drive")
+        destination.mkdir()
+        item["path"] = str(destination)
+        item["entriesBeforePreview"] = [path.name for path in destination.iterdir()]
+
+    check("prepare-preview-destination", prepare_destination)
+
+    def configure(item: dict[str, Any]) -> None:
+        if config.read_bytes() != b"":
+            raise RuntimeError("Root preview requires the owned, empty rclone configuration")
+        item["emptyConfiguration"] = file_metadata(config)
+        environment = client.call("saveSettings", {"rclonePath": str(rclone), "rcloneDirectory": str(rclone.parent),
+                                  "configPath": str(config), "autoCheckUpdates": False, "language": "en"})
+        item["environment"] = environment
+        if not isinstance(environment, dict) or environment.get("available") is not True:
+            raise ProductFailure("preview_environment_unavailable", "Pinned rclone with an empty configuration is unavailable")
+
+    check("configure-preview-environment", configure)
+
+    def verify_root(value: Any, item: dict[str, Any]) -> None:
+        item["source"] = value
+        returned_drive, returned_tail = ntpath.splitdrive(ntpath.normpath(value)) if isinstance(value, str) else ("", "")
+        absolute_root = (isinstance(value, str) and ntpath.isabs(value) and
+                         returned_drive.casefold() == drive.casefold() and returned_tail == "\\")
+        # Independently ask Windows about the returned directory. Do not strip
+        # trailing separators: that would incorrectly equate C: with C:/.
+        try:
+            same_root = absolute_root and os.path.samefile(value, system_drive)
+        except OSError as error:
+            item["sourceStatError"] = str(error)
+            same_root = False
+        item["sourceIsAbsoluteDriveRoot"] = absolute_root
+        item["sourceIsSameDirectoryAsSystemDriveRoot"] = same_root
+        if not same_root:
+            raise ProductFailure("source_root_changed", f"Expected the actual {drive} drive root; received {value!r}")
+
+    for spelling, source in variants:
+        request = {"source": endpoint(source), "destination": endpoint(destination), "mode": "copy",
+                   "options": {"comparison": "default", "localHashPolicy": "none"},
+                   "selection": [{"name": system_directory, "isDir": True}], "dryRun": True}
+        normalized: dict[str, Any] = {}
+
+        def verify_normalized(value: Any, item: dict[str, Any]) -> None:
+            item["normalizedRequest"] = value
+            if (not isinstance(value, dict) or not isinstance(value.get("source"), dict) or
+                    value["source"].get("remote") is not None or value.get("mode") != "copy" or
+                    value.get("dryRun") is not True or not isinstance(value.get("destination"), dict) or
+                    value["destination"].get("remote") is not None or
+                    normalized_path(str(value["destination"].get("path"))) != normalized_path(str(destination))):
+                raise ProductFailure("unexpected_response", "Normalized root request is not a local dry-run copy")
+            verify_root(value["source"].get("path"), item)
+
+        def inspect_normalized(item: dict[str, Any]) -> None:
+            value = client.call("_normalizeTransfer", request)
+            normalized["request"] = value
+            verify_normalized(value, item)
+
+        def inspect_serialized(item: dict[str, Any]) -> None:
+            if not isinstance(normalized.get("request"), dict):
+                raise ProductFailure("missing_normalized_request", "No normalized request is available for the serialization check")
+            serialized = json.loads(json.dumps(normalized["request"], ensure_ascii=False))
+            value = client.call("_normalizeTransfer", serialized)
+            verify_normalized(value, item)
+            item["endpointsStableAfterSerialization"] = all(
+                value[key] == serialized.get(key) for key in ("source", "destination"))
+            if not item["endpointsStableAfterSerialization"]:
+                raise ProductFailure("serialized_endpoints_changed", "Reparsing the normalized JSON changed a transfer endpoint")
+
+        def inspect_preview(item: dict[str, Any]) -> None:
+            value = client.call("previewTransfer", request)
+            item["preview"] = value
+            if not isinstance(value, dict) or not isinstance(value.get("command"), str):
+                raise ProductFailure("unexpected_response", "previewTransfer did not return a command")
+            # Core.displayCommand uses POSIX single-quote escaping on every OS.
+            # Parse its display text only; never execute this command.
+            try:
+                arguments = shlex.split(value["command"], posix=True)
+            except ValueError as error:
+                raise ProductFailure("invalid_preview_command", str(error)) from error
+            item["commandArguments"] = arguments
+            if arguments.count("--") != 1 or len(arguments) - arguments.index("--") != 3:
+                raise ProductFailure("invalid_preview_command", "Preview must end with -- source destination")
+            separator = arguments.index("--")
+            prefix = arguments[1:separator]
+            if (normalized_path(arguments[0]) != normalized_path(str(rclone)) or
+                    "--dry-run" not in prefix or [arg for arg in prefix if arg in {"copy", "sync", "move"}] != ["copy"] or
+                    not any(arg.startswith("--config=") and normalized_path(arg[9:]) == normalized_path(str(config))
+                            for arg in prefix) or normalized_path(arguments[-1]) != normalized_path(str(destination))):
+                raise ProductFailure("invalid_preview_command", "Preview changed the pinned executable, configuration, copy/dry-run flags or owned destination")
+            verify_root(arguments[separator + 1], item)
+
+        # Each call is independent; a list or normalization failure must not
+        # prevent recording either original preview request and its response.
+        check("normalize-" + spelling, inspect_normalized)
+        check("normalize-serialized-" + spelling, inspect_serialized)
+        check("preview-" + spelling, inspect_preview)
+
+    def inspect_rejected_preview(item: dict[str, Any], source: str, target: str,
+                                 expected_error: str) -> None:
+        # The source exists; the target may be an existing or missing child.
+        # Only validate a preview, never create C: content or start a transfer.
+        if (not system_root.is_dir() or
+                ntpath.splitdrive(str(system_root))[0].casefold() != drive.casefold() or
+                normalized_path(str(system_root)) == normalized_path(str(system_drive))):
+            raise RuntimeError("Overlap checks require an existing SystemRoot directory below the system drive root")
+        request = {"source": endpoint(source), "destination": endpoint(target), "mode": "copy",
+                   "options": {"comparison": "default", "localHashPolicy": "none"},
+                   "selection": [], "dryRun": True}
+        item["expectedError"] = {"kind": "request_error", "message": expected_error}
+        try:
+            value = client.call("previewTransfer", request)
+        except ProductFailure as error:
+            item["observedError"] = {"kind": error.kind, "message": str(error)}
+            if error.kind == "request_error" and str(error) == expected_error:
+                return
+            raise ProductFailure("wrong_preview_rejection", "Preview did not reject the unsafe pair with the expected error: "
+                                 + error.kind + ": " + str(error)) from error
+        item["unexpectedPreview"] = value
+        raise ProductFailure("unsafe_preview_accepted", "Preview accepted a root destination or overlapping local paths")
+
+    for spelling, root in variants:
+        system_path = str(system_root).replace("/", "\\") if spelling == "backslash" else str(system_root).replace("\\", "/")
+        check("reject-root-source-overlap-" + spelling, lambda item, source=root, target=system_path:
+              inspect_rejected_preview(item, source, target,
+                  "Source and destination cannot be the same or contain one another, including through symbolic links."))
+        check("reject-root-destination-" + spelling, lambda item, source=system_path, target=root:
+              inspect_rejected_preview(item, source, target,
+                  "Choose a destination folder below the root directory."))
+
+    missing_child = "__RBN_preview_overlap_" + uuid.uuid4().hex
+
+    def inspect_missing_child(item: dict[str, Any], source: str, target: str) -> None:
+        item["missingDestination"] = target
+        item["destinationAbsentBeforePreview"] = not os.path.lexists(target)
+        if not item["destinationAbsentBeforePreview"]:
+            item["destinationAbsentAfterPreview"] = not os.path.lexists(target)
+            raise RuntimeError("Unique missing-child path already exists; no preview was submitted")
+        try:
+            inspect_rejected_preview(item, source, target,
+                "Source and destination cannot be the same or contain one another, including through symbolic links.")
+        finally:
+            # Never create or remove this system-drive path, even on failure.
+            item["destinationAbsentAfterPreview"] = not os.path.lexists(target)
+            if not item["destinationAbsentAfterPreview"]:
+                raise ProductFailure("preview_created_destination", "A supposedly read-only preview created the missing system-drive child")
+
+    for spelling, root in variants:
+        check("reject-root-source-missing-child-" + spelling, lambda item, source=root, target=root + missing_child:
+              inspect_missing_child(item, source, target))
+
+    def verify_preview_only(item: dict[str, Any]) -> None:
+        item["jobs"] = client.call("listJobs")
+        item["destinationEntriesAfterPreview"] = [path.name for path in destination.iterdir()]
+        if item["jobs"] != [] or item["destinationEntriesAfterPreview"]:
+            raise ProductFailure("preview_created_work", "Root previews created jobs or destination entries")
+
+    check("preview-created-no-work", verify_preview_only)
+    record["checkFailures"] = failures
+    if any(item["status"] == "infrastructure_error" for item in record["checks"]):
+        raise RuntimeError("System-drive probe infrastructure failed; see checks and raw helper requests")
+    if failures:
+        kind = next((item["kind"] for item in failures if item["kind"] in {"timeout", "protocol_error", "pipe_error"}),
+                    "system_drive_root_failed")
+        raise ProductFailure(kind, "; ".join(f"{item['check']}: {item['message']}" for item in failures))
+
+
 def inspect_bootstrap(client: Client, record: dict[str, Any], drives: list[dict[str, Any]],
                       rclone: Path | None = None, config: Path | None = None) -> None:
     if rclone is not None:
@@ -476,7 +684,9 @@ def main() -> int:
             run_case("list-user-home", lambda client, record: inspect_listing(client, home, record),
                      {"homeSource": "bootstrap" if default.get("home") else "Python fallback after invalid bootstrap", "readOnly": True})
             system_drive = Path(os.environ.get("SystemDrive", Path(os.environ.get("SystemRoot", r"C:\Windows")).drive) + "\\")
-            run_case("list-system-drive-root", lambda client, record: inspect_listing(client, system_drive, record), {"readOnly": True})
+            run_case("list-system-drive-root", lambda client, record: inspect_system_drive_root(
+                client, system_drive, record, rclone, config, fixture / "root-preview-destination"),
+                {"readOnly": True, "transferPolicy": "previewTransfer only; copy with dryRun=true; never startTransfer"})
             try:
                 junction, information = create_broken_junction(fixture)
                 junctions.append(junction)

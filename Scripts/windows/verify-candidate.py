@@ -19,6 +19,10 @@ import traceback
 ROOT = Path(__file__).resolve().parents[2]
 BASE = "7ec095e9b9c949a79ff55cbd40d0fda9499b4faa"
 MAC_INVENTORY = "3a6d94b6d5e5c74ca47692547ea26fb17e038d946cab64b6b66ba1f681805402"
+MAC_WINDOWS_OBJECTS = {
+    "Sources/Core/EngineModels.swift": "2b4e3b156274b607778ca68e3bfd18e3583e6773",
+    "Sources/Core/EngineStorage.swift": "b9baea9703c1ebfd75b211a6e16c40931fccd760",
+}
 FILESYSTEM_CASES = {"bootstrap-unconfigured", "bootstrap-configured", "list-unicode", "list-user-home",
                     "list-system-drive-root", "list-broken-junction"} | {
     f"{operation}-sparse-{size}" for operation in ("list", "size")
@@ -113,7 +117,22 @@ def main():
                     and guard.get("protectedInventorySHA256") == MAC_INVENTORY and guard.get("protectedFileCount") == 162
                     and all(guard.get(key) is True for key in ("macInputsUnchanged", "existingMacWorkflowUnchanged", "existingMacVersionUnchanged")),
                     "The frozen Mac boundary was not verified")
+            insertions = guard.get("windowsOnlyInsertions", [])
+            require(guard.get("nonWindowsActiveSourceUnchanged") is True and guard.get("protectedByteIdenticalFileCount") == 160
+                    and len(insertions) == 2 and {item.get("path"): item.get("checkedGitObject") for item in insertions} == MAC_WINDOWS_OBJECTS
+                    and sum(len(item.get("blocks", [])) for item in insertions) == 3
+                    and all(item.get("baselineGitObject") == item.get("recoveredBaselineGitObject")
+                            and item.get("originalModePreserved") is True and item.get("nonWindowsActiveSourceUnchanged") is True
+                            and all(block.get("condition") == "#if os(Windows)" and block.get("exactPositionVerified") is True
+                                    for block in item.get("blocks", [])) for item in insertions)
+                    and isinstance(guard.get("macInputsUnchangedMeaning"), str),
+                    "The exact Windows-only Core insertions did not preserve the original Mac source")
+            if "windowsOnlyCoreInsertions" in report:
+                require(report["windowsOnlyCoreInsertions"] == insertions, "Mac protection receipts disagree")
+            report["windowsOnlyCoreInsertions"] = insertions
+            report["macInputsUnchangedMeaning"] = guard["macInputsUnchangedMeaning"]
         report["macInputsUnchanged"] = True
+        report["nonWindowsActiveSourceUnchanged"] = True
 
         build_log = text(build / "build.log", "build/build.log")
         rust = re.findall(r"test result: ok\. (\d+) passed; (\d+) failed; (\d+) ignored;", build_log)

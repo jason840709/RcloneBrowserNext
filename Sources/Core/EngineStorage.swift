@@ -44,6 +44,15 @@ enum EngineStorage {
     }
 
     static func canonicalLocal(_ input: String) throws -> String {
+        // BEGIN WINDOWS_DRIVE_ROOT_COMPARISON_INPUT
+        #if os(Windows)
+        // Endpoint validation has already reduced an absolute drive root to C:/.
+        // Keep its separator when comparing it with directories on that drive.
+        if input.utf8.count == 3, EnginePlatform.isFilesystemRoot(input) {
+            return EnginePlatform.canonicalComparisonPath(input)
+        }
+        #endif
+        // END WINDOWS_DRIVE_ROOT_COMPARISON_INPUT
         var candidate = URL(fileURLWithPath: input).standardizedFileURL
         var missing: [String] = []
         while !FileManager.default.fileExists(atPath: candidate.path) {
@@ -51,6 +60,17 @@ enum EngineStorage {
             guard parent.path != candidate.path else { throw EngineError("無法解析本機路徑。") }
             missing.append(candidate.lastPathComponent); candidate = parent
         }
+        // BEGIN WINDOWS_DRIVE_ROOT_COMPARISON_RESULT
+        #if os(Windows)
+        // Symlink resolution also standardizes its result. Preserve an existing
+        // root ancestor before adding the components that do not exist yet.
+        let rootPath = candidate.path
+        if rootPath.utf8.count == 3, EnginePlatform.isFilesystemRoot(rootPath) {
+            let path = rootPath + missing.reversed().joined(separator: "/")
+            return EnginePlatform.canonicalComparisonPath(path)
+        }
+        #endif
+        // END WINDOWS_DRIVE_ROOT_COMPARISON_RESULT
         var result = candidate.resolvingSymlinksInPath()
         for component in missing.reversed() { result.appendPathComponent(component) }
         // Conservatively refuse case-only overlaps on macOS and Windows.

@@ -2,9 +2,11 @@
 
 ## Scope
 
-This repair starts from completed 0.9.0 commit `7ec095e9b9c949a79ff55cbd40d0fda9499b4faa`. The Mac application is frozen. `Sources/Core`, `Sources/Mac`, `Resources`, `WebSource`, Mac build/test scripts, shared tests and the existing desktop workflow retain their Git content and modes. The Windows workflow checks 162 protected files before and after building and on the clean installation runner.
+This repair starts from completed 0.9.0 commit `7ec095e9b9c949a79ff55cbd40d0fda9499b4faa`. The existing Mac application and release are frozen. Of 162 protected source/build files, 160 retain their complete Git content and modes. `EngineModels.swift` and `EngineStorage.swift` contain three small, explicitly pinned `#if os(Windows)` insertions. Removing those exact blocks at their exact positions restores both complete baseline files. All active Mac code, `Sources/Mac`, resources, shared Web UI, tests, versions and the existing desktop workflow remain unchanged.
 
-The repair lives in `Sources/Compat`, the Tauri compatibility host, Windows scripts and Windows workflows. It does not change the shared UI to compensate for an unverified dropdown problem.
+The Windows workflow checks this boundary before and after building and on the clean installation runner. The guard pins the full expected Git blobs and modes for those two files; it does not allow arbitrary changes to Core or arbitrary conditional blocks. Receipts explicitly record the three insertions and the recovered baseline identities. No Mac app is rebuilt, so this is a source-isolation and existing-release check, not a claim about reproducibility of a newly rebuilt Mac binary.
+
+The filesystem implementation lives in `Sources/Compat`, with Windows-specific host, build and verification changes and the three conditional root-path safeguards. The repair does not change the shared UI to compensate for an unverified dropdown problem.
 
 ## Reproduction with the published installers
 
@@ -40,6 +42,12 @@ The original catalog populates mounted volumes only in its Mac-specific block. W
 The pinned [Swift 6.1.2 Windows Foundation implementation](https://github.com/swiftlang/swift-corelibs-foundation/blob/swift-6.1.2-RELEASE/Sources/Foundation/FileManager%2BWin32.swift) checks that the high 32 size bits are zero, then converts the low 32 bits to signed `_off_t`. This is reached by the resource-value path even when callers also ask for directory type or dates. The observed size boundary agrees with that code and [Swift issue 5258](https://github.com/swiftlang/swift-corelibs-foundation/issues/5258).
 
 `WindowsLocalFileSystem` replaces only the Windows host's local `list`, `size`, `mkdir`, `rename` and `remove` calls. Remote operations, rclone transfer behavior, saved tasks and settings still use the shared engine. The adapter uses wide-character Windows APIs, combines both size words as `UInt64`, preserves drive/UNC roots and uses extended internal paths for long names.
+
+The second candidate also exposed a separate drive-root bug: `C:\` reached the Windows adapter as `<installed runtime>/C:`. The pinned Foundation [URL implementation](https://github.com/swiftlang/swift-foundation/blob/swift-6.1.2-RELEASE/Sources/FoundationEssentials/URL/URL.swift) first converts Windows backslashes to forward slashes. Its [path standardization](https://github.com/swiftlang/swift-foundation/blob/swift-6.1.2-RELEASE/Sources/FoundationEssentials/String/String%2BPath.swift) then removes the trailing slash from `C:/`, and URL reconstruction treats the resulting `C:` as relative to the current directory. Merely changing slash spelling cannot fix this.
+
+The Windows-only endpoint insertion preserves an already validated drive root as `C:/` before that Foundation call. This applies consistently to browsing, normalized transfer requests and saved-request reparsing. Two Windows-only comparison insertions preserve roots during transfer-overlap checks, including the walk up from a destination that does not yet exist. The root regression checks both slash spellings, JSON reparsing, real preview operands, root-destination refusal and refusal of existing or nonexistent children on the same drive. These checks generate previews only and assert that no transfer job or destination content was created.
+
+This narrowly addresses drive-root normalization. It does not introduce a new Windows resolver for every SUBST/mapped-drive alias or junction targeting another drive root, and the tests do not claim exhaustive alias equivalence coverage.
 
 Listing reads metadata supplied by `FindFirstFileW` / `FindNextFileW`; it does not open every child merely to obtain its size. A failure to enumerate the requested parent remains an error. The implementation does not grant filesystem access or bypass Windows ACLs.
 

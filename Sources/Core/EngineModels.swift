@@ -106,6 +106,21 @@ struct EngineEndpoint {
                 throw EngineError("本機位置必須是完整的絕對路徑。")
             }
             remote = nil
+            // BEGIN WINDOWS_DRIVE_ROOT_ENDPOINT
+            #if os(Windows)
+            // Foundation 6.1.2 strips the root separator during path
+            // standardization, turning C:/ into a drive-relative C:.
+            // Preserve an already-validated absolute drive root directly.
+            let rootBytes = Array(location.utf8)
+            if rootBytes.count >= 3,
+               ((65...90).contains(rootBytes[0]) || (97...122).contains(rootBytes[0])),
+               rootBytes[1] == 58,
+               rootBytes.dropFirst(2).allSatisfy({ $0 == 47 || $0 == 92 }) {
+                path = String(location.prefix(2)) + "/"
+                return
+            }
+            #endif
+            // END WINDOWS_DRIVE_ROOT_ENDPOINT
             path = URL(fileURLWithPath: location).standardizedFileURL.path
         } else {
             let name = try EngineJSON.text(raw["remote"], "遠端連線名稱", maximum: 512)

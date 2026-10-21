@@ -149,7 +149,11 @@ def main():
                                "candidateRunID": run_id, "candidateRunURL": candidate["html_url"],
                                "candidatePassed": True, "installer": receipt["installer"],
                                "verificationReceiptSHA256": receipt["verificationReceiptSHA256"],
-                               "macInputsUnchanged": True, "stableLatestRemains": MAC_TAG})
+                               "macInputsUnchanged": verification["macInputsUnchanged"],
+                               "macInputsUnchangedMeaning": verification["macInputsUnchangedMeaning"],
+                               "nonWindowsActiveSourceUnchanged": verification["nonWindowsActiveSourceUnchanged"],
+                               "windowsOnlyCoreInsertions": verification["windowsOnlyCoreInsertions"],
+                               "stableLatestRemains": MAC_TAG})
         published = [installer, source, public_evidence]
         checksums = assets / "SHA256SUMS.txt"
         checksums.write_text("".join(f"{sha256(path)}  {path.name}\n" for path in published), encoding="utf-8")

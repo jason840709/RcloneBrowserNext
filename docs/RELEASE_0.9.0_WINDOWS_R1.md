@@ -1,12 +1,13 @@
 # Rclone Browser Next 0.9.0 — Windows revision 1
 
-這是 **Windows x64 專用修正版**，修正 Windows 本機檔案瀏覽與大型檔案處理。Mac 維持既有 0.9.0，原安裝檔、共用 Web 介面與 Mac 程式碼不變。
+這是 **Windows x64 專用修正版**，修正 Windows 本機檔案瀏覽與大型檔案處理。Mac 維持既有 0.9.0，原安裝檔、共用 Web 介面與 Mac 生效程式碼不變。共用 Core 中僅增加明確限定 Windows 編譯的根目錄處理，並逐檔檢查其餘內容與 Mac 基準相同。
 
 ## Windows 修正
 
 - 本機位置選單加入 C:、D:、可移除磁碟及映射磁碟，常用資料夾使用 Windows Known Folders 取得。
 - 本機檔案清單改用 Windows 原生目錄資訊，避免使用者資料夾內的受限項目或失效 junction 讓整份清單讀取失敗。
 - 檔案大小使用完整 64 位元數值，避開原版 Swift 6.1.2 在 Windows 讀取大型檔案資訊時的溢位與引擎退出問題。
+- 修正磁碟根目錄被誤轉成相對路徑的問題；瀏覽、傳輸預覽及儲存請求重新解析都保留真正根路徑，並保留根目錄目的地與重疊路徑的拒絕檢查。
 - 新增、改名、刪除與容量統計使用同一套 Windows 檔案處理。改名拒絕覆寫同名目的地；刪除 junction／symlink 時保留其指向的目標。
 - Windows 安裝版本為 `0.9.0+1`，系統數字版本為 `0.9.0.1`；「關於」顯示 Windows 修正版 1。
 
@@ -22,9 +23,11 @@
 
 ## English
 
-This is a **Windows x64 repair of 0.9.0**. The existing Mac 0.9.0 application, assets, source inputs and stable update target are unchanged.
+This is a **Windows x64 repair of 0.9.0**. The existing Mac 0.9.0 application, assets, active source code and stable update target are unchanged. Shared Core changes are limited to three pinned Windows-only conditional blocks; the source guard verifies that removing them restores the complete Mac baseline files.
 
 Windows local browsing now uses native filesystem enumeration and 64-bit sizes. It includes drive entries and Windows known folders, handles directory listings containing inaccessible or broken-link entries, and avoids the Swift 6.1.2 Windows metadata failure reproduced with large files. Local rename, removal and folder-size operations use the same Windows implementation, with collision checks and junction-target preservation.
+
+Drive roots also remain absolute during browsing, transfer preview and saved-request reparsing. Windows-only comparison guards preserve the existing refusal of root destinations and transfers into the source's own descendants, including destinations that do not yet exist.
 
 Run `Rclone_Browser_Next_0.9.0_Windows_r1_x64_Setup.exe` after closing the app. The installed version is `0.9.0+1` / Windows numeric version `0.9.0.1`. The upgrade preserves existing settings, workspace and saved tasks.
 
