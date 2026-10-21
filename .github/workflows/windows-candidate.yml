@@ -1,0 +1,152 @@
+name: Windows repair candidate
+
+on:
+  push:
+    branches: [work/windows-fix]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: windows-candidate-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build Windows x64 candidate
+    runs-on: windows-2025
+    timeout-minutes: 75
+    env:
+      CARGO_TERM_COLOR: never
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Verify the frozen Mac inputs before building
+        run: python Scripts/windows/verify-mac-unchanged.py --output .build-cache/windows-candidate/build/mac-before.json
+      - uses: ilammy/msvc-dev-cmd@0b201ec74fa43914dc39ae48a89fd1d8cb592756
+      - uses: SwiftyLab/setup-swift@d60245579ea3836a3f2fa65ebbe1e8891d577c76
+        with:
+          swift-version: '6.1.2'
+          cache-snapshot: true
+      - name: Install pinned Rust
+        run: |
+          rustup toolchain install 1.90.0 --profile minimal
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          rustup override set 1.90.0
+          exit $LASTEXITCODE
+      - name: Cache compiler and bundler dependencies
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            .build-cache/compat/cargo/registry
+            .build-cache/compat/cargo/git
+            .build-cache/compat/target
+            .build-cache/compat/npm
+          key: windows-2025-rust1.90-swift6.1.2-${{ hashFiles('Compat/desktop/Cargo.lock', 'Compat/cli/package-lock.json') }}
+          restore-keys: windows-2025-rust1.90-swift6.1.2-
+      - name: Download the pinned rclone fixture
+        run: python Scripts/ci-compat-rclone.py
+      - name: Build the candidate and run the native host tests
+        run: |
+          & ./Scripts/build-compat-windows.ps1 2>&1 | Tee-Object -FilePath .build-cache/windows-candidate/build/build.log
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Run the existing platform regressions
+        run: |
+          $rbnCore = Get-ChildItem Sources/Core/*.swift | Sort-Object Name | ForEach-Object { $_.FullName }
+          $rbnSdk = @('-sdk', $env:SDKROOT, '-I', (Join-Path $env:SDKROOT 'usr/lib/swift'), '-L', (Join-Path $env:SDKROOT 'usr/lib/swift/windows'))
+          & swiftc @rbnSdk -swift-version 5 @rbnCore Tests/PlatformTests.swift -o .build-cache/compat/runtime/platform-tests.exe
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          & ./.build-cache/compat/runtime/platform-tests.exe "$env:GITHUB_WORKSPACE/.build-cache/ci-engine/rclone.exe" 2>&1 | Tee-Object -FilePath .build-cache/windows-candidate/build/platform.log
+          exit $LASTEXITCODE
+      - name: Run the existing transfer and cancellation regressions
+        run: python Scripts/test-compat.py --engine .build-cache/compat/runtime/rbn-engine.exe --rclone .build-cache/ci-engine/rclone.exe --clean-runtime --output .build-cache/windows-candidate/build/transfer.json
+      - name: Verify the frozen Mac inputs after building
+        if: always()
+        run: python Scripts/windows/verify-mac-unchanged.py --output .build-cache/windows-candidate/build/mac-after.json
+      - name: Retain the exact candidate package
+        uses: actions/upload-artifact@v7
+        with:
+          name: RcloneBrowserNext-Windows-r1-package
+          path: |
+            Distribution/Rclone_Browser_Next_0.9.0_Windows_r1_x64_Setup.exe
+            Distribution/Rclone_Browser_Next_0.9.0_Windows_r1_x64_Setup.exe.sha256
+            .build-cache/compat/package-windows.json
+          include-hidden-files: true
+          if-no-files-found: error
+          overwrite: true
+          retention-days: 30
+      - name: Retain build and regression evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: RcloneBrowserNext-Windows-r1-build-evidence
+          path: .build-cache/windows-candidate/build/
+          include-hidden-files: true
+          if-no-files-found: error
+          overwrite: true
+          retention-days: 30
+
+  verify:
+    name: Verify installed Windows candidate on a clean runner
+    needs: build
+    runs-on: windows-2025
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Download the candidate from this run
+        id: package
+        uses: actions/download-artifact@v8
+        with:
+          name: RcloneBrowserNext-Windows-r1-package
+          path: .
+      - uses: actions/download-artifact@v8
+        with:
+          name: RcloneBrowserNext-Windows-r1-build-evidence
+          path: .build-cache/windows-candidate/build
+      - name: Download the pinned rclone fixture
+        id: rclone
+        run: python Scripts/ci-compat-rclone.py
+      - name: Install the CDP test client
+        id: playwright
+        run: python -m pip install --disable-pip-version-check playwright==1.55.0
+      - name: Run the existing installed native UI smoke
+        run: python Scripts/test-compat-ui.py --output .build-cache/windows-candidate/verification/native-smoke.json
+      - name: Verify a clean installation and PE versions
+        id: fresh
+        if: always() && steps.package.outcome == 'success' && steps.rclone.outcome == 'success'
+        run: python Scripts/windows/verify-installation.py --phase fresh --candidate Distribution/Rclone_Browser_Next_0.9.0_Windows_r1_x64_Setup.exe --receipt .build-cache/compat/package-windows.json --rclone .build-cache/ci-engine/rclone.exe --output .build-cache/windows-candidate/verification
+      - name: Probe the installed helper against real Windows locations
+        if: always() && steps.fresh.outcome == 'success'
+        run: python Scripts/windows/probe-filesystem.py --engine "${{ steps.fresh.outputs.engine }}" --rclone .build-cache/ci-engine/rclone.exe --output .build-cache/windows-candidate/verification/filesystem.json
+      - name: Verify local mutations, large files and junction boundaries
+        if: always() && steps.fresh.outcome == 'success'
+        run: python Scripts/windows/probe-mutations.py --engine "${{ steps.fresh.outputs.engine }}" --rclone .build-cache/ci-engine/rclone.exe --output .build-cache/windows-candidate/verification/mutations.json
+      - name: Exercise the real WebView2 remote selectors and navigation
+        if: always() && steps.fresh.outcome == 'success' && steps.playwright.outcome == 'success'
+        run: python Scripts/windows/probe-ui.py --app "${{ steps.fresh.outputs.app }}" --rclone .build-cache/ci-engine/rclone.exe --output .build-cache/windows-candidate/verification/ui --label candidate-0.9.0-windows-r1
+      - name: Upgrade the published 0.9.0 and verify state preservation
+        if: always() && steps.fresh.outcome == 'success'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python Scripts/windows/verify-installation.py --phase upgrade --candidate Distribution/Rclone_Browser_Next_0.9.0_Windows_r1_x64_Setup.exe --receipt .build-cache/compat/package-windows.json --rclone .build-cache/ci-engine/rclone.exe --output .build-cache/windows-candidate/verification
+      - name: Verify Mac inputs on the clean runner
+        if: always()
+        run: python Scripts/windows/verify-mac-unchanged.py --output .build-cache/windows-candidate/verification/mac-unchanged.json
+      - name: Require complete passing product results
+        if: always()
+        run: python Scripts/windows/verify-candidate.py --evidence .build-cache/windows-candidate/verification --build-evidence .build-cache/windows-candidate/build --package .build-cache/compat/package-windows.json
+      - name: Retain installation and product verification evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: RcloneBrowserNext-Windows-r1-verification
+          path: .build-cache/windows-candidate/verification/
+          include-hidden-files: true
+          if-no-files-found: error
+          overwrite: true
+          retention-days: 30

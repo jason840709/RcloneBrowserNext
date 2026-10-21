@@ -169,6 +169,13 @@ fn endpoint(value: &Value) -> String {
     value["remote"].as_str().map(|name| format!("{name}:{path}")).unwrap_or_else(|| path.to_owned())
 }
 
+fn application_version(app: &AppHandle) -> String {
+    // Windows revisions come from tauri.windows.conf.json. The Cargo package
+    // keeps the shared base version and must not hide the installed revision.
+    #[cfg(windows)] { app.package_info().version.to_string() }
+    #[cfg(not(windows))] { let _ = app; env!("CARGO_PKG_VERSION").to_owned() }
+}
+
 fn confirmed(app: &AppHandle, host: &Host, title: String, detail: String, action: String) -> bool {
     let cancel = host.text("取消", "Cancel", "キャンセル");
     let result = app.dialog().message(detail).title(title).kind(MessageDialogKind::Warning)
@@ -415,7 +422,13 @@ fn handle(app: &AppHandle, host: &Arc<Host>, request: Request) -> Result<Value, 
         }
         "checkForUpdates" => check_rclone(app, host, args.first().and_then(Value::as_bool).unwrap_or(true)),
         "showAbout" => {
-            app.dialog().message(format!("Rclone Browser Next {}\n\nJason Chen\n\n{}\n\nhttps://github.com/jason840709/RcloneBrowserNext", env!("CARGO_PKG_VERSION"), host.text("延續 Rclone Browser 的設計，使用 rclone 傳輸檔案。", "Builds on the design of Rclone Browser, using rclone for file transfers.", "Rclone Browser の設計を引き継ぎ、rclone でファイルを転送します。"))).title(host.text("關於", "About", "このアプリについて")).blocking_show();
+            let version = application_version(app);
+            #[cfg(windows)]
+            let version = match version.split_once('+') {
+                Some((base, revision)) => host.text(&format!("{base}（Windows 修正版 {revision}）"), &format!("{base} (Windows revision {revision})"), &format!("{base}（Windows 修正版 {revision}）")),
+                None => version,
+            };
+            app.dialog().message(format!("Rclone Browser Next {version}\n\nJason Chen\n\n{}\n\nhttps://github.com/jason840709/RcloneBrowserNext", host.text("延續 Rclone Browser 的設計，使用 rclone 傳輸檔案。", "Builds on the design of Rclone Browser, using rclone for file transfers.", "Rclone Browser の設計を引き継ぎ、rclone でファイルを転送します。"))).title(host.text("關於", "About", "このアプリについて")).blocking_show();
             Ok(Value::Null)
         }
         "copyText" => { let value = args.first().and_then(Value::as_str).filter(|s| s.len() <= 1024 * 1024 && !s.contains('\0')).ok_or_else(|| host.text("請選取 1 MiB 以內的文字。", "Choose text no larger than 1 MiB.", "1 MiB 以下のテキストを選択してください。"))?; app.clipboard().write_text(value).map_err(|e| e.to_string())?; Ok(Value::Null) }
@@ -531,7 +544,7 @@ fn smoke_result(app: AppHandle, window: WebviewWindow, host: tauri::State<'_, Ar
     let host = host.inner().clone();
     if host.smoke_finished.swap(true, Ordering::SeqCst) { return Ok(()); }
     let path = host.smoke_path.as_ref().unwrap();
-    fs::write(path, serde_json::to_vec_pretty(&json!({"passed":passed,"version":env!("CARGO_PKG_VERSION"),"result":payload})).unwrap()).map_err(|e| e.to_string())?;
+    fs::write(path, serde_json::to_vec_pretty(&json!({"passed":passed,"version":application_version(&app),"result":payload})).unwrap()).map_err(|e| e.to_string())?;
     thread::spawn(move || { let _ = host.call("_shutdown", vec![]); host.input.lock().unwrap().take(); let _ = host.child.lock().unwrap().wait(); app.exit(if passed { 0 } else { 2 }); });
     Ok(())
 }

@@ -161,6 +161,29 @@ final class CompatEngineHost {
         default:
             let permitted: Set<String> = ["bootstrap", "list", "mkdir", "rename", "remove", "size", "previewTransfer", "startTransfer", "cancelJob", "retryJob", "listJobs", "clearFinishedJobs", "clearJobs", "saveTask", "deleteTask", "listTasks", "saveSettings", "unlockConfig", "getJobReport"]
             guard permitted.contains(method) else { throw EngineError("不支援這項操作。") }
+            #if os(Windows)
+            if method == "bootstrap", let result = try engine.invoke(method, arguments: arguments) as? [String: Any] {
+                return WindowsLocalFileSystem.bootstrap(result)
+            }
+            if ["list", "mkdir", "rename", "remove", "size"].contains(method) {
+                let endpoint = try EngineEndpoint(argument(0))
+                if endpoint.remote == nil {
+                    switch method {
+                    case "list": return try WindowsLocalFileSystem.list(endpoint)
+                    case "size": return try WindowsLocalFileSystem.size(endpoint)
+                    case "mkdir": try WindowsLocalFileSystem.mkdir(endpoint, name: text(1)); return NSNull()
+                    case "rename":
+                        try WindowsLocalFileSystem.rename(endpoint, name: text(1), newName: text(2),
+                                                          isDirectory: EngineJSON.bool(argument(3), "項目類型"))
+                        return NSNull()
+                    case "remove":
+                        try WindowsLocalFileSystem.remove(endpoint, selection: EngineSelection.parse(argument(1)))
+                        return true
+                    default: break
+                    }
+                }
+            }
+            #endif
             if method == "saveSettings" {
                 let patch = argument(0) as? [String: Any] ?? [:]
                 let connectionKeys = ["rclonePath", "rcloneDirectory", "configPath", "proxyMode", "httpProxy", "httpsProxy", "noProxy", "defaultRcloneOptions", "networkOptions"]

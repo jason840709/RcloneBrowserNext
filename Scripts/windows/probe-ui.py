@@ -7,6 +7,7 @@ The normal app gets a fresh settings directory and local rclone alias remotes.
 CDP is enabled for this child only and bound to loopback. References:
 https://playwright.dev/python/docs/webview2
 https://learn.microsoft.com/en-us/microsoft-edge/webview2/how-to/debug-visual-studio-code
+https://learn.microsoft.com/en-us/microsoft-edge/webview2/concepts/security
 
 Exit 0 means the diagnostic completed, even if product checks failed. Inspect
 probe-ui.json's passed/cases. Exit 2 means startup/attachment/setup was incomplete.
@@ -116,6 +117,106 @@ def roaming_directory() -> Path:
     if result != 0 or not buffer.value:
         raise OSError(f"Cannot resolve the disposable user's Roaming AppData: {result}")
     return Path(buffer.value)
+
+
+def process_elevation() -> dict:
+    kernel = ctypes.WinDLL("kernel32", use_last_error=True)
+    security = ctypes.WinDLL("advapi32", use_last_error=True)
+    kernel.GetCurrentProcess.restype = wintypes.HANDLE
+    kernel.CloseHandle.argtypes = [wintypes.HANDLE]
+    security.OpenProcessToken.argtypes = [wintypes.HANDLE, wintypes.DWORD, ctypes.POINTER(wintypes.HANDLE)]
+    security.OpenProcessToken.restype = wintypes.BOOL
+    security.GetTokenInformation.argtypes = [wintypes.HANDLE, ctypes.c_int, wintypes.LPVOID,
+                                           wintypes.DWORD, ctypes.POINTER(wintypes.DWORD)]
+    security.GetTokenInformation.restype = wintypes.BOOL
+    token = wintypes.HANDLE()
+    if not security.OpenProcessToken(kernel.GetCurrentProcess(), 0x0008, ctypes.byref(token)):
+        raise ctypes.WinError(ctypes.get_last_error())
+    try:
+        values = {}
+        for name, information_class in [("elevated", 20), ("elevationType", 18)]:
+            value, length = wintypes.DWORD(), wintypes.DWORD()
+            if not security.GetTokenInformation(token, information_class, ctypes.byref(value),
+                                                ctypes.sizeof(value), ctypes.byref(length)):
+                raise ctypes.WinError(ctypes.get_last_error())
+            values[name] = bool(value.value) if name == "elevated" else value.value
+        return values
+    finally:
+        kernel.CloseHandle(token)
+
+
+class ScopedWebViewDebugPolicy:
+    """Documented per-exe HKLM override for an elevated disposable CI host.
+
+    Runtime 150+ intentionally ignores AdditionalBrowserArguments from the
+    environment/HKCU for elevated apps. Its documented HKLM policy remains
+    supported. No wildcard value, machine security setting, binary change,
+    fixed older runtime, or permanent debugging configuration is used.
+    """
+    key_path = r"Software\Policies\Microsoft\Edge\WebView2\AdditionalBrowserArguments"
+
+    def __init__(self, executable: str):
+        self.executable = executable
+        self.previous = None
+        self.created_keys = []
+        self.written = False
+
+    def install(self, arguments: str) -> dict:
+        import winreg
+        if os.name != "nt" or os.environ.get("GITHUB_ACTIONS", "").lower() != "true":
+            raise RuntimeError("Registry diagnostics require this disposable Actions Windows runner")
+        if self.executable.casefold() != "rclone-browser-next.exe":
+            raise RuntimeError("The diagnostic registry override is restricted to rclone-browser-next.exe")
+        access = winreg.KEY_READ | winreg.KEY_WRITE | winreg.KEY_WOW64_64KEY
+        parts = self.key_path.split("\\")
+        for index in range(1, len(parts) + 1):
+            path = "\\".join(parts[:index])
+            try:
+                with winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, path, 0, winreg.KEY_READ | winreg.KEY_WOW64_64KEY):
+                    pass
+            except FileNotFoundError:
+                self.created_keys.append(path)
+        with winreg.CreateKeyEx(winreg.HKEY_LOCAL_MACHINE, self.key_path, 0, access) as key:
+            try:
+                self.previous = winreg.QueryValueEx(key, self.executable)
+            except FileNotFoundError:
+                pass
+            prior = self.previous[0] if self.previous is not None and self.previous[1] == winreg.REG_SZ else ""
+            value = (prior + " " + arguments).strip()
+            winreg.SetValueEx(key, self.executable, 0, winreg.REG_SZ, value)
+            self.written = True
+            if winreg.QueryValueEx(key, self.executable) != (value, winreg.REG_SZ):
+                raise RuntimeError("Could not verify the per-app WebView2 debugging policy")
+        return {"hive": "HKLM", "view": "64-bit", "key": self.key_path, "valueName": self.executable,
+                "previousValueExisted": self.previous is not None, "installed": True,
+                "scope": "Exact installed application exe only; restored after the owned process stops"}
+
+    def restore(self) -> dict:
+        import winreg
+        access = winreg.KEY_READ | winreg.KEY_WRITE | winreg.KEY_WOW64_64KEY
+        if self.written:
+            with winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, self.key_path, 0, access) as key:
+                if self.previous is None:
+                    winreg.DeleteValue(key, self.executable)
+                    try:
+                        winreg.QueryValueEx(key, self.executable)
+                    except FileNotFoundError:
+                        pass
+                    else:
+                        raise RuntimeError("Temporary WebView2 debugging value still exists")
+                else:
+                    winreg.SetValueEx(key, self.executable, 0, self.previous[1], self.previous[0])
+                    if winreg.QueryValueEx(key, self.executable) != self.previous:
+                        raise RuntimeError("Previous WebView2 policy value was not restored exactly")
+        for path in reversed(self.created_keys):
+            try:
+                with winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, path, 0, access) as key:
+                    children, values, _ = winreg.QueryInfoKey(key)
+                if children == 0 and values == 0:
+                    winreg.DeleteKeyEx(winreg.HKEY_LOCAL_MACHINE, path, winreg.KEY_WOW64_64KEY)
+            except FileNotFoundError:
+                pass
+        return {"restored": True, "previousValueExisted": self.previous is not None}
 
 
 def native_window(pid: int):
@@ -324,6 +425,7 @@ async def inspect(args, report: dict) -> None:
     context = None
     page = None
     tracing = False
+    debug_policy = None
     try:
         if state.exists():
             raise RuntimeError(f"isolated_profile_required: refusing to replace existing app data at {state}")
@@ -368,12 +470,20 @@ async def inspect(args, report: dict) -> None:
             port = listener.getsockname()[1]
         environment["WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS"] = f"--remote-debugging-address=127.0.0.1 --remote-debugging-port={port}"
         environment["WEBVIEW2_USER_DATA_FOLDER"] = str(fixture / "webview2-profile")
+        report["processElevation"] = process_elevation()
+        if report["processElevation"]["elevated"]:
+            debug_policy = ScopedWebViewDebugPolicy(args.app.name)
+            report["webviewDebugPolicy"] = debug_policy.install(environment["WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS"])
+            # The elevated-host policy is the supported argument channel;
+            # leaving an ignored environment override obscures the evidence.
+            del environment["WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS"]
         log = (output / "native.log").open("wb")
         process = subprocess.Popen([str(args.app)], cwd=args.app.parent, env=environment,
                                    stdin=subprocess.DEVNULL, stdout=log, stderr=subprocess.STDOUT)
         report["appProcessID"] = process.pid
         report["cdp"] = {"address": f"http://127.0.0.1:{port}", "port": port, "tcpConnected": False,
-                          "browserArguments": environment["WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS"],
+                          "browserArguments": f"--remote-debugging-address=127.0.0.1 --remote-debugging-port={port}",
+                          "argumentChannel": "HKLM per-exe policy" if debug_policy is not None else "child environment",
                           "webviewProfile": environment["WEBVIEW2_USER_DATA_FOLDER"],
                           "proxyEnvironmentNames": [key for key in os.environ if key.upper() in
                                                     {"HTTP_PROXY", "HTTPS_PROXY", "ALL_PROXY", "NO_PROXY"}]}
@@ -596,6 +706,14 @@ async def inspect(args, report: dict) -> None:
                     cleanup_errors.append(str(error))
         if log is not None:
             log.close()
+        if debug_policy is not None:
+            try:
+                report["webviewDebugPolicyRestore"] = debug_policy.restore()
+            except Exception as error:
+                cleanup_errors.append("WebView2 policy restore: " + str(error))
+                report["completed"] = False
+                report["passed"] = False
+                report["incompleteReason"] = "debug_policy_restore_failed: " + str(error)
         if owned_state:
             saved = state / "settings.json"
             if saved.is_file():

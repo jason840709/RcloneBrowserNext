@@ -1,15 +1,23 @@
 {
   "version": "0.9.0",
-  "file_count_excluding_manifest": 219,
-  "total_bytes_excluding_manifest": 7397359,
+  "file_count_excluding_manifest": 230,
+  "total_bytes_excluding_manifest": 7527148,
   "files": {
     ".github/workflows/macos.yml": {
       "bytes": 8748,
       "sha256": "1935f29e62b2b95ab6b3007860e5133af4b39b9484d51b25b89d4be9c0c762e6"
     },
+    ".github/workflows/windows-candidate.yml": {
+      "bytes": 8051,
+      "sha256": "adbb0b7ad399ad9dfc43c39e74134393e38b0a1bfc14f4d1dbd90497bc21e056"
+    },
     ".github/workflows/windows-diagnostics.yml": {
       "bytes": 3284,
       "sha256": "4157786325fa788dddef922cc1b21c5eba3617e4ff79cd23804fc56c6d10e34d"
+    },
+    ".github/workflows/windows-release.yml": {
+      "bytes": 1069,
+      "sha256": "eb05e3bea0293a7b327f15d8db998a0c9c4dc7a5f899da26a3762186275ba9ef"
     },
     ".gitignore": {
       "bytes": 259,
@@ -52,8 +60,8 @@
       "sha256": "226a49b7cf2d7d642b465dc8780859614e4fcb8d95fcac42798f299c4a1e1d02"
     },
     "Compat/desktop/src/main.rs": {
-      "bytes": 47876,
-      "sha256": "517e5f79962666a19e1403b6186b98993466445726d2dc75635f9ab267b24793"
+      "bytes": 48607,
+      "sha256": "860f57ef25355030a28c5e3eacdedf7fbd3b82061139d5f075a6cd067e8357e3"
     },
     "Compat/desktop/src/smoke.js": {
       "bytes": 1357,
@@ -62,6 +70,10 @@
     "Compat/desktop/tauri.conf.json": {
       "bytes": 1633,
       "sha256": "b1fc868d71074e71391b019d37959179e469d6bfdf31329b3985ca4ed3d6c13b"
+    },
+    "Compat/desktop/tauri.windows.conf.json": {
+      "bytes": 180,
+      "sha256": "35a90b1d1db26b8f25e3ea23e20e9dd4ad435a40c8f8466b7df5d84653704847"
     },
     "Compat/licenses/Foundation-LICENSE.txt": {
       "bytes": 11759,
@@ -212,8 +224,8 @@
       "sha256": "41b9ce1ef55bf57ec08f48807c40a23bf090c937eedb9f2292f073e93c2084a1"
     },
     "Scripts/build-compat-windows.ps1": {
-      "bytes": 7755,
-      "sha256": "906f58b41cc7e0c7bddb85a2db4c8b72897a40ba63047d949fca275b224e13d9"
+      "bytes": 7829,
+      "sha256": "b4ccb298ba1c059ba2fb57e1cb9f57ebef499ff3bc3e9651bbf24bfb188f60c5"
     },
     "Scripts/build-mac.sh": {
       "bytes": 6951,
@@ -271,6 +283,10 @@
       "bytes": 4839,
       "sha256": "6ab0c53395088f59b94eee85498425514f6865e64469e215571c0b633e3bfb1d"
     },
+    "Scripts/windows/package-candidate.py": {
+      "bytes": 3605,
+      "sha256": "65e68ec85cf20777ae5884d3a80aee6a1747b9f79c3b607aee39584b9e3b23ea"
+    },
     "Scripts/windows/prepare-baseline.py": {
       "bytes": 10256,
       "sha256": "079dd137946bde9627eb0d6cbc8ab4081813d10de76133813333f34e1a38a8d0"
@@ -279,17 +295,37 @@
       "bytes": 29185,
       "sha256": "582f225e56070d26263a47dff37fc6663e38736571f93805d59a04f54762bd63"
     },
+    "Scripts/windows/probe-mutations.py": {
+      "bytes": 26893,
+      "sha256": "a0216b8c63dbb756a18c85e0dab474dfdf76bee9de50736c4a929b33e536c95f"
+    },
     "Scripts/windows/probe-ui.py": {
-      "bytes": 38402,
-      "sha256": "814ca1067b39f9abb50ef470ed0b1f8ffdd32f0d84a501f37947b3d4122e48bf"
+      "bytes": 45003,
+      "sha256": "a1c9adb19e39e0b4de95a821e04ca873c42348912795712df87af0f75385ffb6"
+    },
+    "Scripts/windows/publish-release.py": {
+      "bytes": 11519,
+      "sha256": "476d8b0d8c9c3e83c0ac2b4190fa303477bc557503f933d0529c909075f7a7f9"
+    },
+    "Scripts/windows/verify-candidate.py": {
+      "bytes": 15155,
+      "sha256": "f325f58a23ae5fb49ad51df5dcb183981495ab842d17e0d560d325e3a60003bd"
+    },
+    "Scripts/windows/verify-installation.py": {
+      "bytes": 26253,
+      "sha256": "dfbd7f3f2cdce54dcb74d0d5eb8c9f4e5c389bbb8dbd4edd3f332c7c0663830e"
     },
     "Scripts/windows/verify-mac-unchanged.py": {
       "bytes": 2935,
       "sha256": "0d05a19812e706e8682783e7d395d689c8abb33ea9424dd253a36524dcbcac74"
     },
     "Sources/Compat/CompatMain.swift": {
-      "bytes": 15497,
-      "sha256": "8b929d6cb5746fcdd7280fb1733f9094fe5bc4c4e3c7741d8b140e48f7f4a6cb"
+      "bytes": 16805,
+      "sha256": "026696e25dcd54b5397cc4f13f27b9c4dccda534a2f5c44eef032c63fd2a9124"
+    },
+    "Sources/Compat/WindowsLocalFileSystem.swift": {
+      "bytes": 16321,
+      "sha256": "e35d13ba50717679477eb92d97e80cf43fc3d8937a875503c78cf0ed8a8ddb9e"
     },
     "Sources/Core/AppReleaseChecker.swift": {
       "bytes": 8814,
@@ -716,8 +752,8 @@
       "sha256": "8fcf7be016a431d6ed8d72395627274197d2eae19b2250bec9befda823d66976"
     },
     "docs/BUILD_COMPATIBILITY.md": {
-      "bytes": 2973,
-      "sha256": "f0e1919b9b863c702f2761d79795eb2bdb2550575730708fa086fbab4f43fc05"
+      "bytes": 3988,
+      "sha256": "88208a11a37e83c9b6de2835bf30f0755f9cbc53e86ac55c517cc2d96d59db90"
     },
     "docs/BUILD_MAC.zh-TW.md": {
       "bytes": 8839,
@@ -771,6 +807,10 @@
       "bytes": 2313,
       "sha256": "cbf0552083f455bca62b5b3de371d4301a09ddcefa57e42a4f0005f9336bb8d6"
     },
+    "docs/RELEASE_0.9.0_WINDOWS_R1.md": {
+      "bytes": 3683,
+      "sha256": "c6da9424250034f6ee434013aa89011a130b5dd6d647cb310e58bf0b450454b5"
+    },
     "docs/RESEARCH_0.5.0.md": {
       "bytes": 10720,
       "sha256": "ab3a5e4cd1b1003039b8124e408dd7b792515306e84532b4e379b28a565dfac3"
@@ -806,6 +846,10 @@
     "docs/VALIDATION_0.8.1.zh-TW.md": {
       "bytes": 1831,
       "sha256": "319cc9eec7afec4bde109c2e6a47e180c65d09ed9529f59652def5b5b8a41144"
+    },
+    "docs/WINDOWS_0.9.0_R1.md": {
+      "bytes": 7331,
+      "sha256": "1741bf67f7acdf9b232bfa7e6adec36d438dd25b3e0a6ad0052fb1329d6918e9"
     },
     "docs/archive/0.4.0/README.original.md": {
       "bytes": 5073,

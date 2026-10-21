@@ -1,10 +1,10 @@
 # Windows and Linux compatibility builds
 
-macOS is the primary platform. The compatibility editions reuse the bundled web interface and Swift core, hosted by Tauri with the system webview. They provide browsing, copy, one-way sync, move, dry run, saved tasks and transfer reports.
+macOS is the primary platform. The compatibility editions reuse the bundled web interface and Swift transfer core, hosted by Tauri with the system webview. Windows revision 1 uses a Windows-native local filesystem adapter. The editions provide browsing, copy, one-way sync, move, dry run, saved tasks and transfer reports.
 
 ## Install
 
-- **Windows x64:** run `Rclone_Browser_Next_0.8.1_Windows_x64_Setup.exe`. Installation is per user. If WebView2 is absent, the installer downloads Microsoft's official Evergreen bootstrapper. The installer includes the Swift runtime; Swift, Rust and Node.js are not needed to run the app.
+- **Windows x64:** use [0.9.0 Windows revision 1](https://github.com/jason840709/RcloneBrowserNext/releases/tag/windows-v0.9.0-r1) and run `Rclone_Browser_Next_0.9.0_Windows_r1_x64_Setup.exe`. Installation is per user and preserves existing application settings. If WebView2 is absent, the installer downloads Microsoft's official Evergreen bootstrapper. The installer includes the Swift runtime; Swift, Rust and Node.js are not needed to run the app.
 - **Ubuntu 24.04 amd64:** install `Rclone_Browser_Next_0.8.1_Linux_amd64.deb` with your package installer or `sudo apt install ./Rclone_Browser_Next_0.8.1_Linux_amd64.deb`. The package includes Swift runtime libraries and declares its WebKitGTK, GTK, ICU and other system dependencies. Other distributions require matching dependencies or a source build.
 
 In Settings, choose an existing rclone executable or an installation folder for the app's rclone downloader. Account setup opens rclone's interactive configuration in a terminal. Existing rclone configuration files can be selected directly.
@@ -22,6 +22,10 @@ Linux builds require Swift, Rust, Python, Node.js, pkg-config, patchelf and WebK
 Both scripts package only redistributable runtime dependencies, retain their licenses and write a runtime manifest. See [third-party notices](../Compat/THIRD_PARTY_NOTICES.md).
 
 ## Verification
+
+The [Windows repair workflow](../.github/workflows/windows-candidate.yml) builds the candidate, then installs it on a separate Windows runner without a Swift SDK. It tests actual user-home and drive-root listings, 64-bit file sizes, long Unicode paths, mutation/junction boundaries, real WebView2 remote selection and upgrade from the released 0.9.0. Every product case must pass before the separate Windows release workflow can publish the same installer. [Reproduction details and Mac isolation](WINDOWS_0.9.0_R1.md).
+
+Windows revision 1 is published separately as a prerelease so the Mac stable update endpoint remains unchanged. Existing Windows installations need the direct download above; the old stable update checker will not suggest this platform revision.
 
 The workflow builds installers on `windows-2025` and `ubuntu-24.04`. It runs platform file-operation checks, local copy/sync and cancellation through the packaged Swift helper, then opens the native window and checks the production interface bridge. These checks use isolated local fixtures. The macOS edition has its own full native core and WebKit test suites.
 

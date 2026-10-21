@@ -44,6 +44,7 @@ $RbnObject = Join-Path $RbnCache 'WindowsRcloneLauncher.obj'
 if ($LASTEXITCODE -ne 0) { throw 'The rclone process launcher did not compile.' }
 $RbnSources = @(Get-ChildItem -Path (Join-Path $RbnRoot 'Sources/Core/*.swift') -File | Sort-Object Name | ForEach-Object FullName)
 $RbnSources += Join-Path $RbnRoot 'Sources/Compat/CompatMain.swift'
+$RbnSources += Join-Path $RbnRoot 'Sources/Compat/WindowsLocalFileSystem.swift'
 $RbnSwiftArgs = $RbnSwiftSdkArgs + @('-swift-version','5','-O','-module-cache-path',(Join-Path $RbnCache 'swift-module-cache')) + $RbnSources + @('-o',(Join-Path $RbnRuntime 'rbn-engine.exe'))
 & $RbnSwift @RbnSwiftArgs
 if ($LASTEXITCODE -ne 0) { throw 'The shared Swift engine did not compile.' }
@@ -117,5 +118,5 @@ try {
     & (Join-Path $RbnCli 'node_modules/.bin/tauri.cmd') build --bundles nsis --ci
     if ($LASTEXITCODE -ne 0) { throw 'The Windows installer build failed.' }
 } finally { Pop-Location }
-python Scripts/package-compat.py --platform windows --cache $RbnCache
-if ($LASTEXITCODE -ne 0) { throw 'The Windows release package could not be prepared.' }
+python Scripts/windows/package-candidate.py --cache $RbnCache
+if ($LASTEXITCODE -ne 0) { throw 'The Windows candidate package could not be prepared.' }
