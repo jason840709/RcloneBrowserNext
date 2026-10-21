@@ -1,0 +1,932 @@
+{
+  "schemaVersion": 1,
+  "release": "0.9.0",
+  "recordedAtUTC": "2026-10-21T02:20:49.259973+00:00",
+  "status": "passed",
+  "verifiedAgainstCommit": "ed76a5c269660fe919b7ffe664820baadff6790f",
+  "commitURL": "https://github.com/jason840709/RcloneBrowserNext/commit/ed76a5c269660fe919b7ffe664820baadff6790f",
+  "ci": {
+    "runID": 39530803169,
+    "runURL": "https://github.com/jason840709/RcloneBrowserNext/actions/runs/39530803169",
+    "workflow": ".github/workflows/macos.yml",
+    "requiredPlatforms": [
+      "macos-arm64",
+      "macos-x86_64",
+      "macos26-arm64",
+      "windows-x86_64",
+      "linux-x86_64"
+    ],
+    "requiredJobsConclusion": "success",
+    "runMetadataSHA256": "1a7bfb00950a9d352b1778b9e3e0e060780131127c75453685de34e9d495e4c7",
+    "jobsMetadataSHA256": "911aed5a6d332c70d9c1cb75ecc1ee4e432812688e75d78ce5c24812589f615a"
+  },
+  "publication": {
+    "releaseID": 419070823,
+    "tag": "v0.9.0",
+    "URL": "https://github.com/jason840709/RcloneBrowserNext/releases/tag/v0.9.0",
+    "targetCommit": "ed76a5c269660fe919b7ffe664820baadff6790f",
+    "publishedAtUTC": "2026-10-21T02:17:47Z",
+    "jobID": 119000478941,
+    "jobURL": "https://github.com/jason840709/RcloneBrowserNext/actions/runs/39530803169/job/119000478941",
+    "conclusion": "success",
+    "rawLog": {
+      "jobURL": "https://github.com/jason840709/RcloneBrowserNext/actions/runs/39530803169/job/119000478941",
+      "bytes": 23791,
+      "sha256": "3828d099df8b488b3939b75ec91fc59b0946df69457e0693c4f498178c394444"
+    },
+    "assetCount": 6,
+    "releaseMetadataSHA256": "6a87aa251f05e359a5a957a8ac74e38d8b98a8a3fad1c6b3ed1db30e5b1db560",
+    "downloadVerificationReceiptSHA256": "32f743165e40705849e3aa3b747bfa5885d0ae4ec7144ac7953017c8058c806d",
+    "publicChecksumListVerified": true,
+    "downloadVerifiedAtUTC": "2026-10-21T02:19:35.715246+00:00"
+  },
+  "web": {
+    "record": "WebSource/tests/verification.json",
+    "recordSHA256": "cfcbec3ca75077583e70e7194a5b187e136b7b6427350454dff066808331c6b8",
+    "suite": {
+      "startTime": "2026-10-21T01:56:29.695Z",
+      "expected": 189,
+      "unexpected": 0,
+      "skipped": 0,
+      "flaky": 0,
+      "retries": 0,
+      "durationSeconds": 173.3,
+      "receiptSHA256": "0c606c623ec59f9007ebc46f8276637160d2efac5661cd2aa87b92e6429e4c2c"
+    },
+    "targetedSuite": {
+      "startTime": "2026-10-21T01:55:10.967Z",
+      "expected": 8,
+      "unexpected": 0,
+      "skipped": 0,
+      "flaky": 0,
+      "retries": null,
+      "durationSeconds": 8.4,
+      "receiptSHA256": "6b45f4b5f61b03226dd38774c16760b96ee86850d4c61dcd4581cbfe2a34a877"
+    },
+    "harness": "Chromium loading production Resources/Web with deterministic native-bridge fixtures",
+    "productionAndSourceUnchangedAfterTests": true
+  },
+  "counting": {
+    "macOS": "Suites and totals are reported separately for each OS/architecture; a case executed on multiple runners is not a unique-case total.",
+    "compatibility": "Test cases, completed helper checks, and one aggregate native UI receipt have separate units.",
+    "unknownCounters": "null means not independently reported; success does not imply a measured zero."
+  },
+  "platforms": [
+    {
+      "platform": "macos-arm64",
+      "runnerLabel": "macos-15",
+      "jobID": 118995977857,
+      "jobURL": "https://github.com/jason840709/RcloneBrowserNext/actions/runs/39530803169/job/118995977857",
+      "conclusion": "success",
+      "rawLog": {
+        "jobURL": "https://github.com/jason840709/RcloneBrowserNext/actions/runs/39530803169/job/118995977857",
+        "bytes": 65554,
+        "sha256": "b7ae738a6a7e72642f1029cbc0d86b45b235e34d407dc7a43b0ce06517b0064d"
+      },
+      "suiteCount": 12,
+      "suites": [
+        {
+          "name": "CoreTests",
+          "unit": "test cases",
+          "passed": 58,
+          "failed": 0,
+          "skipped": 1,
+          "skippedCountBasis": "Explicit suite summary, cross-checked against SKIP entries.",
+          "skipReasons": [
+            "SKIP NAS kernel read instrumentation — Linux inotify is unavailable; the portable NAS transfer/compare test still runs"
+          ],
+          "summary": "RESULT: 58 passed, 0 failed, 1 skipped"
+        },
+        {
+          "name": "UpdaterTests",
+          "unit": "test cases",
+          "passed": 20,
+          "failed": 0,
+          "skipped": 0,
+          "skippedCountBasis": "Count of SKIP entries in the complete suite log; this suite summary does not print a skipped counter.",
+          "summary": "Updater: 20 passed, 0 failed"
+        },
+        {
+          "name": "ToolsTests",
+          "unit": "test cases",
+          "passed": 12,
+          "failed": 0,
+          "skipped": 0,
+          "skippedCountBasis": "Explicit suite summary, cross-checked against SKIP entries.",
+          "summary": "12 passed, 0 failed, 0 skipped"
+        },
+        {
+          "name": "NativeMessagesTests",
+          "unit": "test cases",
+          "passed": 13,
+          "failed": 0,
+          "skipped": 0,
+          "skippedCountBasis": "Explicit suite summary, cross-checked against SKIP entries.",
+          "summary": "NativeMessagesTests: 13 passed, 0 failed, 0 skipped"
+        },
+        {
+          "name": "FinderDropTests",
+          "unit": "test cases",
+          "passed": 5,
+          "failed": 0,
+          "skipped": 0,
+          "skippedCountBasis": "Count of SKIP entries in the complete suite log; this suite summary does not print a skipped counter.",
+          "summary": "5 passed, 0 failed"
+        },
+        {
+          "name": "AppReleaseTests",
+          "unit": "test cases",
+          "passed": 8,
+          "failed": 0,
+          "skipped": 0,
+          "skippedCountBasis": "Count of SKIP entries in the complete suite log; this suite summary does not print a skipped counter.",
+          "summary": "App release tests: 8 passed, 0 failed"
+        },
+        {
+          "name": "TransferReportTests",
+          "unit": "test cases",
+          "passed": 25,
+          "failed": 0,
+          "skipped": 0,
+          "skippedCountBasis": "Explicit suite summary, cross-checked against SKIP entries.",
+          "summary": "25 passed, 0 failed, 0 skipped"
+        },
+        {
+          "name": "PlatformTests",
+          "unit": "test cases",
+          "passed": 10,
+          "failed": 0,
+          "skipped": 0,
+          "skippedCountBasis": "Count of SKIP entries in the complete suite log; this suite summary does not print a skipped counter.",
+          "summary": "RESULT 10 passed, 0 failed"
+        },
+        {
+          "name": "MacInterfaceTests",
+          "unit": "test cases",
+          "passed": 24,
+          "failed": 0,
+          "skipped": 0,
+          "skippedCountBasis": "Explicit suite summary, cross-checked against SKIP entries.",
+          "summary": "MacInterfaceTests: 24 passed, 0 failed, 0 skipped"
+        },
+        {
+          "name": "MacStartupTests",
+          "unit": "test cases",
+          "passed": 12,
+          "failed": 0,
+          "skipped": 0,
+          "skippedCountBasis": "Explicit suite summary, cross-checked against SKIP entries.",
+          "summary": "Mac startup tests: 12 passed, 0 failed, 0 skipped",
+          "cases": [
+            {
+              "result": "PASS",
+              "name": "purple-dark cold start covers WebKit until the bundled loading UI is painted"
+            },
+            {
+              "result": "PASS",
+              "name": "blue-dark cold start covers WebKit until the bundled loading UI is painted"
+            },
+            {
+              "result": "PASS",
+              "name": "green-dark cold start covers WebKit until the bundled loading UI is painted"
+            },
+            {
+              "result": "PASS",
+              "name": "purple-light cold start covers WebKit until the bundled loading UI is painted"
+            },
+            {
+              "result": "PASS",
+              "name": "blue-light cold start covers WebKit until the bundled loading UI is painted"
+            },
+            {
+              "result": "PASS",
+              "name": "green-light cold start covers WebKit until the bundled loading UI is painted"
+            },
+            {
+              "result": "PASS",
+              "name": "80% startup keeps native and Web icon/text positions at the same zoom"
+            },
+            {
+              "result": "PASS",
+              "name": "125% startup keeps native and Web icon/text positions at the same zoom"
+            },
+            {
+              "result": "PASS",
+              "name": "135% startup keeps native and Web icon/text positions at the same zoom"
+            },
+            {
+              "result": "PASS",
+              "name": "blue-dark: a finished but still-white WebKit document stays covered until its themed frame exists"
+            },
+            {
+              "result": "PASS",
+              "name": "green-light: a finished but still-white WebKit document stays covered until its themed frame exists"
+            },
+            {
+              "result": "PASS",
+              "name": "Startup failure retains its themed cover and an operable retry path"
+            }
+          ]
+        },
+        {
+          "name": "MacIconTests",
+          "unit": "test cases",
+          "passed": 11,
+          "failed": 0,
+          "skipped": 0,
+          "skippedCountBasis": "Explicit suite summary, cross-checked against SKIP entries.",
+          "summary": "MacIconTests: 11 passed, 0 failed, 0 skipped"
+        },
+        {
+          "name": "MacNavigationIntegrationTests",
+          "unit": "test cases",
+          "passed": 6,
+          "failed": 0,
+          "skipped": 0,
+          "skippedCountBasis": "Explicit suite summary, cross-checked against SKIP entries.",
+          "summary": "Mac navigation integration tests: 6 passed, 0 failed, 0 skipped"
+        }
+      ],
+      "totals": {
+        "passed": 204,
+        "failed": 0,
+        "skipped": 1
+      },
+      "system": {
+        "os": "macOS",
+        "version": "15.7.9",
+        "architecture": "arm64",
+        "runnerImage": "macos-15-arm64"
+      },
+      "signature": {
+        "type": "ad-hoc (codesign --sign -)",
+        "validOnDisk": true,
+        "designatedRequirementSatisfied": true,
+        "strictVerificationExecutedInCI": true,
+        "implementation": "Scripts/verify-mac.sh",
+        "developerIDSigned": false,
+        "notarized": false,
+        "downloadHelperPerformsCryptographicSignatureVerification": false,
+        "evidence": {
+          "jobURL": "https://github.com/jason840709/RcloneBrowserNext/actions/runs/39530803169/job/118995977857",
+          "rawLogSHA256": "b7ae738a6a7e72642f1029cbc0d86b45b235e34d407dc7a43b0ce06517b0064d"
+        }
+      }
+    },
+    {
+      "platform": "macos-x86_64",
+      "runnerLabel": "macos-15-intel",
+      "jobID": 118995977675,
+      "jobURL": "https://github.com/jason840709/RcloneBrowserNext/actions/runs/39530803169/job/118995977675",
+      "conclusion": "success",
+      "rawLog": {
+        "jobURL": "https://github.com/jason840709/RcloneBrowserNext/actions/runs/39530803169/job/118995977675",
+        "bytes": 63406,
+        "sha256": "2a6c6510f449a607f0ba201d278e4060a1717ca89f91c9ead3436fc6f07ae73b"
+      },
+      "suiteCount": 12,
+      "suites": [
+        {
+          "name": "CoreTests",
+          "unit": "test cases",
+          "passed": 58,
+          "failed": 0,
+          "skipped": 1,
+          "skippedCountBasis": "Explicit suite summary, cross-checked against SKIP entries.",
+          "skipReasons": [
+            "SKIP NAS kernel read instrumentation — Linux inotify is unavailable; the portable NAS transfer/compare test still runs"
+          ],
+          "summary": "RESULT: 58 passed, 0 failed, 1 skipped"
+        },
+        {
+          "name": "UpdaterTests",
+          "unit": "test cases",
+          "passed": 20,
+          "failed": 0,
+          "skipped": 0,
+          "skippedCountBasis": "Count of SKIP entries in the complete suite log; this suite summary does not print a skipped counter.",
+          "summary": "Updater: 20 passed, 0 failed"
+        },
+        {
+          "name": "ToolsTests",
+          "unit": "test cases",
+          "passed": 12,
+          "failed": 0,
+          "skipped": 0,
+          "skippedCountBasis": "Explicit suite summary, cross-checked against SKIP entries.",
+          "summary": "12 passed, 0 failed, 0 skipped"
+        },
+        {
+          "name": "NativeMessagesTests",
+          "unit": "test cases",
+          "passed": 13,
+          "failed": 0,
+          "skipped": 0,
+          "skippedCountBasis": "Explicit suite summary, cross-checked against SKIP entries.",
+          "summary": "NativeMessagesTests: 13 passed, 0 failed, 0 skipped"
+        },
+        {
+          "name": "FinderDropTests",
+          "unit": "test cases",
+          "passed": 5,
+          "failed": 0,
+          "skipped": 0,
+          "skippedCountBasis": "Count of SKIP entries in the complete suite log; this suite summary does not print a skipped counter.",
+          "summary": "5 passed, 0 failed"
+        },
+        {
+          "name": "AppReleaseTests",
+          "unit": "test cases",
+          "passed": 8,
+          "failed": 0,
+          "skipped": 0,
+          "skippedCountBasis": "Count of SKIP entries in the complete suite log; this suite summary does not print a skipped counter.",
+          "summary": "App release tests: 8 passed, 0 failed"
+        },
+        {
+          "name": "TransferReportTests",
+          "unit": "test cases",
+          "passed": 25,
+          "failed": 0,
+          "skipped": 0,
+          "skippedCountBasis": "Explicit suite summary, cross-checked against SKIP entries.",
+          "summary": "25 passed, 0 failed, 0 skipped"
+        },
+        {
+          "name": "PlatformTests",
+          "unit": "test cases",
+          "passed": 10,
+          "failed": 0,
+          "skipped": 0,
+          "skippedCountBasis": "Count of SKIP entries in the complete suite log; this suite summary does not print a skipped counter.",
+          "summary": "RESULT 10 passed, 0 failed"
+        },
+        {
+          "name": "MacInterfaceTests",
+          "unit": "test cases",
+          "passed": 24,
+          "failed": 0,
+          "skipped": 0,
+          "skippedCountBasis": "Explicit suite summary, cross-checked against SKIP entries.",
+          "summary": "MacInterfaceTests: 24 passed, 0 failed, 0 skipped"
+        },
+        {
+          "name": "MacStartupTests",
+          "unit": "test cases",
+          "passed": 12,
+          "failed": 0,
+          "skipped": 0,
+          "skippedCountBasis": "Explicit suite summary, cross-checked against SKIP entries.",
+          "summary": "Mac startup tests: 12 passed, 0 failed, 0 skipped",
+          "cases": [
+            {
+              "result": "PASS",
+              "name": "purple-dark cold start covers WebKit until the bundled loading UI is painted"
+            },
+            {
+              "result": "PASS",
+              "name": "blue-dark cold start covers WebKit until the bundled loading UI is painted"
+            },
+            {
+              "result": "PASS",
+              "name": "green-dark cold start covers WebKit until the bundled loading UI is painted"
+            },
+            {
+              "result": "PASS",
+              "name": "purple-light cold start covers WebKit until the bundled loading UI is painted"
+            },
+            {
+              "result": "PASS",
+              "name": "blue-light cold start covers WebKit until the bundled loading UI is painted"
+            },
+            {
+              "result": "PASS",
+              "name": "green-light cold start covers WebKit until the bundled loading UI is painted"
+            },
+            {
+              "result": "PASS",
+              "name": "80% startup keeps native and Web icon/text positions at the same zoom"
+            },
+            {
+              "result": "PASS",
+              "name": "125% startup keeps native and Web icon/text positions at the same zoom"
+            },
+            {
+              "result": "PASS",
+              "name": "135% startup keeps native and Web icon/text positions at the same zoom"
+            },
+            {
+              "result": "PASS",
+              "name": "blue-dark: a finished but still-white WebKit document stays covered until its themed frame exists"
+            },
+            {
+              "result": "PASS",
+              "name": "green-light: a finished but still-white WebKit document stays covered until its themed frame exists"
+            },
+            {
+              "result": "PASS",
+              "name": "Startup failure retains its themed cover and an operable retry path"
+            }
+          ]
+        },
+        {
+          "name": "MacIconTests",
+          "unit": "test cases",
+          "passed": 11,
+          "failed": 0,
+          "skipped": 0,
+          "skippedCountBasis": "Explicit suite summary, cross-checked against SKIP entries.",
+          "summary": "MacIconTests: 11 passed, 0 failed, 0 skipped"
+        },
+        {
+          "name": "MacNavigationIntegrationTests",
+          "unit": "test cases",
+          "passed": 6,
+          "failed": 0,
+          "skipped": 0,
+          "skippedCountBasis": "Explicit suite summary, cross-checked against SKIP entries.",
+          "summary": "Mac navigation integration tests: 6 passed, 0 failed, 0 skipped"
+        }
+      ],
+      "totals": {
+        "passed": 204,
+        "failed": 0,
+        "skipped": 1
+      },
+      "system": {
+        "os": "macOS",
+        "version": "15.7.9",
+        "architecture": "x86_64",
+        "runnerImage": "macos-15"
+      },
+      "signature": {
+        "type": "ad-hoc (codesign --sign -)",
+        "validOnDisk": true,
+        "designatedRequirementSatisfied": true,
+        "strictVerificationExecutedInCI": true,
+        "implementation": "Scripts/verify-mac.sh",
+        "developerIDSigned": false,
+        "notarized": false,
+        "downloadHelperPerformsCryptographicSignatureVerification": false,
+        "evidence": {
+          "jobURL": "https://github.com/jason840709/RcloneBrowserNext/actions/runs/39530803169/job/118995977675",
+          "rawLogSHA256": "2a6c6510f449a607f0ba201d278e4060a1717ca89f91c9ead3436fc6f07ae73b"
+        }
+      }
+    },
+    {
+      "platform": "macos26-arm64",
+      "runnerLabel": "macos-26",
+      "jobID": 118995977762,
+      "jobURL": "https://github.com/jason840709/RcloneBrowserNext/actions/runs/39530803169/job/118995977762",
+      "conclusion": "success",
+      "rawLog": {
+        "jobURL": "https://github.com/jason840709/RcloneBrowserNext/actions/runs/39530803169/job/118995977762",
+        "bytes": 43906,
+        "sha256": "814d8a9298f283c1158b56a958904be0986cadd314ab91b99717baa44cac9c2a"
+      },
+      "suiteCount": 4,
+      "suites": [
+        {
+          "name": "MacInterfaceTests",
+          "unit": "test cases",
+          "passed": 24,
+          "failed": 0,
+          "skipped": 0,
+          "skippedCountBasis": "Explicit suite summary, cross-checked against SKIP entries.",
+          "summary": "MacInterfaceTests: 24 passed, 0 failed, 0 skipped"
+        },
+        {
+          "name": "MacStartupTests",
+          "unit": "test cases",
+          "passed": 12,
+          "failed": 0,
+          "skipped": 0,
+          "skippedCountBasis": "Explicit suite summary, cross-checked against SKIP entries.",
+          "summary": "Mac startup tests: 12 passed, 0 failed, 0 skipped",
+          "cases": [
+            {
+              "result": "PASS",
+              "name": "purple-dark cold start covers WebKit until the bundled loading UI is painted"
+            },
+            {
+              "result": "PASS",
+              "name": "blue-dark cold start covers WebKit until the bundled loading UI is painted"
+            },
+            {
+              "result": "PASS",
+              "name": "green-dark cold start covers WebKit until the bundled loading UI is painted"
+            },
+            {
+              "result": "PASS",
+              "name": "purple-light cold start covers WebKit until the bundled loading UI is painted"
+            },
+            {
+              "result": "PASS",
+              "name": "blue-light cold start covers WebKit until the bundled loading UI is painted"
+            },
+            {
+              "result": "PASS",
+              "name": "green-light cold start covers WebKit until the bundled loading UI is painted"
+            },
+            {
+              "result": "PASS",
+              "name": "80% startup keeps native and Web icon/text positions at the same zoom"
+            },
+            {
+              "result": "PASS",
+              "name": "125% startup keeps native and Web icon/text positions at the same zoom"
+            },
+            {
+              "result": "PASS",
+              "name": "135% startup keeps native and Web icon/text positions at the same zoom"
+            },
+            {
+              "result": "PASS",
+              "name": "blue-dark: a finished but still-white WebKit document stays covered until its themed frame exists"
+            },
+            {
+              "result": "PASS",
+              "name": "green-light: a finished but still-white WebKit document stays covered until its themed frame exists"
+            },
+            {
+              "result": "PASS",
+              "name": "Startup failure retains its themed cover and an operable retry path"
+            }
+          ]
+        },
+        {
+          "name": "MacIconTests",
+          "unit": "test cases",
+          "passed": 11,
+          "failed": 0,
+          "skipped": 0,
+          "skippedCountBasis": "Explicit suite summary, cross-checked against SKIP entries.",
+          "summary": "MacIconTests: 11 passed, 0 failed, 0 skipped"
+        },
+        {
+          "name": "MacNavigationIntegrationTests",
+          "unit": "test cases",
+          "passed": 6,
+          "failed": 0,
+          "skipped": 0,
+          "skippedCountBasis": "Explicit suite summary, cross-checked against SKIP entries.",
+          "summary": "Mac navigation integration tests: 6 passed, 0 failed, 0 skipped"
+        }
+      ],
+      "totals": {
+        "passed": 53,
+        "failed": 0,
+        "skipped": 0
+      },
+      "system": {
+        "os": "macOS",
+        "version": "26.6.2",
+        "architecture": "arm64",
+        "runnerImage": "macos-26-arm64"
+      },
+      "signature": {
+        "type": "ad-hoc (codesign --sign -)",
+        "validOnDisk": true,
+        "designatedRequirementSatisfied": true,
+        "strictVerificationExecutedInCI": true,
+        "implementation": "Scripts/verify-mac.sh",
+        "developerIDSigned": false,
+        "notarized": false,
+        "downloadHelperPerformsCryptographicSignatureVerification": false,
+        "evidence": {
+          "jobURL": "https://github.com/jason840709/RcloneBrowserNext/actions/runs/39530803169/job/118995977762",
+          "rawLogSHA256": "814d8a9298f283c1158b56a958904be0986cadd314ab91b99717baa44cac9c2a"
+        }
+      }
+    },
+    {
+      "platform": "windows-x86_64",
+      "runnerLabel": "windows-2025",
+      "jobID": 118995977486,
+      "jobURL": "https://github.com/jason840709/RcloneBrowserNext/actions/runs/39530803169/job/118995977486",
+      "conclusion": "success",
+      "rawLog": {
+        "jobURL": "https://github.com/jason840709/RcloneBrowserNext/actions/runs/39530803169/job/118995977486",
+        "bytes": 195135,
+        "sha256": "99f45f3b8ad7e47929a5955f24770dff41f9ba81826b24b69e42ec2230da97a6"
+      },
+      "system": "Windows-2025Server-10.0.26100-SP0",
+      "suiteCount": 4,
+      "suites": [
+        {
+          "name": "Rust native host",
+          "unit": "test cases",
+          "passed": 5,
+          "failed": 0,
+          "skipped": 0,
+          "skipCounterMeaning": "Rust ignored tests",
+          "filteredOut": 0,
+          "measured": 0
+        },
+        {
+          "name": "Platform file operations",
+          "unit": "test cases",
+          "passed": 9,
+          "failed": 0,
+          "skipped": null,
+          "skipCounterMeaning": "Not separately reported by this harness; no skipped count is inferred."
+        },
+        {
+          "name": "Bundled helper smoke",
+          "unit": "completed checks",
+          "passed": 10,
+          "failed": null,
+          "skipped": null,
+          "unreportedCounters": "The log emits each successful check and a final passed count. It does not emit failed or skipped totals; the GitHub step conclusion is success.",
+          "stepConclusion": "success"
+        },
+        {
+          "name": "Packaged native UI smoke",
+          "unit": "aggregate receipt",
+          "passed": 1,
+          "failed": 0,
+          "skipped": null,
+          "skipCounterMeaning": "No skip counter is emitted by the receipt.",
+          "countBasis": "One emitted native UI receipt with passed=true and exitCode=0; this is one aggregate run, not a count of internal assertions."
+        }
+      ],
+      "coreScope": [
+        "Native host origin/method boundaries, permitted external sites, display scale mapping and quit policy.",
+        "JSON boolean/number distinctions, absolute drive/UNC/POSIX path handling, destination root protection, Unicode paths, exclusive creation, safe file reads/removal and atomic replacement.",
+        "Actual bundled helper plus pinned rclone: discovery, appearance/account configuration, dry run, copy, unchanged sync and destination extras, reports/task import/export, retry/quit state, graceful cancellation and restart persistence.",
+        "Installed package native IPC: two file panes, page buttons, expected platform, retained green-dark appearance, English language, native zoom and restored width, clean exit."
+      ],
+      "platformSpecificObservedChecks": [
+        "Windows account setup launcher"
+      ],
+      "package": {
+        "fileName": "Rclone_Browser_Next_0.9.0_Windows_x64_Setup.exe",
+        "sizeBytes": 17043504,
+        "sha256": "d943ee8a30e5bb8e16ad8a2c1edd20645c3cef733378ea8a1a7890de0f886780",
+        "URL": "https://github.com/jason840709/RcloneBrowserNext/releases/download/v0.9.0/Rclone_Browser_Next_0.9.0_Windows_x64_Setup.exe",
+        "matchesInstalledNativeUITest": true
+      },
+      "nativeUI": {
+        "passed": true,
+        "exitCode": 0,
+        "unit": "one aggregate native UI smoke invocation",
+        "measurements": {
+          "platform": "win32",
+          "initialTheme": "green-dark",
+          "themeBefore": "green-dark",
+          "language": "en",
+          "panes": 2,
+          "buttons": 80,
+          "scaleBefore": 100,
+          "widthBefore": 1142,
+          "widthZoomed": 894,
+          "widthRestored": 1142
+        }
+      }
+    },
+    {
+      "platform": "linux-x86_64",
+      "runnerLabel": "ubuntu-24.04",
+      "jobID": 118995977511,
+      "jobURL": "https://github.com/jason840709/RcloneBrowserNext/actions/runs/39530803169/job/118995977511",
+      "conclusion": "success",
+      "rawLog": {
+        "jobURL": "https://github.com/jason840709/RcloneBrowserNext/actions/runs/39530803169/job/118995977511",
+        "bytes": 207024,
+        "sha256": "b1075974ea2952ff428c62f67fc1574d9540fb40a834122921087790cd1293f6"
+      },
+      "system": "Linux-7.0.0-1017-azure-x86_64-with-glibc2.39",
+      "suiteCount": 4,
+      "suites": [
+        {
+          "name": "Rust native host",
+          "unit": "test cases",
+          "passed": 5,
+          "failed": 0,
+          "skipped": 0,
+          "skipCounterMeaning": "Rust ignored tests",
+          "filteredOut": 0,
+          "measured": 0
+        },
+        {
+          "name": "Platform file operations",
+          "unit": "test cases",
+          "passed": 10,
+          "failed": 0,
+          "skipped": null,
+          "skipCounterMeaning": "Not separately reported by this harness; no skipped count is inferred."
+        },
+        {
+          "name": "Bundled helper smoke",
+          "unit": "completed checks",
+          "passed": 9,
+          "failed": null,
+          "skipped": null,
+          "unreportedCounters": "The log emits each successful check and a final passed count. It does not emit failed or skipped totals; the GitHub step conclusion is success.",
+          "stepConclusion": "success"
+        },
+        {
+          "name": "Packaged native UI smoke",
+          "unit": "aggregate receipt",
+          "passed": 1,
+          "failed": 0,
+          "skipped": null,
+          "skipCounterMeaning": "No skip counter is emitted by the receipt.",
+          "countBasis": "One emitted native UI receipt with passed=true and exitCode=0; this is one aggregate run, not a count of internal assertions."
+        }
+      ],
+      "coreScope": [
+        "Native host origin/method boundaries, permitted external sites, display scale mapping and quit policy.",
+        "JSON boolean/number distinctions, absolute drive/UNC/POSIX path handling, destination root protection, Unicode paths, exclusive creation, safe file reads/removal and atomic replacement.",
+        "Actual bundled helper plus pinned rclone: discovery, appearance/account configuration, dry run, copy, unchanged sync and destination extras, reports/task import/export, retry/quit state, graceful cancellation and restart persistence.",
+        "Installed package native IPC: two file panes, page buttons, expected platform, retained green-dark appearance, English language, native zoom and restored width, clean exit."
+      ],
+      "platformSpecificObservedChecks": [
+        "report readers reject symlinks and unlink never follows their target"
+      ],
+      "package": {
+        "fileName": "Rclone_Browser_Next_0.9.0_Linux_amd64.deb",
+        "sizeBytes": 30333612,
+        "sha256": "e45761c65349e0aba154618a21b9465838dace62d66556f42b30f08ee4f6a896",
+        "URL": "https://github.com/jason840709/RcloneBrowserNext/releases/download/v0.9.0/Rclone_Browser_Next_0.9.0_Linux_amd64.deb",
+        "matchesInstalledNativeUITest": true
+      },
+      "nativeUI": {
+        "passed": true,
+        "exitCode": 0,
+        "unit": "one aggregate native UI smoke invocation",
+        "measurements": {
+          "platform": "linux",
+          "initialTheme": "green-dark",
+          "themeBefore": "green-dark",
+          "language": "en",
+          "panes": 2,
+          "buttons": 80,
+          "scaleBefore": 100,
+          "widthBefore": 1422,
+          "widthZoomed": 1113,
+          "widthRestored": 1422
+        }
+      }
+    }
+  ],
+  "assets": [
+    {
+      "fileName": "Rclone_Browser_Next_0.9.0_Linux_amd64.deb",
+      "assetID": 661099569,
+      "sizeBytes": 30333612,
+      "sha256": "e45761c65349e0aba154618a21b9465838dace62d66556f42b30f08ee4f6a896",
+      "URL": "https://github.com/jason840709/RcloneBrowserNext/releases/download/v0.9.0/Rclone_Browser_Next_0.9.0_Linux_amd64.deb",
+      "downloadedAndVerified": true,
+      "githubSizeAndDigestVerified": true,
+      "debianControl": {
+        "Package": "rclone-browser-next",
+        "Version": "0.9.0",
+        "Architecture": "amd64"
+      }
+    },
+    {
+      "fileName": "Rclone_Browser_Next_0.9.0_Mac_Local_Build.zip",
+      "assetID": 661099573,
+      "sizeBytes": 4463286,
+      "sha256": "53f602cfffdc9578c9bae4aa8a49d0944a4c6b9c29f77a2d99379f379b833a5b",
+      "URL": "https://github.com/jason840709/RcloneBrowserNext/releases/download/v0.9.0/Rclone_Browser_Next_0.9.0_Mac_Local_Build.zip",
+      "downloadedAndVerified": true,
+      "githubSizeAndDigestVerified": true,
+      "zipCRCAndPathsVerified": true,
+      "source": {
+        "allFilesMatchReleaseCommit": true,
+        "trackedFilesVerified": 214,
+        "manifestFilesVerified": 213,
+        "permissionsVerified": true
+      }
+    },
+    {
+      "fileName": "Rclone_Browser_Next_0.9.0_Windows_x64_Setup.exe",
+      "assetID": 661099568,
+      "sizeBytes": 17043504,
+      "sha256": "d943ee8a30e5bb8e16ad8a2c1edd20645c3cef733378ea8a1a7890de0f886780",
+      "URL": "https://github.com/jason840709/RcloneBrowserNext/releases/download/v0.9.0/Rclone_Browser_Next_0.9.0_Windows_x64_Setup.exe",
+      "downloadedAndVerified": true,
+      "githubSizeAndDigestVerified": true,
+      "windowsPE": {
+        "pe_machine": "0x14c",
+        "installer_stub_architecture": "x86",
+        "pe_format": "PE32",
+        "version_resources": [
+          {
+            "file_version": "0.9.0.0",
+            "product_version": "0.9.0.0"
+          }
+        ],
+        "installedApplicationArchitectureCheckedByDownloadHelper": false
+      }
+    },
+    {
+      "fileName": "Rclone_Browser_Next_0.9.0_macOS_arm64.zip",
+      "assetID": 661099566,
+      "sizeBytes": 2831853,
+      "sha256": "941d9eabc75d3693cea1f6cff864ff44318806c555bf743f759779cac764aad1",
+      "URL": "https://github.com/jason840709/RcloneBrowserNext/releases/download/v0.9.0/Rclone_Browser_Next_0.9.0_macOS_arm64.zip",
+      "downloadedAndVerified": true,
+      "githubSizeAndDigestVerified": true,
+      "zipCRCAndPathsVerified": true,
+      "macOS": {
+        "architecture": "arm64",
+        "version": "0.9.0",
+        "build": "90",
+        "minimumMacOS": "13.0",
+        "mainExecutableSHA256": "25fd0445bcb08acbd7d9f246e49e7848f429772828b79bdb4080d9104d97e6a0",
+        "resourcesMatchSource": [
+          "Resources/AppIcon-blue.icns",
+          "Resources/AppIcon-green.icns",
+          "Resources/AppIcon.icns",
+          "Resources/Web/THIRD_PARTY_NOTICES.txt",
+          "Resources/Web/app.js",
+          "Resources/Web/appearance-bootstrap.js",
+          "Resources/Web/favicon-blue.svg",
+          "Resources/Web/favicon-green.svg",
+          "Resources/Web/favicon.svg",
+          "Resources/Web/index.html",
+          "Resources/Web/startup-blue.png",
+          "Resources/Web/startup-green.png",
+          "Resources/Web/startup-purple.png",
+          "Resources/Web/style.css"
+        ],
+        "signatureEnvelopePresent": true,
+        "cryptographicSignatureCheckedByDownloadHelper": false
+      }
+    },
+    {
+      "fileName": "Rclone_Browser_Next_0.9.0_macOS_x86_64.zip",
+      "assetID": 661099570,
+      "sizeBytes": 2876017,
+      "sha256": "9fa21d2adaf32c79fb68df91d60818f150b3a199a1e460a57fce69b0339cdf91",
+      "URL": "https://github.com/jason840709/RcloneBrowserNext/releases/download/v0.9.0/Rclone_Browser_Next_0.9.0_macOS_x86_64.zip",
+      "downloadedAndVerified": true,
+      "githubSizeAndDigestVerified": true,
+      "zipCRCAndPathsVerified": true,
+      "macOS": {
+        "architecture": "x86_64",
+        "version": "0.9.0",
+        "build": "90",
+        "minimumMacOS": "13.0",
+        "mainExecutableSHA256": "9e927172f62cbc1d365170aef148b0f53877604dd5efe16483456852ec5b3971",
+        "resourcesMatchSource": [
+          "Resources/AppIcon-blue.icns",
+          "Resources/AppIcon-green.icns",
+          "Resources/AppIcon.icns",
+          "Resources/Web/THIRD_PARTY_NOTICES.txt",
+          "Resources/Web/app.js",
+          "Resources/Web/appearance-bootstrap.js",
+          "Resources/Web/favicon-blue.svg",
+          "Resources/Web/favicon-green.svg",
+          "Resources/Web/favicon.svg",
+          "Resources/Web/index.html",
+          "Resources/Web/startup-blue.png",
+          "Resources/Web/startup-green.png",
+          "Resources/Web/startup-purple.png",
+          "Resources/Web/style.css"
+        ],
+        "signatureEnvelopePresent": true,
+        "cryptographicSignatureCheckedByDownloadHelper": false
+      }
+    },
+    {
+      "fileName": "SHA256SUMS_0.9.0.txt",
+      "assetID": 661099589,
+      "sizeBytes": 551,
+      "sha256": "21e3da1fad08a72d4ad7fd4853c9827cb92c3d1b0da31763d7f9096a06f12747",
+      "URL": "https://github.com/jason840709/RcloneBrowserNext/releases/download/v0.9.0/SHA256SUMS_0.9.0.txt",
+      "downloadedAndVerified": true,
+      "githubSizeAndDigestVerified": true
+    }
+  ],
+  "coverage": {
+    "startup": {
+      "suite": "MacStartupTests",
+      "passingCasesPerMacJob": 12,
+      "sixSavedThemes": true,
+      "displayedScales": [
+        80,
+        125,
+        135
+      ],
+      "existingCoverZoomUpdate": true,
+      "actualNativeAndWebGeometry": true,
+      "sharedDecodedArtwork": true,
+      "whiteDocumentCoverCases": 2,
+      "failureAndRetryCase": true,
+      "harness": "Actual AppKit NSWindow, production RcloneWebView/WKWebView and bundled React startup surface; controlled white documents exercise the presentation gate."
+    },
+    "nativeEventHarness": "MacInterfaceTests uses controlled HTML; MacNavigationIntegrationTests connects native events to production React and real rclone directories.",
+    "webScope": "The Chromium suite covers the web UI; it is not evidence that AppKit or WKWebView executed."
+  },
+  "limitations": {
+    "macSigning": "Ad-hoc only; no Developer ID signature or Apple notarization.",
+    "downloadHelperSignatureScope": "Checks the code-signature envelope and Mach-O signature fields; cryptographic verification is performed by macOS CI, not the download helper.",
+    "dockAfterQuit": "Uses the fixed purple bundle icon after quit; no persistent Finder metadata icon write is reintroduced.",
+    "manualHardwareAndAccounts": "Physical mouse behavior, the user's own Dock rendering, live cloud accounts, and every desktop configuration are outside this automated evidence."
+  }
+}
