@@ -1,11 +1,15 @@
 {
   "version": "0.9.0",
-  "file_count_excluding_manifest": 214,
-  "total_bytes_excluding_manifest": 7313297,
+  "file_count_excluding_manifest": 219,
+  "total_bytes_excluding_manifest": 7388733,
   "files": {
     ".github/workflows/macos.yml": {
       "bytes": 8748,
       "sha256": "1935f29e62b2b95ab6b3007860e5133af4b39b9484d51b25b89d4be9c0c762e6"
+    },
+    ".github/workflows/windows-diagnostics.yml": {
+      "bytes": 3284,
+      "sha256": "4157786325fa788dddef922cc1b21c5eba3617e4ff79cd23804fc56c6d10e34d"
     },
     ".gitignore": {
       "bytes": 259,
@@ -266,6 +270,22 @@
     "Scripts/verify-mac.sh": {
       "bytes": 4839,
       "sha256": "6ab0c53395088f59b94eee85498425514f6865e64469e215571c0b633e3bfb1d"
+    },
+    "Scripts/windows/prepare-baseline.py": {
+      "bytes": 10256,
+      "sha256": "079dd137946bde9627eb0d6cbc8ab4081813d10de76133813333f34e1a38a8d0"
+    },
+    "Scripts/windows/probe-filesystem.py": {
+      "bytes": 28402,
+      "sha256": "51565be3048c52a2ebb8e916f1bac62c4ddd45a62c60a6a160d6ddaafe8bcfd7"
+    },
+    "Scripts/windows/probe-ui.py": {
+      "bytes": 30559,
+      "sha256": "5e6a6b6cdd58b842926f7304257a4a5a3751b38e76f0be7d0ef6cc8c95484bea"
+    },
+    "Scripts/windows/verify-mac-unchanged.py": {
+      "bytes": 2935,
+      "sha256": "0d05a19812e706e8682783e7d395d689c8abb33ea9424dd253a36524dcbcac74"
     },
     "Sources/Compat/CompatMain.swift": {
       "bytes": 15497,

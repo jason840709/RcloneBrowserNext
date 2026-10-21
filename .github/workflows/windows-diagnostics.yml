@@ -1,0 +1,77 @@
+name: Windows released-app diagnostics
+
+# This branch is deliberately outside macos.yml's push filters. Do not add a
+# pull_request or v* tag trigger here: the existing workflow handles those too.
+on:
+  push:
+    branches: ['work/windows-fix']
+
+permissions:
+  contents: read
+
+concurrency:
+  group: windows-diagnostics-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  released-app:
+    name: Windows ${{ matrix.version }} released installer
+    runs-on: windows-2025
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        # Separate machines avoid NSIS's shared application registration and
+        # let both releases use the runner's real home and drive roots.
+        version: ['0.8.0', '0.9.0']
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Prove the released Mac inputs are unchanged
+        run: python Scripts/windows/verify-mac-unchanged.py --output .build-cache/windows-diagnostics/mac-unchanged.json
+      - name: Download the existing pinned rclone fixture
+        run: python Scripts/ci-compat-rclone.py
+      - name: Verify and install the exact published Windows baseline
+        id: prepare
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: >-
+          python Scripts/windows/prepare-baseline.py
+          --version '${{ matrix.version }}'
+          --rclone .build-cache/ci-engine/rclone.exe
+          --output '.build-cache/windows-diagnostics/${{ matrix.version }}'
+      - name: Diagnose real Windows filesystem paths through the installed helper
+        if: ${{ always() && steps.prepare.outcome == 'success' }}
+        timeout-minutes: 10
+        run: >-
+          python Scripts/windows/probe-filesystem.py
+          --engine '${{ steps.prepare.outputs.engine }}'
+          --rclone .build-cache/ci-engine/rclone.exe
+          --output '${{ steps.prepare.outputs.evidence }}/filesystem.json'
+      - name: Install the pinned CDP client without downloading a browser
+        id: playwright
+        if: ${{ always() && steps.prepare.outcome == 'success' }}
+        run: python -m pip install --disable-pip-version-check 'playwright==1.55.0'
+      - name: Diagnose native WebView2 navigation and remote selection
+        if: ${{ always() && steps.prepare.outcome == 'success' && steps.playwright.outcome == 'success' }}
+        timeout-minutes: 10
+        run: >-
+          python Scripts/windows/probe-ui.py
+          --app '${{ steps.prepare.outputs.app }}'
+          --rclone .build-cache/ci-engine/rclone.exe
+          --output '${{ steps.prepare.outputs.evidence }}/ui'
+          --label 'baseline-${{ matrix.version }}'
+      - name: Retain diagnostics even when preparation or a probe fails
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: Windows-baseline-${{ matrix.version }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: .build-cache/windows-diagnostics/
+          if-no-files-found: error
+          retention-days: 30
+
+# A completed diagnostic may report product failures in its JSON and exit 0.
+# Missing prerequisites, an incomplete probe, or other execution failures exit
+# nonzero and fail this job. There is no build, signing, tag, or release step.
