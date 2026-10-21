@@ -24,7 +24,7 @@ def main():
     stem = f'rclone-{VERSION}-{system}-amd64'
     filename = stem + '.zip'
     base = f'https://github.com/rclone/rclone/releases/download/{VERSION}/'
-    headers = {'User-Agent': 'RcloneBrowserNext-CI/0.8.1'}
+    headers = {'User-Agent': 'RcloneBrowserNext-CI/0.9.0'}
     checksum_request = urllib.request.Request(base + 'SHA256SUMS', headers=headers)
     with urllib.request.urlopen(checksum_request, timeout=60) as response:
         sums = response.read().decode("utf-8")

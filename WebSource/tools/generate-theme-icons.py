@@ -63,6 +63,11 @@ def main():
             target = folder / f'{name}.svg'; target.write_text(svg); profiles[name] = target
         suffix = '' if family == 'purple' else f'-{family}'
         (WEB / f'renderer/favicon{suffix}.svg').write_text(profiles['small'].read_text())
+        # Both native and Web startup screens display this exact small optical
+        # profile. 256 pixels covers a 64 CSS px mark at every supported zoom
+        # on a Retina display, without AppKit choosing another ICNS profile.
+        startup = WEB / f'renderer/startup-{family}.png'
+        subprocess.run(['inkscape', str(profiles['small']), '--export-type=png', '--export-area-page', '--export-background-opacity=0', '--export-width=256', '--export-height=256', f'--export-filename={startup}'], env=env, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
         payload = b''; sizes=[]
         for tag, logical, physical in ENTRIES:
             selected = profile(logical)
@@ -73,7 +78,8 @@ def main():
             sizes.append({'type': tag.decode(), 'logical': logical, 'pixels': physical, 'profile': selected})
         icon = ROOT / f'Resources/AppIcon{suffix}.icns'
         icon.write_bytes(b'icns' + struct.pack('>I', len(payload)+8) + payload)
-        manifest['families'][family] = {'colors': colors, 'bytes': icon.stat().st_size, 'sha256': hashlib.sha256(icon.read_bytes()).hexdigest(), 'geometryPreserved': True, 'representations': sizes}
+        manifest['families'][family] = {'colors': colors, 'bytes': icon.stat().st_size, 'sha256': hashlib.sha256(icon.read_bytes()).hexdigest(), 'geometryPreserved': True, 'representations': sizes,
+            'startup': {'pixels': 256, 'profile': 'small', 'sha256': hashlib.sha256(startup.read_bytes()).hexdigest()}}
     (OUT / 'icon-verification.json').write_text(json.dumps(manifest, indent=2)+'\n')
     print(json.dumps({family: {k:v for k,v in info.items() if k in ('bytes','sha256','geometryPreserved')} for family,info in manifest['families'].items()}, indent=2))
 

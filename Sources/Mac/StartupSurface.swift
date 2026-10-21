@@ -3,6 +3,21 @@ import Foundation
 @preconcurrency import AppKit
 @preconcurrency import WebKit
 
+/// The native cover and the HTML loading page use these exact raster files.
+/// ICNS selects optical profiles by representation size, so it is deliberately
+/// reserved for the Dock rather than used for one side of the loading handoff.
+enum RBNStartupArtwork {
+    static func filename(theme: String) -> String {
+        let family = theme.hasPrefix("blue-") ? "blue" : theme.hasPrefix("green-") ? "green" : "purple"
+        return "startup-\(family).png"
+    }
+
+    static func image(resources: URL, theme: String) -> NSImage? {
+        NSImage(contentsOf: resources.appendingPathComponent("Web", isDirectory: true)
+            .appendingPathComponent(filename(theme: theme)))
+    }
+}
+
 /// Keep an opaque, native loading view in front of WebKit while its first
 /// document is being painted. didFinish alone is not a presentation barrier.
 final class RBNStartupSurface: NSView {
@@ -21,7 +36,8 @@ final class RBNStartupSurface: NSView {
          icon: NSImage?, message: String) {
         self.browserView = browserView
         self.webAppearance = appearance
-        cover = RBNStartupCover(appearance: appearance, icon: icon, message: message)
+        cover = RBNStartupCover(appearance: appearance, icon: icon, message: message,
+                                zoom: browserView.pageZoom)
         super.init(frame: browserView.frame)
         wantsLayer = true
         layer?.backgroundColor = appearance.backgroundColor.cgColor
@@ -49,6 +65,10 @@ final class RBNStartupSurface: NSView {
         layer?.backgroundColor = appearance.backgroundColor.cgColor
         cover.applyAppearance(appearance, icon: icon)
         needsDisplay = true
+    }
+
+    func applyZoom(_ zoom: CGFloat) {
+        cover.applyZoom(zoom)
     }
 
     func beginLoading(message: String) {
@@ -99,8 +119,11 @@ final class RBNStartupSurface: NSView {
             return
         }
         let script = """
-        await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
         const root = document.getElementById('root');
+        const mark = root?.querySelector('.startup .app-mark');
+        if (mark && (!mark.complete || mark.naturalWidth === 0)) return false;
+        if (mark) { try { await mark.decode(); } catch { return false; } }
+        await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
         return document.readyState !== 'loading' &&
           (root ? root.childElementCount > 0 : document.body.childElementCount > 0);
         """
@@ -170,49 +193,99 @@ private final class RBNStartupCover: NSView {
     private let status = NSTextField(wrappingLabelWithString: "")
     private let retryButton = NSButton(title: "", target: nil, action: nil)
     private var canvas: NSColor
+    private var zoom: CGFloat = 1
     var onRetry: (() -> Void)?
 
-    init(appearance: RBNWebAppearance, icon: NSImage?, message: String) {
+    init(appearance: RBNWebAppearance, icon: NSImage?, message: String, zoom: CGFloat) {
         canvas = appearance.backgroundColor
         super.init(frame: .zero)
         wantsLayer = true
         mark.imageScaling = .scaleProportionallyUpOrDown
-        mark.translatesAutoresizingMaskIntoConstraints = false
-        title.font = .systemFont(ofSize: 22, weight: .medium)
-        status.font = .systemFont(ofSize: 14)
+        mark.identifier = NSUserInterfaceItemIdentifier("startup-mark")
+        title.identifier = NSUserInterfaceItemIdentifier("startup-title")
+        status.identifier = NSUserInterfaceItemIdentifier("startup-status")
+        title.alignment = .center
         status.alignment = .center
+        title.cell = RBNStartupTextFieldCell(textCell: title.stringValue)
+        status.cell = RBNStartupTextFieldCell(textCell: status.stringValue)
+        for label in [title, status] {
+            label.isEditable = false
+            label.isSelectable = false
+            label.isBordered = false
+            label.drawsBackground = false
+            label.alignment = .center
+        }
+        title.lineBreakMode = .byClipping
+        title.cell?.usesSingleLineMode = true
+        status.lineBreakMode = .byWordWrapping
+        status.cell?.wraps = true
+        status.cell?.isScrollable = false
+        status.maximumNumberOfLines = 0
         retryButton.bezelStyle = .rounded
         retryButton.target = self
         retryButton.action = #selector(retry)
-        let stack = NSStackView(views: [mark, title, status, retryButton])
-        stack.orientation = .vertical
-        stack.alignment = .centerX
-        stack.spacing = 20
-        stack.translatesAutoresizingMaskIntoConstraints = false
-        addSubview(stack)
-        NSLayoutConstraint.activate([
-            stack.centerXAnchor.constraint(equalTo: centerXAnchor),
-            stack.centerYAnchor.constraint(equalTo: centerYAnchor),
-            stack.widthAnchor.constraint(lessThanOrEqualTo: widthAnchor, constant: -70),
-            mark.widthAnchor.constraint(equalToConstant: 64),
-            mark.heightAnchor.constraint(equalToConstant: 64),
-            status.widthAnchor.constraint(lessThanOrEqualToConstant: 580)
-        ])
+        for child in [mark, title, status, retryButton] as [NSView] { addSubview(child) }
+        applyZoom(zoom)
         applyAppearance(appearance, icon: icon)
         setMessage(message, retryTitle: nil)
     }
 
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
+    override var isFlipped: Bool { true }
     override var isOpaque: Bool { true }
     override func draw(_ dirtyRect: NSRect) { canvas.setFill(); dirtyRect.fill() }
+
+    override func setFrameSize(_ newSize: NSSize) {
+        super.setFrameSize(newSize)
+        needsLayout = true
+    }
+
+    override func layout() {
+        super.layout()
+        // Match .startup in the bundled CSS: 64 + 20 + 29 + 20 + 23 =
+        // 156 CSS px, centered in the viewport. Native points must include
+        // pageZoom, including migrated 120%/135% interface preferences.
+        let gap = 20 * zoom
+        let width = max(0, min(580 * zoom, bounds.width - 70 * zoom))
+        let titleHeight = 29 * zoom
+        var statusHeight = 23 * zoom
+        if !retryButton.isHidden {
+            let textHeight = (status.stringValue as NSString).boundingRect(
+                with: NSSize(width: width, height: .greatestFiniteMagnitude),
+                options: [.usesLineFragmentOrigin], attributes: [.font: status.font!]).height
+            statusHeight = max(statusHeight, ceil(textHeight + 4 * zoom))
+        }
+        let buttonSize = retryButton.isHidden ? NSSize.zero : retryButton.fittingSize
+        let totalHeight = 64 * zoom + gap + titleHeight + gap + statusHeight
+            + (retryButton.isHidden ? 0 : gap + buttonSize.height)
+        let top = (bounds.height - totalHeight) / 2
+        mark.frame = NSRect(x: (bounds.width - 64 * zoom) / 2, y: top,
+                            width: 64 * zoom, height: 64 * zoom)
+        title.frame = NSRect(x: (bounds.width - width) / 2, y: mark.frame.maxY + gap,
+                             width: width, height: titleHeight)
+        status.frame = NSRect(x: (bounds.width - width) / 2, y: title.frame.maxY + gap,
+                              width: width, height: statusHeight)
+        retryButton.frame = NSRect(x: (bounds.width - buttonSize.width) / 2,
+                                   y: status.frame.maxY + gap, width: buttonSize.width, height: buttonSize.height)
+    }
+
+    func applyZoom(_ value: CGFloat) {
+        zoom = value.isFinite && value > 0 ? value : 1
+        title.font = .systemFont(ofSize: 22 * zoom, weight: .medium)
+        status.font = .systemFont(ofSize: 14 * zoom)
+        needsLayout = true
+    }
 
     func applyAppearance(_ appearance: RBNWebAppearance, icon: NSImage?) {
         canvas = appearance.backgroundColor
         layer?.backgroundColor = canvas.cgColor
         self.appearance = NSAppearance(named: appearance.isDark ? .darkAqua : .aqua)
         mark.image = icon
-        title.textColor = appearance.isDark ? .white : .black
-        status.textColor = appearance.isDark ? NSColor(white: 0.68, alpha: 1) : NSColor(white: 0.38, alpha: 1)
+        func gray(_ component: CGFloat) -> NSColor {
+            NSColor(srgbRed: component / 255, green: component / 255, blue: component / 255, alpha: 1)
+        }
+        title.textColor = gray(appearance.isDark ? 240 : 37)
+        status.textColor = gray(appearance.isDark ? 192 : 87)
         needsDisplay = true
     }
 
@@ -220,8 +293,25 @@ private final class RBNStartupCover: NSView {
         status.stringValue = message
         retryButton.isHidden = retryTitle == nil
         retryButton.title = retryTitle ?? ""
+        needsLayout = true
     }
 
     @objc private func retry() { onRetry?() }
+}
+
+/// AppKit's natural label height is not the HTML line box. Center the glyphs
+/// inside the explicit 29/23 px rows instead of inheriting NSTextField padding.
+private final class RBNStartupTextFieldCell: NSTextFieldCell {
+    override func drawingRect(forBounds rect: NSRect) -> NSRect {
+        var drawing = super.drawingRect(forBounds: rect)
+        let naturalHeight = ceil(attributedStringValue.boundingRect(
+            with: NSSize(width: drawing.width, height: .greatestFiniteMagnitude),
+            options: [.usesLineFragmentOrigin]).height)
+        if drawing.height > naturalHeight {
+            drawing.origin.y += (drawing.height - naturalHeight) / 2
+            drawing.size.height = naturalHeight
+        }
+        return drawing
+    }
 }
 #endif

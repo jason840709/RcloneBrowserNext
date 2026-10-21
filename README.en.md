@@ -19,7 +19,7 @@
   <a href="https://github.com/jason840709/RcloneBrowserNext/issues">Report an issue</a>
 </p>
 
-Version 0.8.1 addresses the white frame before startup, adds Mac mouse back/forward input routes, confirms quitting when jobs need attention, and uses the selected icon colour on the loading screen and in the running app's Dock icon. **Mac remains the primary platform**, with Windows x64 and Linux amd64 compatibility editions. [Release notes](docs/RELEASE_0.8.1.md) · [Compatibility installation](docs/BUILD_COMPATIBILITY.md)
+Version 0.9.0 aligns the two startup screens, groups light and dark themes, brings workspace and task saving together, and clarifies transfer descriptions. **Mac remains the primary platform**, with Windows x64 and Linux amd64 compatibility editions. [Release notes](docs/RELEASE_0.9.0.md) · [Compatibility installation](docs/BUILD_COMPATIBILITY.md)
 
 ## What is it?
 

@@ -132,9 +132,7 @@ final class BrowserAppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegat
             window.isReleasedWhenClosed = false
             window.delegate = self
             window.backgroundColor = initialAppearance.backgroundColor
-            let family = initialAppearance.theme.components(separatedBy: "-").first ?? "purple"
-            let initialIconName = family == "purple" ? "AppIcon.icns" : "AppIcon-\(family).icns"
-            let initialIcon = NSImage(contentsOf: resources.appendingPathComponent(initialIconName))
+            let initialIcon = RBNStartupArtwork.image(resources: resources, theme: initialAppearance.theme)
             let surface = RBNStartupSurface(browserView: browserView, appearance: initialAppearance,
                 icon: initialIcon, message: local("正在啟動…", "Starting…", "起動中…"))
             surface.onRetry = { [weak self] in
@@ -263,6 +261,7 @@ final class BrowserAppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegat
         let settings = engine.settingsSnapshot()
         let zoom = RBNInterfaceScale.zoom(settings["interfaceScale"] as? Int ?? 100)
         if abs(webView.pageZoom - zoom) > 0.0001 { webView.pageZoom = zoom }
+        startupSurface?.applyZoom(zoom)
         if settings["showStatusItem"] as? Bool == true {
             if statusItem == nil { statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength) }
             if let icon = NSApp.applicationIconImage?.copy() as? NSImage {
@@ -456,8 +455,9 @@ final class BrowserAppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegat
         window?.backgroundColor = appearance.backgroundColor
         (webView as? RcloneWebView)?.applyAppearance(appearance)
         let family = theme.hasPrefix("green-") ? "green" : (theme.hasPrefix("blue-") || ["dark", "light"].contains(theme) ? "blue" : "purple")
+        let startupIcon = Bundle.main.resourceURL.flatMap { RBNStartupArtwork.image(resources: $0, theme: theme) }
         if family == currentIconFamily {
-            startupSurface?.applyAppearance(appearance, icon: themeIcons[family])
+            startupSurface?.applyAppearance(appearance, icon: startupIcon)
             return
         }
         if themeIcons[family] == nil, let resources = Bundle.main.resourceURL {
@@ -469,7 +469,7 @@ final class BrowserAppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegat
             RBNAppIconAppearance.apply(icon)
             currentIconFamily = family
         }
-        startupSurface?.applyAppearance(appearance, icon: themeIcons[family])
+        startupSurface?.applyAppearance(appearance, icon: startupIcon)
     }
 
     private func onMain<T>(_ body: () throws -> T) rethrows -> T {

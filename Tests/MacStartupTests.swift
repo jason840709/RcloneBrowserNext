@@ -77,6 +77,19 @@ import Foundation
         try wait(context: "WebKit snapshot completion") { result != nil }
         return try result!.get()
     }
+    private static func waitForPresentation(_ view: WKWebView) throws {
+        var finished = false
+        var failure: Error?
+        view.callAsyncJavaScript("""
+        await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+        return true;
+        """, arguments: [:], in: nil, in: .page) { result in
+            if case .failure(let error) = result { failure = error }
+            finished = true
+        }
+        try wait(context: "updated WebKit viewport presentation") { finished }
+        if let failure = failure { throw failure }
+    }
     private static func diagnostics(_ view: WKWebView, surface: RBNStartupSurface, host: Host) -> String {
         var page = "No JavaScript diagnostic reply"
         var complete = false
@@ -126,7 +139,7 @@ import Foundation
         catch { failed += 1; print("FAIL \(title): \(error)") }
     }
 
-    private static func fixture(theme: String, resources: URL) -> (RcloneBrowserWindow, RcloneWebView, RBNStartupSurface, Host) {
+    private static func fixture(theme: String, resources: URL, scale: Int = 100) -> (RcloneBrowserWindow, RcloneWebView, RBNStartupSurface, Host) {
         let host = Host()
         let config = WKWebViewConfiguration()
         config.websiteDataStore = .nonPersistent()
@@ -138,12 +151,10 @@ import Foundation
         let view = RcloneWebView(frame: .zero, configuration: config)
         let appearance = RBNWebAppearance(theme: theme)
         NSApp.appearance = NSAppearance(named: appearance.isDark ? .darkAqua : .aqua)
-        view.pageZoom = RBNInterfaceScale.zoom(100)
+        view.pageZoom = RBNInterfaceScale.zoom(scale)
         view.prepareForInitialLoad(appearance)
-        let family = theme.components(separatedBy: "-").first!
-        let name = family == "purple" ? "AppIcon.icns" : "AppIcon-\(family).icns"
         let surface = RBNStartupSurface(browserView: view, appearance: appearance,
-            icon: NSImage(contentsOf: resources.appendingPathComponent(name)), message: "Starting…")
+            icon: RBNStartupArtwork.image(resources: resources, theme: theme), message: "Starting…")
         let window = RcloneBrowserWindow(contentRect: NSRect(x: 0, y: 0, width: 1060, height: 680), styleMask: [.titled], backing: .buffered, defer: false)
         window.isReleasedWhenClosed = false
         window.backgroundColor = appearance.backgroundColor
@@ -155,6 +166,69 @@ import Foundation
         window.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
         return (window, view, surface, host)
+    }
+
+    private static func find(_ identifier: String, in root: NSView) -> NSView? {
+        if root.identifier?.rawValue == identifier { return root }
+        for child in root.subviews { if let match = find(identifier, in: child) { return match } }
+        return nil
+    }
+
+    private static func verifyHandoffGeometry(view: RcloneWebView, surface: RBNStartupSurface,
+                                              theme: String, resources: URL) throws {
+        surface.layoutSubtreeIfNeeded()
+        guard let geometry = try evaluate("""
+        (() => {
+          const result = {};
+          for (const [key,selector] of [['mark','.startup .app-mark'],['title','.startup h1'],['status','.loading-status']]) {
+            const node = document.querySelector(selector), rect = node.getBoundingClientRect(), css = getComputedStyle(node);
+            result[key] = {x:rect.x,y:rect.y,width:rect.width,height:rect.height,
+              fontSize:parseFloat(css.fontSize),lineHeight:parseFloat(css.lineHeight),color:css.color};
+          }
+          const mark = document.querySelector('.startup .app-mark');
+          result.artwork = {source:mark.getAttribute('src'),complete:mark.complete,width:mark.naturalWidth,height:mark.naturalHeight};
+          return result;
+        })()
+        """, in: view) as? [String: Any] else { throw Failure(description: "Missing loading layout") }
+        let zoom = view.pageZoom
+        for key in ["mark", "title", "status"] {
+            guard let native = find("startup-\(key)", in: surface),
+                  let web = geometry[key] as? [String: Any] else { throw Failure(description: "Missing \(key)") }
+            func number(_ name: String) throws -> CGFloat {
+                guard let value = web[name] as? NSNumber else { throw Failure(description: "Missing \(key).\(name)") }
+                return CGFloat(value.doubleValue) * zoom
+            }
+            let converted = surface.convert(native.bounds, from: native)
+            let top = surface.bounds.height - converted.maxY
+            let webTop = try number("y")
+            let webHeight = try number("height")
+            let webCenterX = try number("x") + number("width") / 2
+            try require(abs(top - webTop) < 1 && abs(converted.height - webHeight) < 1
+                && abs(converted.midX - webCenterX) < 1,
+                "\(key) jumps at zoom \(zoom): native=\(converted), nativeTop=\(top), web=\(web)")
+            if key == "mark" {
+                try require(abs(converted.width - number("width")) < 1, "The icon resizes during handoff")
+            } else if let label = native as? NSTextField {
+                try require(abs((label.font?.pointSize ?? 0) - number("fontSize")) < 0.01,
+                            "\(key) uses a different native font size")
+                let color = label.textColor!.usingColorSpace(.sRGB)!
+                let gray = Int((color.redComponent * 255).rounded())
+                try require(web["color"] as? String == "rgb(\(gray), \(gray), \(gray))",
+                            "\(key) changes color at handoff")
+            }
+        }
+        guard let mark = find("startup-mark", in: surface) as? NSImageView,
+              let actualImage = mark.image,
+              let expectedImage = RBNStartupArtwork.image(resources: resources, theme: theme),
+              let artwork = geometry["artwork"] as? [String: Any] else {
+            throw Failure(description: "Missing shared startup artwork")
+        }
+        let expectedName = RBNStartupArtwork.filename(theme: theme)
+        try require(artwork["source"] as? String == expectedName && artwork["complete"] as? Bool == true
+            && (artwork["width"] as? NSNumber)?.intValue == 256 && (artwork["height"] as? NSNumber)?.intValue == 256,
+            "The Web startup mark is not the decoded shared raster")
+        try require(actualImage.tiffRepresentation == expectedImage.tiffRepresentation,
+                    "Native startup uses a different artwork or optical profile")
     }
 
     private static func close(_ window: RcloneBrowserWindow, view: RcloneWebView) {
@@ -193,13 +267,34 @@ import Foundation
                 }
                 if let error = host.error { throw error }
                 try require(host.loaded, "The packaged document did not finish loading")
-                let family = theme.components(separatedBy: "-").first!
-                let expectedIcon = family == "purple" ? "favicon.svg" : "favicon-\(family).svg"
+                let expectedIcon = RBNStartupArtwork.filename(theme: theme)
                 try require(try evaluate("document.documentElement.dataset.theme === '\(theme)' && document.querySelector('.startup .app-mark')?.getAttribute('src') === '\(expectedIcon)' && !!document.querySelector('.loading-status')", in: view) as? Bool == true,
                             "The actual React loading screen lost its saved theme or icon")
                 try require(RBNStartupSurface.hasPaintedCanvas(try snapshot(view), appearance: appearance),
                             "The revealed WebKit canvas has the wrong pixels")
+                try verifyHandoffGeometry(view: view, surface: surface, theme: theme, resources: resources)
                 completed = true
+            }
+        }
+
+        for scale in [80, 125, 135] {
+            test("\(scale)% startup keeps native and Web icon/text positions at the same zoom") {
+                let theme = "blue-dark"
+                let (window, view, surface, host) = fixture(theme: theme, resources: resources, scale: scale)
+                defer { close(window, view: view) }
+                view.loadFileURL(web.appendingPathComponent("index.html"), allowingReadAccessTo: web)
+                try wait(seconds: 25, context: "scaled startup handoff") {
+                    host.error != nil || (!surface.isCoverVisible && host.bootstrapRequests > 0)
+                }
+                if let error = host.error { throw error }
+                try verifyHandoffGeometry(view: view, surface: surface, theme: theme, resources: resources)
+                // Preference changes/retries reuse the same native view. Check
+                // that an existing cover follows the current WebKit zoom too.
+                surface.beginLoading(message: "Starting…")
+                view.pageZoom = RBNInterfaceScale.zoom(110)
+                surface.applyZoom(view.pageZoom)
+                try waitForPresentation(view)
+                try verifyHandoffGeometry(view: view, surface: surface, theme: theme, resources: resources)
             }
         }
 

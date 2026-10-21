@@ -62,9 +62,8 @@ export default function SettingsDialog({ settings, environment, locations, remot
     else if (result.status === 'busy') setNotice(t('updateBusy'));
   });
   const themes: {value: Theme; label: 'purpleLight'|'purpleDark'|'blueLight'|'blueDark'|'greenLight'|'greenDark'}[] = [
-    {value: 'purple-light', label: 'purpleLight'}, {value: 'purple-dark', label: 'purpleDark'},
-    {value: 'blue-light', label: 'blueLight'}, {value: 'blue-dark', label: 'blueDark'},
-    {value: 'green-light', label: 'greenLight'}, {value: 'green-dark', label: 'greenDark'},
+    {value: 'purple-light', label: 'purpleLight'}, {value: 'green-light', label: 'greenLight'}, {value: 'blue-light', label: 'blueLight'},
+    {value: 'purple-dark', label: 'purpleDark'}, {value: 'green-dark', label: 'greenDark'}, {value: 'blue-dark', label: 'blueDark'},
   ];
   const startupLocation = (side: 'left'|'right'): Endpoint => settings.savedWorkspace?.[side] || settings.initialLocations[side] || (side === 'right' && remotes[0] ? {remote: remotes[0].name, path: ''} : {remote: null, path: home});
   const setStartup = (side: 'left'|'right', value: Endpoint) => patch(settings.savedWorkspace ? {savedWorkspace: {...settings.savedWorkspace, [side]: value}} : {initialLocations: {...settings.initialLocations, [side]: value}});

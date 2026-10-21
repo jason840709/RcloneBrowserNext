@@ -29,3 +29,10 @@ export function applyTheme(theme: Theme) {
 export function themeIcon(theme: Theme): string {
   return theme.startsWith('blue-') ? 'favicon-blue.svg' : theme.startsWith('green-') ? 'favicon-green.svg' : 'favicon.svg';
 }
+
+// The native loading cover reads these same rasters. Keeping one optical
+// profile avoids an ICNS representation changing shape during the handoff.
+export function startupIcon(theme: Theme): string {
+  const family = theme.startsWith('blue-') ? 'blue' : theme.startsWith('green-') ? 'green' : 'purple';
+  return `startup-${family}.png`;
+}

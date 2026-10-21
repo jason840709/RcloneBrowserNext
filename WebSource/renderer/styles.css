@@ -279,8 +279,7 @@ select.language-select { width: 61px; padding: 4px 3px 4px 8px; min-height: 28px
 .app-notice { padding: 8px 15px 0; }
 .app-main { flex: 1; min-height: 0; overflow: hidden; }
 .workspace { height: 100%; display: flex; flex-direction: column; }
-.workspace-heading { display: flex; align-items: center; gap: 16px; padding: 13px 18px 10px; flex-shrink: 0; min-height: 46px; }
-.workspace-heading > div:first-child { display: flex; align-items: baseline; gap: 13px; }
+.workspace-heading { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; padding: 13px 18px 10px; flex-shrink: 0; min-height: 46px; }
 .workspace-heading h1 { font-size: 14px; font-weight: 600; letter-spacing: 0; }
 .workspace-heading > div:first-child > span { font-size: 13px; color: var(--faint); }
 .workspace-heading > .text-button { margin-left: auto; }
@@ -364,7 +363,6 @@ select.language-select { width: 61px; padding: 4px 3px 4px 8px; min-height: 28px
 .transfer-controls .field-label { font-size: 12px; color: var(--muted); }
 .transfer-controls select { font-size: 14px; min-height: 31px; padding: 5px 7px; }
 .operation-hint { font-size: 12px; color: var(--muted); margin-top: 9px; line-height: 1.65; min-height: 47px; }
-.operation-hint.caution { color: var(--warning); }
 .transfer-route { margin: 12px 0; padding: 11px 0 0; border-top: 1px solid var(--border-subtle); min-height: 0; overflow: hidden; }
 .transfer-route > div { display: flex; align-items: center; justify-content: space-between; min-width: 0; gap: 8px; }
 .transfer-route > div > span { color: var(--faint); font-size: 12px; flex-shrink: 0; }
@@ -376,33 +374,13 @@ select.language-select { width: 61px; padding: 4px 3px 4px 8px; min-height: 28px
 .swap-button { display: flex; margin: 4px auto 0; font-size: 12px; }
 .transfer-controls-bottom { margin-top: auto; padding-top: 8px; display: flex; flex-direction: column; gap: 7px; flex-shrink: 0; }
 .options-button { min-height: 31px; font-size: 13px; background: var(--surface); }
-.options-mini { display: flex; justify-content: space-between; gap: 5px; font-size: 11px; color: var(--faint); padding: 0 2px 5px; }
-.options-mini > span:first-child { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bandwidth-summary { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 2px 6px; color: var(--muted); font-size: 11px; line-height: 1.5; padding: 0 2px 3px; text-wrap: wrap; }
+.bandwidth-summary strong { font-weight: 500; white-space: nowrap; }
 .dry-run-button { min-height: 32px; background: transparent; font-size: 13px; }
 .start-button { min-height: 36px; font-size: 14px; }
 .command-button { align-self: center; min-height: 22px; font-size: 12px; color: var(--faint); }
 .transfer-block { color: var(--warning); font-size: 12px; padding: 5px 0; max-height: 65px; overflow-y: auto; scrollbar-width: thin; }
 .transfer-block .text-button { padding-left: 0; font-size: 12px; }
-
-/* The action controls stay visible when job history or a notice reduces the pane height. */
-@container transfer-controls (max-height: 565px) {
-  .transfer-route { display: none; }
-}
-@container transfer-controls (max-height: 500px) {
-  .operation-hint, .options-mini { display: none; }
-  .transfer-controls-bottom { gap: 6px; padding-top: 8px; }
-}
-@container transfer-controls (max-height: 380px) {
-  .command-button { display: none; }
-  .direction-picker { gap: 3px; margin-bottom: 10px; }
-  .direction-picker button { min-height: 30px; }
-  .transfer-controls-top h2 { margin-bottom: 7px; }
-  .transfer-block { max-height: 44px; padding: 2px 0; }
-}
-@container transfer-controls (max-height: 325px) {
-  .transfer-controls-bottom { padding-top: 5px; gap: 5px; }
-  .transfer-block { max-height: 32px; }
-}
 
 .jobs-section { background: var(--surface-subtle); min-height: 0; }
 .jobs-dock { border-top: 1px solid var(--border); flex-shrink: 0; max-height: min(31vh, 250px); display: flex; flex-direction: column; }
@@ -512,10 +490,11 @@ select.language-select { width: 61px; padding: 4px 3px 4px 8px; min-height: 28px
 .jobs-dock .empty-state { min-height: 110px; padding: 19px; gap: 4px; }
 .jobs-dock .empty-icon { display: none; }
 .startup { min-height: 100dvh; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px; padding: 35px; }
-.startup h1 { font-size: 22px; font-weight: 550; }
+.startup > .app-mark { width: 64px; height: 64px; flex: 0 0 64px; }
+.startup h1 { margin: 0; font-size: 22px; line-height: 29px; font-weight: 500; letter-spacing: 0; text-align: center; }
 .startup .empty-state { padding: 20px; min-height: auto; }
 .startup .notice { max-width: 680px; }
-.startup > .loading-status { font-size: 14px; color: var(--muted); }
+.startup > .loading-status { margin: 0; font-size: 14px; line-height: 23px; letter-spacing: 0; color: var(--muted); text-align: center; white-space: nowrap; text-wrap: nowrap; }
 
 .notice { display: flex; align-items: flex-start; gap: 9px; background: var(--accent-soft); color: var(--accent); border: 1px solid var(--accent-border); border-radius: 5px; padding: 9px 11px; font-size: 14px; line-height: 1.6; }
 .notice > svg { margin-top: 1px; }
@@ -622,7 +601,6 @@ kbd { font: 10px "SFMono-Regular", Consolas, monospace; padding: 3px 6px; border
   .direction-picker { margin-bottom: 11px; }
   .transfer-controls-bottom { padding-top: 10px; gap: 6px; }
   .operation-hint { min-height: 35px; margin-top: 7px; }
-  .options-mini { display: none; }
   .transfer-controls { padding-top: 1px; }
 }
 @media (max-width: 900px) {
@@ -866,12 +844,13 @@ input[type="checkbox"]:disabled::before { border-color: var(--disabled-text); }
 ::-webkit-scrollbar-corner { background: var(--surface-subtle); }
 .app-toolbar { gap: 26px; }
 .app-toolbar-actions { width: 232px; }
-.workspace-heading > .workspace-title { align-items: center; gap: 10px; }
-.workspace-title h1 { margin-right: 8px; }
+.workspace-heading > .workspace-title { align-items: center; gap: 10px; flex: 0 0 auto; }
 .workspace-title > .icon-button { margin: 0 2px; }
 .button-with-info { display: inline-flex; align-items: center; gap: 4px; min-width: 0; }
-.remember-workspace { margin-left: 3px; padding-left: 12px; border-left: 1px solid var(--border-subtle); }
-.remember-workspace > button { min-height: 30px; font-size: 13px; background: var(--surface); }
+.workspace-heading > .loaded-task { flex: 1 1 120px; }
+.workspace-save-actions { display: inline-flex; align-items: center; gap: 8px; margin-left: auto; flex: 0 0 auto; }
+.workspace-save-actions > button { min-height: 30px; font-size: 13px; }
+.workspace-save-divider { width: 1px; height: 20px; flex: 0 0 1px; background: var(--border); }
 .application-menu-content { width: 296px; max-height: calc(100dvh - 82px); overflow-y: auto; }
 .browser-pane.pane-active { box-shadow: 0 0 0 1px var(--accent); }
 .pane-tabs { min-height: 51px; max-height: none; padding: 8px 10px; gap: 6px; border-bottom: 1px solid var(--border-subtle); background: var(--toolbar); }
@@ -1082,11 +1061,11 @@ dialog .floating-notice { position: absolute; top: 12px; right: 54px; width: min
 .operation-menu-note { padding: 7px 9px 4px; color: var(--faint); font-size: 12px; line-height: 1.55; }
 .preset-active-summary { color: var(--muted); font-size: 11px; line-height: 1.6; margin: 6px 0 0; }
 .operation-hint { min-height: 0; line-height: 1.6; margin-top: 9px; }
+.operation-hint, .preset-active-summary { width: 100%; max-width: none; text-align: left; text-wrap: wrap; white-space: normal; overflow-wrap: break-word; }
 .transfer-block { padding: 7px 9px; background: var(--warning-bg); border: 1px solid var(--border-subtle); border-radius: 6px; max-height: 86px; }
 .info-tooltip { max-height: min(380px, calc(100dvh - 60px)); overflow-y: auto; overscroll-behavior: contain; }
 .options-mode-hint { grid-column: 2; display: flex; align-items: flex-start; gap: 6px; color: var(--muted); }
-.options-mode-hint > p { flex: 1; margin: 0; }
-.options-mode-hint.caution > p { color: var(--warning); }
+.options-mode-hint > p { flex: 1; margin: 0; min-width: 0; text-align: left; text-wrap: wrap; }
 .task-editor-dialog .options-mode-bar .options-mode-hint p { display: block; }
 .comparison-advice { border: 1px solid var(--border-subtle); border-radius: 7px; padding: 13px 15px; margin-bottom: 20px; background: var(--surface-subtle); }
 .comparison-advice .section-heading { margin-bottom: 5px; gap: 7px; }
@@ -1112,9 +1091,30 @@ dialog .floating-notice { position: absolute; top: 12px; right: 54px; width: min
   .job-metrics { grid-template-columns: minmax(130px,1.5fr) 80px 98px 92px; gap: 10px; }
   .metric-label { font-size: 11px; gap: 1px; }
 }
+/* Apply compact spacing after the standard controls so it keeps taking effect
+   when job history reduces the available height. Keep the operation text. */
+@container transfer-controls (max-height: 565px) {
+  .transfer-route { display: none; }
+}
 @container transfer-controls (max-height: 500px) {
   .operation-hint { display: block; font-size: 11px; line-height: 1.5; }
   .preset-active-summary { display: none; }
+  .transfer-controls-bottom { gap: 6px; padding-top: 8px; }
+}
+@container transfer-controls (max-height: 380px) {
+  .command-button { display: none; }
+  .transfer-controls-top { display: flex; flex-direction: column; flex: 0 1 auto; min-height: 0; }
+  .transfer-controls-top > h2, .transfer-controls-top > .direction-picker, .transfer-controls-top > .field { flex-shrink: 0; }
+  .direction-picker { gap: 3px; margin-bottom: 8px; }
+  .direction-picker button { min-height: 30px; }
+  .transfer-controls-top h2 { margin-bottom: 7px; }
+  .operation-hint { margin-top: 6px; overflow-y: auto; scrollbar-width: thin; }
+  .transfer-controls-bottom { padding-top: 6px; gap: 5px; }
+  .transfer-block { max-height: 44px; padding: 2px 0; }
+}
+@container transfer-controls (max-height: 325px) {
+  .transfer-controls-bottom { padding-top: 5px; }
+  .transfer-block { max-height: 32px; }
 }
 @media (prefers-reduced-motion: reduce) {
   .app-notice.floating-notice { transform: none; transition: opacity 100ms ease; }

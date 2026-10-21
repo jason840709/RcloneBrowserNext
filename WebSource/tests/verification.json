@@ -1,30 +1,27 @@
 {
-  "release": "0.8.1",
+  "release": "0.9.0",
   "suite": {
-    "startTime": "2026-10-20T19:10:20.142Z",
-    "duration": 166411.191,
-    "expected": 181,
+    "startTime": "2026-10-21T01:56:29.695Z",
+    "duration": 173340.685,
+    "expected": 189,
     "skipped": 0,
     "unexpected": 0,
     "flaky": 0,
-    "cases": 181,
-    "durationSeconds": 166.4,
+    "cases": 189,
+    "durationSeconds": 173.3,
     "retries": 0,
-    "receiptSHA256": "2756da32b96d83f65c0ecc755b31f7037b25beb3735928eb8963989a6c86e30a"
+    "receiptSHA256": "0c606c623ec59f9007ebc46f8276637160d2efac5661cd2aa87b92e6429e4c2c"
   },
   "targetedSuite": {
-    "startTime": "2026-10-20T18:54:56.591Z",
-    "duration": 13882.853,
-    "expected": 16,
+    "startTime": "2026-10-21T01:55:10.967Z",
+    "duration": 8400.072,
+    "expected": 8,
     "skipped": 0,
     "unexpected": 0,
     "flaky": 0,
-    "cases": 16,
-    "durationSeconds": 13.9,
-    "retries": 0,
-    "receiptSHA256": "f14e65e61055d550acfd07e495445f8c8a7b3f7882286892f99d074d5c0ab132",
-    "scope": "Earlier navigation-focused regression before the final icon/footer bundle rebuild",
-    "sameProductionBundleAsFullRun": false
+    "cases": 8,
+    "durationSeconds": 8.4,
+    "receiptSHA256": "6b45f4b5f61b03226dd38774c16760b96ee86850d4c61dcd4581cbfe2a34a877"
   },
   "commands": [
     "npm run typecheck",
@@ -38,9 +35,9 @@
     "platform": "Linux",
     "fonts": "Project-local Noto Sans CJK TC and JP through FONTCONFIG_FILE",
     "fontSHA256": {
-      "WebSource/.build-cache/fonts/fonts.conf": "59b936ef7f7c321635de53b674d780eb3a0a1e5ce36620b267e3a63b7f7a885b",
+      "WebSource/.build-cache/fonts/NotoSansCJKjp-Regular.otf": "68a3fc98800b2a27b371f2fb79991daf3633bd89309d4ffaa6946fd587f375b5",
       "WebSource/.build-cache/fonts/NotoSansCJKtc-Regular.otf": "dce08bd4fd91aa8aa76ed8fea4b694c2dfb8550f67871e326843212ddbeb88b4",
-      "WebSource/.build-cache/fonts/NotoSansCJKjp-Regular.otf": "68a3fc98800b2a27b371f2fb79991daf3633bd89309d4ffaa6946fd587f375b5"
+      "WebSource/.build-cache/fonts/fonts.conf": "57ea5c0ad689c950400ec7ab4389af9c82e7653ec2f603e71fbdb5fc55df3fff"
     },
     "document": "Production Resources/Web/index.html via file://",
     "host": "Deterministic native-bridge fixtures",
@@ -51,8 +48,10 @@
       "bytes": 125797539,
       "md5": "743dac7baf99eaa72e221335ea966f07",
       "sha256": "c3e50596aef52c58f8fda3c6b3411c33d34c88b177b3ed1c2243359fd3b8ba20",
-      "officialMD5Matched": true
-    }
+      "officialMD5Matched": true,
+      "provenance": "Previously verified 0.8.1 development browser reused without a new download; executable hash recorded for this run."
+    },
+    "browserExecutableSHA256": "4fa61f0ba0b4f89b7bec242c32ca16d3bccf69dbfef0651924a9ba8fede5f9d6"
   },
   "production": {
     "Resources/Web/THIRD_PARTY_NOTICES.txt": {
@@ -60,8 +59,8 @@
       "sha256": "401a52547c510b5c231c69f9077b192e2759d282e68f74d13339922f9d9e8552"
     },
     "Resources/Web/app.js": {
-      "bytes": 680848,
-      "sha256": "77c7f2e43216890b3dfa728860c38fd4d5afca3f394c6d29ecf7c4bd4b222bd1"
+      "bytes": 682026,
+      "sha256": "0f39d3db64b0ec381d1f7967deb7fd4d48380fea658c81ee7aeae22258a2151a"
     },
     "Resources/Web/appearance-bootstrap.js": {
       "bytes": 494,
@@ -83,15 +82,27 @@
       "bytes": 1102,
       "sha256": "5f9ea015222c61bb5b7de24f2fdc2845df473f628f62e609ccc149b72f9a1541"
     },
+    "Resources/Web/startup-blue.png": {
+      "bytes": 42733,
+      "sha256": "62c22a389231597c21cb5ce217a4d1554d5a1712cec275866cf276a8a01cde5f"
+    },
+    "Resources/Web/startup-green.png": {
+      "bytes": 42527,
+      "sha256": "46619b2bc5d9d02a24d49667f8c980fc05d814baa963aa3f37d1a3b3971a3e8f"
+    },
+    "Resources/Web/startup-purple.png": {
+      "bytes": 42085,
+      "sha256": "f277ed945e76dd0572a40c0b783e7ab6436d5c3a5e81489c5a0e74fe7c49958e"
+    },
     "Resources/Web/style.css": {
-      "bytes": 85887,
-      "sha256": "79554574a95c289e3e9f0d11e1b622ed8351db5fe56b1e8a000cfe22fb7bc6a4"
+      "bytes": 86424,
+      "sha256": "6816ef06237735c78036597b78cc6b6dedea97f0dd34b2f5f82cd2634be8b7e9"
     }
   },
   "sourceSHA256": {
-    "WebSource/package-lock.json": "e120fa040403b93adb56a3df88838115c304292747658535424be265fb4d479f",
-    "WebSource/package.json": "3e2918bf19c95b3ac995f74bf053495cd9cc4fc71c8c10a118a0c33da7d66d87",
-    "WebSource/renderer/App.tsx": "ab9f9d0265902458209d2b53ea404859f0fef4a462ab1e70f90a3ca420b32a57",
+    "WebSource/package-lock.json": "f578c7ebc4e4675c9ae6ecbfc1fd329cbbb30274b6f058388d15dbc3ae888e83",
+    "WebSource/package.json": "ee37d8857516c033ff41e13b43a28aa0ddd4bc63d428fe7d0af79578b7a63fac",
+    "WebSource/renderer/App.tsx": "6e9b4766a96fda982ad8ce17d19960b05e806e879aff13c138474c2fd7f4957a",
     "WebSource/renderer/ApplicationMenu.tsx": "b8f02d5185d119b6e48005568782bd28a7f33434c6e35063d95f2cef489da5c9",
     "WebSource/renderer/BrowserPane.tsx": "47ee140db0af2722ba00dbec7e1f57562313fbe7bb1c87a73c8dafb9f244df3c",
     "WebSource/renderer/JobReport.tsx": "02b92cf4d999a6c003638f7573c3ce1e39f470bd95465c735b1c20146596fdfe",
@@ -99,614 +110,245 @@
     "WebSource/renderer/LocationPicker.tsx": "6604487925fe7d82e9cf53b84a820bf978ce95a169a4deb15350d000b569620f",
     "WebSource/renderer/OperationPicker.tsx": "64b405b1b34a3ebe5d0e4ea09a629fb6315a9a3ff9f2f8ccb1933ff591f7bbe1",
     "WebSource/renderer/PaneMenu.tsx": "97af13feb27bee9f3c7f2faafd63bc1919f8e675cec7411f4bb3e6c5cc2eed40",
-    "WebSource/renderer/Settings.tsx": "0fa293fe95fb55cffbf4bb4849f2d7fa3a0ab0d1e18da9b177514c150ad1dd5d",
+    "WebSource/renderer/Settings.tsx": "c8b0348693e798c2265105aa32f3fc8f45131142aec98e20317689be6961de5e",
     "WebSource/renderer/Tasks.tsx": "a6dc228d0f04107cb579b286669ffb499c776ad25187a328721e1e22c59cb5ae",
     "WebSource/renderer/Tools.tsx": "a973514b2845c98613ac98b2f7fccc8de259a144cf287e84ef71a93a24e562b4",
-    "WebSource/renderer/TransferOptions.tsx": "9aed1b122c399dcc4ae485065cc740352f1667bac07247a045968d2155ce3dbb",
+    "WebSource/renderer/TransferOptions.tsx": "fbb5c32316758d05b894080e205f5e7907c95588a7187103c31bbbf48e5a6eee",
     "WebSource/renderer/appearance-bootstrap.js": "662ee8ad52661096b62115903ba44b7a37a00475c67f26ad9f1358c5a1f3c5d6",
-    "WebSource/renderer/appearance.ts": "8ae97f26a4cf3f094b45f2609efc61e3f9db5c28b1b88ba17f3a1c6fae58f71a",
+    "WebSource/renderer/appearance.ts": "5d14c13c01f1659c069c05604b223bdc9013ea21f340dc74d66ce3f0b1a36e06",
     "WebSource/renderer/bridge.ts": "7c7e827c9b45ff93ac92dc1a9adc698616f106ab873924a41bd01aba75ea5ef6",
     "WebSource/renderer/components.tsx": "c2f2dc15660e9bb3511b3f53c0538ae0b8e7d76569399bcce068c3986890891b",
     "WebSource/renderer/env.d.ts": "65996936fbb042915f7b74a200fcdde7e410f32a669b1ab9597cfaa4b0faddb5",
     "WebSource/renderer/favicon-blue.svg": "36a26990d1dd782a5f6c0561e2870fa4e71064a1f42f72bf149e401e817f3591",
     "WebSource/renderer/favicon-green.svg": "c86f66312b4b934795e3aef424c4e77dfb5c0863c75857831968492e5ef4ec75",
     "WebSource/renderer/favicon.svg": "5dcf6bb2e77fc4f5670743c49e42e2f107812f56459bf32d30ae9ca021383a1a",
-    "WebSource/renderer/i18n.ts": "0b0802286350991f776883e0ff95b609b5b9c0c6876468202cbb00b64ca5eb0c",
+    "WebSource/renderer/i18n.ts": "4468f253cf92bf15f181dda3f20eb2d2b55c5f2bb100dbd0d9b98e0861af5c17",
     "WebSource/renderer/index.html": "5f9ea015222c61bb5b7de24f2fdc2845df473f628f62e609ccc149b72f9a1541",
     "WebSource/renderer/main.tsx": "78a6b0cf6dd32a34bf60deef5823690589d8904edc1ed763870febae7bf4445b",
     "WebSource/renderer/presets.ts": "77e0486eac832511ff077aa44ab07bd904feb618c4c818dca6192d778a75248e",
-    "WebSource/renderer/styles.css": "d186841d78f7c04e6c597517965295aa686c1d03ee62ba04596876bf336661dd",
+    "WebSource/renderer/startup-blue.png": "62c22a389231597c21cb5ce217a4d1554d5a1712cec275866cf276a8a01cde5f",
+    "WebSource/renderer/startup-green.png": "46619b2bc5d9d02a24d49667f8c980fc05d814baa963aa3f37d1a3b3971a3e8f",
+    "WebSource/renderer/startup-purple.png": "f277ed945e76dd0572a40c0b783e7ab6436d5c3a5e81489c5a0e74fe7c49958e",
+    "WebSource/renderer/styles.css": "85073f64d6c690d31c004b8b15f2a6493ce21cc0e64ab21566b7a2e0e9761e1a",
     "WebSource/renderer/useBrowser.ts": "29f083fc75c39b1d19d680093b096b8cf60a27a4385856f0cd3d3b538487acd3",
     "WebSource/renderer/useHistoryNavigation.ts": "0644536d40affc111abb3179aea4c859d4d4b865aff6477b4e1644690cd2719d",
     "WebSource/renderer/utils.ts": "7fa63ed66c4fc899ef982be72526d08ed81b5c1e3f09a83777380a731eb1ccd8",
     "WebSource/shared/types.ts": "d6a64f75cbdb158a6fe02a9ef0cd622ef3dee15a239e75df4b568ef28ef7df0e",
     "WebSource/tests/native-fixture.ts": "f7b8c50f64e3f7097aad0a3cc19363b66c215d380e41a01c3d654f0468ea8cef",
     "WebSource/tests/playwright.config.ts": "35f0d14564063b4b33bdec2a5e3fc045335689fecd38c82f62709c85ca051a48",
-    "WebSource/tests/render-previews.ts": "f3374bbb1ff40ece0a0df0e3375f787ecb6e9d85d81533064915b50204dfadc4",
+    "WebSource/tests/render-previews.ts": "8b3ffbe9ea0672d1fd31b3c5410993c857902349012bf896b3916b05a3a88757",
     "WebSource/tests/revision04.spec.ts": "6c7f500afe4c65e44a564548383e1e4b313ff369884ae2c0f2075ff7d55480fa",
     "WebSource/tests/revision05.spec.ts": "3a09a7069362e77c11918599e414d0e34c4f12e78ba0db657e267ea07b807b8b",
-    "WebSource/tests/revision06-additions.spec.ts": "a092572cf6bba708871ee5d12118a92c145933cdec9a59ecee958ee056fc9592",
+    "WebSource/tests/revision06-additions.spec.ts": "578dae0da468d8da24dd246289de2f84799b3eab0192fbe0a48e6fcc94e3af39",
     "WebSource/tests/revision06.spec.ts": "d23b2711162a3f33e54550f87a002dbce757d5f9a726e5c5346510850a6d6ea6",
     "WebSource/tests/revision07.spec.ts": "60d0d7af39b77062d94337a70d50e325b92f9434323f46235798dd0964393123",
     "WebSource/tests/revision08.spec.ts": "71a1e5b5d87af9cf2cf3d7d0546c37aff51b09e1d52f33cf90e99e99c118c1af",
     "WebSource/tests/revision081-navigation.spec.ts": "4cc6c9cd2d1edb023391777c8c93727cd644b925a9238af9da51f37df7a39c00",
+    "WebSource/tests/revision09.spec.ts": "152d141ff005e34bd9d157bb32de920eee48185914c9050c1b1b801f509e9a8b",
     "WebSource/tests/ui.spec.ts": "30fcf2e3653f64a218c5244ac0691759fd47f6959a7b9ad552ecd4a3f62e33bf",
-    "WebSource/vite.config.ts": "ddeaa777d9a7522e42dc94267ddcc0f3ce751826c291086206e902235cae13fd"
+    "WebSource/vite.config.ts": "86f8e274c063eeaa9f5279ca7e09a049e527200b63808633a2db4308922adf63"
   },
   "productionAndSourceUnchangedAfterTests": true,
   "sourceSnapshot": {
-    "capturedAt": "2026-10-20T19:10:19.754525+00:00",
-    "timing": "before-full-run",
+    "capturedAt": "2026-10-21T01:56:19.808169+00:00",
+    "timing": "before-final-full-run",
     "allRecordedHashesMatchAfterFullRun": true
   },
   "coverage": {
-    "sideButtons": [
-      "Independent pane and tab history",
-      "Pointer pane with active-pane fallback",
-      "DOM down-only, up-only and auxclick fallback",
-      "Native down/up and DOM duplicate pairing, including long presses",
-      "Interleaved button presses retire stale held state",
-      "Rapid distinct presses, editable fields and modal gates"
+    "new09": [
+      "Three-language compact toolbar alignment and hit testing at 125%",
+      "Light purple/green/blue above corresponding dark themes",
+      "Workspace and task persistence retain their different selection semantics and never start transfers",
+      "Neutral, full-width, naturally wrapping operation descriptions in three languages and both appearances",
+      "Configured bandwidth caps remain visible, and unlimited/zero caps omit the old summary"
     ],
-    "folderNavigation": [
-      "Previous successful rows remain visible throughout pending loads",
-      "New listing commits after the latest request succeeds",
-      "Stale rows cannot select, open, drag, invoke context actions or start a transfer",
-      "Late stale responses cannot replace the current folder",
-      "Previously empty folders do not switch to a skeleton",
-      "Failed target paths show their own error and Retry action"
-    ],
-    "appearance": [
-      "Host theme before bridge initialization and first animation frames",
-      "Stored Web theme fallback and invalid-host-theme fallback",
-      "Unavailable storage falls back to dark",
-      "Six themes and three languages in retained regressions"
-    ],
-    "scale": {
-      "standardChoices": [
-        80,
-        90,
-        100,
-        110,
-        125
+    "retained": {
+      "sideButtons": [
+        "Independent pane and tab history",
+        "Pointer pane with active-pane fallback",
+        "DOM down-only, up-only and auxclick fallback",
+        "Native down/up and DOM duplicate pairing, including long presses",
+        "Interleaved button presses retire stale held state",
+        "Rapid distinct presses, editable fields and modal gates"
       ],
-      "default": 100,
-      "effectiveZoom": "(displayedScale - 10) / 100",
-      "legacyChoices": [
-        120,
-        135
+      "folderNavigation": [
+        "Previous successful rows remain visible throughout pending loads",
+        "New listing commits after the latest request succeeds",
+        "Stale rows cannot select, open, drag, invoke context actions or start a transfer",
+        "Late stale responses cannot replace the current folder",
+        "Previously empty folders do not switch to a skeleton",
+        "Failed target paths show their own error and Retry action"
       ],
-      "legacyVisibility": "Only the currently selected legacy value is added; selecting a standard value restores the five standard choices."
+      "appearance": [
+        "Host theme before bridge initialization and first animation frames",
+        "Stored Web theme fallback and invalid-host-theme fallback",
+        "Unavailable storage falls back to dark",
+        "Six themes and three languages in retained regressions"
+      ],
+      "scale": {
+        "standardChoices": [
+          80,
+          90,
+          100,
+          110,
+          125
+        ],
+        "default": 100,
+        "effectiveZoom": "(displayedScale - 10) / 100",
+        "legacyChoices": [
+          120,
+          135
+        ],
+        "legacyVisibility": "Only the currently selected legacy value is added; selecting a standard value restores the five standard choices."
+      },
+      "nativeHistoryMessages": [
+        "Injected swipe messages navigate the pointed pane while preserving both forward histories",
+        "An exact duplicate message is ignored; two rapid distinct swipe messages both navigate",
+        "Injected native command messages use the active pane and preserve focused input/contenteditable editing",
+        "The production operation dialog blocks swipe and command messages",
+        "Ordinary horizontal wheel scrolling leaves folder history unchanged"
+      ]
     },
-    "nativeHistoryMessages": [
-      "Injected swipe messages navigate the pointed pane while preserving both forward histories",
-      "An exact duplicate message is ignored; two rapid distinct swipe messages both navigate",
-      "Injected native command messages use the active pane and preserve focused input/contenteditable editing",
-      "The production operation dialog blocks swipe and command messages",
-      "Ordinary horizontal wheel scrolling leaves folder history unchanged"
-    ]
+    "additionalFix": "1060x680 English active-job layouts retain all primary transfer controls after compact CSS precedence was corrected."
   },
   "newCases": [
     {
-      "file": "revision081-navigation.spec.ts",
-      "title": "native driver swipes navigate the pointed pane while preserving both forward histories"
+      "file": "revision09.spec.ts",
+      "title": "zh-TW: compact toolbar keeps settings and account together; theme columns pair light above dark"
     },
     {
-      "file": "revision081-navigation.spec.ts",
-      "title": "duplicate swipe delivery is ignored while two rapid distinct swipes both navigate"
+      "file": "revision09.spec.ts",
+      "title": "en: compact toolbar keeps settings and account together; theme columns pair light above dark"
     },
     {
-      "file": "revision081-navigation.spec.ts",
-      "title": "native menu commands use the active pane and preserve focused text editing"
+      "file": "revision09.spec.ts",
+      "title": "ja: compact toolbar keeps settings and account together; theme columns pair light above dark"
     },
     {
-      "file": "revision081-navigation.spec.ts",
-      "title": "an open operation dialog blocks driver swipes and native menu navigation"
+      "file": "revision09.spec.ts",
+      "title": "adjacent save actions preserve distinct workspace and named-task snapshots without starting a transfer"
     },
     {
-      "file": "revision081-navigation.spec.ts",
-      "title": "ordinary horizontal wheel scrolling does not navigate folder history"
+      "file": "revision09.spec.ts",
+      "title": "zh-TW: copy, sync and move explanations use the full column and a neutral text color"
+    },
+    {
+      "file": "revision09.spec.ts",
+      "title": "en: copy, sync and move explanations use the full column and a neutral text color"
+    },
+    {
+      "file": "revision09.spec.ts",
+      "title": "ja: copy, sync and move explanations use the full column and a neutral text color"
+    },
+    {
+      "file": "revision09.spec.ts",
+      "title": "a configured speed limit remains visible in a compact window; unlimited removes the summary without infinity shorthand"
     }
   ],
   "visuals": {
-    "suiteScreenshotCount": 79,
+    "suiteScreenshotCount": 82,
     "inspections": [
       {
-        "run": "full",
-        "file": "ui-1060x680-zh-TW-purple-l-9d11d-sfer-metrics-remain-visible/layout.png",
-        "sha256": "ffd30cf0ed9bd9682cf870dc0a71794f80f2bd89df1e5819343af83ba2ceccd9",
-        "observation": "Traditional Chinese minimum-window layout keeps both panes, transfer controls, live progress and the 0.8.1 footer visible; the purple three-ring mark has no rectangular background."
+        "path": "layout-compact-speed-Move.png",
+        "reviewer": "primary",
+        "observation": "English minimum 1060x680 window with an active job and 7 MiB/s cap retains complete clickable options, dry-run and start buttons; long move description wraps in its own scrollable area.",
+        "sha256": "67969dfc72bd3ab06632b3f4b54516613ea94261c418c300dab339eaf21bb98a"
       },
       {
-        "run": "full",
-        "file": "ui-1060x680-en-blue-dark-c-1cef8-sfer-metrics-remain-visible/layout.png",
-        "sha256": "6254da7f6f8ee8a845903c42c60a150391ec380a6cecb9c3a754c904ed215b01",
-        "observation": "English dark-blue minimum-window layout keeps both panes, queue metrics and the 0.8.1 footer visible; the header mark follows the blue theme."
+        "path": "revision09-targeted-results/revision09-zh-TW-compact-t-4f1ec-lumns-pair-light-above-dark/appearance-zh-TW-125.png",
+        "reviewer": "primary",
+        "observation": "Traditional Chinese appearance at 125% pairs light purple/green/blue above dark equivalents; dialog content scrolls internally and its close button stays visible.",
+        "sha256": "7053dc95361dae4b30109967a6afbc315489df0a0c6326d69590ae76f44869ad"
       },
       {
-        "run": "full",
-        "file": "revision07-125-both-long-l-26c28-ter-choosing-the-last-cloud/locations-125.png",
-        "sha256": "75b4b211da8fd9e8f1384b3b820e27a0f707ad5d33d140c3d702ff73267a25c6",
-        "observation": "The location menu opens below its trigger at 125%, keeps its internal scrollbar and shows the selected final cloud-60 row."
+        "path": "previews09/main-zh-TW.png",
+        "reviewer": "primary",
+        "observation": "Traditional Chinese dark-purple main layout shows gear/account at left, adjacent save actions with separator and info at right, neutral full-width operation text and no bottom infinity/concurrency shorthand.",
+        "sha256": "ec90040f6cf4956ab297a813675fe23b373a30811e61d4c70e7b0ccae78dda4b"
       },
       {
-        "run": "full",
-        "file": "revision06-ja-green-light--1704c--and-task-actions-reachable/task-editor-125.png",
-        "sha256": "73164f82ead55335e8b23f9dfc547a2315af06f3d8ff29e14162f74651f015d3",
-        "observation": "Japanese light-green task editor at 125% keeps filter labels, text areas, Cancel and Save inside the visible dialog."
+        "path": "previews09/main-green-dark-125.png",
+        "reviewer": "primary",
+        "observation": "Dark-green minimum native-window equivalent at 125% keeps both browser panes, source selection, toolbar actions and all primary transfer buttons reachable; description and job areas use internal scrolling when required.",
+        "sha256": "bd2b50134410f6d54b8e57877b8281b3b3fe3d7709666b0e6f74403999cce47d"
       },
       {
-        "run": "full",
-        "file": "revision08-migrated-135-pe-e1a33-er-choosing-the-new-default/scale-legacy-135.png",
-        "sha256": "e61ae6e93891ad47f203f9ed0bbba4c3c6e5b3449bc7ec25cea92001bc00ed1b",
-        "observation": "The migrated 135% selection remains the sixth sorted option, 100% alone is marked as default, and the settings Close action remains visible."
+        "path": "previews09/theme-purple-dark.png",
+        "reviewer": "ui_refinement",
+        "observation": "Settings icon and account setup are aligned on the left; the two save actions, thin separator and information icon are aligned on the right. The source pane, selected direction and primary action share the correct theme accent; neutral surface and text remain readable. The sync description is neutral, left aligned and wraps naturally across the available central width; the old bottom transfer count and infinity summary is absent. Transfer options, dry run and start sync remain fully visible above the queue.",
+        "sha256": "ec90040f6cf4956ab297a813675fe23b373a30811e61d4c70e7b0ccae78dda4b"
       },
       {
-        "run": "full",
-        "file": "revision07-en-report-expla-add9c-gures-and-original-evidence/report-breakdown-en.png",
-        "sha256": "9ee9e21b3a0359ea4d70787fe7e66405e812e8b731e391866cecfe068e459beb",
-        "observation": "The English error report separates successful-copy bytes and size-check-failure bytes, displays source and written sizes, and retains the original rclone messages with an internal report scrollbar."
-      }
-    ],
-    "screenshots": [
-      {
-        "file": "revision04-blue-dark-narro-cf38f--pixels-through-empty-space/zebra-blue-dark.png",
-        "bytes": 94290,
-        "sha256": "ef61b3981716d3fcf37b8e2d13b00188a55145205877c97d8701f30b48e72eda"
-      },
-      {
-        "file": "revision04-blue-light-narr-fe610--pixels-through-empty-space/zebra-blue-light.png",
-        "bytes": 93909,
-        "sha256": "22dbb906e09099d4f2a2600c28eafdd2f64f56e1101080670516936b4b4e63cc"
-      },
-      {
-        "file": "revision04-en-full-task-ed-c4f99--and-keep-borders-separated/network-en.png",
-        "bytes": 97931,
-        "sha256": "4dfb8769b586e909f9d5a7c20ff39210641c4073d12fa385ad74f3764f2d2d62"
-      },
-      {
-        "file": "revision04-en-full-task-ed-c4f99--and-keep-borders-separated/task-en-filtersTab.png",
-        "bytes": 84396,
-        "sha256": "a08439d9958113e5a53cd3734fb01a7a5eec6b201a5e4365e47309d05ac85b75"
-      },
-      {
-        "file": "revision04-en-full-task-ed-c4f99--and-keep-borders-separated/task-en-locationsTab.png",
-        "bytes": 94322,
-        "sha256": "9089faea20ea7248ec8c369199d37f565d1271cc6059f41c92cfde31be8eb171"
-      },
-      {
-        "file": "revision04-en-full-task-ed-c4f99--and-keep-borders-separated/task-en-modeAndComparison.png",
-        "bytes": 100917,
-        "sha256": "066c97518bb7400294d66ac33b8210858bc9837dd2376769aa073b6961786b5e"
-      },
-      {
-        "file": "revision04-en-full-task-ed-c4f99--and-keep-borders-separated/task-en-transferPerformance.png",
-        "bytes": 96917,
-        "sha256": "a0b1be6429ab1419fccc7fa97c457e45d42e8e14b014192cb0dea40cfa3a169f"
-      },
-      {
-        "file": "revision04-ja-full-task-ed-98074--and-keep-borders-separated/network-ja.png",
-        "bytes": 101375,
-        "sha256": "206d9a1729d0812b291cf166331aed5b13d5a6934c20a6faf7cfbbb463429fe0"
-      },
-      {
-        "file": "revision04-ja-full-task-ed-98074--and-keep-borders-separated/task-ja-filtersTab.png",
-        "bytes": 89679,
-        "sha256": "d00c98a7aef50e7b4c3803e8000c9ee09aeffc5ed9c171c7a4d58a6e560ad39e"
-      },
-      {
-        "file": "revision04-ja-full-task-ed-98074--and-keep-borders-separated/task-ja-locationsTab.png",
-        "bytes": 93896,
-        "sha256": "eed485dbe90b8a5936c3afe2737aa9e857f98431021b840a441faaa70590adf8"
-      },
-      {
-        "file": "revision04-ja-full-task-ed-98074--and-keep-borders-separated/task-ja-modeAndComparison.png",
-        "bytes": 109292,
-        "sha256": "ea420214a817b300de31f0c351fbfcf911608e70f417ea6d1e104cbcb3f01806"
-      },
-      {
-        "file": "revision04-ja-full-task-ed-98074--and-keep-borders-separated/task-ja-transferPerformance.png",
-        "bytes": 98146,
-        "sha256": "365126af1bae15534c379f62baeec37a60f0d688a4d27743a6b255d6de272a1f"
-      },
-      {
-        "file": "revision04-purple-dark-nar-141ee--pixels-through-empty-space/zebra-purple-dark.png",
-        "bytes": 94358,
-        "sha256": "e433edd3f65f0b18551bf18b05cabc7c6b7607b12a11f679bfb6b15440470f15"
-      },
-      {
-        "file": "revision04-purple-light-na-d2a92--pixels-through-empty-space/zebra-purple-light.png",
-        "bytes": 93836,
-        "sha256": "ce42d359fa728bbbe68d624fd8065701c531e6652a9cf931fc27ac5aca503412"
-      },
-      {
-        "file": "revision04-zh-TW-full-task-5feac--and-keep-borders-separated/network-zh-TW.png",
-        "bytes": 95365,
-        "sha256": "621d405b18975a7cd5665ea002a017cebce411324d0bd395f1632f6c90093b16"
-      },
-      {
-        "file": "revision04-zh-TW-full-task-5feac--and-keep-borders-separated/task-zh-TW-filtersTab.png",
-        "bytes": 85986,
-        "sha256": "a9312edb23267f433d216f57acd105ec25941bd9b2c0c8d20ea35f9aaeb0fe32"
-      },
-      {
-        "file": "revision04-zh-TW-full-task-5feac--and-keep-borders-separated/task-zh-TW-locationsTab.png",
-        "bytes": 92857,
-        "sha256": "f60fba76d2b368d4044e125a4a8b763b961a63889bd00a61608de65e83c0af1c"
-      },
-      {
-        "file": "revision04-zh-TW-full-task-5feac--and-keep-borders-separated/task-zh-TW-modeAndComparison.png",
-        "bytes": 106771,
-        "sha256": "47c2ef2c8641ccc5c39baa9d9921cce0d08491204b5b61ac5dbfa9a65c40cc56"
-      },
-      {
-        "file": "revision04-zh-TW-full-task-5feac--and-keep-borders-separated/task-zh-TW-transferPerformance.png",
-        "bytes": 100779,
-        "sha256": "b98b6bb41e40e0001b40c28808446d51b37637c7cb82ba1bd9402d1841597f07"
-      },
-      {
-        "file": "revision05-directory-failu-4cdc7--within-one-scrollable-card/contained-error.png",
-        "bytes": 195457,
-        "sha256": "9f0160238611bd99b3a4b58cd8f200595608f77ca6c491c2fe225cc15fdd0436"
-      },
-      {
-        "file": "revision05-empty-Tasks-has-da857--task-or-execution-controls/empty-tasks.png",
-        "bytes": 34838,
-        "sha256": "5c2cac5fd316318c1591cb17a1fd5e0417c64a4e3f592254941e88d822f67b01"
-      },
-      {
-        "file": "revision05-preset-hiding-p-6abfb-hanges-only-menu-visibility/preset-menu.png",
-        "bytes": 167196,
-        "sha256": "27940a5691266727838c72a43857c6a8655d4ee980e7e3ea3f3fbd8abb9503d1"
-      },
-      {
-        "file": "revision05-purple-dark-106-183a3-row-remain-distinct-and-fit/connected-tabs.png",
-        "bytes": 87925,
-        "sha256": "7ac1c6a9f555eb568c615a35c5c9833abfebf20e0fe8fea9da80140e830d407b"
-      },
-      {
-        "file": "revision05-purple-dark-144-f06b5-row-remain-distinct-and-fit/connected-tabs.png",
-        "bytes": 92169,
-        "sha256": "41fa31782b52a2059d12dc922e34eb6384ae30a9b4fdb2c6bd6086cfa09b35db"
-      },
-      {
-        "file": "revision05-purple-light-10-7581b-row-remain-distinct-and-fit/connected-tabs.png",
-        "bytes": 87232,
-        "sha256": "9790d956b30f2d46d4f8162ac22e83cd5ce4a87569c873b7fc62ba4ada09b1ed"
-      },
-      {
-        "file": "revision05-purple-light-14-d7764-row-remain-distinct-and-fit/connected-tabs.png",
-        "bytes": 91759,
-        "sha256": "bd1c85ba73d2d39a561089c5cfcf9bd7a1a348c2945691514bf68dc361a5b5f6"
-      },
-      {
-        "file": "revision05-success-toast-f-e2ecf-ismisses-after-five-seconds/floating-success.png",
-        "bytes": 139404,
-        "sha256": "94a70764660a0c852c89d9663994840a17736c2fc27cab8b2ab6d5d6b1f3fc2b"
-      },
-      {
-        "file": "revision06-active-stop-and-b91de-ts-late-resurrecting-events/stopping.png",
-        "bytes": 136789,
-        "sha256": "38e6d75c6619512729966db186f77db6e053fdc8069bf12cd31306dbe5f8df45"
-      },
-      {
-        "file": "revision06-additions-a-vis-cf62f-ps-an-operable-close-button/toast-visible.png",
-        "bytes": 138816,
-        "sha256": "43799c36a24843980e8adebdc8ce70d9e70b6b968c37848ec149f789c4c7361a"
-      },
-      {
-        "file": "revision06-additions-en-re-1d763-ay-reachable-at-125-percent/report-125.png",
-        "bytes": 60949,
-        "sha256": "da51cdbac8482f98d632a491e9c1959678992ff6a8bfc01601c20821926ae64a"
-      },
-      {
-        "file": "revision06-additions-ja-re-4106e-ay-reachable-at-125-percent/report-125.png",
-        "bytes": 69834,
-        "sha256": "523c31ce1e0572fda13052a5c4dc790153dd0495cf36f6c19bd592a85d4bde72"
-      },
-      {
-        "file": "revision06-additions-zh-TW-426a1-ay-reachable-at-125-percent/report-125.png",
-        "bytes": 68263,
-        "sha256": "020889d1787467ffccd12f6642f1d1958ebf2df1d53553deb6765b3b52c3f067"
-      },
-      {
-        "file": "revision06-all-stop-and-cl-5ae1d-ts-late-resurrecting-events/stopping.png",
-        "bytes": 191065,
-        "sha256": "4e4866b48ac8967a26ac9abaad7d6793712125c5fd06758b6dd67a103ba1a467"
-      },
-      {
-        "file": "revision06-en-five-interfa-64706-h-100-percent-in-the-middle/scale-en-125.png",
-        "bytes": 54645,
-        "sha256": "59d387e40e4278f3ee4cd3ea7bd6502bd680bc8c3d34e8fdfe3fb32b99b03653"
-      },
-      {
-        "file": "revision06-en-green-dark-1-84dd4--and-task-actions-reachable/task-editor-125.png",
-        "bytes": 48677,
-        "sha256": "0169238802644b879b0523c0db4543b0de535525d5a12764b1e3ce99fd59d8da"
-      },
-      {
-        "file": "revision06-en-green-light--e8070--and-task-actions-reachable/task-editor-125.png",
-        "bytes": 49169,
-        "sha256": "3530c0f8785632312117f224afd99216d8307032b2931f27f063a3982c4e6205"
-      },
-      {
-        "file": "revision06-ja-five-interfa-a642d-h-100-percent-in-the-middle/scale-ja-125.png",
-        "bytes": 52325,
-        "sha256": "1929297fb6bd1eaf791ec32d1911839d4753d5d741c51b644deb0013bdd79a6f"
-      },
-      {
-        "file": "revision06-ja-green-dark-1-f3f13--and-task-actions-reachable/task-editor-125.png",
-        "bytes": 54590,
-        "sha256": "02e6af564e0b543ae9e1cad470567d81b896c546277d2cbc56335199a26a0c80"
-      },
-      {
-        "file": "revision06-ja-green-light--1704c--and-task-actions-reachable/task-editor-125.png",
-        "bytes": 55048,
-        "sha256": "73164f82ead55335e8b23f9dfc547a2315af06f3d8ff29e14162f74651f015d3"
-      },
-      {
-        "file": "revision06-zh-TW-five-inte-995b4-h-100-percent-in-the-middle/scale-zh-TW-125.png",
-        "bytes": 49636,
-        "sha256": "b5d8678eba5dee56568554c483e4253b828330a2665d76f47b557271db148a75"
-      },
-      {
-        "file": "revision06-zh-TW-green-dar-9b0d9--and-task-actions-reachable/task-editor-125.png",
-        "bytes": 51805,
-        "sha256": "60093bf615298ec277f21a071111103041e29a54a6287206d3821beb32db9995"
-      },
-      {
-        "file": "revision06-zh-TW-green-lig-abd71--and-task-actions-reachable/task-editor-125.png",
-        "bytes": 52361,
-        "sha256": "cd448c37dc623d26e00729b34565d9842af83df9b3f999c5f9a0a35e7e831d8d"
-      },
-      {
-        "file": "revision07-100-both-long-l-0e480-ter-choosing-the-last-cloud/locations-100.png",
-        "bytes": 143197,
-        "sha256": "7eeaae3f73687138adf95bccb170d79af8dffdaaa4f6690764749f7fbbe055c4"
-      },
-      {
-        "file": "revision07-110-both-long-l-bf010-ter-choosing-the-last-cloud/locations-110.png",
-        "bytes": 119857,
-        "sha256": "8c18b448fa2e04176a1ad0baf28ccbb67eb780a51ed8735ecfbd58ba03aac500"
-      },
-      {
-        "file": "revision07-125-both-long-l-26c28-ter-choosing-the-last-cloud/locations-125.png",
-        "bytes": 99429,
-        "sha256": "75b4b211da8fd9e8f1384b3b820e27a0f707ad5d33d140c3d702ff73267a25c6"
-      },
-      {
-        "file": "revision07-80-both-long-lo-380a3-ter-choosing-the-last-cloud/locations-80.png",
-        "bytes": 185533,
-        "sha256": "4ea964524c39a1aa92774a420c5ea8197561274aa93a0d90107a96340b6b5961"
-      },
-      {
-        "file": "revision07-90-both-long-lo-492e0-ter-choosing-the-last-cloud/locations-90.png",
-        "bytes": 159556,
-        "sha256": "ea2111def8ba74d8fa9f15b16dfb07566aee2b5c18073f945a391bc831e6c645"
-      },
-      {
-        "file": "revision07-en-report-expla-add9c-gures-and-original-evidence/report-breakdown-en.png",
-        "bytes": 95625,
-        "sha256": "9ee9e21b3a0359ea4d70787fe7e66405e812e8b731e391866cecfe068e459beb"
-      },
-      {
-        "file": "revision07-en-task-and-sta-3642a-nside-compact-modal-windows/startup-popup-en.png",
-        "bytes": 49029,
-        "sha256": "bf7c3e4a3852b04aa0e7d13d165742ac240a6c58356b53b7efd846b444b17b0f"
-      },
-      {
-        "file": "revision07-ja-report-expla-cc76d-gures-and-original-evidence/report-breakdown-ja.png",
-        "bytes": 103680,
-        "sha256": "a8d95bd7673f3fbc94279ffedc886bfec1385d82ca37c7f3a9d7c7f59a1e99b3"
-      },
-      {
-        "file": "revision07-ja-task-and-sta-4be59-nside-compact-modal-windows/startup-popup-ja.png",
-        "bytes": 48896,
-        "sha256": "e47f90598141cddd5e551ebd31aca03261beff521306900c6ddbb7ca55a9e664"
-      },
-      {
-        "file": "revision07-zh-TW-report-ex-4ff24-gures-and-original-evidence/report-breakdown-zh-TW.png",
-        "bytes": 99907,
-        "sha256": "dcd94f2ec67ababd641053f22aa312b3aecd5c790b1513224aaf968f095005ac"
-      },
-      {
-        "file": "revision07-zh-TW-task-and--d77e8-nside-compact-modal-windows/startup-popup-zh-TW.png",
-        "bytes": 49041,
-        "sha256": "d338fea3d7cefb65485b67107843b9c018df3e5a841f6e35f02564a908e77228"
-      },
-      {
-        "file": "revision08-migrated-120-pe-ac099-er-choosing-the-new-default/scale-legacy-120.png",
-        "bytes": 61745,
-        "sha256": "14cdb4fe21d72deb26ad434fa024c2c0dbc51cf49b4c7362f68fcb488a0430ba"
-      },
-      {
-        "file": "revision08-migrated-135-pe-e1a33-er-choosing-the-new-default/scale-legacy-135.png",
-        "bytes": 42456,
-        "sha256": "e61ae6e93891ad47f203f9ed0bbba4c3c6e5b3449bc7ec25cea92001bc00ed1b"
-      },
-      {
-        "file": "ui-1060x680-en-blue-dark-c-1cef8-sfer-metrics-remain-visible/layout.png",
-        "bytes": 98974,
-        "sha256": "6254da7f6f8ee8a845903c42c60a150391ec380a6cecb9c3a754c904ed215b01"
-      },
-      {
-        "file": "ui-1060x680-en-blue-light--5495f-sfer-metrics-remain-visible/layout.png",
-        "bytes": 97765,
-        "sha256": "d9843c94328a255e691bad7b99654568c7078368abc0b66b9a0b048c56cb8515"
-      },
-      {
-        "file": "ui-1060x680-en-purple-dark-358c7-sfer-metrics-remain-visible/layout.png",
-        "bytes": 98903,
-        "sha256": "18fbdf6d0812e267142386cf0dfa37af80d4cc88a09bf47b219e76d0b102b959"
-      },
-      {
-        "file": "ui-1060x680-en-purple-ligh-9483c-sfer-metrics-remain-visible/layout.png",
-        "bytes": 97408,
-        "sha256": "baca4d610df932abbc1312c18ac463ee619c766a2a5d5e39d83b021cdb86f856"
-      },
-      {
-        "file": "ui-1060x680-ja-blue-dark-c-eec5e-sfer-metrics-remain-visible/layout.png",
-        "bytes": 105527,
-        "sha256": "b4e3bfe0a8c78631d4d3a72325dc9c09b0a46244ef98d593e5df0938e3163b11"
-      },
-      {
-        "file": "ui-1060x680-ja-blue-light--c82a7-sfer-metrics-remain-visible/layout.png",
-        "bytes": 104345,
-        "sha256": "e762eeaca6182b91b18d417c5dff4fcb35c5e6413815ca0437f3a4d8d9a62863"
-      },
-      {
-        "file": "ui-1060x680-ja-purple-dark-bf1c9-sfer-metrics-remain-visible/layout.png",
-        "bytes": 105399,
-        "sha256": "4a0890a8cbb3dec0ad3675974a8737bb5286a3be45ea53d321c87a5016b0dcc8"
-      },
-      {
-        "file": "ui-1060x680-ja-purple-ligh-57990-sfer-metrics-remain-visible/layout.png",
-        "bytes": 104427,
-        "sha256": "81b9cb0b70e2a4117316b55e375b4d2ee7b53de9ccf5b6f23cdd6ce812c0c491"
-      },
-      {
-        "file": "ui-1060x680-zh-TW-blue-dar-2e002-sfer-metrics-remain-visible/layout.png",
-        "bytes": 103434,
-        "sha256": "4636facc3f8528d4f474d8d45d568a7a8a113d5cbf3ff39dd2e79136114becba"
-      },
-      {
-        "file": "ui-1060x680-zh-TW-blue-lig-9cafe-sfer-metrics-remain-visible/layout.png",
-        "bytes": 102555,
-        "sha256": "9b84fd4877ef8d449137034768e23f39d1752a3fc90bafd1d9344046b74c6d16"
-      },
-      {
-        "file": "ui-1060x680-zh-TW-purple-d-99df8-sfer-metrics-remain-visible/layout.png",
-        "bytes": 103154,
-        "sha256": "a537c851371451c832e6a2084556a077950926469cc021281ad28448d9f8c28e"
-      },
-      {
-        "file": "ui-1060x680-zh-TW-purple-l-9d11d-sfer-metrics-remain-visible/layout.png",
-        "bytes": 102484,
-        "sha256": "ffd30cf0ed9bd9682cf870dc0a71794f80f2bd89df1e5819343af83ba2ceccd9"
-      },
-      {
-        "file": "ui-1440x900-en-blue-dark-c-016ff-sfer-metrics-remain-visible/layout.png",
-        "bytes": 141499,
-        "sha256": "97b5025d254f8980487b7cff29d6c1447415380e6264eded35e4235682830f5c"
-      },
-      {
-        "file": "ui-1440x900-en-blue-light--8792d-sfer-metrics-remain-visible/layout.png",
-        "bytes": 140754,
-        "sha256": "dd72807274c96af996e5a03bff26a337e4c29599966fb1a519f8d4429aceb70e"
-      },
-      {
-        "file": "ui-1440x900-en-purple-dark-ea107-sfer-metrics-remain-visible/layout.png",
-        "bytes": 141423,
-        "sha256": "ae599359e1bc10ae8980e00d7fcf2b63a49488906e57eb8b7c4aaea5f5741724"
-      },
-      {
-        "file": "ui-1440x900-en-purple-ligh-79275-sfer-metrics-remain-visible/layout.png",
-        "bytes": 140575,
-        "sha256": "99e868788acbb08e359f2375047216330a67d867a016bc120eb97c8d31dadf61"
+        "path": "previews09/theme-purple-light.png",
+        "reviewer": "ui_refinement",
+        "observation": "Settings icon and account setup are aligned on the left; the two save actions, thin separator and information icon are aligned on the right. The source pane, selected direction and primary action share the correct theme accent; neutral surface and text remain readable. The sync description is neutral, left aligned and wraps naturally across the available central width; the old bottom transfer count and infinity summary is absent. Transfer options, dry run and start sync remain fully visible above the queue.",
+        "sha256": "5b8ef6fad70195834185f19bf0f8a877b9f0f7a7ef8a25bb9cd1e93cd96ad008"
       },
       {
-        "file": "ui-1440x900-ja-blue-dark-c-cee18-sfer-metrics-remain-visible/layout.png",
-        "bytes": 147298,
-        "sha256": "709dd0d952ce6924327b364e14b5db7d7f711db404b69e4d54e79fa3ffc4e848"
+        "path": "previews09/theme-green-dark.png",
+        "reviewer": "ui_refinement",
+        "observation": "Settings icon and account setup are aligned on the left; the two save actions, thin separator and information icon are aligned on the right. The source pane, selected direction and primary action share the correct theme accent; neutral surface and text remain readable. The sync description is neutral, left aligned and wraps naturally across the available central width; the old bottom transfer count and infinity summary is absent. Transfer options, dry run and start sync remain fully visible above the queue.",
+        "sha256": "c2acd0e481ed9322eb32f060e698b50cafd0ca572fee6818a3dc3eaf263e1e35"
       },
       {
-        "file": "ui-1440x900-ja-blue-light--e066a-sfer-metrics-remain-visible/layout.png",
-        "bytes": 146220,
-        "sha256": "8a26268f7fa5bb66e0add6c08cec3b8bcb5553412bd69649d8bff8710dfb0da8"
+        "path": "previews09/theme-green-light.png",
+        "reviewer": "ui_refinement",
+        "observation": "Settings icon and account setup are aligned on the left; the two save actions, thin separator and information icon are aligned on the right. The source pane, selected direction and primary action share the correct theme accent; neutral surface and text remain readable. The sync description is neutral, left aligned and wraps naturally across the available central width; the old bottom transfer count and infinity summary is absent. Transfer options, dry run and start sync remain fully visible above the queue.",
+        "sha256": "e98db05126c2c47d5b607d066902de47404961a38b005dd29fe85cc8d55657a3"
       },
       {
-        "file": "ui-1440x900-ja-purple-dark-f41f4-sfer-metrics-remain-visible/layout.png",
-        "bytes": 147214,
-        "sha256": "7dde012ab0eb7306737e591138ed6f48b2657fd1396665df2b8ffed19294c786"
+        "path": "previews09/theme-blue-dark.png",
+        "reviewer": "ui_refinement",
+        "observation": "Settings icon and account setup are aligned on the left; the two save actions, thin separator and information icon are aligned on the right. The source pane, selected direction and primary action share the correct theme accent; neutral surface and text remain readable. The sync description is neutral, left aligned and wraps naturally across the available central width; the old bottom transfer count and infinity summary is absent. Transfer options, dry run and start sync remain fully visible above the queue.",
+        "sha256": "28d6cd13ef8f7f403ea8f19d393fb7968b11a6a0f94f7d347bbd9a2e5099f17c"
       },
       {
-        "file": "ui-1440x900-ja-purple-ligh-47ee0-sfer-metrics-remain-visible/layout.png",
-        "bytes": 146188,
-        "sha256": "4072cd4892583e5eaf31fa87d86723277a22b8b6ee5f24687c7e43d70a9828cd"
+        "path": "previews09/theme-blue-light.png",
+        "reviewer": "ui_refinement",
+        "observation": "Settings icon and account setup are aligned on the left; the two save actions, thin separator and information icon are aligned on the right. The source pane, selected direction and primary action share the correct theme accent; neutral surface and text remain readable. The sync description is neutral, left aligned and wraps naturally across the available central width; the old bottom transfer count and infinity summary is absent. Transfer options, dry run and start sync remain fully visible above the queue.",
+        "sha256": "b7413e501ff8de3d3ed9de8a8c3c4b888a075777a4a8d91d07076f9f0b1effcf"
       },
       {
-        "file": "ui-1440x900-zh-TW-blue-dar-bab00-sfer-metrics-remain-visible/layout.png",
-        "bytes": 144346,
-        "sha256": "95d71e32a6c4117ac16ed21b12386a99a36b2b7344ad91baebf44ce876290704"
+        "path": "previews09/main-en.png",
+        "reviewer": "ui_refinement",
+        "observation": "English toolbar and save action labels fit without collisions. The full sync explanation wraps naturally in neutral text; the preset summary remains separate. Transfer options, dry run, start sync and preview command are fully visible.",
+        "sha256": "b140d88d019dd1b405a945903600dfd02b032e4d1b48c2502bd10215bcdb8ad2"
       },
       {
-        "file": "ui-1440x900-zh-TW-blue-lig-2fce0-sfer-metrics-remain-visible/layout.png",
-        "bytes": 143628,
-        "sha256": "518f97e5fa294ed3a89af3ffebfa20bf72f5f54f08e9f661fcaf8d32b64e5212"
+        "path": "previews09/settings-green-dark-125.png",
+        "reviewer": "ui_refinement",
+        "observation": "The appearance choices retain three columns: purple, green and blue. Light choices occupy the top row and dark choices occupy the second row. The 125% size choice and the current green theme have visible selected outlines. The narrow dialog uses internal vertical scrolling; part of the lower theme row continues below the viewport, while the footer and close control remain visible.",
+        "sha256": "32651d3784ce3277835b78c44431db1826776ef26abd1d19ae8336bffad0c0f3"
       },
       {
-        "file": "ui-1440x900-zh-TW-purple-d-f8951-sfer-metrics-remain-visible/layout.png",
-        "bytes": 144287,
-        "sha256": "8a3e0e485e3dbeba49d44426a031b9aa8f4ddf3d051c59510f797a521869912d"
+        "path": "previews09/main-green-light-125.png",
+        "reviewer": "ui_refinement",
+        "observation": "The toolbar retains settings/account and workspace/task controls at the compact viewport. The direction selector, operation selector, transfer options, dry run and start sync remain fully visible; the start button has space above the panel bottom. The long explanation uses its own compact scroll region without pushing action buttons outside the panel. File panes use internal scrollbars; the page has no horizontal overflow.",
+        "sha256": "e0dcac990486d2e472a42042d325fb1066b3507193b253d616455fcbdd19f310"
       },
       {
-        "file": "ui-1440x900-zh-TW-purple-l-06a0a-sfer-metrics-remain-visible/layout.png",
-        "bytes": 143628,
-        "sha256": "9715fae3721811e2a958f1c04f58b5c2d351d2f306cc3eac0fdc061990baa718"
+        "path": "previews09/settings-green-light-125.png",
+        "reviewer": "ui_refinement",
+        "observation": "The appearance choices retain three columns: purple, green and blue. Light choices occupy the top row and dark choices occupy the second row. The 125% size choice and the current green theme have visible selected outlines. The narrow dialog uses internal vertical scrolling; part of the lower theme row continues below the viewport, while the footer and close control remain visible.",
+        "sha256": "bdad73e54f38844db3add108792f3f106444873ab746cff06ab310ea1fcbd00a"
       }
     ]
   },
   "largeLists": {
     "fullListPasses": 0,
     "updates": 25,
-    "wallMilliseconds": 404.20000000298023
+    "wallMilliseconds": 413.8999999985099
   },
   "nativeMacVerification": {
-    "status": "pending_macOS_CI_at_web_receipt",
-    "includedInWebPassCount": false,
-    "suites": [
-      "MacInterfaceTests",
-      "MacStartupTests",
-      "MacIconTests",
-      "MacNavigationIntegrationTests"
-    ],
-    "runner": "Scripts/test-mac.sh",
-    "navigationIntegration": "Production React bundle in actual WKWebView with asynchronous Core RcloneEngine and isolated real folders",
-    "swipeInput": "NSEvent test double; physical MX Master 3S / Logi Options+ events were not recorded",
-    "scope": "AppKit routing, native startup pixels, runtime theme icons, bundle signatures and real-engine navigation have separate Mac receipts."
+    "status": "pending-at-web-receipt",
+    "record": "docs/VALIDATION.zh-TW.md",
+    "note": "AppKit/WKWebView startup geometry is exercised separately by MacStartupTests; Linux Chromium results do not replace native tests."
   },
-  "development": [
-    {
-      "event": "The first targeted attempt could not launch the default Playwright browser because its cache was absent",
-      "resolution": "The existing pinned project-local browser was selected; the 16-case navigation run completed successfully.",
-      "countedInFinalResult": false
-    },
-    {
-      "event": "The initial complete attempt was blocked during Chrome launch by Linux sandbox IPC permissions",
-      "stats": {
-        "startTime": "2026-10-20T19:07:58.285Z",
-        "duration": 83063.57500000001,
-        "expected": 2,
-        "skipped": 0,
-        "unexpected": 179,
-        "flaky": 0
-      },
-      "receiptSHA256": "1fa2b5d0fef87ca76183ef6ba7bc6d299d914d2fe558ebf26bcebf583491aad0",
-      "resolution": "The complete suite was rerun in the approved local browser execution context.",
-      "countedInFinalResult": false
-    }
-  ],
   "history": [
-    {
-      "release": "0.6.0",
-      "manifest": "history/0.6.0/verification.json",
-      "sha256": "5c69a33c742edcdb5c8a5e2768fe6aa60e81e01c2adb9a7dec2164afa28e70af"
-    },
-    {
-      "release": "0.7.0-before-recovery",
-      "manifest": "history/0.7.0-before-recovery/verification.json",
-      "sha256": "f4497e919589190a79a760255801722f27e2f347e92ec4418bf966c6f6f11a21"
-    },
-    {
-      "release": "0.7.0",
-      "manifest": "history/0.7.0/verification.json",
-      "sha256": "d214679fb87241d16fbe7da3f8379c64ac0c0cbb4e25373ca5beb477e70bf418"
-    },
-    {
-      "release": "0.8.0",
-      "manifest": "history/0.8.0/verification.json",
-      "sha256": "e54107f55670933fe92fb2d996e3df05186b921f41ba57564e54995ae905e236"
-    }
+    "history/0.8.1/verification.json",
+    "history/0.8.0/verification.json",
+    "history/0.7.0/verification.json",
+    "history/0.6.0/verification.json"
   ],
   "cases": [
     {
@@ -716,7 +358,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 840,
+          "durationMilliseconds": 929,
           "retry": 0,
           "attachments": []
         }
@@ -729,7 +371,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 778,
+          "durationMilliseconds": 819,
           "retry": 0,
           "attachments": []
         }
@@ -742,7 +384,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 890,
+          "durationMilliseconds": 940,
           "retry": 0,
           "attachments": []
         }
@@ -755,7 +397,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 798,
+          "durationMilliseconds": 1079,
           "retry": 0,
           "attachments": []
         }
@@ -768,7 +410,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 1601,
+          "durationMilliseconds": 1886,
           "retry": 0,
           "attachments": []
         }
@@ -781,7 +423,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 1022,
+          "durationMilliseconds": 1039,
           "retry": 0,
           "attachments": []
         }
@@ -794,7 +436,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 2175,
+          "durationMilliseconds": 2100,
           "retry": 0,
           "attachments": []
         }
@@ -807,7 +449,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 985,
+          "durationMilliseconds": 824,
           "retry": 0,
           "attachments": []
         }
@@ -820,7 +462,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 1243,
+          "durationMilliseconds": 1122,
           "retry": 0,
           "attachments": []
         }
@@ -833,7 +475,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 3465,
+          "durationMilliseconds": 3326,
           "retry": 0,
           "attachments": []
         }
@@ -846,7 +488,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 555,
+          "durationMilliseconds": 582,
           "retry": 0,
           "attachments": []
         }
@@ -859,7 +501,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 2393,
+          "durationMilliseconds": 2240,
           "retry": 0,
           "attachments": []
         }
@@ -872,7 +514,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 436,
+          "durationMilliseconds": 427,
           "retry": 0,
           "attachments": []
         }
@@ -885,7 +527,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 518,
+          "durationMilliseconds": 424,
           "retry": 0,
           "attachments": []
         }
@@ -898,7 +540,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 436,
+          "durationMilliseconds": 460,
           "retry": 0,
           "attachments": []
         }
@@ -911,7 +553,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 474,
+          "durationMilliseconds": 447,
           "retry": 0,
           "attachments": []
         }
@@ -924,7 +566,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 1028,
+          "durationMilliseconds": 1004,
           "retry": 0,
           "attachments": []
         }
@@ -937,7 +579,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 1185,
+          "durationMilliseconds": 1164,
           "retry": 0,
           "attachments": []
         }
@@ -950,7 +592,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 1128,
+          "durationMilliseconds": 1108,
           "retry": 0,
           "attachments": []
         }
@@ -963,7 +605,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 1142,
+          "durationMilliseconds": 1164,
           "retry": 0,
           "attachments": []
         }
@@ -976,7 +618,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 840,
+          "durationMilliseconds": 758,
           "retry": 0,
           "attachments": []
         }
@@ -989,7 +631,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 607,
+          "durationMilliseconds": 670,
           "retry": 0,
           "attachments": []
         }
@@ -1002,7 +644,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 6430,
+          "durationMilliseconds": 6446,
           "retry": 0,
           "attachments": []
         }
@@ -1015,7 +657,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 726,
+          "durationMilliseconds": 723,
           "retry": 0,
           "attachments": []
         }
@@ -1028,7 +670,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 629,
+          "durationMilliseconds": 585,
           "retry": 0,
           "attachments": []
         }
@@ -1041,7 +683,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 484,
+          "durationMilliseconds": 500,
           "retry": 0,
           "attachments": []
         }
@@ -1054,7 +696,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 454,
+          "durationMilliseconds": 475,
           "retry": 0,
           "attachments": []
         }
@@ -1067,7 +709,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 490,
+          "durationMilliseconds": 494,
           "retry": 0,
           "attachments": []
         }
@@ -1080,7 +722,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 1359,
+          "durationMilliseconds": 1360,
           "retry": 0,
           "attachments": []
         }
@@ -1093,7 +735,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 994,
+          "durationMilliseconds": 963,
           "retry": 0,
           "attachments": []
         }
@@ -1106,7 +748,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 1030,
+          "durationMilliseconds": 1001,
           "retry": 0,
           "attachments": []
         }
@@ -1119,7 +761,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 468,
+          "durationMilliseconds": 435,
           "retry": 0,
           "attachments": []
         }
@@ -1132,7 +774,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 415,
+          "durationMilliseconds": 425,
           "retry": 0,
           "attachments": []
         }
@@ -1145,7 +787,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 413,
+          "durationMilliseconds": 450,
           "retry": 0,
           "attachments": []
         }
@@ -1158,7 +800,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 403,
+          "durationMilliseconds": 439,
           "retry": 0,
           "attachments": []
         }
@@ -1171,7 +813,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 449,
+          "durationMilliseconds": 431,
           "retry": 0,
           "attachments": []
         }
@@ -1184,7 +826,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 383,
+          "durationMilliseconds": 392,
           "retry": 0,
           "attachments": []
         }
@@ -1197,7 +839,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 312,
+          "durationMilliseconds": 367,
           "retry": 0,
           "attachments": []
         }
@@ -1210,13 +852,18 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 2085,
+          "durationMilliseconds": 2107,
           "retry": 0,
           "attachments": [
             {
               "name": "large-list-progress-audit",
               "contentType": "application/json",
-              "sha256": "0e81b56483b79b11d350195454bb5e2144a75355cc564e2dcd1ebcd3feae9a7e"
+              "sha256": "a1be62df0afd9b7dc36249db4b3fe6ab4655beddb26ff494ea5abb949dc897bb",
+              "data": {
+                "fullListPasses": 0,
+                "updates": 25,
+                "wallMilliseconds": 413.8999999985099
+              }
             }
           ]
         }
@@ -1229,7 +876,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 965,
+          "durationMilliseconds": 944,
           "retry": 0,
           "attachments": []
         }
@@ -1242,7 +889,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 391,
+          "durationMilliseconds": 404,
           "retry": 0,
           "attachments": []
         }
@@ -1255,7 +902,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 547,
+          "durationMilliseconds": 624,
           "retry": 0,
           "attachments": []
         }
@@ -1268,7 +915,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 615,
+          "durationMilliseconds": 601,
           "retry": 0,
           "attachments": []
         }
@@ -1281,7 +928,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 594,
+          "durationMilliseconds": 667,
           "retry": 0,
           "attachments": []
         }
@@ -1294,7 +941,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 986,
+          "durationMilliseconds": 1057,
           "retry": 0,
           "attachments": []
         }
@@ -1307,7 +954,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 567,
+          "durationMilliseconds": 598,
           "retry": 0,
           "attachments": []
         }
@@ -1320,7 +967,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 785,
+          "durationMilliseconds": 614,
           "retry": 0,
           "attachments": []
         }
@@ -1333,7 +980,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 733,
+          "durationMilliseconds": 694,
           "retry": 0,
           "attachments": []
         }
@@ -1346,7 +993,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 533,
+          "durationMilliseconds": 590,
           "retry": 0,
           "attachments": []
         }
@@ -1359,7 +1006,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 801,
+          "durationMilliseconds": 895,
           "retry": 0,
           "attachments": []
         }
@@ -1372,7 +1019,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 1291,
+          "durationMilliseconds": 1247,
           "retry": 0,
           "attachments": []
         }
@@ -1385,7 +1032,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 558,
+          "durationMilliseconds": 534,
           "retry": 0,
           "attachments": []
         }
@@ -1398,7 +1045,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 507,
+          "durationMilliseconds": 586,
           "retry": 0,
           "attachments": []
         }
@@ -1411,7 +1058,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 529,
+          "durationMilliseconds": 587,
           "retry": 0,
           "attachments": []
         }
@@ -1424,7 +1071,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 1082,
+          "durationMilliseconds": 1057,
           "retry": 0,
           "attachments": []
         }
@@ -1437,7 +1084,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 366,
+          "durationMilliseconds": 392,
           "retry": 0,
           "attachments": []
         }
@@ -1450,7 +1097,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 370,
+          "durationMilliseconds": 347,
           "retry": 0,
           "attachments": []
         }
@@ -1463,7 +1110,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 293,
+          "durationMilliseconds": 274,
           "retry": 0,
           "attachments": []
         }
@@ -1476,7 +1123,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 896,
+          "durationMilliseconds": 916,
           "retry": 0,
           "attachments": []
         }
@@ -1489,7 +1136,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 757,
+          "durationMilliseconds": 728,
           "retry": 0,
           "attachments": []
         }
@@ -1502,7 +1149,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 872,
+          "durationMilliseconds": 721,
           "retry": 0,
           "attachments": []
         }
@@ -1515,7 +1162,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 900,
+          "durationMilliseconds": 825,
           "retry": 0,
           "attachments": []
         }
@@ -1528,7 +1175,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 840,
+          "durationMilliseconds": 757,
           "retry": 0,
           "attachments": []
         }
@@ -1541,7 +1188,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 799,
+          "durationMilliseconds": 764,
           "retry": 0,
           "attachments": []
         }
@@ -1554,7 +1201,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 1026,
+          "durationMilliseconds": 905,
           "retry": 0,
           "attachments": []
         }
@@ -1567,7 +1214,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 585,
+          "durationMilliseconds": 586,
           "retry": 0,
           "attachments": []
         }
@@ -1580,7 +1227,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 686,
+          "durationMilliseconds": 654,
           "retry": 0,
           "attachments": []
         }
@@ -1593,7 +1240,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 705,
+          "durationMilliseconds": 788,
           "retry": 0,
           "attachments": []
         }
@@ -1606,7 +1253,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 674,
+          "durationMilliseconds": 656,
           "retry": 0,
           "attachments": []
         }
@@ -1619,7 +1266,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 711,
+          "durationMilliseconds": 762,
           "retry": 0,
           "attachments": []
         }
@@ -1632,7 +1279,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 650,
+          "durationMilliseconds": 532,
           "retry": 0,
           "attachments": []
         }
@@ -1645,7 +1292,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 584,
+          "durationMilliseconds": 546,
           "retry": 0,
           "attachments": []
         }
@@ -1658,7 +1305,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 1901,
+          "durationMilliseconds": 1776,
           "retry": 0,
           "attachments": []
         }
@@ -1671,7 +1318,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 1891,
+          "durationMilliseconds": 1848,
           "retry": 0,
           "attachments": []
         }
@@ -1684,7 +1331,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 1847,
+          "durationMilliseconds": 1760,
           "retry": 0,
           "attachments": []
         }
@@ -1697,7 +1344,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 1039,
+          "durationMilliseconds": 1084,
           "retry": 0,
           "attachments": []
         }
@@ -1710,7 +1357,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 1295,
+          "durationMilliseconds": 1257,
           "retry": 0,
           "attachments": []
         }
@@ -1723,7 +1370,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 1297,
+          "durationMilliseconds": 1267,
           "retry": 0,
           "attachments": []
         }
@@ -1736,7 +1383,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 1718,
+          "durationMilliseconds": 1306,
           "retry": 0,
           "attachments": []
         }
@@ -1749,7 +1396,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 771,
+          "durationMilliseconds": 622,
           "retry": 0,
           "attachments": []
         }
@@ -1762,7 +1409,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 2643,
+          "durationMilliseconds": 2311,
           "retry": 0,
           "attachments": []
         }
@@ -1775,7 +1422,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 2494,
+          "durationMilliseconds": 2329,
           "retry": 0,
           "attachments": []
         }
@@ -1788,7 +1435,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 2694,
+          "durationMilliseconds": 2307,
           "retry": 0,
           "attachments": []
         }
@@ -1801,7 +1448,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 2422,
+          "durationMilliseconds": 2374,
           "retry": 0,
           "attachments": []
         }
@@ -1814,7 +1461,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 2560,
+          "durationMilliseconds": 2460,
           "retry": 0,
           "attachments": []
         }
@@ -1827,7 +1474,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 2719,
+          "durationMilliseconds": 2776,
           "retry": 0,
           "attachments": []
         }
@@ -1840,7 +1487,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 527,
+          "durationMilliseconds": 575,
           "retry": 0,
           "attachments": []
         }
@@ -1853,7 +1500,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 851,
+          "durationMilliseconds": 869,
           "retry": 0,
           "attachments": []
         }
@@ -1866,7 +1513,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 813,
+          "durationMilliseconds": 974,
           "retry": 0,
           "attachments": []
         }
@@ -1879,7 +1526,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 461,
+          "durationMilliseconds": 455,
           "retry": 0,
           "attachments": []
         }
@@ -1892,7 +1539,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 2106,
+          "durationMilliseconds": 2158,
           "retry": 0,
           "attachments": []
         }
@@ -1905,7 +1552,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 2189,
+          "durationMilliseconds": 2254,
           "retry": 0,
           "attachments": []
         }
@@ -1918,7 +1565,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 1441,
+          "durationMilliseconds": 1478,
           "retry": 0,
           "attachments": []
         }
@@ -1931,7 +1578,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 1001,
+          "durationMilliseconds": 1036,
           "retry": 0,
           "attachments": []
         }
@@ -1944,7 +1591,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 627,
+          "durationMilliseconds": 617,
           "retry": 0,
           "attachments": []
         }
@@ -1957,7 +1604,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 596,
+          "durationMilliseconds": 588,
           "retry": 0,
           "attachments": []
         }
@@ -1970,7 +1617,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 608,
+          "durationMilliseconds": 614,
           "retry": 0,
           "attachments": []
         }
@@ -1983,7 +1630,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 18,
+          "durationMilliseconds": 14,
           "retry": 0,
           "attachments": []
         }
@@ -1996,7 +1643,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 956,
+          "durationMilliseconds": 866,
           "retry": 0,
           "attachments": []
         }
@@ -2009,7 +1656,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 821,
+          "durationMilliseconds": 939,
           "retry": 0,
           "attachments": []
         }
@@ -2022,7 +1669,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 719,
+          "durationMilliseconds": 837,
           "retry": 0,
           "attachments": []
         }
@@ -2035,7 +1682,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 872,
+          "durationMilliseconds": 837,
           "retry": 0,
           "attachments": []
         }
@@ -2048,7 +1695,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 726,
+          "durationMilliseconds": 713,
           "retry": 0,
           "attachments": []
         }
@@ -2061,7 +1708,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 761,
+          "durationMilliseconds": 772,
           "retry": 0,
           "attachments": []
         }
@@ -2074,7 +1721,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 357,
+          "durationMilliseconds": 424,
           "retry": 0,
           "attachments": []
         }
@@ -2087,7 +1734,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 284,
+          "durationMilliseconds": 300,
           "retry": 0,
           "attachments": []
         }
@@ -2100,7 +1747,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 927,
+          "durationMilliseconds": 1021,
           "retry": 0,
           "attachments": []
         }
@@ -2113,7 +1760,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 911,
+          "durationMilliseconds": 907,
           "retry": 0,
           "attachments": []
         }
@@ -2126,7 +1773,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 1001,
+          "durationMilliseconds": 1077,
           "retry": 0,
           "attachments": []
         }
@@ -2139,7 +1786,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 6,
+          "durationMilliseconds": 7,
           "retry": 0,
           "attachments": []
         }
@@ -2152,7 +1799,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 523,
+          "durationMilliseconds": 568,
           "retry": 0,
           "attachments": []
         }
@@ -2165,7 +1812,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 496,
+          "durationMilliseconds": 552,
           "retry": 0,
           "attachments": []
         }
@@ -2178,7 +1825,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 488,
+          "durationMilliseconds": 579,
           "retry": 0,
           "attachments": []
         }
@@ -2191,7 +1838,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 560,
+          "durationMilliseconds": 607,
           "retry": 0,
           "attachments": []
         }
@@ -2204,7 +1851,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 1186,
+          "durationMilliseconds": 1181,
           "retry": 0,
           "attachments": []
         }
@@ -2217,7 +1864,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 1008,
+          "durationMilliseconds": 983,
           "retry": 0,
           "attachments": []
         }
@@ -2230,7 +1877,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 1018,
+          "durationMilliseconds": 1139,
           "retry": 0,
           "attachments": []
         }
@@ -2243,7 +1890,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 672,
+          "durationMilliseconds": 795,
           "retry": 0,
           "attachments": []
         }
@@ -2256,7 +1903,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 749,
+          "durationMilliseconds": 801,
           "retry": 0,
           "attachments": []
         }
@@ -2269,7 +1916,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 732,
+          "durationMilliseconds": 798,
           "retry": 0,
           "attachments": []
         }
@@ -2282,7 +1929,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 395,
+          "durationMilliseconds": 449,
           "retry": 0,
           "attachments": []
         }
@@ -2295,7 +1942,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 1171,
+          "durationMilliseconds": 1296,
           "retry": 0,
           "attachments": []
         }
@@ -2308,7 +1955,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 1139,
+          "durationMilliseconds": 1152,
           "retry": 0,
           "attachments": []
         }
@@ -2321,7 +1968,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 872,
+          "durationMilliseconds": 855,
           "retry": 0,
           "attachments": []
         }
@@ -2334,7 +1981,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 701,
+          "durationMilliseconds": 696,
           "retry": 0,
           "attachments": []
         }
@@ -2347,7 +1994,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 826,
+          "durationMilliseconds": 830,
           "retry": 0,
           "attachments": []
         }
@@ -2360,7 +2007,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 783,
+          "durationMilliseconds": 843,
           "retry": 0,
           "attachments": []
         }
@@ -2373,7 +2020,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 980,
+          "durationMilliseconds": 992,
           "retry": 0,
           "attachments": []
         }
@@ -2386,7 +2033,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 975,
+          "durationMilliseconds": 1026,
           "retry": 0,
           "attachments": []
         }
@@ -2399,7 +2046,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 987,
+          "durationMilliseconds": 1002,
           "retry": 0,
           "attachments": []
         }
@@ -2412,7 +2059,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 957,
+          "durationMilliseconds": 988,
           "retry": 0,
           "attachments": []
         }
@@ -2425,7 +2072,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 991,
+          "durationMilliseconds": 1008,
           "retry": 0,
           "attachments": []
         }
@@ -2438,7 +2085,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 709,
+          "durationMilliseconds": 784,
           "retry": 0,
           "attachments": []
         }
@@ -2451,7 +2098,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 746,
+          "durationMilliseconds": 755,
           "retry": 0,
           "attachments": []
         }
@@ -2464,7 +2111,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 714,
+          "durationMilliseconds": 738,
           "retry": 0,
           "attachments": []
         }
@@ -2477,7 +2124,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 707,
+          "durationMilliseconds": 753,
           "retry": 0,
           "attachments": []
         }
@@ -2490,7 +2137,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 787,
+          "durationMilliseconds": 917,
           "retry": 0,
           "attachments": []
         }
@@ -2503,7 +2150,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 730,
+          "durationMilliseconds": 702,
           "retry": 0,
           "attachments": []
         }
@@ -2516,7 +2163,111 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 635,
+          "durationMilliseconds": 721,
+          "retry": 0,
+          "attachments": []
+        }
+      ]
+    },
+    {
+      "file": "revision09.spec.ts",
+      "title": "zh-TW: compact toolbar keeps settings and account together; theme columns pair light above dark",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMilliseconds": 771,
+          "retry": 0,
+          "attachments": []
+        }
+      ]
+    },
+    {
+      "file": "revision09.spec.ts",
+      "title": "en: compact toolbar keeps settings and account together; theme columns pair light above dark",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMilliseconds": 769,
+          "retry": 0,
+          "attachments": []
+        }
+      ]
+    },
+    {
+      "file": "revision09.spec.ts",
+      "title": "ja: compact toolbar keeps settings and account together; theme columns pair light above dark",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMilliseconds": 862,
+          "retry": 0,
+          "attachments": []
+        }
+      ]
+    },
+    {
+      "file": "revision09.spec.ts",
+      "title": "adjacent save actions preserve distinct workspace and named-task snapshots without starting a transfer",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMilliseconds": 1251,
+          "retry": 0,
+          "attachments": []
+        }
+      ]
+    },
+    {
+      "file": "revision09.spec.ts",
+      "title": "zh-TW: copy, sync and move explanations use the full column and a neutral text color",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMilliseconds": 1017,
+          "retry": 0,
+          "attachments": []
+        }
+      ]
+    },
+    {
+      "file": "revision09.spec.ts",
+      "title": "en: copy, sync and move explanations use the full column and a neutral text color",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMilliseconds": 1009,
+          "retry": 0,
+          "attachments": []
+        }
+      ]
+    },
+    {
+      "file": "revision09.spec.ts",
+      "title": "ja: copy, sync and move explanations use the full column and a neutral text color",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMilliseconds": 1092,
+          "retry": 0,
+          "attachments": []
+        }
+      ]
+    },
+    {
+      "file": "revision09.spec.ts",
+      "title": "a configured speed limit remains visible in a compact window; unlimited removes the summary without infinity shorthand",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMilliseconds": 1074,
           "retry": 0,
           "attachments": []
         }
@@ -2529,7 +2280,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 302,
+          "durationMilliseconds": 304,
           "retry": 0,
           "attachments": []
         }
@@ -2542,7 +2293,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 136,
+          "durationMilliseconds": 133,
           "retry": 0,
           "attachments": []
         }
@@ -2555,7 +2306,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 911,
+          "durationMilliseconds": 839,
           "retry": 0,
           "attachments": []
         }
@@ -2568,7 +2319,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 655,
+          "durationMilliseconds": 754,
           "retry": 0,
           "attachments": []
         }
@@ -2581,7 +2332,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 1450,
+          "durationMilliseconds": 1499,
           "retry": 0,
           "attachments": []
         }
@@ -2594,7 +2345,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 839,
+          "durationMilliseconds": 836,
           "retry": 0,
           "attachments": []
         }
@@ -2607,7 +2358,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 1326,
+          "durationMilliseconds": 1394,
           "retry": 0,
           "attachments": []
         }
@@ -2620,7 +2371,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 648,
+          "durationMilliseconds": 622,
           "retry": 0,
           "attachments": []
         }
@@ -2633,7 +2384,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 817,
+          "durationMilliseconds": 778,
           "retry": 0,
           "attachments": []
         }
@@ -2646,7 +2397,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 1772,
+          "durationMilliseconds": 1529,
           "retry": 0,
           "attachments": []
         }
@@ -2659,7 +2410,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 3192,
+          "durationMilliseconds": 2984,
           "retry": 0,
           "attachments": []
         }
@@ -2672,7 +2423,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 1233,
+          "durationMilliseconds": 1676,
           "retry": 0,
           "attachments": []
         }
@@ -2685,7 +2436,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 1338,
+          "durationMilliseconds": 1310,
           "retry": 0,
           "attachments": []
         }
@@ -2698,7 +2449,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 587,
+          "durationMilliseconds": 584,
           "retry": 0,
           "attachments": []
         }
@@ -2711,7 +2462,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 1475,
+          "durationMilliseconds": 1532,
           "retry": 0,
           "attachments": []
         }
@@ -2724,7 +2475,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 322,
+          "durationMilliseconds": 357,
           "retry": 0,
           "attachments": []
         }
@@ -2737,7 +2488,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 659,
+          "durationMilliseconds": 680,
           "retry": 0,
           "attachments": []
         }
@@ -2750,7 +2501,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 436,
+          "durationMilliseconds": 433,
           "retry": 0,
           "attachments": []
         }
@@ -2763,7 +2514,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 480,
+          "durationMilliseconds": 382,
           "retry": 0,
           "attachments": []
         }
@@ -2776,7 +2527,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 428,
+          "durationMilliseconds": 375,
           "retry": 0,
           "attachments": []
         }
@@ -2789,7 +2540,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 443,
+          "durationMilliseconds": 377,
           "retry": 0,
           "attachments": []
         }
@@ -2802,7 +2553,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 421,
+          "durationMilliseconds": 392,
           "retry": 0,
           "attachments": []
         }
@@ -2815,7 +2566,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 381,
+          "durationMilliseconds": 375,
           "retry": 0,
           "attachments": []
         }
@@ -2828,7 +2579,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 407,
+          "durationMilliseconds": 399,
           "retry": 0,
           "attachments": []
         }
@@ -2841,7 +2592,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 443,
+          "durationMilliseconds": 369,
           "retry": 0,
           "attachments": []
         }
@@ -2854,7 +2605,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 387,
+          "durationMilliseconds": 361,
           "retry": 0,
           "attachments": []
         }
@@ -2867,7 +2618,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 475,
+          "durationMilliseconds": 407,
           "retry": 0,
           "attachments": []
         }
@@ -2880,7 +2631,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 412,
+          "durationMilliseconds": 359,
           "retry": 0,
           "attachments": []
         }
@@ -2893,7 +2644,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 420,
+          "durationMilliseconds": 377,
           "retry": 0,
           "attachments": []
         }
@@ -2906,7 +2657,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 453,
+          "durationMilliseconds": 383,
           "retry": 0,
           "attachments": []
         }
@@ -2919,7 +2670,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 472,
+          "durationMilliseconds": 429,
           "retry": 0,
           "attachments": []
         }
@@ -2932,7 +2683,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 432,
+          "durationMilliseconds": 429,
           "retry": 0,
           "attachments": []
         }
@@ -2945,7 +2696,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 473,
+          "durationMilliseconds": 416,
           "retry": 0,
           "attachments": []
         }
@@ -2971,7 +2722,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 444,
+          "durationMilliseconds": 400,
           "retry": 0,
           "attachments": []
         }
@@ -2984,7 +2735,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 473,
+          "durationMilliseconds": 411,
           "retry": 0,
           "attachments": []
         }
@@ -2997,7 +2748,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 489,
+          "durationMilliseconds": 401,
           "retry": 0,
           "attachments": []
         }
@@ -3010,7 +2761,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 413,
+          "durationMilliseconds": 396,
           "retry": 0,
           "attachments": []
         }
@@ -3023,7 +2774,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 436,
+          "durationMilliseconds": 440,
           "retry": 0,
           "attachments": []
         }
@@ -3036,7 +2787,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 460,
+          "durationMilliseconds": 388,
           "retry": 0,
           "attachments": []
         }
@@ -3049,7 +2800,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 472,
+          "durationMilliseconds": 427,
           "retry": 0,
           "attachments": []
         }
@@ -3062,7 +2813,7 @@
       "results": [
         {
           "status": "passed",
-          "durationMilliseconds": 456,
+          "durationMilliseconds": 424,
           "retry": 0,
           "attachments": []
         }
