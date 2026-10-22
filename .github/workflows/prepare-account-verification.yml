@@ -1,0 +1,53 @@
+name: Prepare UTF-8 source verification fix
+on:
+  push:
+    branches: ['prepare/0.9.2-finalize']
+permissions:
+  contents: write
+jobs:
+  prepare:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: 44f231387c17918249cb2fad677bec7f86c2fc87
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Keep source verification independent of the Windows locale
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('Scripts/verify-version.py')
+          s=p.read_text(encoding='utf-8')
+          old="cwd=ROOT, text=True).strip()"
+          assert s.count(old)==1
+          p.write_text(s.replace(old,"cwd=ROOT, text=True, encoding='utf-8').strip()"),encoding='utf-8')
+          PY
+          python3 Scripts/update-source-manifest.py
+          python3 Scripts/verify-version.py
+          git diff --check
+      - name: Prepare the two application file objects for connector review
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import json,subprocess
+          def git(*args):return subprocess.check_output(['git',*args],text=True,encoding='utf-8').strip()
+          assert git('rev-parse','HEAD')=='44f231387c17918249cb2fad677bec7f86c2fc87'
+          names=git('diff','--name-only').splitlines()
+          assert set(names)=={'Scripts/verify-version.py','SOURCE_MANIFEST.json'}
+          entries=[{'path':n,'mode':'100644','type':'blob','content':Path(n).read_text(encoding='utf-8')} for n in names]
+          data=json.dumps({'base_tree':git('rev-parse','HEAD^{tree}'),'tree':entries},ensure_ascii=False)
+          result=json.loads(subprocess.check_output(['gh','api','--method','POST','repos/jason840709/RcloneBrowserNext/git/trees','--input','-'],input=data,text=True,encoding='utf-8'))
+          root=Path('.build-cache/verification-fix');root.mkdir(parents=True,exist_ok=True)
+          receipt={'tree':result['sha'],'parent':git('rev-parse','HEAD'),'changedFiles':names,'published':False}
+          (root/'result.json').write_text(json.dumps(receipt,indent=2)+'\n')
+          print(json.dumps(receipt,indent=2))
+          PY
+      - uses: actions/upload-artifact@v7
+        with:
+          name: RBN-0.9.2-UTF8-verification-fix
+          path: .build-cache/verification-fix/result.json
+          if-no-files-found: error
