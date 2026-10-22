@@ -1,0 +1,103 @@
+name: Prepare reviewed 0.9.1 source
+on:
+  push:
+    branches: ['prepare/0.9.1']
+permissions:
+  contents: write
+jobs:
+  prepare:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Apply the reviewed changes with before and after hashes
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import base64, zlib, hashlib, json, subprocess
+          base='167be06a8ef7660e959d7c457c284b7c2626dd0d'
+          expected='4d2cf3938dd7bc6fce2491dd097d4e2c8c131c1e837b711cb06e00dc00e53848'
+          text=''.join(Path('.prepare091/part'+str(i)).read_text().strip() for i in (1,2))
+          corrections={
+            'nnHnwvrHvxfhf4t':'nnnwvrHvxf4t',
+            'u6pm3fWbP3bp7':'u6pm3dP3bp7',
+            'Ej09befLpt++':'Ej09e6pt++',
+            'cQ5frtFdWixMfy5R/Un3NPvUe8etLjSbFpKvly7+u2h4sPrb51duZeDO4/8GmnW6W1H6+9e8fVvVv97BGs4/U7v9+nV/t2cun4eWxi7f2X97r+7t1Xbyz/7m7vwpnejQ9671xe+/Tbtdvnl19zfO0XUNVQ':'cQ5r+9up1Rtvr50/sXrmPIxq9dWbq5c+X719pXfrtxgtdub86mtnV/9caKh35pO1V6/f+/Y3q1+9gjW8fqd3+/Tq306uXT8PTay9f/LeV1/d++qd1Zff7V0407v0Xu+dy2uffrt2663V1z5fe+U3UNVQ'
+          }
+          for old,new in corrections.items():
+              assert text.count(old)==1,old
+              text=text.replace(old,new)
+          raw=zlib.decompress(base64.b64decode(text,validate=True))
+          assert hashlib.sha256(raw).hexdigest()==expected
+          delta=json.loads(raw)
+          assert subprocess.check_output(['git','rev-parse',base+'^{tree}'],text=True).strip()==delta['baseTree']
+          for item in delta['files']:
+              p=Path(item['path'])
+              assert not p.is_absolute() and '..' not in p.parts
+              old=p.read_bytes() if item['status']!='A' else b''
+              if item['status']=='A': assert not p.exists()
+              assert hashlib.sha256(old).hexdigest()==item['before'],str(p)
+              result=old.decode('utf-8')
+              for a,b,s in reversed(item['edits']): result=result[:a]+s+result[b:]
+              new=result.encode('utf-8')
+              assert hashlib.sha256(new).hexdigest()==item['after'],str(p)
+              if item['status']=='D': p.unlink()
+              else:
+                  p.parent.mkdir(parents=True,exist_ok=True);p.write_bytes(new)
+          Path('.github/workflows/prepare-0.9.1.yml').unlink()
+          for p in Path('.prepare091').iterdir(): p.unlink()
+          Path('.prepare091').rmdir()
+          PY
+      - name: Build the checked-in UI from its pinned dependencies
+        working-directory: WebSource
+        run: |
+          npm ci --no-audit --no-fund
+          npm run typecheck
+          npm run build
+      - name: Create an unreferenced clean source commit for review
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git add -A
+          python3 Scripts/update-source-manifest.py
+          git add SOURCE_MANIFEST.json
+          git diff --cached --check
+          python3 Scripts/verify-version.py
+          python3 - <<'PY'
+          from pathlib import Path
+          import subprocess,json
+          base='167be06a8ef7660e959d7c457c284b7c2626dd0d'
+          def git(*args): return subprocess.check_output(['git',*args],text=True)
+          modes={line.split('\t',1)[1]:line.split(' ',1)[0] for line in git('ls-files','--stage').splitlines()}
+          entries=[]
+          for line in git('diff','--cached','--name-status','--no-renames',base).splitlines():
+              status,name=line.split('\t')
+              assert not name.startswith('.prepare091/') and name!='.github/workflows/prepare-0.9.1.yml'
+              if status=='D': entries.append({'path':name,'mode':'100644','type':'blob','sha':None})
+              else: entries.append({'path':name,'mode':modes[name],'type':'blob','content':Path(name).read_text(encoding='utf-8')})
+          dest=Path('.build-cache/prepared-source');dest.mkdir(parents=True,exist_ok=True)
+          treefile=dest/'tree-input.json';treefile.write_text(json.dumps({'base_tree':git('rev-parse',base+'^{tree}').strip(),'tree':entries},ensure_ascii=False))
+          repo='repos/jason840709/RcloneBrowserNext'
+          tree=json.loads(subprocess.check_output(['gh','api','--method','POST',repo+'/git/trees','--input',str(treefile)]))
+          commitfile=dest/'commit-input.json';commitfile.write_text(json.dumps({'message':'Unify 0.9.1 with Mac completion attention and cross-platform progress motion','tree':tree['sha'],'parents':[base]}))
+          commit=json.loads(subprocess.check_output(['gh','api','--method','POST',repo+'/git/commits','--input',str(commitfile)]))
+          receipt={'sourceCommit':commit['sha'],'tree':tree['sha'],'parent':base,'changedFiles':len(entries),'prepared':True,'published':False}
+          (dest/'prepared.json').write_text(json.dumps(receipt,indent=2)+'\n')
+          print(json.dumps(receipt,indent=2))
+          treefile.unlink();commitfile.unlink()
+          PY
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: RcloneBrowserNext-Prepared-0.9.1
+          path: |
+            .build-cache/prepared-source/prepared.json
+            .prepare091/
+          include-hidden-files: true
+          if-no-files-found: warn
