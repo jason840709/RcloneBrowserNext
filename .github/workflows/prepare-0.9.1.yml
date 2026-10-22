@@ -3,7 +3,7 @@ on:
   push:
     branches: ['prepare/0.9.1']
 permissions:
-  contents: write
+  contents: read
 jobs:
   prepare:
     runs-on: ubuntu-24.04
@@ -16,7 +16,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Apply the reviewed changes with before and after hashes
+      - name: Restore the reviewed source changes
         run: |
           python3 - <<'PY'
           from pathlib import Path
@@ -48,50 +48,35 @@ jobs:
           for p in Path('.prepare091').iterdir(): p.unlink()
           Path('.prepare091').rmdir()
           PY
-      - name: Build the checked-in UI from its pinned dependencies
+      - name: Build the checked-in UI
         working-directory: WebSource
         run: |
           npm ci --no-audit --no-fund
           npm run typecheck
           npm run build
-      - name: Create an unreferenced clean source commit for review
+      - name: Retain complete reviewed source without writing to GitHub
         env:
-          GH_TOKEN: ${{ github.token }}
+          GIT_AUTHOR_NAME: Rclone Browser Next build
+          GIT_AUTHOR_EMAIL: 41898282+github-actions[bot]@users.noreply.github.com
+          GIT_COMMITTER_NAME: Rclone Browser Next build
+          GIT_COMMITTER_EMAIL: 41898282+github-actions[bot]@users.noreply.github.com
         run: |
           git add -A
           python3 Scripts/update-source-manifest.py
           git add SOURCE_MANIFEST.json
           git diff --cached --check
           python3 Scripts/verify-version.py
-          python3 - <<'PY'
-          from pathlib import Path
-          import subprocess,json
-          base='167be06a8ef7660e959d7c457c284b7c2626dd0d'
-          def git(*args): return subprocess.check_output(['git',*args],text=True)
-          modes={line.split('\t',1)[1]:line.split(' ',1)[0] for line in git('ls-files','--stage').splitlines()}
-          entries=[]
-          for line in git('diff','--cached','--name-status','--no-renames',base).splitlines():
-              status,name=line.split('\t')
-              assert not name.startswith('.prepare091/') and name!='.github/workflows/prepare-0.9.1.yml'
-              if status=='D': entries.append({'path':name,'mode':'100644','type':'blob','sha':None})
-              else: entries.append({'path':name,'mode':modes[name],'type':'blob','content':Path(name).read_text(encoding='utf-8')})
-          dest=Path('.build-cache/prepared-source');dest.mkdir(parents=True,exist_ok=True)
-          treefile=dest/'tree-input.json';treefile.write_text(json.dumps({'base_tree':git('rev-parse',base+'^{tree}').strip(),'tree':entries},ensure_ascii=False))
-          repo='repos/jason840709/RcloneBrowserNext'
-          tree=json.loads(subprocess.check_output(['gh','api','--method','POST',repo+'/git/trees','--input',str(treefile)]))
-          commitfile=dest/'commit-input.json';commitfile.write_text(json.dumps({'message':'Unify 0.9.1 with Mac completion attention and cross-platform progress motion','tree':tree['sha'],'parents':[base]}))
-          commit=json.loads(subprocess.check_output(['gh','api','--method','POST',repo+'/git/commits','--input',str(commitfile)]))
-          receipt={'sourceCommit':commit['sha'],'tree':tree['sha'],'parent':base,'changedFiles':len(entries),'prepared':True,'published':False}
-          (dest/'prepared.json').write_text(json.dumps(receipt,indent=2)+'\n')
-          print(json.dumps(receipt,indent=2))
-          treefile.unlink();commitfile.unlink()
-          PY
+          mkdir -p .build-cache/prepared-source
+          TREE=$(git write-tree)
+          COMMIT=$(git commit-tree "$TREE" -p 167be06a8ef7660e959d7c457c284b7c2626dd0d -m 'Prepared unified 0.9.1 source')
+          git update-ref refs/heads/prepared-source "$COMMIT"
+          git bundle create .build-cache/prepared-source/prepared.bundle prepared-source --tags
+          git archive --format=zip --output=.build-cache/prepared-source/source.zip "$COMMIT"
+          printf '{"localCommit":"%s","tree":"%s","published":false}\n' "$COMMIT" "$TREE" > .build-cache/prepared-source/prepared.json
       - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: RcloneBrowserNext-Prepared-0.9.1
-          path: |
-            .build-cache/prepared-source/prepared.json
-            .prepare091/
+          path: .build-cache/prepared-source/
           include-hidden-files: true
-          if-no-files-found: warn
+          if-no-files-found: error
