@@ -112,7 +112,7 @@ export interface AppAPI {
   remove(endpoint: Endpoint, selection: Selection[]): Promise<boolean>;
   size(endpoint: Endpoint): Promise<{ count: number; bytes: number }>;
   chooseFolder(current?: string): Promise<string | null>;
-  chooseFile(kind: 'rclone' | 'config' | 'player'): Promise<string | null>;
+  chooseFile(kind: 'rclone' | 'config' | 'player' | 'credential'): Promise<string | null>;
   previewTransfer(request: TransferRequest): Promise<CommandPreview>;
   startTransfer(request: TransferRequest): Promise<Job | null>;
   cancelJob(id: string): Promise<void>;
@@ -128,6 +128,8 @@ export interface AppAPI {
   saveSettings(settings: SettingsPatch): Promise<Environment>;
   unlockConfig(password: string): Promise<void>;
   configureRemotes(): Promise<void>;
+  accountConfig(request: AccountRequest): Promise<AccountInfo | AccountSession>;
+  openAccountAuthorization(): Promise<void>;
   openExternal(url: string): Promise<void>;
   exportLog(id: string): Promise<string | null>;
   exportTasks(): Promise<string | null>;
@@ -148,3 +150,8 @@ export const DEFAULT_OPTIONS: TransferOptions = {
   minSize: '', maxSize: '', minAge: '', maxAge: '', maxDepth: -1, connectTimeout: '', ioTimeout: '',
   lowLevelRetries: 10, retrySleep: '', extraArgs: [],
 };
+
+export interface AccountInfo {providers:{name:string;description:string}[];remotes:{name:string;type:string}[];configPath:string;binary:string}
+export interface AccountOption {Name:string;Help:string;Default?:string;Required?:boolean;Exclusive?:boolean;Sensitive?:boolean;IsPassword?:boolean;HasSavedValue?:boolean;Type?:string;Examples?:{Value:string;Help?:string}[]}
+export interface AccountSession {id:string;name:string;mode:'create'|'edit'|'delete';phase:'running'|'question'|'ready'|'error'|'committed'|'cancelled';step:number;question:AccountOption|null;error:string;configPath:string;canOpenBrowser:boolean;tested:boolean}
+export type AccountRequest={action:'info'}|{action:'start';mode:'create'|'edit'|'delete';name:string;provider:string}|{action:'poll'|'cancel'|'commit'|'test';id:string}|{action:'answer';id:string;step:number;value:string;useDefault:boolean};

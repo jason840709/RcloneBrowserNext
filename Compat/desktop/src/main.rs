@@ -13,7 +13,7 @@ use tauri_plugin_dialog::{DialogExt, MessageDialogButtons, MessageDialogKind, Me
 const METHODS: &[&str] = &[
     "bootstrap", "list", "mkdir", "rename", "remove", "size", "chooseFolder", "chooseFile", "previewTransfer",
     "startTransfer", "cancelJob", "retryJob", "listJobs", "clearFinishedJobs", "clearJobs", "saveTask", "deleteTask",
-    "listTasks", "saveSettings", "unlockConfig", "configureRemotes", "openExternal", "exportLog", "getJobReport",
+    "listTasks", "saveSettings", "unlockConfig", "configureRemotes", "accountConfig", "openAccountAuthorization", "openExternal", "exportLog", "getJobReport",
     "exportJobReport", "exportTasks", "importTasks", "checkForUpdates", "checkAppUpdates", "showAbout", "copyText",
     "directoryTree", "exportFileList", "publicLink", "startMount", "startStream", "listToolSessions", "stopToolSession",
 ];
@@ -368,6 +368,7 @@ fn handle(app: &AppHandle, host: &Arc<Host>, request: Request) -> Result<Value, 
             let kind = arg_text(&args, 0)?;
             let title = match kind.as_str() {
                 "rclone" => host.text("選擇 rclone 執行檔", "Choose rclone executable", "rclone 実行ファイルを選択"),
+                "credential" => host.text("選擇憑證檔案", "Choose credential file", "認証ファイルを選択"),
                 "config" => host.text("選擇 rclone 設定檔", "Choose rclone configuration file", "rclone 設定ファイルを選択"),
                 "player" => host.text("選擇播放器執行檔", "Choose player executable", "プレーヤーの実行ファイルを選択"),
                 _ => return Err(host.text("不支援這種檔案類型。", "This file type is not supported.", "このファイル形式には対応していません。")),
@@ -413,6 +414,12 @@ fn handle(app: &AppHandle, host: &Arc<Host>, request: Request) -> Result<Value, 
             let title = if exporting { host.text("匯出作業", "Export tasks", "タスクをエクスポート") } else { host.text("匯入作業", "Import tasks", "タスクをインポート") };
             let Some(path) = choose_file(app, &title, exporting, if exporting { Some("Rclone_Browser_Tasks.json") } else { None })? else { return Ok(Value::Null); };
             host.call(if exporting { "_exportTasks" } else { "_importTasks" }, vec![json!(path.to_string_lossy())])
+        }
+        "accountConfig" => host.call("accountConfig", args),
+        "openAccountAuthorization" => {
+            let value = host.call("_accountAuthorization", vec![])?;
+            let url = value.as_str().ok_or("No authorization is pending")?;
+            open_url(url)?; Ok(Value::Null)
         }
         "configureRemotes" => configure(app, host),
         "openExternal" => {

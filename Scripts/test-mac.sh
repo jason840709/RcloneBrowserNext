@@ -19,7 +19,7 @@ rbn_start_log test
 # Every suite has its own @main. Keep each executable separate and use only
 # Apple's already-installed tools. All compiled tests and data stay here.
 RBN_TEST_RUN="$(/usr/bin/mktemp -d "$RBN_CACHE_ROOT/tests/run.XXXXXX")"
-RBN_TEST_SUITES=(CoreTests UpdaterTests ToolsTests NativeMessagesTests FinderDropTests AppReleaseTests TransferReportTests PlatformTests)
+RBN_TEST_SUITES=(AccountsTests CoreTests UpdaterTests ToolsTests NativeMessagesTests FinderDropTests AppReleaseTests TransferReportTests PlatformTests)
 if [[ "${RBN_NATIVE_TESTS_ONLY:-0}" != 1 ]]; then
 for RBN_TEST_SUITE in "${RBN_TEST_SUITES[@]}"; do
   RBN_TEST_SOURCE="$RBN_PROJECT_ROOT/Tests/$RBN_TEST_SUITE.swift"

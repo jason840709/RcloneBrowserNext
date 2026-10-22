@@ -11,6 +11,7 @@ import Jobs, { jobIsActive } from './Jobs';
 import Tasks from './Tasks';
 import TransferOptionsDialog from './TransferOptions';
 import SettingsDialog from './Settings';
+import AccountSetup from './AccountSetup';
 import ApplicationMenu from './ApplicationMenu';
 import {ToolDialog, ToolSessions, type ToolAction, type ToolTarget} from './Tools';
 import { Dialog, EmptyState, Field, IconButton, Notice, InfoTooltip, FloatingNotice } from './components';
@@ -18,7 +19,7 @@ import { translator, resolveLanguage } from './i18n';
 import { useBrowser } from './useBrowser';
 import { endpointEqual, endpointName, endpointText, errorMessage, formatBytes, validName } from './utils';
 
-type Modal = 'options' | 'settings' | 'saveTask' | 'preview' | 'help' | 'appUpdate' | null;
+type Modal = 'accounts' | 'options' | 'settings' | 'saveTask' | 'preview' | 'help' | 'appUpdate' | null;
 type FileDialog = { kind: Exclude<FileAction, 'remove'>; side: 'left'|'right'; endpoint: Endpoint; oldName?: string; isDir?: boolean };
 const initialSettings: Settings = { rcloneDirectory: '', rclonePath: '', configPath: '', language: 'system', theme: 'purple-dark', interfaceScale: 100, autoCheckUpdates: true, skippedRcloneVersion: '', paneColumnWidths: {}, defaultTransferOptions: DEFAULT_OPTIONS, maxConcurrentJobs: 0, proxyMode: 'system', httpProxy: '', httpsProxy: '', noProxy: '', defaultRcloneOptions: [], initialLocations: {}, savedWorkspace: null, networkOptions: {bindMode: 'auto', bindAddress: '', connectTimeout: '1m', ioTimeout: '5m', tpsLimit: 0, tpsBurst: 1, userAgent: '', disableHTTP2: false}, settingsRevision: 0, settingsSchemaVersion: 7, hiddenBuiltinPresets: [], streamPlayerPath: '', streamPlayerArguments: ['-'], showStatusItem: false, notifyOnCompletion: false, showHiddenFiles: true, showFolderIcons: true, showFileIcons: true, alternatingRows: true };
 function mergeSettings(base: Settings, patch: SettingsPatch): Settings {
@@ -168,11 +169,13 @@ export default function App() {
     saveQueue.current = operation.catch(() => {});
     return operation;
   }, [fetchBootstrap]);
-  const configureAccounts = useCallback(async () => {
+  const configureTerminal = useCallback(async () => {
     await saveQueue.current;
     await window.rclone.configureRemotes();
     showNotice(translator(settingsRef.current.language === 'system' ? systemLanguage.current : settingsRef.current.language)('remoteSetupOpened'));
   }, [showNotice]);
+
+  const configureAccounts = useCallback(async () => { await saveQueue.current; setModal('accounts'); }, []);
 
   const checkEngineUpdates = useCallback(async () => {
     await saveQueue.current;
@@ -390,7 +393,7 @@ export default function App() {
     <FloatingNotice message={error || notice} kind={error ? 'error' : 'success'} serial={noticeSerial} onClose={() => { setError(''); setNotice(''); }}/>
     <main className={`app-main page-${page}`}>
       {page === 'files' && <div className="workspace"><div className="workspace-heading">
-        <div className="workspace-title"><IconButton title={t('settings')} onClick={() => setModal('settings')}><GearSix size={19}/></IconButton><button type="button" className="account-setup-button" onClick={() => void configureAccounts().catch(reason => showError(errorMessage(reason)))} disabled={!ready || pendingSettings > 0}><TerminalWindow size={16}/>{t('configLabel')}</button></div>
+        <div className="workspace-title"><IconButton title={t('settings')} onClick={() => setModal('settings')}><GearSix size={19}/></IconButton><button type="button" className="account-setup-button" onClick={() => void configureAccounts().catch(reason => showError(errorMessage(reason)))} disabled={!ready || pendingSettings > 0}><Cloud size={16}/>{t('configLabel')}</button><button type="button" className="text-button terminal-config-link" title={t('remoteSetupOpened')} onClick={() => void configureTerminal().catch(reason => showError(errorMessage(reason)))} disabled={!ready || pendingSettings > 0}>config</button></div>
         {loadedTask && <div className="loaded-task"><BookBookmark size={14}/><span>{t('loadedTask')}：{loadedTask.name}</span><IconButton title={t('close')} onClick={() => setLoadedTask(null)}><X size={13}/></IconButton></div>}
         <div className="workspace-save-actions" role="group" aria-label={t('workspaceTaskDifference')}>
           <button type="button" disabled={pendingSettings > 0 || left.pathDirty || right.pathDirty || left.loading || right.loading || Boolean(left.error || right.error)} onClick={() => void rememberWorkspace().catch(reason => showError(errorMessage(reason)))}><FloppyDisk size={16}/>{t('rememberWorkspace')}</button>
@@ -411,9 +414,10 @@ export default function App() {
       {page === 'jobs' && <div className="jobs-page-layout"><Jobs jobs={jobs} t={t} language={language} onJobsCleared={removeClearedJobs} onError={showError} onNotice={showNotice} onRetry={upsertJob}/><ToolSessions sessions={toolSessions} t={t} language={language} onError={showError}/></div>}
       {page === 'tasks' && <Tasks tasks={tasks} t={t} language={language} available={ready && pendingSettings === 0} onEdit={editTask} onRun={runTask} onTasksChange={setTasks} onSaveCurrent={() => openSaveTask(true)} onError={showError} onNotice={showNotice}/>}
     </main>
-    <footer className="app-statusbar"><div><span className={`status-dot ${ready ? 'ready' : ''}`}/><span>{ready ? `rclone ${bootstrap.environment.version.replace(/^rclone\s+/i, '')}` : t('notReady')}</span></div><span className="statusbar-center" role={updateStatus?.message ? 'status' : undefined}>{updateStatus?.message || `${bootstrap.remotes.length} ${t('remoteCount')}`}</span><span className="statusbar-version">0.9.1</span></footer>
+    <footer className="app-statusbar"><div><span className={`status-dot ${ready ? 'ready' : ''}`}/><span>{ready ? `rclone ${bootstrap.environment.version.replace(/^rclone\s+/i, '')}` : t('notReady')}</span></div><span className="statusbar-center" role={updateStatus?.message ? 'status' : undefined}>{updateStatus?.message || `${bootstrap.remotes.length} ${t('remoteCount')}`}</span><span className="statusbar-version">0.9.2</span></footer>
 
     {toolTarget && <ToolDialog target={toolTarget} t={t} onClose={() => setToolTarget(null)} onSession={session => { upsertToolSession(session); setPage('jobs'); }}/> }
+    {modal === 'accounts' && <AccountSetup language={language} t={t} onClose={() => setModal(null)} onSettings={saveSettings} onTerminal={configureTerminal} onSaved={async () => { setModal(null); await loadBootstrap(); showNotice(language === 'en' ? 'Account settings saved.' : language === 'ja' ? 'アカウント設定を保存しました。' : '帳號設定已儲存。'); }}/>}
     {modal === 'options' && <TransferOptionsDialog options={options} mode={mode} recommendation={currentRecommendation} hiddenPresets={settings.hiddenBuiltinPresets || []} onRestorePresets={restorePresets} defaults={settings.defaultTransferOptions} t={t} onClose={() => setModal(null)} onSave={(next, nextMode) => { setOptions(next); setMode(nextMode); setActivePreset(null); setError(''); setNotice(''); setModal(null); }} onSaveDefaults={async next => { await saveSettings({defaultTransferOptions: next}); }}/>}
     {modal === 'settings' && <SettingsDialog settings={settings} environment={bootstrap.environment} locations={bootstrap.localLocations || []} remotes={bootstrap.remotes} home={bootstrap.home} pending={pendingSettings > 0} currentLocations={{left: left.endpoint, right: right.endpoint}} currentLocationsValid={!left.pathDirty && !right.pathDirty && !left.error && !right.error} t={t} onSave={saveSettings} onFlush={flushSettings} onReload={() => loadBootstrap()} onConfigure={configureAccounts} onClose={() => setModal(null)}/>}
     {modal === 'saveTask' && editingTask && <TransferOptionsDialog options={editingTask.request.options} mode={editingTask.request.mode} hiddenPresets={settings.hiddenBuiltinPresets || []} onRestorePresets={restorePresets} defaults={settings.defaultTransferOptions} t={t} onClose={() => { setModal(null); setEditingTask(null); }} onSave={() => {}} onSaveDefaults={async next => { await saveSettings({defaultTransferOptions: next}); }} task={{...editingTask, locations: bootstrap.localLocations || [], remotes: bootstrap.remotes, home: bootstrap.home, onSave: saveTask}}/>}

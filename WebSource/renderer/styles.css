@@ -1313,3 +1313,25 @@ body > .app-notice.floating-notice { top: auto; bottom: 42px; }
 .report-raw-message p { padding: 5px 0; font-family: monospace; font-size: 12px; }
 .report-raw-message pre { padding: 8px; max-height: 280px; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; background: var(--surface); border: 1px solid var(--border-subtle); border-radius: 5px; font-size: 11px; user-select: text; -webkit-user-select: text; }
 .report-related-path { color: var(--muted); font-size: 12px; }
+
+/* Account setup uses the installed rclone schema; no provider-specific form layout. */
+.accounts-dialog{width:min(760px,calc(100vw - 32px));max-height:calc(100vh - 40px)}
+.account-body{display:flex;flex-direction:column;gap:18px;overflow-y:auto}
+.account-body h3,.account-body p{margin:0}.account-body form{display:flex;flex-direction:column;gap:16px}
+.account-file-heading{display:flex;flex-wrap:wrap;align-items:flex-start;gap:12px;justify-content:space-between;padding-bottom:14px;border-bottom:1px solid var(--border)}
+.account-file-heading>div{min-width:0;flex:1}.account-file-heading code{display:block;overflow-wrap:anywhere;user-select:text;font-size:12px;color:var(--muted);margin-top:5px}
+.account-list-heading,.account-session-heading,.account-question-heading{display:flex;align-items:center;justify-content:space-between;gap:16px}
+.account-session-heading>span,.account-question-heading>span,.account-engine-note{color:var(--muted);font-size:12px}
+.account-row{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--border)}
+.account-row>div{flex:1;min-width:0}.account-row strong{display:block;overflow-wrap:anywhere}.account-row span{display:block;font-size:12px;color:var(--muted);margin-top:3px}
+.account-question-help{white-space:pre-wrap;line-height:1.65;max-height:220px;overflow:auto;overflow-wrap:anywhere;user-select:text;color:var(--muted)}
+.account-examples{display:grid;gap:7px;max-height:240px;overflow:auto}.account-examples button{height:auto;text-align:left;display:flex;align-items:flex-start;gap:12px;padding:10px}.account-examples span{white-space:pre-wrap}.account-examples code{min-width:80px;overflow-wrap:anywhere}
+.account-keep,.account-inline-actions{display:flex;gap:10px;align-items:center}.account-keep input{width:auto}
+.account-working,.account-ready{display:flex;flex-direction:column;gap:18px;padding:12px 0}.account-working>.progress-bar{height:6px;position:relative;overflow:hidden;border-radius:4px;background:var(--border)}
+.account-working .progress-indicator{display:block;height:100%;width:28%;background:var(--accent);border-radius:4px;animation:account-wait 1.6s ease-in-out infinite alternate}
+.account-working button,.account-ready button{align-self:flex-start}.account-validation{color:var(--error)}
+.account-unlock summary{cursor:pointer;color:var(--muted);font-size:12px}.account-unlock form{margin-top:14px}.account-unlock button{align-self:flex-start}
+.account-engine-note{padding-top:12px;border-top:1px solid var(--border);line-height:1.5}.terminal-config-link{font-size:12px;padding:6px;align-self:center}
+@keyframes account-wait{from{transform:translateX(0)}to{transform:translateX(257.142857%)}}
+@media(prefers-reduced-motion:reduce){.account-working .progress-indicator{animation:none;transform:translateX(128.57%)}}
+@media(max-width:680px){.account-row{flex-wrap:wrap}.account-row>div{min-width:140px}.account-examples code{min-width:50px}}

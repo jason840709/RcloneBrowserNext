@@ -20,3 +20,5 @@ rclone.conf
 __pycache__/
 *.pyc
 
+
+**/.test-results/

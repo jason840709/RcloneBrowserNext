@@ -55,6 +55,10 @@ final class CompatEngineHost {
         // These private methods can only be called by the trusted native host.
         // Its renderer allowlist never forwards a leading underscore.
         switch method {
+        case "accountConfig":
+            guard !tools.hasActiveSessions, !controlLock.holding({ configuring || closing }) else { throw EngineError("請先結束終端機設定或播放，再開啟圖形帳號設定。") }
+            return try engine.invoke(method, arguments: arguments)
+        case "_accountAuthorization": return try engine.accounts.authorizationURL().absoluteString
         case "_preferences":
             return ["settings": engine.settingsSnapshot(), "resolvedLanguage": language]
         case "_state":

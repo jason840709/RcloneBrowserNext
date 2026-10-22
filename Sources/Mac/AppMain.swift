@@ -53,7 +53,7 @@ final class BrowserAppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegat
     private let permittedMethods: Set<String> = [
         "bootstrap", "list", "mkdir", "rename", "remove", "size", "chooseFolder", "chooseFile",
         "previewTransfer", "startTransfer", "cancelJob", "retryJob", "listJobs", "clearFinishedJobs", "clearJobs",
-        "saveTask", "deleteTask", "listTasks", "saveSettings", "unlockConfig", "configureRemotes",
+        "saveTask", "deleteTask", "listTasks", "saveSettings", "unlockConfig", "configureRemotes", "accountConfig", "openAccountAuthorization",
         "openExternal", "exportLog", "getJobReport", "exportJobReport", "exportTasks", "importTasks", "checkForUpdates", "checkAppUpdates", "showAbout",
         "directoryTree", "exportFileList", "publicLink", "startMount", "startStream",
         "listToolSessions", "stopToolSession", "copyText"
@@ -170,7 +170,7 @@ final class BrowserAppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegat
         appMenu.addItem(.separator())
         let settings = NSMenuItem(title: local("設定…", "Settings…", "設定…"), action: #selector(showSettings), keyEquivalent: ",")
         settings.target = self; appMenu.addItem(settings)
-        let accounts = NSMenuItem(title: local("帳號設定（Config）…", "Account setup (Config)…", "アカウント設定（Config）…"), action: #selector(configureFromMenu), keyEquivalent: "")
+        let accounts = NSMenuItem(title: local("帳號設定…", "Account setup…", "アカウント設定…"), action: #selector(configureFromMenu), keyEquivalent: "")
         accounts.target = self; appMenu.addItem(accounts)
         let languageItem = NSMenuItem(title: local("語言", "Language", "言語"), action: nil, keyEquivalent: "")
         let languages = NSMenu(title: languageItem.title)
@@ -252,13 +252,12 @@ final class BrowserAppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegat
     }
     @objc private func configureFromMenu() {
         showWindow()
-        requestQueue.async { [weak self] in
-            do { try self?.configureRemotes() } catch { self?.presentError(error) }
-        }
+        sendEvent(type: "menuAction", data: ["action": "configureRemotes"])
     }
 
     private func applyInterfacePreferences() {
         let settings = engine.settingsSnapshot()
+        if settings["bounceDockOnCompletion"] as? Bool == false { completionAttention.cancel() }
         let zoom = RBNInterfaceScale.zoom(settings["interfaceScale"] as? Int ?? 100)
         if abs(webView.pageZoom - zoom) > 0.0001 { webView.pageZoom = zoom }
         startupSurface?.applyZoom(zoom)
@@ -271,7 +270,7 @@ final class BrowserAppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegat
             let menu = NSMenu()
             for (title, selector) in [(local("顯示視窗", "Show Window", "ウインドウを表示"), #selector(showWindow)),
                                        (local("設定…", "Settings…", "設定…"), #selector(showSettings)),
-                                       (local("帳號設定（Config）…", "Account setup (Config)…", "アカウント設定（Config）…"), #selector(configureFromMenu))] {
+                                       (local("帳號設定…", "Account setup…", "アカウント設定…"), #selector(configureFromMenu))] {
                 let item = NSMenuItem(title: title, action: selector, keyEquivalent: ""); item.target = self; menu.addItem(item)
             }
             menu.addItem(.separator())
@@ -579,7 +578,7 @@ final class BrowserAppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegat
             return chooseFolder(current: argument(0) as? String) as Any? ?? NSNull()
         case "chooseFile":
             let kind = try EngineJSON.text(argument(0), "檔案類型")
-            guard ["rclone", "config", "player"].contains(kind) else { throw EngineError("檔案類型不正確。") }
+            guard ["rclone", "config", "player", "credential"].contains(kind) else { throw EngineError("檔案類型不正確。") }
             return chooseFile(kind: kind) as Any? ?? NSNull()
         case "startTransfer":
             return try withOperationStartup {
@@ -642,6 +641,13 @@ final class BrowserAppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegat
             guard ((attributes[.size] as? NSNumber)?.intValue ?? Int.max) <= 8 * 1024 * 1024 else { throw EngineError("作業檔超過 8 MiB，請縮小後再匯入。") }
             let object = try JSONSerialization.jsonObject(with: Data(contentsOf: source))
             return try engine.invoke("importTasks", arguments: [object])
+        case "accountConfig":
+            guard !toolsManager.hasActiveSessions, !activityLock.holding({ configuringRemotes || updateInstalling || terminationValue }) else { throw EngineError("請先結束終端機設定或播放，再開啟圖形帳號設定。") }
+            return try engine.invoke(method, arguments: arguments)
+        case "openAccountAuthorization":
+            let url = try engine.accounts.authorizationURL()
+            guard onMain({ NSWorkspace.shared.open(url) }) else { throw EngineError("無法開啟瀏覽器。") }
+            return NSNull()
         case "configureRemotes":
             try configureRemotes()
             return NSNull()
@@ -828,7 +834,7 @@ final class BrowserAppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegat
         onMain {
             guard !terminationStarted else { return nil }
             let panel = NSOpenPanel()
-            panel.title = kind == "player" ? local("選擇播放器", "Choose player", "プレーヤーを選択") : kind == "rclone" ? local("選擇 rclone 執行檔", "Choose rclone executable") : local("選擇 rclone 設定檔", "Choose rclone configuration")
+            panel.title = kind == "credential" ? local("選擇憑證檔案", "Choose credential file", "認証ファイルを選択") : kind == "player" ? local("選擇播放器", "Choose player", "プレーヤーを選択") : kind == "rclone" ? local("選擇 rclone 執行檔", "Choose rclone executable") : local("選擇 rclone 設定檔", "Choose rclone configuration")
             if kind == "player" { panel.message = local("選擇已安裝的 mpv、VLC 或支援從標準輸入讀取內容的播放器。", "Choose an installed mpv, VLC, or a player that can read standard input.", "インストール済みの mpv、VLC、または標準入力に対応するプレーヤーを選択してください。") }
             panel.treatsFilePackagesAsDirectories = false
             panel.canChooseDirectories = false

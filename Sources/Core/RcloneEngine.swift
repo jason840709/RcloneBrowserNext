@@ -46,6 +46,12 @@ final class RcloneEngine {
     private var configurationChanging = false
     private var closing = false
     private var configPassword: String?
+    private let accountLock = NSLock()
+    private var accountService: RBNAccountConfiguration?
+    var accounts: RBNAccountConfiguration { accountLock.holding {
+        if accountService == nil { accountService = RBNAccountConfiguration(engine: self) }
+        return accountService!
+    } }
     private var callback: (([String: Any]) -> Void)?
     private var scheduledNotifications: [String: DispatchWorkItem] = [:]
     private var persistScheduled = false
@@ -261,6 +267,7 @@ final class RcloneEngine {
         }
         func text(_ index: Int, _ name: String = "參數") throws -> String { try EngineJSON.text(argument(index), name, maximum: 32768) }
         switch method {
+        case "accountConfig": return try accounts.handle(argument(0))
         case "bootstrap": return try bootstrap()
         case "environment", "refreshEnvironment": return try withOperation { try detectEnvironment() }
         case "list": return try list(EngineEndpoint(argument(0)))
@@ -1437,6 +1444,7 @@ final class RcloneEngine {
     }
 
     func shutdown() {
+        accountLock.holding { accountService }?.shutdown()
         let children: [Process] = stateLock.holding {
             closing = true
             for item in scheduledNotifications.values { item.cancel() }; scheduledNotifications.removeAll()

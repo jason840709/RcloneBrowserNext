@@ -20,36 +20,33 @@ import Foundation
         _ = NSApplication.shared
         var requests = [NSApplication.RequestUserAttentionType]()
         var cancellations = [Int]()
-        var clock: TimeInterval = 10
-        let attention = RBNCompletionAttention(clock: { clock }, request: {
+        let attention = RBNCompletionAttention(request: {
             requests.append($0); return requests.count
         }, cancel: { cancellations.append($0) })
-        check("background completion requests short informational Dock attention") {
+        check("background completion requests persistent Dock attention until activation") {
             try expect(attention.consume(job("done"), enabled: true, isActive: false, isTerminating: false), "new completion")
-            try expect(requests == [.informationalRequest], "must never use criticalRequest")
+            try expect(requests == [.criticalRequest], "must use the persistent AppKit request")
         }
         check("duplicate terminal events do not repeat attention or banners") {
             try expect(!attention.consume(job("done"), enabled: true, isActive: false, isTerminating: false), "duplicate")
             try expect(requests.count == 1, "duplicate attention")
         }
         check("parallel completions within a second share the ongoing bounce") {
-            clock = 10.4
             try expect(attention.consume(job("parallel"), enabled: true, isActive: false, isTerminating: false), "banner remains eligible")
             try expect(requests.count == 1, "do not restart ongoing bounce")
         }
-        check("failed transfers can request attention after the previous bounce") {
-            clock = 12
+        check("later failures share the still-unacknowledged attention request") {
             try expect(attention.consume(job("failed", "failed"), enabled: true, isActive: false, isTerminating: false), "failure")
-            try expect(requests.count == 2 && cancellations == [1], "replace outstanding request")
+            try expect(requests.count == 1 && cancellations.isEmpty, "do not replace the persistent request")
         }
         check("foreground completion never bounces or steals focus") {
             try expect(attention.consume(job("front"), enabled: true, isActive: true, isTerminating: false), "foreground banner")
-            try expect(requests.count == 2, "foreground attention")
+            try expect(requests.count == 1, "foreground attention")
         }
         check("Dock switch off does not disable the independent banner path") {
             try expect(attention.consume(job("disabled"), enabled: false, isActive: false, isTerminating: false), "banner eligible")
             try expect(!attention.consume(job("disabled"), enabled: true, isActive: false, isTerminating: false), "no replay on enable")
-            try expect(requests.count == 2, "disabled attention")
+            try expect(requests.count == 1, "disabled attention")
         }
         check("preview success and preview failure stay silent") {
             for state in ["completed", "failed"] {
@@ -66,7 +63,12 @@ import Foundation
         }
         check("activation or termination cancels outstanding attention idempotently") {
             attention.cancel(); attention.cancel()
-            try expect(cancellations == [1, 2], "cancel once per outstanding request")
+            try expect(cancellations == [1], "cancel once per outstanding request")
+        }
+        check("a new background completion can request attention after acknowledgement") {
+            _ = attention.consume(job("after-activation"), enabled: true, isActive: false, isTerminating: false)
+            try expect(requests == [.criticalRequest, .criticalRequest], "request again for a new job")
+            attention.cancel()
         }
         check("invalid requests cannot create attention") {
             for event: [String: Any] in [[:], ["id": "bad", "status": "completed"], job("")] {

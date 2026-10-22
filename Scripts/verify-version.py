@@ -44,10 +44,14 @@ def main():
     }
     # These additional Windows implementation blobs are pinned to the released
     # r1 tag, rather than duplicating them into a second platform source tree.
-    for path in ['Sources/Compat/WindowsLocalFileSystem.swift','Sources/Compat/CompatMain.swift','Scripts/native/WindowsRcloneLauncher.c']:
+    for path in ['Sources/Compat/WindowsLocalFileSystem.swift','Scripts/native/WindowsRcloneLauncher.c']:
         pinned[path]=git('rev-parse','windows-v0.9.0-r1:'+path)
     for path, blob in pinned.items():
         require(git('hash-object','--path='+path,path)==blob,'Verified Windows filesystem changed: '+path)
+    compat_addition='        case "accountConfig":\n            guard !tools.hasActiveSessions, !controlLock.holding({ configuring || closing }) else { throw EngineError("請先結束終端機設定或播放，再開啟圖形帳號設定。") }\n            return try engine.invoke(method, arguments: arguments)\n        case "_accountAuthorization": return try engine.accounts.authorizationURL().absoluteString\n'
+    baseline=git('show','windows-v0.9.0-r1:Sources/Compat/CompatMain.swift')
+    require(text('Sources/Compat/CompatMain.swift').replace(compat_addition,'').strip()==baseline,
+            'Compatibility host changed outside the reviewed account routes')
     result={'passed':True,'version':version,'macBuild':plist['CFBundleVersion'],
             'sourceCommit':git('rev-parse','HEAD'),'windowsFilesystemUnchanged':True,'windowsFilesystemBlobs':pinned}
     if args.output:

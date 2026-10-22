@@ -71,6 +71,8 @@ export function installNativeBridge(): void {
     if (event.type === 'menuAction') for (const callback of menuActions) callback(event.data);
   };
   const api: AppAPI = {
+    accountConfig: request => call('accountConfig',request),
+    openAccountAuthorization: () => call('openAccountAuthorization'),
     showAbout: () => call('showAbout'),
     onFinderDrop: callback => { finderDrops.add(callback); return () => { finderDrops.delete(callback); }; },
     copyText: text => call('copyText', text),
