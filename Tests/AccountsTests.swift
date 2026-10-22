@@ -27,7 +27,13 @@ import Glibc
   func cancel(_ r:[String:Any])throws{_=try wait(call(["action":"cancel","id":r["id"]!]))}
   func finish(_ r:[String:Any],_ path:String?=nil)throws->[String:Any]{try answer(answer(r,path),"false")}
   test("live provider schema and selected path without credential dump"){
-   let r=try call(["action":"info"]);try check((r["providers"] as? [[String:Any]])?.contains{$0["name"] as? String == "drive"} == true,"Drive missing");try check(r["configPath"] as? String == config.path,"Wrong config")
+   let r=try call(["action":"info"]);try check((r["providers"] as? [[String:Any]])?.contains{$0["name"] as? String == "drive"} == true,"Drive missing")
+   guard let reportedPath=r["configPath"] as? String else{throw EngineError("Missing config path")}
+   try check(EnginePlatform.absoluteLocalPath(reportedPath),"Config path is not absolute")
+   // rclone uses Windows backslashes, while Foundation URL.path can use
+   // forward slashes. Compare the resolved file, not its path spelling.
+   try check(try EngineStorage.canonicalLocal(reportedPath)==EngineStorage.canonicalLocal(config.path),"Wrong config: \(reportedPath) (expected \(config.path))")
+   try check(try Data(contentsOf:URL(fileURLWithPath:reportedPath))==original,"Selected config contents differ")
   }
   test("new account staged until explicit commit; real alias connection test"){
    let r=try begin("new-alias");try check((r["question"] as? [String:Any])?["Name"] as? String == "remote","Wrong question")

@@ -7,7 +7,7 @@ macOS is the primary platform. The compatibility editions reuse the bundled web 
 - **Windows x64:** use [0.9.2](https://github.com/jason840709/RcloneBrowserNext/releases/tag/v0.9.2) and run `Rclone_Browser_Next_0.9.2_Windows_x64_Setup.exe`. Installation is per user and preserves existing application settings. If WebView2 is absent, the installer downloads Microsoft's official Evergreen bootstrapper. The installer includes the Swift runtime; Swift, Rust and Node.js are not needed to run the app.
 - **Ubuntu 24.04 amd64:** install `Rclone_Browser_Next_0.9.2_Linux_amd64.deb` with your package installer or `sudo apt install ./Rclone_Browser_Next_0.9.2_Linux_amd64.deb`. The package includes Swift runtime libraries and declares its WebKitGTK, GTK, ICU and other system dependencies. Other distributions require matching dependencies or a source build.
 
-In Settings, choose an existing rclone executable or an installation folder for the app's rclone downloader. Account setup opens rclone's interactive configuration in a terminal. Existing rclone configuration files can be selected directly.
+In Settings, choose an existing rclone executable or an installation folder for the app's rclone downloader. Account setup opens the graphical questionnaire; the adjacent `config` link opens the traditional terminal configuration. Existing rclone configuration files can be selected directly.
 
 Mac-specific Finder integration, status-bar controls and mount integration are available in the macOS edition. The compatibility editions focus on the file-transfer workflow. Windows packages do not have an Authenticode signature; macOS packages use ad-hoc signatures. Release checksums are supplied separately.
 

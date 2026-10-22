@@ -128,7 +128,7 @@ Runtime icons are cached by purple, blue or green family. `RBNAppIconAppearance.
 
 The engine updater and app release checker are separate components. The app checker fetches only the configured public repository's `releases/latest` JSON endpoint. It validates full stable release metadata, caps the body size, rejects redirects and unexpected release links, and reports 404 as no available published release. It needs no GitHub credential. It opens a verified release page only after a user action and does not self-replace the app.
 
-Release tags use `vMAJOR.MINOR.PATCH`. Update `RBNProject.version`, `Resources/Info.plist` (marketing and build versions), `Scripts/common-mac.sh`, WebSource package and lockfile versions, the status-bar version, Compat CLI package and lockfile, Compat Cargo package and lockfile, `tauri.conf.json` and release documentation together. Change only the app's own package version in lockfiles. The workflow publishes a new version pushed to `main` after the platform and native-interface checks pass. A `work/0.9.1` push runs the same checks without publishing a release.
+Release tags use `vMAJOR.MINOR.PATCH`. Update `RBNProject.version`, `Resources/Info.plist` (marketing and build versions), `Scripts/common-mac.sh`, WebSource package and lockfile versions, the status-bar version, Compat CLI package and lockfile, Compat Cargo package and lockfile, `tauri.conf.json` and release documentation together. Change only the app's own package version in lockfiles. The workflow publishes a new version pushed to `main` after the platform and native-interface checks pass. A `work/0.9.2` push runs the same checks without publishing a release.
 
 ## Verification
 

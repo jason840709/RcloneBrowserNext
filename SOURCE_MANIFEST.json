@@ -1,7 +1,7 @@
 {
   "version": "0.9.2",
   "file_count_excluding_manifest": 239,
-  "total_bytes_excluding_manifest": 7640752,
+  "total_bytes_excluding_manifest": 7642739,
   "files": {
     ".github/workflows/macos.yml": {
       "bytes": 19219,
@@ -136,12 +136,12 @@
       "sha256": "f91c2bfcb1423973c04aab64fe1bddb1f40cd498562d4697b134c8b3a386544f"
     },
     "README.en.md": {
-      "bytes": 8149,
-      "sha256": "a68a9fae96a21f5c9505317ab35a7dc09508fcc4200266ad572f0718459295e4"
+      "bytes": 8223,
+      "sha256": "9e3ebb8d9c26328d41d22f6121a3f4b75b66a63fb70ee370027363710549df1a"
     },
     "README.md": {
-      "bytes": 7310,
-      "sha256": "b7d0314994b6975dc075bd0b65b238076cb4983181b57ee1d7dc37b1568dce8a"
+      "bytes": 7358,
+      "sha256": "1a036f6c11b18db4ad6dc69f3365e28556bf7db5ad4d627fe26246df2b7d8512"
     },
     "README.zh-TW.md": {
       "bytes": 471,
@@ -388,8 +388,8 @@
       "sha256": "25fd55b230ddf1b385448bf91b3ae2411a2dd39cddb2e06f65e1590a2f50ed24"
     },
     "Tests/AccountsTests.swift": {
-      "bytes": 9925,
-      "sha256": "0b8c03609170068eb87dae83d53549ffdbfed26631b6ef53b386883232d1c8db"
+      "bytes": 10469,
+      "sha256": "398932303602f47e82bc05e24b3092714bb13c020185c07a1fe966d49c9461c3"
     },
     "Tests/AppReleaseTests.swift": {
       "bytes": 7428,
@@ -772,20 +772,20 @@
       "sha256": "8fcf7be016a431d6ed8d72395627274197d2eae19b2250bec9befda823d66976"
     },
     "docs/BUILD_COMPATIBILITY.md": {
-      "bytes": 4096,
-      "sha256": "26b470c9d39ecfd68be7ec1ac69b028d3f2949afdba1997fc9abfb29b4acf994"
+      "bytes": 4148,
+      "sha256": "2c384ed36ec7dc8fcd323a2de9472e82decc78d870dc9b24ccb197c3c74cc545"
     },
     "docs/BUILD_MAC.zh-TW.md": {
       "bytes": 8839,
       "sha256": "7c4a510f37b008d8de9d9855c304aa5e124505ccbff220858e5a1f0f35b6f360"
     },
     "docs/CHANGELOG.zh-TW.md": {
-      "bytes": 11037,
-      "sha256": "c69ef2e5d9149bd589722911325e6f10e9c3af7fd8a17cce1d930e9cd9deb047"
+      "bytes": 11565,
+      "sha256": "896c16ecf7d9ef3b22194df2691f8f70957705d6335776ede40d49883a209466"
     },
     "docs/DEVELOPMENT.md": {
       "bytes": 23106,
-      "sha256": "7cec95d327193d4baf72b0283107b92044b252ce63e956a059723aeb21e0e960"
+      "sha256": "6efea2d0bbe62db47b57f75e9b0a4f02329fb49d99706d89b98eac1f371525e3"
     },
     "docs/FEATURE_MATRIX.zh-TW.md": {
       "bytes": 7764,
@@ -856,12 +856,12 @@
       "sha256": "2fdd02fe35dd130fe7118f47bc2b2c00863531a18e0789a43faffdece5aa7d77"
     },
     "docs/USER_GUIDE.zh-TW.md": {
-      "bytes": 23126,
-      "sha256": "54a189f4e566dad7030f5a4db7e9f95a36e847c8861ab29f88ca67a933ab5f74"
+      "bytes": 23077,
+      "sha256": "07f00c25ffd9f8c432715da11232f2e092b2b39be11658f59753146eab3590a8"
     },
     "docs/VALIDATION.zh-TW.md": {
-      "bytes": 1965,
-      "sha256": "d9d089de022410d0afbd1dc5a98f0a9625260312a2f16d9fffb400dde5428185"
+      "bytes": 2755,
+      "sha256": "34dc845703019b0b5482127190881a7e8bf822382bb4abab6b1746c88b0d82e6"
     },
     "docs/VALIDATION_0.6.0.zh-TW.md": {
       "bytes": 12820,
