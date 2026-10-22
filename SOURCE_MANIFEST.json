@@ -1,7 +1,7 @@
 {
   "version": "0.9.2",
   "file_count_excluding_manifest": 239,
-  "total_bytes_excluding_manifest": 7640771,
+  "total_bytes_excluding_manifest": 7640789,
   "files": {
     ".github/workflows/macos.yml": {
       "bytes": 19219,
@@ -276,8 +276,8 @@
       "sha256": "6ab0c53395088f59b94eee85498425514f6865e64469e215571c0b633e3bfb1d"
     },
     "Scripts/verify-version.py": {
-      "bytes": 4518,
-      "sha256": "64c6c2553f9ff5ac85b39fa52cf6bb3408299d37d3ab55ec4818f5049b71c108"
+      "bytes": 4536,
+      "sha256": "4eaa2e3cb8858ac8571ddf60f3b6a1ca41b96e931f22b6537985fa45905be3d4"
     },
     "Scripts/windows/prepare-baseline.py": {
       "bytes": 10713,

@@ -13,7 +13,7 @@ def require(value, message):
     if not value: raise AssertionError(message)
 def text(path): return (ROOT / path).read_text(encoding='utf-8')
 def load(path): return json.loads(text(path))
-def git(*args): return subprocess.check_output(['git', *args], cwd=ROOT, text=True).strip()
+def git(*args): return subprocess.check_output(['git', *args], cwd=ROOT, text=True, encoding='utf-8').strip()
 
 def main():
     parser=argparse.ArgumentParser(description=__doc__); parser.add_argument('--output',type=Path); args=parser.parse_args()
