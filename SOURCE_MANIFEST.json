@@ -1,7 +1,7 @@
 {
   "version": "0.9.1",
   "file_count_excluding_manifest": 232,
-  "total_bytes_excluding_manifest": 7558699,
+  "total_bytes_excluding_manifest": 7538844,
   "files": {
     ".github/workflows/macos.yml": {
       "bytes": 18018,
@@ -144,8 +144,8 @@
       "sha256": "b7d0314994b6975dc075bd0b65b238076cb4983181b57ee1d7dc37b1568dce8a"
     },
     "README.zh-TW.md": {
-      "bytes": 21567,
-      "sha256": "bcfbe24ab25a03410ce0a354a56a420ea629a1f57199d76c7ddf4307bf08fade"
+      "bytes": 471,
+      "sha256": "4a203904e3277327ff1720b53db8814b5e3f175314289dfdd657e18df12e4ba9"
     },
     "Resources/AppIcon-blue.icns": {
       "bytes": 628142,
@@ -276,8 +276,8 @@
       "sha256": "6ab0c53395088f59b94eee85498425514f6865e64469e215571c0b633e3bfb1d"
     },
     "Scripts/verify-version.py": {
-      "bytes": 3500,
-      "sha256": "f9e2e2066ce03a9cca1e2c994c6e262f08d87a287d38a4f09f00ba977c81d926"
+      "bytes": 3882,
+      "sha256": "71178d3dabdd33e37d0c182b61774d21c7f7e972e56666829480e36aca2d15d5"
     },
     "Scripts/windows/prepare-baseline.py": {
       "bytes": 10713,
@@ -748,8 +748,8 @@
       "sha256": "8fcf7be016a431d6ed8d72395627274197d2eae19b2250bec9befda823d66976"
     },
     "docs/BUILD_COMPATIBILITY.md": {
-      "bytes": 3914,
-      "sha256": "d03cb4d9cd626dbf66b6fa05fe5b1e0a81ec3007028e69827c2ed429208b5615"
+      "bytes": 4096,
+      "sha256": "d99d81188bfbceae0412fd641a1f0d068d35c5ffa3c8f826296e7beb97d5c03e"
     },
     "docs/BUILD_MAC.zh-TW.md": {
       "bytes": 8839,
@@ -809,7 +809,7 @@
     },
     "docs/RELEASE_0.9.1.md": {
       "bytes": 2532,
-      "sha256": "9d8bc711c1025eda201283873ea822941a8034e19d5f914d11c988a201813bcc"
+      "sha256": "17df4f83418dfed318bfa79eca0be77dd0522b62575ec0284d8afc47dae3d76e"
     },
     "docs/RESEARCH_0.5.0.md": {
       "bytes": 10720,
@@ -828,8 +828,8 @@
       "sha256": "2fdd02fe35dd130fe7118f47bc2b2c00863531a18e0789a43faffdece5aa7d77"
     },
     "docs/USER_GUIDE.zh-TW.md": {
-      "bytes": 21502,
-      "sha256": "7535a76a1b4ba05ca711299d6e64c10ea84830fd1db83266ef32adea4774d589"
+      "bytes": 22179,
+      "sha256": "d6287162f723c21391dcfc82cbf77fc0f885bb036d6ed6d4767a1bf8e84ceb92"
     },
     "docs/VALIDATION.zh-TW.md": {
       "bytes": 1965,

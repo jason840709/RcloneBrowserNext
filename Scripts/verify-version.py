@@ -33,6 +33,11 @@ def main():
     config=load('Compat/desktop/tauri.conf.json'); windows=load('Compat/desktop/tauri.windows.conf.json')
     require(config['version']==version and config['identifier']=='org.rclone.browser.next','Compatibility version/identity differs')
     require('version' not in windows and windows['bundle']['windows']['allowDowngrades'] is False,'Windows must inherit the unified version and reject downgrades')
+    instructions=text('docs/BUILD_COMPATIBILITY.md')
+    for suffix in ['Windows_x64_Setup.exe','Linux_amd64.deb','Source.zip']:
+        require(f'Rclone_Browser_Next_{version}_{suffix}' in instructions,
+      'Current installation instructions reference another version: '+suffix)
+    require(f'releases/tag/v{version}' in instructions,'Current installation release link differs')
     pinned={
         'Sources/Core/EngineModels.swift':'2b4e3b156274b607778ca68e3bfd18e3583e6773',
         'Sources/Core/EngineStorage.swift':'b9baea9703c1ebfd75b211a6e16c40931fccd760',
