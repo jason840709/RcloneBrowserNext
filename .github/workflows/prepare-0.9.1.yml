@@ -1,73 +1,44 @@
-name: Prepare application source objects
+name: Refresh reviewed source inventory
 on:
   push:
     branches: ['prepare/0.9.1']
 permissions:
   contents: write
-  actions: read
 jobs:
-  source:
+  inventory:
     runs-on: ubuntu-24.04
-    timeout-minutes: 10
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@v7
         with:
-          ref: 167be06a8ef7660e959d7c457c284b7c2626dd0d
+          ref: 30d5be65ba9bf997fabdcf8c07fe64a8c5c3d6e2
           fetch-depth: 0
           persist-credentials: false
-      - uses: actions/download-artifact@v8
-        with:
-          name: RcloneBrowserNext-Prepared-0.9.1
-          run-id: 39721128379
-          github-token: ${{ github.token }}
-          path: .build-cache/input
-      - name: Record reviewed application source without modifying workflows or branches
+      - name: Refresh only the source inventory
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          python3 Scripts/update-source-manifest.py
           python3 - <<'PY'
-          from pathlib import Path,PurePosixPath
-          import hashlib,json,subprocess,zipfile
-          root=Path('.build-cache/input')
-          archive=root/'source.zip'
-          assert hashlib.sha256(archive.read_bytes()).hexdigest()=='b97b7635b4f06494141dc19589e6a7e4720803157798a6075ad6b6c45422daef'
-          base='167be06a8ef7660e959d7c457c284b7c2626dd0d'
-          repo='repos/jason840709/RcloneBrowserNext'
-          def git(*args): return subprocess.check_output(['git',*args])
-          assert git('rev-parse','HEAD').decode().strip()==base
-          original={}
-          for line in git('ls-tree','-r','-z',base).split(b'\0'):
-              if line:
-                  metadata,name=line.split(b'\t'); mode,kind,sha=metadata.decode().split()
-                  assert kind=='blob'
-                  original[name.decode()]=(mode,sha)
-          entries=[];names=set()
-          with zipfile.ZipFile(archive) as z:
-              for item in z.infolist():
-                  if item.is_dir(): continue
-                  name=item.filename;p=PurePosixPath(name)
-                  assert not p.is_absolute() and '..' not in p.parts and name not in names
-                  names.add(name)
-                  if name.startswith('.github/'): continue
-                  raw=z.read(item);sha=hashlib.sha1(b'blob '+str(len(raw)).encode()+b'\0'+raw).hexdigest()
-                  mode='100755' if (item.external_attr>>16)&0o111 else '100644'
-                  if original.get(name)==(mode,sha): continue
-                  entries.append({'path':name,'mode':mode,'type':'blob','content':raw.decode('utf-8')})
-          for name,(mode,sha) in original.items():
-              if name not in names and not name.startswith('.github/'):
-                  entries.append({'path':name,'mode':mode,'type':'blob','sha':None})
-          assert entries and all(not e['path'].startswith('.github/') for e in entries)
-          output=Path('.build-cache/source-review');output.mkdir(parents=True,exist_ok=True)
-          tree_input=output/'tree-input.json'
-          tree_input.write_text(json.dumps({'base_tree':git('rev-parse',base+'^{tree}').decode().strip(),'tree':entries},ensure_ascii=False))
-          tree=json.loads(subprocess.check_output(['gh','api','--method','POST',repo+'/git/trees','--input',str(tree_input)]))
-          tree_input.unlink()
-          receipt={'applicationTree':tree['sha'],'parent':base,'workflowFilesChanged':False,'branchesChanged':False,'sourceArchiveSHA256':hashlib.sha256(archive.read_bytes()).hexdigest(),'filesChanged':len(entries)}
-          (output/'application-tree.json').write_text(json.dumps(receipt,indent=2)+'\n')
-          print(json.dumps(receipt,indent=2))
+          import json,subprocess,hashlib
+          from pathlib import Path
+          base='30d5be65ba9bf997fabdcf8c07fe64a8c5c3d6e2'
+          def git(*args): return subprocess.check_output(['git',*args],text=True).strip()
+          assert git('rev-parse','HEAD')==base
+          assert git('diff','--name-only')=='SOURCE_MANIFEST.json'
+          raw=Path('SOURCE_MANIFEST.json').read_text()
+          data=json.loads(raw)
+          assert data['version']=='0.9.1'
+          assert data['files']['WebSource/tests/revision091.spec.ts']['sha256']=='9287bef834ae097f81a5e8a3b441fbf852e55074d73825ff602b1f48c8fbe263'
+          payload=json.dumps({'base_tree':git('rev-parse','HEAD^{tree}'),'tree':[{'path':'SOURCE_MANIFEST.json','mode':'100644','type':'blob','content':raw}]})
+          tree=json.loads(subprocess.check_output(['gh','api','--method','POST','repos/jason840709/RcloneBrowserNext/git/trees','--input','-'],input=payload,text=True))
+          Path('.build-cache/inventory').mkdir(parents=True,exist_ok=True)
+          result={'sourceParent':base,'tree':tree['sha'],'manifestSHA256':hashlib.sha256(raw.encode()).hexdigest(),'onlyChange':'SOURCE_MANIFEST.json'}
+          Path('.build-cache/inventory/result.json').write_text(json.dumps(result,indent=2)+'\n')
+          print(json.dumps(result,indent=2))
           PY
       - uses: actions/upload-artifact@v7
         with:
-          name: RcloneBrowserNext-Application-tree-0.9.1
-          path: .build-cache/source-review/application-tree.json
+          name: RcloneBrowserNext-Inventory-0.9.1
+          path: .build-cache/inventory/result.json
           if-no-files-found: error
