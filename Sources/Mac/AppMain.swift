@@ -49,6 +49,7 @@ final class BrowserAppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegat
     private var pageReady = false
     private var pendingIDs = Set<String>()
     private var queuedEvents = [[String: Any]]()
+    private var returnedAccountAuthorizationID: String?
 
     private let permittedMethods: Set<String> = [
         "bootstrap", "list", "mkdir", "rename", "remove", "size", "chooseFolder", "chooseFile",
@@ -643,7 +644,17 @@ final class BrowserAppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegat
             return try engine.invoke("importTasks", arguments: [object])
         case "accountConfig":
             guard !toolsManager.hasActiveSessions, !activityLock.holding({ configuringRemotes || updateInstalling || terminationValue }) else { throw EngineError("請先結束終端機設定或播放，再開啟圖形帳號設定。") }
-            return try engine.invoke(method, arguments: arguments)
+            let result = try engine.invoke(method, arguments: arguments)
+            if let state = result as? [String: Any], state["authorizationStarted"] as? Bool == true,
+               let phase = state["phase"] as? String, ["question", "ready", "committed", "error"].contains(phase),
+               let id = state["id"] as? String {
+                onMain {
+                    guard self.returnedAccountAuthorizationID != id else { return }
+                    self.returnedAccountAuthorizationID = id
+                    self.showWindow()
+                }
+            }
+            return result
         case "openAccountAuthorization":
             let url = try engine.accounts.authorizationURL()
             guard onMain({ NSWorkspace.shared.open(url) }) else { throw EngineError("無法開啟瀏覽器。") }

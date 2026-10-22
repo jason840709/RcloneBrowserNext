@@ -41,6 +41,12 @@ BASELINES = {
         "bytes": 17043504,
         "sha256": "d943ee8a30e5bb8e16ad8a2c1edd20645c3cef733378ea8a1a7890de0f886780",
     },
+    "0.9.2": {
+        "releaseID": 420637119,
+        "assetID": 665649118,
+        "bytes": 17092733,
+        "sha256": "ffd4f515ba9103f46c540274a086f0ebd9ea4c31eaa850725507d04b70ccaa85",
+    },
 }
 
 

@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""Verify the repair's installed files, versions and 0.9.0 upgrade on disposable CI.
+"""Verify installed files, versions and published-baseline upgrades on disposable CI.
 
 The fresh phase leaves its app installed for the filesystem and WebView2 probes.
 The upgrade phase removes only that owned installation, installs the pinned
-published 0.9.0, saves synthetic settings/tasks through its real helper, and
+published baseline, saves synthetic settings/tasks through its real helper, and
 upgrades it in place. Raw before/after snapshots and their hashes are retained.
 No Swift SDK or compiler is needed by this verifier or its child processes.
 """
@@ -326,7 +326,7 @@ def reject_lower_revision(candidate, directory, state, evidence):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--phase", choices=["fresh", "upgrade"], required=True)
-    parser.add_argument("--baseline", choices=["0.9.0", "0.9.0-r1"], default="0.9.0-r1")
+    parser.add_argument("--baseline", choices=["0.9.0", "0.9.0-r1", "0.9.2"], default="0.9.0-r1")
     parser.add_argument("--candidate", type=Path, required=True)
     parser.add_argument("--receipt", type=Path, required=True)
     parser.add_argument("--rclone", type=Path, required=True)
@@ -379,7 +379,10 @@ def main():
             baseline, report["baselineInstaller"] = baseline_installer(evidence, args.baseline)
             report["baselineInstallerExitCode"] = run_installer(baseline, directory, evidence / "upgrade-baseline-installer.log")
             report["upgradeFrom"] = args.baseline
-            old = validate_installed(directory, "0.9.0+1" if args.baseline == "0.9.0-r1" else "0.9.0", [0, 9, 0, 1 if args.baseline == "0.9.0-r1" else 0])
+            baseline_version = "0.9.0+1" if args.baseline == "0.9.0-r1" else args.baseline
+            baseline_core, _, baseline_revision = baseline_version.partition("+")
+            baseline_numeric = [int(part) for part in baseline_core.split(".")] + [int(baseline_revision or "0")]
+            old = validate_installed(directory, baseline_version, baseline_numeric)
             fixture = OWNED_CACHE / "upgrade-fixture"
             fixture.mkdir()
             (fixture / "empty-engine").mkdir()
@@ -393,6 +396,8 @@ def main():
             settings = {"rclonePath": str(rclone), "rcloneDirectory": str(rclone.parent), "configPath": str(config),
                         "autoCheckUpdates": False, "language": "ja", "theme": "blue-light", "interfaceScale": 125,
                         "initialLocations": {"left": {"remote": None, "path": source.as_posix()}, "right": {"remote": "upgrade-alias", "path": ""}}}
+            if args.baseline == "0.9.2":
+                settings["bounceDockOnCompletion"] = False
             transfer = {"source": {"remote": None, "path": source.as_posix()}, "destination": {"remote": "upgrade-alias", "path": ""},
                         "mode": "copy", "selection": [{"name": "keep.txt", "isDir": False}], "dryRun": True,
                         "options": {"comparison": "default", "localHashPolicy": "none", "transfers": 2, "checkers": 4, "bandwidth": "7M"}}
@@ -419,7 +424,8 @@ def main():
             client = StateClient(paths["engine"], state, fixture, evidence, "upgrade-new")
             try:
                 actual_boot, actual_tasks = client.call("bootstrap"), client.call("listTasks")
-                require(actual_boot["settings"] == {**expected_boot["settings"], "bounceDockOnCompletion": True}, "The upgraded helper changed existing settings or lost the new default")
+                default_settings = {"bounceDockOnCompletion": True}
+                require(actual_boot["settings"] == {**default_settings, **expected_boot["settings"]}, "The upgraded helper changed existing settings or lost the new default")
                 require(actual_tasks == expected_tasks and len(actual_tasks) == 1, "The upgraded helper did not reload the saved task")
                 require(actual_boot["environment"]["available"] is True and actual_boot["resolvedLanguage"] == "ja", "The upgraded helper lost the configured engine or language")
             finally:
@@ -430,7 +436,8 @@ def main():
             report["tasksPreservedByteForByte"] = True
             report["configurationPreservedByteForByte"] = True
             report["savedStateReloadedByInstalledHelper"] = True
-            report["newDefaultSettings"] = {"bounceDockOnCompletion": True}
+            report["newDefaultSettings"] = {key: value for key, value in default_settings.items()
+                                             if key not in expected_boot["settings"]}
             report["downgradeGuard"] = reject_lower_revision(candidate, directory, state, evidence)
             validate_installed(directory, VERSION, NUMERIC_VERSION, package)
             report["installedExecutables"] = after["installedExecutables"]

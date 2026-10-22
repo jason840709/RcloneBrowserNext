@@ -80,7 +80,7 @@ App 另有「檢查 Rclone Next 更新」，查詢本專案的正式 Release，�
 
 1. 到 [最新發布頁](https://github.com/jason840709/RcloneBrowserNext/releases/latest) 下載本機建置包，完整解壓縮。
 2. 雙擊 `Build-on-Mac.command`，在同一個資料夾產生並開啟 App。
-3. 在設定選擇 **rclone 安裝位置**，使用既有引擎或下載到所選資料夾；透過 **帳號設定** 的圖形介面加入遠端連線，再選好左右位置並預演。旁邊的 **config** 保留終端機設定。
+3. 在設定選擇 **rclone 安裝位置**，使用既有引擎或下載到所選資料夾。開啟 **帳號設定 → 快速設定**，輸入自訂名稱並選擇服務；Google Drive、OneDrive、Dropbox 使用瀏覽器登入，完成後新增帳號。伺服器依服務填入必要的位址和登入資料。自訂選項放在 **詳細設定**，旁邊的 **config** 保留終端機設定。
 
 建置不會自行安裝開發工具、Homebrew、Node.js 或 rclone；編譯快取與產物留在專案資料夾。
 App 採 **ad-hoc 本機簽章**，尚未取得 Developer ID 簽章與 Apple 公證；若下載後遭到 Gatekeeper 阻擋，請依 [Mac 建置說明](docs/BUILD_MAC.zh-TW.md) 操作。

@@ -7,7 +7,7 @@ RBN_CACHE_ROOT="$RBN_PROJECT_ROOT/.build-cache"
 RBN_APP_PATH="$RBN_PROJECT_ROOT/Rclone Browser Next.app"
 RBN_BUNDLE_ID="org.rclone.browser.next.lite"
 RBN_EXECUTABLE="RcloneBrowserNext"
-RBN_VERSION="0.9.2"
+RBN_VERSION="0.9.3"
 RBN_MINIMUM_MACOS="13.0"
 
 rbn_fail() {

@@ -36,6 +36,7 @@ struct Host {
     runtime: PathBuf,
     smoke_path: Option<PathBuf>,
     smoke_finished: AtomicBool,
+    returned_account_authorization: Mutex<Option<String>>,
 }
 
 impl Host {
@@ -63,7 +64,8 @@ impl Host {
         let host = Arc::new(Self { input: Mutex::new(input), child: Mutex::new(child), pending: Mutex::new(HashMap::new()),
             sequence: AtomicU64::new(1), settings: Mutex::new(Value::Null), alive: AtomicBool::new(true),
             quitting: AtomicBool::new(false), update_busy: AtomicBool::new(false), startup_checked: AtomicBool::new(false),
-            state_path, runtime, smoke_path, smoke_finished: AtomicBool::new(false) });
+            state_path, runtime, smoke_path, smoke_finished: AtomicBool::new(false),
+            returned_account_authorization: Mutex::new(None) });
         let weak = Arc::downgrade(&host); let app = app.clone();
         thread::spawn(move || {
             let mut reader = BufReader::new(output);
@@ -415,7 +417,30 @@ fn handle(app: &AppHandle, host: &Arc<Host>, request: Request) -> Result<Value, 
             let Some(path) = choose_file(app, &title, exporting, if exporting { Some("Rclone_Browser_Tasks.json") } else { None })? else { return Ok(Value::Null); };
             host.call(if exporting { "_exportTasks" } else { "_importTasks" }, vec![json!(path.to_string_lossy())])
         }
-        "accountConfig" => host.call("accountConfig", args),
+        "accountConfig" => {
+            let result = host.call("accountConfig", args)?;
+            if result["authorizationStarted"].as_bool() == Some(true) &&
+                matches!(result["phase"].as_str(), Some("question" | "ready" | "committed" | "error")) {
+                if let Some(id) = result["id"].as_str() {
+                    let should_return = {
+                        let mut returned = host.returned_account_authorization.lock().unwrap();
+                        if returned.as_deref() == Some(id) { false }
+                        else { *returned = Some(id.to_owned()); true }
+                    };
+                    if should_return {
+                        let handle = app.clone();
+                        let _ = app.run_on_main_thread(move || {
+                            if let Some(window) = handle.get_webview_window("main") {
+                                let _ = window.unminimize();
+                                let _ = window.show();
+                                let _ = window.set_focus();
+                            }
+                        });
+                    }
+                }
+            }
+            Ok(result)
+        }
         "openAccountAuthorization" => {
             let value = host.call("_accountAuthorization", vec![])?;
             let url = value.as_str().ok_or("No authorization is pending")?;

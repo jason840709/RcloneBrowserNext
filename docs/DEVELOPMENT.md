@@ -71,6 +71,8 @@ Saved task requests retain source/destination semantics and optional left/right 
 
 Settings changes are validated and persisted before success is reported. Connection-affecting settings cannot change during active transfer, mount, stream, account setup or engine replacement. Renderer refreshes must consume the successful settings snapshot, not a stale form draft.
 
+Account setup defaults to a short form with browser authorization. Detailed setup batches ordinary fields and folds advanced options. Native `AccountSetupPolicy` answers only schema-backed fields and reviewed OAuth questions; validation, unknown required choices and repeated states return to the UI. Quick create explicitly authorizes an atomic save after completion; editing and detailed setup retain explicit Save. Both share the same staged-config and external-edit checks. See [Account configuration](ACCOUNT_CONFIGURATION.md) for the protocol, password representation and browser lifecycle.
+
 ## Navigation and progress
 
 Each folder request has a generation number. Keep the previous successful listing mounted while a newer request is loading; disable its selection, opening, drag and file-action controls. Commit only the latest successful result. A failed request shows its error card for the requested path and does not expose the previous listing as that path's files.
@@ -128,7 +130,7 @@ Runtime icons are cached by purple, blue or green family. `RBNAppIconAppearance.
 
 The engine updater and app release checker are separate components. The app checker fetches only the configured public repository's `releases/latest` JSON endpoint. It validates full stable release metadata, caps the body size, rejects redirects and unexpected release links, and reports 404 as no available published release. It needs no GitHub credential. It opens a verified release page only after a user action and does not self-replace the app.
 
-Release tags use `vMAJOR.MINOR.PATCH`. Update `RBNProject.version`, `Resources/Info.plist` (marketing and build versions), `Scripts/common-mac.sh`, WebSource package and lockfile versions, the status-bar version, Compat CLI package and lockfile, Compat Cargo package and lockfile, `tauri.conf.json` and release documentation together. Change only the app's own package version in lockfiles. The workflow publishes a new version pushed to `main` after the platform and native-interface checks pass. A `work/0.9.2` push runs the same checks without publishing a release.
+Release tags use `vMAJOR.MINOR.PATCH`. Update `RBNProject.version`, `Resources/Info.plist` (marketing and build versions), `Scripts/common-mac.sh`, WebSource package and lockfile versions, the status-bar version, Compat CLI package and lockfile, Compat Cargo package and lockfile, `tauri.conf.json` and release documentation together. Change only the app's own package version in lockfiles. The workflow publishes a new version pushed to `main` after the platform and native-interface checks pass. A `work/0.9.3` push runs the same checks without publishing a release.
 
 ## Verification
 

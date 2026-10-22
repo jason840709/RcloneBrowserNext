@@ -151,7 +151,22 @@ export const DEFAULT_OPTIONS: TransferOptions = {
   lowLevelRetries: 10, retrySleep: '', extraArgs: [],
 };
 
-export interface AccountInfo {providers:{name:string;description:string}[];remotes:{name:string;type:string}[];configPath:string;binary:string}
-export interface AccountOption {Name:string;Help:string;Default?:string;Required?:boolean;Exclusive?:boolean;Sensitive?:boolean;IsPassword?:boolean;HasSavedValue?:boolean;Type?:string;Examples?:{Value:string;Help?:string}[]}
-export interface AccountSession {id:string;name:string;mode:'create'|'edit'|'delete';phase:'running'|'question'|'ready'|'error'|'committed'|'cancelled';step:number;question:AccountOption|null;error:string;configPath:string;canOpenBrowser:boolean;tested:boolean}
-export type AccountRequest={action:'info'}|{action:'start';mode:'create'|'edit'|'delete';name:string;provider:string}|{action:'poll'|'cancel'|'commit'|'test';id:string}|{action:'answer';id:string;step:number;value:string;useDefault:boolean};
+export type AccountSetupMode = 'quick' | 'detailed';
+export interface AccountOption {
+  Name:string; Help:string; Default?:unknown; DefaultStr?:string; Required?:boolean;
+  Exclusive?:boolean; Sensitive?:boolean; IsPassword?:boolean; HasSavedValue?:boolean;
+  Type?:string; Advanced?:boolean; Provider?:string; Hide?:number;
+  Examples?:{Value:string;Help?:string;Provider?:string}[];
+}
+export interface AccountProvider {name:string;description:string;quickSetup:boolean;options:AccountOption[]}
+export interface AccountInfo {providers:AccountProvider[];remotes:{name:string;type:string}[];configPath:string;binary:string;requiresUnlock:boolean}
+export interface AccountSession {
+  id:string; name:string; provider:string; mode:'create'|'edit'|'delete'; setup:AccountSetupMode; autoSave:boolean;
+  phase:'running'|'question'|'ready'|'error'|'committed'|'cancelled'; step:number;
+  question:AccountOption|null; error:string; configPath:string; canOpenBrowser:boolean;
+  authorizationStarted?:boolean; tested:boolean; needsInputReason?:string;
+}
+export type AccountRequest = {action:'info'} |
+  {action:'start';mode:'create'|'edit'|'delete';name:string;provider:string;setup?:AccountSetupMode;fields?:Record<string,string>;useSharedClient?:boolean;autoSave?:boolean} |
+  {action:'poll'|'cancel'|'commit'|'test';id:string} |
+  {action:'answer';id:string;step:number;value:string;useDefault:boolean};

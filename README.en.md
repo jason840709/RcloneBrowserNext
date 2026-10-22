@@ -80,7 +80,7 @@ Requires **macOS 13 or later**. Local builds use an existing **Xcode or Apple Co
 
 1. Download the local build package from the [latest release](https://github.com/jason840709/RcloneBrowserNext/releases/latest) and extract the complete folder.
 2. Double-click `Build-on-Mac.command`. It creates and opens the app in the same folder.
-3. Choose the **rclone installation location** in Settings, using an existing engine or downloading it into your selected folder. Add remotes through the graphical **Account setup**, choose both locations and run a preview. The adjacent **config** link keeps terminal configuration available.
+3. Choose the **rclone installation location** in Settings, using an existing engine or downloading it into your selected folder. Open **Account setup → Quick setup**, enter a nickname and choose a service. Google Drive, OneDrive and Dropbox use browser sign-in; server connections request their necessary address and credentials. Custom options are grouped under **Detailed setup**, and the adjacent **config** link keeps terminal configuration available. Choose both locations and run a preview before transferring files.
 
 The build does not install developer tools, Homebrew, Node.js or rclone. Build caches and outputs stay inside the project folder.
 App bundles use an **ad-hoc signature**, without Developer ID signing or Apple notarization. If Gatekeeper blocks a download, follow the [Mac build guide](docs/BUILD_MAC.zh-TW.md).
