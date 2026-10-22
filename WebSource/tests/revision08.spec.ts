@@ -24,47 +24,81 @@ async function historySetup(page: Page) {
   for (const name of ['A', 'B', 'C', 'D', 'E', 'F']) await navigate(page, 'left', `/Users/test/${name}`);
 }
 
-test('folder navigation retains the table until success and cannot operate on its old rows', async ({page}) => {
+test('folder navigation retains the table until success and cannot operate on its old rows', async ({page}, testInfo) => {
   await open(page);
-  const left = pane(page), oldTable = await left.locator('.file-table').elementHandle();
+  const left = pane(page);
+  const oldFolder = left.locator('tr').filter({has: page.locator('.file-name', {hasText: /^Documents$/})});
+  // aria-busy=false means the data arrived; the virtual table must also have
+  // rendered its initial rows before navigation frame sampling starts.
+  await expect(oldFolder).toBeVisible();
+  const oldTable = await left.locator('.file-table').elementHandle();
   await page.evaluate(() => {
     const w = window as any;
     w.__fixture.listings['/Users/test/Next'] = [{name: 'Next-only.txt', path: 'Next-only.txt', size: 42, modified: '2026-10-20T12:00:00Z', isDir: false}];
-    w.__fixture.delays.list = [450];
+    // Hold the native result until every pending-state interaction is checked.
+    // A fixed timeout can finish navigation midway through those assertions.
+    const send = w.webkit.messageHandlers.rclone.postMessage, reply = w.__rbnReply;
+    let listingID = '';
+    w.webkit.messageHandlers.rclone.postMessage = (message: any) => {
+      if (message.method === 'list' && message.args[0].path === '/Users/test/Next') listingID = message.id;
+      send(message);
+    };
+    w.__rbnReply = (message: any) => {
+      if (message.id === listingID) {w.__heldListingReply = message; return;}
+      reply(message);
+    };
+    w.__releaseNextListing = () => {
+      w.webkit.messageHandlers.rclone.postMessage = send; w.__rbnReply = reply;
+      w.__listingReleaseTime ??= performance.now();
+      const held = w.__heldListingReply; w.__heldListingReply = null;
+      if (held) reply(held);
+    };
     w.__listingFrames = []; w.__sampleListing = true;
     const sample = () => {
       const element = document.querySelector('[data-testid="left-pane"]')!;
-      w.__listingFrames.push({rows: element.querySelectorAll('.file-name').length, skeleton: Boolean(element.querySelector('.file-loading'))});
+      w.__listingFrames.push({at: performance.now(), rows: element.querySelectorAll('.file-name').length, skeleton: Boolean(element.querySelector('.file-loading')),
+        busy: element.querySelector('.file-list')?.getAttribute('aria-busy'), path: element.querySelector<HTMLInputElement>('.path-form input')?.value,
+        table: Boolean(element.querySelector('.file-table')), bodyRows: element.querySelectorAll('.file-table tbody tr').length,
+        replyReleasedAt: w.__listingReleaseTime ?? null});
       if (w.__sampleListing) requestAnimationFrame(sample);
     };
     requestAnimationFrame(sample);
   });
-  const countBefore = await page.evaluate(() => (window as any).__fixture.calls.filter((call: any) => call.method === 'list').length);
-  await navigate(page, 'left', '/Users/test/Next', false);
-  await expect(left.locator('.file-list')).toHaveAttribute('aria-busy', 'true');
-  expect(await oldTable!.evaluate(element => element.isConnected)).toBe(true);
-  await expect(left.locator('.file-loading')).toHaveCount(0);
-  const oldFolder = left.locator('tr').filter({has: page.locator('.file-name', {hasText: /^Documents$/})});
-  await expect(oldFolder).toBeVisible();
-  await expect(left.getByRole('checkbox', {name: `${t('selected')} Documents`, exact: true})).toBeDisabled();
-  await oldFolder.dispatchEvent('dblclick');
-  await oldFolder.dispatchEvent('keydown', {key: 'Enter', bubbles: true});
-  await oldFolder.dispatchEvent('keydown', {key: 'Delete', bubbles: true});
-  await left.dispatchEvent('keydown', {key: 'a', ctrlKey: true, bubbles: true});
-  expect(await oldFolder.evaluate(row => ['dragstart', 'contextmenu'].map(type => {
-    const event = new MouseEvent(type, {bubbles: true, cancelable: true}); row.dispatchEvent(event); return event.defaultPrevented;
-  }))).toEqual([true, true]);
-  await expect(page.locator('.start-button')).toBeDisabled();
-  await expect(pathInput(page)).toHaveValue('/Users/test/Next');
-  expect(await page.evaluate(() => (window as any).__fixture.calls.filter((call: any) => call.method === 'list').length)).toBe(countBefore + 1);
-  await expect(left.locator('.file-list')).toHaveAttribute('aria-busy', 'false');
-  await expect(left.locator('.file-name')).toHaveText(['Next-only.txt']);
-  await expect(left.getByRole('checkbox', {name: `${t('selected')} Next-only.txt`, exact: true})).toBeEnabled();
-  const frames = await page.evaluate(() => {const w = window as any; w.__sampleListing = false; return w.__listingFrames as {rows: number; skeleton: boolean}[];});
+  let frames: {rows: number; skeleton: boolean}[] = [];
+  try {
+    const countBefore = await page.evaluate(() => (window as any).__fixture.calls.filter((call: any) => call.method === 'list').length);
+    await navigate(page, 'left', '/Users/test/Next', false);
+    await expect(left.locator('.file-list')).toHaveAttribute('aria-busy', 'true');
+    expect(await oldTable!.evaluate(element => element.isConnected)).toBe(true);
+    await expect(left.locator('.file-loading')).toHaveCount(0);
+    await expect(oldFolder).toBeVisible();
+    await expect(left.getByRole('checkbox', {name: `${t('selected')} Documents`, exact: true})).toBeDisabled();
+    await oldFolder.dispatchEvent('dblclick');
+    await oldFolder.dispatchEvent('keydown', {key: 'Enter', bubbles: true});
+    await oldFolder.dispatchEvent('keydown', {key: 'Delete', bubbles: true});
+    await left.dispatchEvent('keydown', {key: 'a', ctrlKey: true, bubbles: true});
+    expect(await oldFolder.evaluate(row => ['dragstart', 'contextmenu'].map(type => {
+      const event = new MouseEvent(type, {bubbles: true, cancelable: true}); row.dispatchEvent(event); return event.defaultPrevented;
+    }))).toEqual([true, true]);
+    await expect(page.locator('.start-button')).toBeDisabled();
+    await expect(pathInput(page)).toHaveValue('/Users/test/Next');
+    expect(await page.evaluate(() => (window as any).__fixture.calls.filter((call: any) => call.method === 'list').length)).toBe(countBefore + 1);
+    await expect.poll(() => page.evaluate(() => (window as any).__listingFrames.filter((frame: any) => frame.busy === 'true').length)).toBeGreaterThan(3);
+    await expect.poll(() => page.evaluate(() => Boolean((window as any).__heldListingReply))).toBe(true);
+    await page.evaluate(() => (window as any).__releaseNextListing());
+    await expect(left.locator('.file-list')).toHaveAttribute('aria-busy', 'false');
+    await expect(left.locator('.file-name')).toHaveText(['Next-only.txt']);
+    await expect(left.getByRole('checkbox', {name: `${t('selected')} Next-only.txt`, exact: true})).toBeEnabled();
+    await expect(pane(page, 'right').locator('.file-name').first()).toBeVisible();
+    expect(await page.evaluate(() => (window as any).__fixture.calls.some((call: any) => ['startTransfer', 'remove', 'rename', 'mkdir', 'startStream'].includes(call.method)))).toBe(false);
+  } finally {
+    // Restore the native bridge and preserve diagnostics even if an earlier
+    // assertion fails. No pending result is left behind when the test exits.
+    frames = await page.evaluate(() => {const w = window as any; w.__releaseNextListing(); w.__sampleListing = false; return w.__listingFrames;}).catch(() => []);
+    await testInfo.attach('listing-frames', {body: JSON.stringify(frames, null, 2), contentType: 'application/json'});
+  }
   expect(frames.length).toBeGreaterThan(3);
-  expect(frames.every(frame => frame.rows > 0 && !frame.skeleton)).toBe(true);
-  await expect(pane(page, 'right').locator('.file-name').first()).toBeVisible();
-  expect(await page.evaluate(() => (window as any).__fixture.calls.some((call: any) => ['startTransfer', 'remove', 'rename', 'mkdir', 'startStream'].includes(call.method)))).toBe(false);
+  expect(frames.every(frame => frame.rows > 0 && !frame.skeleton), JSON.stringify(frames.filter(frame => frame.rows === 0 || frame.skeleton))).toBe(true);
 });
 
 test('latest folder request wins and an empty successful folder does not become a loading skeleton', async ({page}) => {

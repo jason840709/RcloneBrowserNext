@@ -1,7 +1,7 @@
 {
   "version": "0.9.3",
   "file_count_excluding_manifest": 241,
-  "total_bytes_excluding_manifest": 7775364,
+  "total_bytes_excluding_manifest": 7777597,
   "files": {
     ".github/workflows/macos.yml": {
       "bytes": 19242,
@@ -732,8 +732,8 @@
       "sha256": "60d0d7af39b77062d94337a70d50e325b92f9434323f46235798dd0964393123"
     },
     "WebSource/tests/revision08.spec.ts": {
-      "bytes": 13561,
-      "sha256": "71a1e5b5d87af9cf2cf3d7d0546c37aff51b09e1d52f33cf90e99e99c118c1af"
+      "bytes": 15794,
+      "sha256": "8e8756d899eda682153819b919cd7300c5f5d12ce1f633dd374a8083e7f3c26e"
     },
     "WebSource/tests/revision081-navigation.spec.ts": {
       "bytes": 5773,
