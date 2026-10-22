@@ -1,44 +1,69 @@
-name: Refresh reviewed source inventory
+name: Align unified installation documentation
 on:
   push:
     branches: ['prepare/0.9.1']
 permissions:
   contents: write
 jobs:
-  inventory:
+  documentation:
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v7
         with:
-          ref: 30d5be65ba9bf997fabdcf8c07fe64a8c5c3d6e2
+          ref: 4344005bc16960d92cce687a5d9432cee58cff47
           fetch-depth: 0
           persist-credentials: false
-      - name: Refresh only the source inventory
+      - name: Update the reviewed installation instructions
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('docs/BUILD_COMPATIBILITY.md')
+          s=p.read_text().replace('Windows revision 1 uses a Windows-native local filesystem adapter.','Windows includes the native filesystem adapter validated in 0.9.0 revision 1.')
+          s=s.replace('Rclone_Browser_Next_0.8.1_Linux_amd64.deb','Rclone_Browser_Next_0.9.1_Linux_amd64.deb')
+          s=s.replace('Windows revision 1 is published separately as a prerelease so the Mac stable update endpoint remains unchanged. Existing Windows installations need the direct download above; the old stable update checker will not suggest this platform revision.', 'Mac, Windows and Linux now use stable 0.9.1. The old Windows R1 prerelease remains available as historical material; new installations and upgrades should use the unified release. The stable update checker can discover 0.9.1 on all platforms.')
+          s=s.replace('## Build\n', '## Build\n\nUse `Rclone_Browser_Next_0.9.1_Source.zip` from the same release, or check out tag `v0.9.1`. The package includes the prebuilt web interface and all platform build scripts.\n')
+          p.write_text(s)
+          p=Path('README.zh-TW.md')
+          p.write_text('# Rclone Browser Next\n\n繁體中文專案介紹已集中在 [README](README.md)，完整操作說明在 [使用手冊](docs/USER_GUIDE.zh-TW.md)。本頁保留舊連結入口，避免另外維護兩份內容相同的手冊。\n\n[下載正式版](https://github.com/jason840709/RcloneBrowserNext/releases/latest) · [Mac 建置](docs/BUILD_MAC.zh-TW.md) · [Windows／Linux 安裝與建置](docs/BUILD_COMPATIBILITY.md) · [驗證方式與結果](docs/VALIDATION.zh-TW.md)\n')
+          p=Path('docs/USER_GUIDE.zh-TW.md')
+          s=p.read_text().replace('0.7.0 另提供 Windows／Linux [相容版安裝包](BUILD_COMPATIBILITY.md)。','Mac、Windows 與 Linux 現在統一為 0.9.1；Windows／Linux 使用[相容版安裝包](BUILD_COMPATIBILITY.md)。')
+          s+='\n\n## 0.9.1 的完成提示與讀取進度\n\nMac 的「設定 → 介面 → 背景執行」新增「在背景完成或失敗時，讓 Dock 圖示跳動提示」，預設開啟。程式在背景完成或失敗時會短暫提示；目前正在操作程式、預演或取消工作時不跳動。它與通知橫幅分開，不需要先取得通知權限。\n\n三平台在掃描與比對、尚未取得可計算的總量時，進度條會顯示往返移動的短色塊。取得總量後顯示百分比，工作結束後停止動畫。排隊中的工作顯示等待狀態；系統選擇減少動態效果時，改用固定色塊和狀態文字。\n'
+          p.write_text(s)
+          p=Path('docs/RELEASE_0.9.1.md');p.write_text(p.read_text().replace('設定 → 介面 → 背景行為','設定 → 介面 → 背景執行'))
+          p=Path('Scripts/verify-version.py')
+          s=p.read_text().replace('    pinned={', '''    instructions=text('docs/BUILD_COMPATIBILITY.md')
+              for suffix in ['Windows_x64_Setup.exe','Linux_amd64.deb','Source.zip']:
+                  require(f'Rclone_Browser_Next_{version}_{suffix}' in instructions,
+                          'Current installation instructions reference another version: '+suffix)
+              require(f'releases/tag/v{version}' in instructions,'Current installation release link differs')
+              pinned={'''.replace('\n          ', '\n'))
+          p.write_text(s)
+          PY
+          python3 Scripts/update-source-manifest.py
+          python3 Scripts/verify-version.py
+          git diff --check
+      - name: Return a source tree without changing workflows or branches
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          python3 Scripts/update-source-manifest.py
           python3 - <<'PY'
-          import json,subprocess,hashlib
+          import json,subprocess
           from pathlib import Path
-          base='30d5be65ba9bf997fabdcf8c07fe64a8c5c3d6e2'
           def git(*args): return subprocess.check_output(['git',*args],text=True).strip()
+          base='4344005bc16960d92cce687a5d9432cee58cff47'
           assert git('rev-parse','HEAD')==base
-          assert git('diff','--name-only')=='SOURCE_MANIFEST.json'
-          raw=Path('SOURCE_MANIFEST.json').read_text()
-          data=json.loads(raw)
-          assert data['version']=='0.9.1'
-          assert data['files']['WebSource/tests/revision091.spec.ts']['sha256']=='9287bef834ae097f81a5e8a3b441fbf852e55074d73825ff602b1f48c8fbe263'
-          payload=json.dumps({'base_tree':git('rev-parse','HEAD^{tree}'),'tree':[{'path':'SOURCE_MANIFEST.json','mode':'100644','type':'blob','content':raw}]})
-          tree=json.loads(subprocess.check_output(['gh','api','--method','POST','repos/jason840709/RcloneBrowserNext/git/trees','--input','-'],input=payload,text=True))
+          names=git('diff','--name-only').splitlines()
+          assert set(names)=={'docs/BUILD_COMPATIBILITY.md','README.zh-TW.md','docs/USER_GUIDE.zh-TW.md','docs/RELEASE_0.9.1.md','Scripts/verify-version.py','SOURCE_MANIFEST.json'}
+          entries=[{'path':name,'mode':'100644','type':'blob','content':Path(name).read_text()} for name in names]
+          payload=json.dumps({'base_tree':git('rev-parse','HEAD^{tree}'),'tree':entries},ensure_ascii=False)
+          result=json.loads(subprocess.check_output(['gh','api','--method','POST','repos/jason840709/RcloneBrowserNext/git/trees','--input','-'],input=payload,text=True))
           Path('.build-cache/inventory').mkdir(parents=True,exist_ok=True)
-          result={'sourceParent':base,'tree':tree['sha'],'manifestSHA256':hashlib.sha256(raw.encode()).hexdigest(),'onlyChange':'SOURCE_MANIFEST.json'}
-          Path('.build-cache/inventory/result.json').write_text(json.dumps(result,indent=2)+'\n')
-          print(json.dumps(result,indent=2))
+          Path('.build-cache/inventory/result.json').write_text(json.dumps({'sourceParent':base,'tree':result['sha'],'changedFiles':names},indent=2)+'\n')
+          print('APPLICATION_TREE='+result['sha'])
           PY
       - uses: actions/upload-artifact@v7
         with:
-          name: RcloneBrowserNext-Inventory-0.9.1
+          name: RcloneBrowserNext-Documentation-0.9.1
           path: .build-cache/inventory/result.json
           if-no-files-found: error
