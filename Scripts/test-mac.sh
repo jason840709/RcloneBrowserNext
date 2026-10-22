@@ -46,12 +46,13 @@ fi
 # Native zoom, startup pixels and navigation need the actual macOS WebKit
 # engine. Run every native suite so one failure does not hide the others.
 RBN_NATIVE_FAILURES=0
-for RBN_NATIVE_SUITE in MacInterfaceTests MacStartupTests MacIconTests MacNavigationIntegrationTests; do
+for RBN_NATIVE_SUITE in MacInterfaceTests MacStartupTests MacIconTests MacNavigationIntegrationTests MacCompletionTests; do
   RBN_NATIVE_SOURCE="$RBN_PROJECT_ROOT/Tests/$RBN_NATIVE_SUITE.swift"
   [[ -s "$RBN_NATIVE_SOURCE" && ! -L "$RBN_NATIVE_SOURCE" ]] || rbn_fail "來源包缺少測試檔案：$RBN_NATIVE_SOURCE" 2
   RBN_NATIVE_SOURCES=("$RBN_PROJECT_ROOT/Sources/Mac/RcloneWebView.swift")
   RBN_NATIVE_ARGS=("$RBN_PROJECT_ROOT/Resources")
   case "$RBN_NATIVE_SUITE" in
+    MacCompletionTests) RBN_NATIVE_SOURCES=("$RBN_PROJECT_ROOT/Sources/Mac/CompletionAttention.swift") ;;
     MacStartupTests) RBN_NATIVE_SOURCES+=("$RBN_PROJECT_ROOT/Sources/Mac/StartupSurface.swift") ;;
     MacIconTests)
       RBN_NATIVE_SOURCES=("$RBN_PROJECT_ROOT/Sources/Mac/AppIconAppearance.swift")

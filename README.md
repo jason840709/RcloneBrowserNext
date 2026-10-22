@@ -19,7 +19,7 @@
   <a href="https://github.com/jason840709/RcloneBrowserNext/issues">回報問題</a>
 </p>
 
-0.9.0 對齊兩階段啟動畫面，重排外觀選項與儲存按鈕，並整理傳輸說明。**Mac 仍是主要開發平台**，另提供 Windows x64 與 Linux amd64 相容版。[本版更新](docs/RELEASE_0.9.0.md) · [相容版安裝](docs/BUILD_COMPATIBILITY.md)
+**Mac 是主要開發平台**，另提供 Windows x64 與 Linux amd64 相容版；三平台使用同一個正式版本。[下載與更新說明](https://github.com/jason840709/RcloneBrowserNext/releases/latest) · [相容版安裝](docs/BUILD_COMPATIBILITY.md)
 
 ## 這是什麼？
 

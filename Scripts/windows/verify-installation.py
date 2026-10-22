@@ -17,6 +17,7 @@ import importlib.util
 import json
 import os
 import platform
+import plistlib
 import queue
 import shutil
 import struct
@@ -30,7 +31,9 @@ import traceback
 ROOT = Path(__file__).resolve().parents[2]
 APP_ID = "org.rclone.browser.next"
 PRODUCT = "Rclone Browser Next"
-VERSION = "0.9.0+1"
+VERSION = plistlib.loads((ROOT / "Resources/Info.plist").read_bytes())["CFBundleShortVersionString"]
+NUMERIC_VERSION = [int(part) for part in VERSION.split(".")] + [0]
+HIGHER_VERSION = ".".join(map(str, [NUMERIC_VERSION[0], NUMERIC_VERSION[1], NUMERIC_VERSION[2] + 1]))
 UNINSTALL_KEY = r"Software\Microsoft\Windows\CurrentVersion\Uninstall\Rclone Browser Next"
 OWNED_CACHE = ROOT / ".build-cache/windows-candidate-install"
 
@@ -274,17 +277,18 @@ class StateClient:
             raise error
 
 
-def baseline_installer(evidence):
+def baseline_installer(evidence, baseline):
     spec = importlib.util.spec_from_file_location("rbn_baseline", Path(__file__).with_name("prepare-baseline.py"))
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
-    with module.request(f"https://api.github.com/repos/{module.REPOSITORY}/releases/tags/v0.9.0") as response:
+    tag = module.BASELINES[baseline].get("tag", "v" + baseline)
+    with module.request(f"https://api.github.com/repos/{module.REPOSITORY}/releases/tags/{tag}") as response:
         raw = response.read(1024 * 1024 + 1)
     require(len(raw) <= 1024 * 1024, "Unexpectedly large baseline release metadata")
     (evidence / "upgrade-baseline-release.json").write_bytes(raw)
-    asset = module.validate_release(json.loads(raw), "0.9.0")
+    asset = module.validate_release(json.loads(raw), baseline)
     installer = OWNED_CACHE / asset["name"]
-    module.download_installer(asset, installer, module.BASELINES["0.9.0"])
+    module.download_installer(asset, installer, module.BASELINES[baseline])
     return installer, {**metadata(installer), "assetID": asset["id"], "apiDigest": asset["digest"],
                        "knownReleaseHashVerified": True, "apiDigestVerified": True}
 
@@ -301,18 +305,18 @@ def reject_lower_revision(candidate, directory, state, evidence):
         for record in records:
             view = winreg.KEY_WOW64_32KEY if record["view"] == "32" else winreg.KEY_WOW64_64KEY
             with winreg.OpenKey(winreg.HKEY_CURRENT_USER, UNINSTALL_KEY, 0, winreg.KEY_SET_VALUE | view) as key:
-                winreg.SetValueEx(key, "DisplayVersion", 0, winreg.REG_SZ, "0.9.0+2")
+                winreg.SetValueEx(key, "DisplayVersion", 0, winreg.REG_SZ, HIGHER_VERSION)
             changed.append(view)
         code = run_installer(candidate, directory, evidence / "downgrade-rejected.log", allow_failure=True)
         after = snapshot(directory, state, installed=True)
         write_json(evidence / "downgrade-after.json", after)
-        require(code != 0, "NSIS accepted a silent downgrade from +2 to +1")
-        require(all(item["DisplayVersion"] == "0.9.0+2" for item in after["registration"]), "A rejected downgrade changed registration")
+        require(code != 0, "NSIS accepted a silent downgrade from the simulated higher version")
+        require(all(item["DisplayVersion"] == HIGHER_VERSION for item in after["registration"]), "A rejected downgrade changed registration")
         for name in before["installedExecutables"]:
             require(before["installedExecutables"][name]["sha256"] == after["installedExecutables"][name]["sha256"], "A rejected downgrade changed an installed executable")
         require(before["stateFiles"] == after["stateFiles"], "A rejected downgrade changed saved state")
-        return {"passed": True, "installerExitCode": code, "simulatedInstalledDisplayVersion": "0.9.0+2",
-                "candidateVersion": VERSION, "scope": "The owned registry DisplayVersion is raised temporarily; no r2 app is claimed to be installed"}
+        return {"passed": True, "installerExitCode": code, "simulatedInstalledDisplayVersion": HIGHER_VERSION,
+                "candidateVersion": VERSION, "scope": "The owned registry DisplayVersion is raised temporarily; no newer application is claimed to be installed"}
     finally:
         for view in changed:
             with winreg.OpenKey(winreg.HKEY_CURRENT_USER, UNINSTALL_KEY, 0, winreg.KEY_SET_VALUE | view) as key:
@@ -322,6 +326,7 @@ def reject_lower_revision(candidate, directory, state, evidence):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--phase", choices=["fresh", "upgrade"], required=True)
+    parser.add_argument("--baseline", choices=["0.9.0", "0.9.0-r1"], default="0.9.0-r1")
     parser.add_argument("--candidate", type=Path, required=True)
     parser.add_argument("--receipt", type=Path, required=True)
     parser.add_argument("--rclone", type=Path, required=True)
@@ -340,11 +345,11 @@ def main():
     try:
         candidate, rclone = args.candidate.resolve(strict=True), args.rclone.resolve(strict=True)
         package = json.loads(args.receipt.read_text(encoding="utf-8"))
-        require(package.get("version") == VERSION and package.get("identifier") == APP_ID and package.get("peVersion") == [0, 9, 0, 1], "Unexpected candidate identity/version")
+        require(package.get("version") == VERSION and package.get("identifier") == APP_ID and package.get("peVersion") == NUMERIC_VERSION, "Unexpected candidate identity/version")
         require(package.get("sourceCommit") == report["sourceCommit"], "The package was built from a different commit")
         require(candidate.name == package["file"] and candidate.stat().st_size == package["bytes"] and digest(candidate) == package["sha256"], "The candidate does not match its package receipt")
         report["installer"] = metadata(candidate)
-        report["installerPE"] = verify_version(candidate, VERSION, [0, 9, 0, 1])
+        report["installerPE"] = verify_version(candidate, VERSION, NUMERIC_VERSION)
         report["rclone"] = metadata(rclone)
         report["packageReceiptSHA256"] = digest(args.receipt)
         roaming = ctypes.create_unicode_buffer(32768)
@@ -359,7 +364,7 @@ def main():
             write_json(evidence / "fresh-before.json", before)
             require(not before["registration"], "A pre-existing installation registration is present")
             report["installerExitCode"] = run_installer(candidate, directory, evidence / "fresh-installer.log")
-            paths = validate_installed(directory, VERSION, [0, 9, 0, 1], package)
+            paths = validate_installed(directory, VERSION, NUMERIC_VERSION, package)
             write_json(evidence / "fresh-after.json", snapshot(directory, state, installed=True))
             report["installedExecutables"] = {name: metadata(path) for name, path in paths.items()}
             report["installDirectory"] = str(directory)
@@ -371,9 +376,10 @@ def main():
             fresh = json.loads((evidence / "fresh-installation.json").read_text(encoding="utf-8"))
             require(fresh.get("passed") is True and fresh.get("sourceCommit") == report["sourceCommit"], "The fresh installation phase did not pass")
             uninstall(Path(fresh["installDirectory"]), fresh["installedExecutables"]["uninstaller"], evidence)
-            baseline, report["baselineInstaller"] = baseline_installer(evidence)
+            baseline, report["baselineInstaller"] = baseline_installer(evidence, args.baseline)
             report["baselineInstallerExitCode"] = run_installer(baseline, directory, evidence / "upgrade-baseline-installer.log")
-            old = validate_installed(directory, "0.9.0", [0, 9, 0, 0])
+            report["upgradeFrom"] = args.baseline
+            old = validate_installed(directory, "0.9.0+1" if args.baseline == "0.9.0-r1" else "0.9.0", [0, 9, 0, 1 if args.baseline == "0.9.0-r1" else 0])
             fixture = OWNED_CACHE / "upgrade-fixture"
             fixture.mkdir()
             (fixture / "empty-engine").mkdir()
@@ -403,7 +409,7 @@ def main():
             write_json(evidence / "upgrade-before.json", before)
             require({"settings.json", "tasks.json"}.issubset(before["stateFiles"]), "The published app did not persist settings and tasks")
             report["installerExitCode"] = run_installer(candidate, directory, evidence / "upgrade-installer.log")
-            paths = validate_installed(directory, VERSION, [0, 9, 0, 1], package)
+            paths = validate_installed(directory, VERSION, NUMERIC_VERSION, package)
             after = snapshot(directory, state, installed=True)
             after["configurationFile"] = {**metadata(config), "text": config.read_text(encoding="utf-8")}
             write_json(evidence / "upgrade-after.json", after)
@@ -413,7 +419,7 @@ def main():
             client = StateClient(paths["engine"], state, fixture, evidence, "upgrade-new")
             try:
                 actual_boot, actual_tasks = client.call("bootstrap"), client.call("listTasks")
-                require(actual_boot["settings"] == expected_boot["settings"], "The upgraded helper did not reload the saved settings")
+                require(actual_boot["settings"] == {**expected_boot["settings"], "bounceDockOnCompletion": True}, "The upgraded helper changed existing settings or lost the new default")
                 require(actual_tasks == expected_tasks and len(actual_tasks) == 1, "The upgraded helper did not reload the saved task")
                 require(actual_boot["environment"]["available"] is True and actual_boot["resolvedLanguage"] == "ja", "The upgraded helper lost the configured engine or language")
             finally:
@@ -424,8 +430,9 @@ def main():
             report["tasksPreservedByteForByte"] = True
             report["configurationPreservedByteForByte"] = True
             report["savedStateReloadedByInstalledHelper"] = True
+            report["newDefaultSettings"] = {"bounceDockOnCompletion": True}
             report["downgradeGuard"] = reject_lower_revision(candidate, directory, state, evidence)
-            validate_installed(directory, VERSION, [0, 9, 0, 1], package)
+            validate_installed(directory, VERSION, NUMERIC_VERSION, package)
             report["installedExecutables"] = after["installedExecutables"]
             report["installDirectory"] = str(directory)
         report["passed"] = True

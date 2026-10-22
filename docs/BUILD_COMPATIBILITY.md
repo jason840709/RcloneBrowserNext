@@ -4,7 +4,7 @@ macOS is the primary platform. The compatibility editions reuse the bundled web 
 
 ## Install
 
-- **Windows x64:** use [0.9.0 Windows revision 1](https://github.com/jason840709/RcloneBrowserNext/releases/tag/windows-v0.9.0-r1) and run `Rclone_Browser_Next_0.9.0_Windows_r1_x64_Setup.exe`. Installation is per user and preserves existing application settings. If WebView2 is absent, the installer downloads Microsoft's official Evergreen bootstrapper. The installer includes the Swift runtime; Swift, Rust and Node.js are not needed to run the app.
+- **Windows x64:** use [0.9.1](https://github.com/jason840709/RcloneBrowserNext/releases/tag/v0.9.1) and run `Rclone_Browser_Next_0.9.1_Windows_x64_Setup.exe`. Installation is per user and preserves existing application settings. If WebView2 is absent, the installer downloads Microsoft's official Evergreen bootstrapper. The installer includes the Swift runtime; Swift, Rust and Node.js are not needed to run the app.
 - **Ubuntu 24.04 amd64:** install `Rclone_Browser_Next_0.8.1_Linux_amd64.deb` with your package installer or `sudo apt install ./Rclone_Browser_Next_0.8.1_Linux_amd64.deb`. The package includes Swift runtime libraries and declares its WebKitGTK, GTK, ICU and other system dependencies. Other distributions require matching dependencies or a source build.
 
 In Settings, choose an existing rclone executable or an installation folder for the app's rclone downloader. Account setup opens rclone's interactive configuration in a terminal. Existing rclone configuration files can be selected directly.
@@ -23,7 +23,7 @@ Both scripts package only redistributable runtime dependencies, retain their lic
 
 ## Verification
 
-The [Windows repair workflow](../.github/workflows/windows-candidate.yml) builds the candidate, then installs it on a separate Windows runner without a Swift SDK. It tests actual user-home and drive-root listings, 64-bit file sizes, long Unicode paths, mutation/junction boundaries, real WebView2 remote selection and upgrade from the released 0.9.0. Every product case must pass before the separate Windows release workflow can publish the same installer. [Reproduction details and Mac isolation](WINDOWS_0.9.0_R1.md).
+The [unified desktop workflow](../.github/workflows/macos.yml) builds all platforms. A separate clean Windows runner installs the exact built package, verifies filesystem and WebView2 behavior, and checks upgrades from both published 0.9.0 and Windows r1. The shared release job requires every platform and upgrade job to pass. Windows inherits the same version as Mac and Linux; there is no separate revision override. [Historical Windows repair evidence](WINDOWS_0.9.0_R1.md).
 
 Windows revision 1 is published separately as a prerelease so the Mac stable update endpoint remains unchanged. Existing Windows installations need the direct download above; the old stable update checker will not suggest this platform revision.
 

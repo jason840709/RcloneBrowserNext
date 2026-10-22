@@ -540,7 +540,7 @@ fn smoke_result(app: AppHandle, window: WebviewWindow, host: tauri::State<'_, Ar
         (before / zoomed - interface_zoom(125) / interface_zoom(100)).abs() < 0.02 &&
         (restored - before).abs() <= 2.0 && payload["scaleBefore"].as_u64() == Some(100) &&
         payload["initialTheme"].as_str() == Some("green-dark") && payload["themeBefore"].as_str() == Some("green-dark") &&
-        payload["language"].as_str() == Some("en") && payload["error"].is_null();
+        payload["language"].as_str() == Some("en") && payload["progressMotion"]["passed"].as_bool() == Some(true) && payload["error"].is_null();
     let host = host.inner().clone();
     if host.smoke_finished.swap(true, Ordering::SeqCst) { return Ok(()); }
     let path = host.smoke_path.as_ref().unwrap();

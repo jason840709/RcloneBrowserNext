@@ -23,7 +23,7 @@ final class BrowserAppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegat
     private var themeIcons = [String: NSImage]()
     private var currentIconFamily: String?
     private var notificationRequested = false
-    private var notifiedJobs = Set<String>()
+    private let completionAttention = RBNCompletionAttention()
     private var webRoot: URL!
     private var indexURL: URL!
     private var stateDirectory: URL!
@@ -289,11 +289,15 @@ final class BrowserAppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegat
     }
 
     private func notifyFinishedJob(_ job: [String: Any]) {
-        guard let id = job["id"] as? String, let state = job["status"] as? String,
-              ["completed", "failed"].contains(state), engine.settingsSnapshot()["notifyOnCompletion"] as? Bool == true,
-              (job["request"] as? [String: Any])?["dryRun"] as? Bool != true else { return }
         DispatchQueue.main.async { [weak self] in
-            guard let self = self, self.notifiedJobs.insert(id).inserted else { return }
+            guard let self = self else { return }
+            let settings = self.engine.settingsSnapshot()
+            guard self.completionAttention.consume(job,
+                enabled: settings["bounceDockOnCompletion"] as? Bool ?? true,
+                isActive: NSApp.isActive, isTerminating: self.terminationStarted),
+                settings["notifyOnCompletion"] as? Bool == true,
+                let id = job["id"] as? String, let state = job["status"] as? String else { return }
+            // Dock attention is independent of notification authorization.
             let content = UNMutableNotificationContent()
             content.title = self.local(state == "completed" ? "傳輸完成" : "傳輸失敗", state == "completed" ? "Transfer complete" : "Transfer failed", state == "completed" ? "転送完了" : "転送に失敗しました")
             content.body = (job["request"] as? [String: Any])?["label"] as? String ?? "Rclone Browser Next"
@@ -368,6 +372,7 @@ final class BrowserAppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegat
     }
 
     func applicationDidBecomeActive(_ notification: Notification) {
+        completionAttention.cancel()
         guard deferredAutomaticCheck, engine != nil else { return }
         deferredAutomaticCheck = false
         requestQueue.async { [weak self] in
@@ -433,6 +438,7 @@ final class BrowserAppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegat
     }
 
     func applicationWillTerminate(_ notification: Notification) {
+        completionAttention.cancel()
         (webView as? RcloneWebView)?.stopHistoryMonitoring()
     }
 

@@ -10,7 +10,7 @@ export default defineConfig({
   expect: { timeout: 6_000 },
   reporter: [['list']],
   use: {
-    browserName: 'chromium',
+    browserName: process.env.RBN_TEST_WEBKIT ? 'webkit' : 'chromium',
     headless: true,
     viewport: { width: 1440, height: 900 },
     colorScheme: 'light',

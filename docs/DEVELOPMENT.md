@@ -128,7 +128,7 @@ Runtime icons are cached by purple, blue or green family. `RBNAppIconAppearance.
 
 The engine updater and app release checker are separate components. The app checker fetches only the configured public repository's `releases/latest` JSON endpoint. It validates full stable release metadata, caps the body size, rejects redirects and unexpected release links, and reports 404 as no available published release. It needs no GitHub credential. It opens a verified release page only after a user action and does not self-replace the app.
 
-Release tags use `vMAJOR.MINOR.PATCH`. Update `RBNProject.version`, `Resources/Info.plist` (marketing and build versions), `Scripts/common-mac.sh`, WebSource package and lockfile versions, the status-bar version, Compat CLI package and lockfile, Compat Cargo package and lockfile, `tauri.conf.json` and release documentation together. Change only the app's own package version in lockfiles. The workflow publishes a new version pushed to `main` after the platform and native-interface checks pass. A `work/0.9.0` push runs the same checks without publishing a release.
+Release tags use `vMAJOR.MINOR.PATCH`. Update `RBNProject.version`, `Resources/Info.plist` (marketing and build versions), `Scripts/common-mac.sh`, WebSource package and lockfile versions, the status-bar version, Compat CLI package and lockfile, Compat Cargo package and lockfile, `tauri.conf.json` and release documentation together. Change only the app's own package version in lockfiles. The workflow publishes a new version pushed to `main` after the platform and native-interface checks pass. A `work/0.9.1` push runs the same checks without publishing a release.
 
 ## Verification
 
@@ -145,3 +145,9 @@ Read [the release verification record](VALIDATION.zh-TW.md) for completed checks
 Publish only application sources, required resources, synthetic tests, build scripts, lockfiles and release documentation. Exclude account configuration, credentials, user screenshots, reference app binaries, caches, generated app bundles and historical private research inventories. Check the source archive manifest before release.
 
 The source is MIT licensed. Preserve third-party web license notices. The v2 app icon is supplied by Jason Chen; ForkLift resources are not redistributed.
+
+## Unified 0.9.1 release
+
+The current Windows build uses `Scripts/package-compat.py`, inherits the shared Tauri version, and keeps r1 filesystem code in the main source tree. The old one-off Windows publication/frozen-Mac workflows and scripts are available at tag `windows-v0.9.0-r1`, not active in this version. `Scripts/verify-version.py` checks all current version entries and the unchanged Windows filesystem blobs. `Scripts/windows/verify-candidate.py` remains the strict installed-product gate, now used by the common workflow.
+
+After changing WebSource, regenerate `Resources/Web` with the pinned npm lockfile, stage the source and generated resources, then run `python3 Scripts/update-source-manifest.py`. The source ZIP includes these resources so a normal local Mac build still requires only Apple tools. Publish only when the CI for the exact source commit is green; do not reuse older platform binaries under a new version name.

@@ -111,7 +111,7 @@ final class RcloneEngine {
          "hiddenBuiltinPresets": [String](),
          "maxConcurrentJobs": 0, "proxyMode": "system", "httpProxy": "", "httpsProxy": "", "noProxy": "",
          "networkOptions": EngineNetworkOptions.defaults,
-         "defaultRcloneOptions": [String](), "showStatusItem": false, "notifyOnCompletion": false,
+         "defaultRcloneOptions": [String](), "showStatusItem": false, "notifyOnCompletion": false, "bounceDockOnCompletion": true,
          "showHiddenFiles": true, "showFolderIcons": true, "showFileIcons": true, "alternatingRows": true,
          "streamPlayerPath": "", "streamPlayerArguments": ["-"], "initialLocations": [String: Any](), "savedWorkspace": NSNull()] as [String: Any]
     }
@@ -1200,7 +1200,7 @@ final class RcloneEngine {
         guard [80, 90, 100, 110, 120, 125, 135].contains(interfaceScale) else { throw EngineError("請選擇支援的介面比例。") }
         output["interfaceScale"] = interfaceScale
         output["autoCheckUpdates"] = try EngineJSON.bool(merged["autoCheckUpdates"], "啟動時檢查更新")
-        for key in ["showStatusItem", "notifyOnCompletion", "showHiddenFiles", "showFolderIcons", "showFileIcons", "alternatingRows"] {
+        for key in ["showStatusItem", "notifyOnCompletion", "bounceDockOnCompletion", "showHiddenFiles", "showFolderIcons", "showFileIcons", "alternatingRows"] {
             output[key] = try EngineJSON.bool(merged[key], "介面設定")
         }
         output["skippedRcloneVersion"] = try EngineJSON.text(merged["skippedRcloneVersion"], "略過版本", maximum: 128)

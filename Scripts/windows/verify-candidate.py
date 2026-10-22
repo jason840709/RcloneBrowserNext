@@ -11,18 +11,15 @@ from datetime import datetime, timezone
 import hashlib
 import json
 import os
+import plistlib
 import re
 import sys
 import traceback
 
 
 ROOT = Path(__file__).resolve().parents[2]
-BASE = "7ec095e9b9c949a79ff55cbd40d0fda9499b4faa"
-MAC_INVENTORY = "3a6d94b6d5e5c74ca47692547ea26fb17e038d946cab64b6b66ba1f681805402"
-MAC_WINDOWS_OBJECTS = {
-    "Sources/Core/EngineModels.swift": "2b4e3b156274b607778ca68e3bfd18e3583e6773",
-    "Sources/Core/EngineStorage.swift": "b9baea9703c1ebfd75b211a6e16c40931fccd760",
-}
+VERSION = plistlib.loads((ROOT / "Resources/Info.plist").read_bytes())["CFBundleShortVersionString"]
+NUMERIC_VERSION = [int(part) for part in VERSION.split(".")] + [0]
 FILESYSTEM_CASES = {"bootstrap-unconfigured", "bootstrap-configured", "list-unicode", "list-user-home",
                     "list-system-drive-root", "list-broken-junction"} | {
     f"{operation}-sparse-{size}" for operation in ("list", "size")
@@ -78,7 +75,7 @@ def main():
     evidence.mkdir(parents=True, exist_ok=True)
     report = {"schemaVersion": 1, "passed": False, "sourceCommit": os.environ.get("GITHUB_SHA"),
               "runID": os.environ.get("GITHUB_RUN_ID"), "runAttempt": os.environ.get("GITHUB_RUN_ATTEMPT"),
-              "version": "0.9.0+1", "releaseTag": "windows-v0.9.0-r1", "inputReceipts": [], "suites": []}
+              "version": VERSION, "releaseTag": "v" + VERSION, "inputReceipts": [], "suites": []}
     recorded = set()
 
     def record(path, label):
@@ -98,41 +95,23 @@ def main():
     try:
         require(re.fullmatch(r"[0-9a-f]{40}", report["sourceCommit"] or "") and re.fullmatch(r"[0-9]+", report["runID"] or ""), "Missing immutable Actions source/run identity")
         package = read(args.package, "package-windows.json")
-        require(package.get("version") == report["version"] and package.get("baseVersion") == "0.9.0"
-                and package.get("windowsRevision") == 1 and package.get("releaseTag") == report["releaseTag"]
-                and package.get("identifier") == "org.rclone.browser.next" and package.get("peVersion") == [0, 9, 0, 1]
+        require(package.get("version") == report["version"] and package.get("releaseTag") == report["releaseTag"]
+                and package.get("identifier") == "org.rclone.browser.next" and package.get("peVersion") == NUMERIC_VERSION
                 and package.get("sourceCommit") == report["sourceCommit"], "Package identity differs from this candidate run")
-        report["package"] = {key: package[key] for key in ("file", "version", "bytes", "sha256", "baseVersion", "windowsRevision", "identifier", "peVersion")}
+        report["package"] = {key: package[key] for key in ("file", "version", "bytes", "sha256", "identifier", "peVersion")}
         report["installerSha256"] = package["sha256"]
         report["packageReceiptSHA256"] = sha256(args.package)
         installer = ROOT / "Distribution" / package["file"]
-        require(installer.name == "Rclone_Browser_Next_0.9.0_Windows_r1_x64_Setup.exe" and installer.stat().st_size == package["bytes"]
+        require(installer.name == f"Rclone_Browser_Next_{VERSION}_Windows_x64_Setup.exe" and installer.stat().st_size == package["bytes"]
                 and sha256(installer) == package["sha256"], "The downloaded installer differs from the package receipt")
         checksum = installer.with_suffix(".exe.sha256")
         require(checksum.read_text(encoding="utf-8").strip() == f"{package['sha256']}  {installer.name}", "The package checksum file does not match")
-        for path, label in ((build / "mac-before.json", "build/mac-before.json"), (build / "mac-after.json", "build/mac-after.json"),
-                            (evidence / "mac-unchanged.json", "mac-unchanged.json")):
-            guard = read(path, label)
-            require(guard.get("baselineCommit") == BASE and guard.get("checkedCommit") == report["sourceCommit"]
-                    and guard.get("protectedInventorySHA256") == MAC_INVENTORY and guard.get("protectedFileCount") == 162
-                    and all(guard.get(key) is True for key in ("macInputsUnchanged", "existingMacWorkflowUnchanged", "existingMacVersionUnchanged")),
-                    "The frozen Mac boundary was not verified")
-            insertions = guard.get("windowsOnlyInsertions", [])
-            require(guard.get("nonWindowsActiveSourceUnchanged") is True and guard.get("protectedByteIdenticalFileCount") == 160
-                    and len(insertions) == 2 and {item.get("path"): item.get("checkedGitObject") for item in insertions} == MAC_WINDOWS_OBJECTS
-                    and sum(len(item.get("blocks", [])) for item in insertions) == 3
-                    and all(item.get("baselineGitObject") == item.get("recoveredBaselineGitObject")
-                            and item.get("originalModePreserved") is True and item.get("nonWindowsActiveSourceUnchanged") is True
-                            and all(block.get("condition") == "#if os(Windows)" and block.get("exactPositionVerified") is True
-                                    for block in item.get("blocks", [])) for item in insertions)
-                    and isinstance(guard.get("macInputsUnchangedMeaning"), str),
-                    "The exact Windows-only Core insertions did not preserve the original Mac source")
-            if "windowsOnlyCoreInsertions" in report:
-                require(report["windowsOnlyCoreInsertions"] == insertions, "Mac protection receipts disagree")
-            report["windowsOnlyCoreInsertions"] = insertions
-            report["macInputsUnchangedMeaning"] = guard["macInputsUnchangedMeaning"]
-        report["macInputsUnchanged"] = True
-        report["nonWindowsActiveSourceUnchanged"] = True
+        guard = read(build / "source-check.json", "build/source-check.json")
+        require(guard.get("passed") is True and guard.get("version") == VERSION
+                and guard.get("sourceCommit") == report["sourceCommit"]
+                and guard.get("windowsFilesystemUnchanged") is True,
+                "Unified version or Windows repair source check failed")
+        report["windowsFilesystemUnchanged"] = True
 
         build_log = text(build / "build.log", "build/build.log")
         rust = re.findall(r"test result: ok\. (\d+) passed; (\d+) failed; (\d+) ignored;", build_log)
@@ -209,12 +188,12 @@ def main():
         require(smoke.get("passed") is True and smoke.get("exitCode") == 0 and smoke.get("version") == report["version"]
                 and smoke.get("installer", {}).get("sha256") == package["sha256"], "The existing installed native UI smoke did not pass this revision")
         report["suites"].append({"name": "existing-native-ui-smoke", "passed": 1, "failed": 0, "skipped": None, "unit": "aggregate native UI receipt"})
-        report["scope"] = ["Windows x64 only; no Mac or Linux build or release operation",
+        report["scope"] = ["Windows part of the unified desktop release; Mac has its own new attention feature and tests",
                            "Fresh Windows verification runner has no Swift setup; installed child PATH contains system directories only",
                            "Local filesystem and synthetic rclone alias remotes; no real cloud credentials or user data",
-                           "Upgrade uses the immutable published 0.9.0 installer and checks saved state before launch and after helper reload",
-                           "NSIS downgrade check temporarily raises only the owned registry DisplayVersion to 0.9.0+2",
-                           "This candidate is not published by its workflow; a separate release must require a successful complete run"]
+                           "Upgrade uses a pinned published 0.9.0 or Windows r1 installer, verifies saved bytes and the one new Dock preference default",
+                           "NSIS downgrade check temporarily raises only the owned registry DisplayVersion to the next patch version",
+                           "Publication requires successful Web, Mac, Linux and both Windows upgrade jobs from this same source commit"]
         report["passed"] = True
     except Exception as error:
         report["error"] = {"type": type(error).__name__, "message": str(error), "traceback": traceback.format_exc()}

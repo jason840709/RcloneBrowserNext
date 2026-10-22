@@ -19,7 +19,7 @@
   <a href="https://github.com/jason840709/RcloneBrowserNext/issues">Report an issue</a>
 </p>
 
-Version 0.9.0 aligns the two startup screens, groups light and dark themes, brings workspace and task saving together, and clarifies transfer descriptions. **Mac remains the primary platform**, with Windows x64 and Linux amd64 compatibility editions. [Release notes](docs/RELEASE_0.9.0.md) · [Compatibility installation](docs/BUILD_COMPATIBILITY.md)
+Mac is the primary platform, with Windows x64 and Linux amd64 compatibility editions. All platforms share one release version. [Latest release](https://github.com/jason840709/RcloneBrowserNext/releases/latest) · [Compatibility installation](docs/BUILD_COMPATIBILITY.md)
 
 ## What is it?
 

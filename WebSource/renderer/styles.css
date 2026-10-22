@@ -419,7 +419,12 @@ select.language-select { width: 61px; padding: 4px 3px 4px 8px; min-height: 28px
 .job-completed:not(.job-dry) .progress-fill { background: var(--success); }
 .job-failed .progress-fill { background: var(--error); }
 .job-dry .progress-fill { background: var(--warning); }
-.progress-track.indeterminate { background: repeating-linear-gradient(90deg, var(--border-subtle) 0, var(--border-subtle) 12px, var(--accent-border) 12px, var(--accent-border) 24px); }
+.progress-indicator { display: block; height: 100%; width: 25%; border-radius: inherit; background: var(--accent-strong); animation: progress-sweep 1.6s cubic-bezier(0.77, 0, 0.175, 1) infinite alternate; }
+.job-dry .progress-indicator { background: var(--warning); }
+@keyframes progress-sweep { from { transform: translateX(0); } to { transform: translateX(300%); } }
+@media (prefers-reduced-motion: reduce) {
+  .progress-indicator { animation: none; transform: translateX(150%); }
+}
 .progress-value { color: var(--muted); font-size: 11px; min-width: 34px; text-align: right; }
 .job-details { margin: 5px 0 0 26px; }
 .job-details > summary { display: flex; align-items: center; gap: 5px; color: var(--faint); font-size: 12px; cursor: pointer; min-height: 22px; list-style: none; }

@@ -54,7 +54,9 @@ def main():
             raise SystemExit(f'Checksum does not match {package.name}')
         shutil.copyfile(package, output / package.name)
 
-    tracked = subprocess.check_output(['git', 'ls-files', '-z'], cwd=root).decode().split('\0')
+    staged = subprocess.check_output(['git', 'ls-files', '--stage', '-z'], cwd=root).decode().split('\0')
+    modes = {entry.split('\t', 1)[1]: int(entry.split(' ', 1)[0], 8) for entry in staged if entry}
+    tracked = list(modes)
     files = {}
     for relative in sorted(filter(None, tracked)):
         if relative == 'SOURCE_MANIFEST.json':
@@ -66,13 +68,13 @@ def main():
     manifest = json.dumps({'version': version, 'file_count_excluding_manifest': len(files),
                            'total_bytes_excluding_manifest': sum(entry['bytes'] for entry in files.values()),
                            'files': files}, ensure_ascii=False, indent=2).encode() + b'\n'
-    source = output / f'{prefix}_Mac_Local_Build.zip'
+    source = output / f'{prefix}_Source.zip'
     with zipfile.ZipFile(source, 'w', zipfile.ZIP_DEFLATED, compresslevel=9) as packed:
         for relative in [*files, 'SOURCE_MANIFEST.json']:
             data = manifest if relative == 'SOURCE_MANIFEST.json' else (root / relative).read_bytes()
             entry = zipfile.ZipInfo(f'{prefix}/{relative}', date_time=(2026, 1, 1, 0, 0, 0))
             entry.create_system = 3
-            mode = 0o755 if Path(relative).suffix in {'.command', '.sh'} else 0o644
+            mode = modes[relative] & 0o777
             entry.external_attr = (stat.S_IFREG | mode) << 16
             entry.compress_type = zipfile.ZIP_DEFLATED
             packed.writestr(entry, data, compress_type=zipfile.ZIP_DEFLATED, compresslevel=9)

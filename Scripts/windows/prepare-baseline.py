@@ -23,6 +23,12 @@ ROOT = Path(__file__).resolve().parents[2]
 REPOSITORY = "jason840709/RcloneBrowserNext"
 # Public release receipts, independently downloaded and verified at release.
 BASELINES = {
+    "0.9.0-r1": {
+        "releaseID": 419386975, "assetID": 662036755, "bytes": 17061664,
+        "sha256": "dc7829d2e2b911ee20bc87fa091ad6048a0af8b45e1f5b53e8928ac67e8f4750",
+        "tag": "windows-v0.9.0-r1", "prerelease": True,
+        "filename": "Rclone_Browser_Next_0.9.0_Windows_r1_x64_Setup.exe",
+    },
     "0.8.0": {
         "releaseID": 418697196,
         "assetID": 660047360,
@@ -82,11 +88,12 @@ def digest_file(path):
 
 def validate_release(release, version):
     expected = BASELINES[version]
-    filename = f"Rclone_Browser_Next_{version}_Windows_x64_Setup.exe"
+    filename = expected.get("filename", f"Rclone_Browser_Next_{version}_Windows_x64_Setup.exe")
+    tag = expected.get("tag", "v" + version)
     if (release.get("id") != expected["releaseID"]
-            or release.get("tag_name") != "v" + version
+            or release.get("tag_name") != tag
             or release.get("draft") is not False
-            or release.get("prerelease") is not False
+            or release.get("prerelease") is not expected.get("prerelease", False)
             or not release.get("published_at")):
         raise RuntimeError("The published baseline release identity changed")
     matches = [asset for asset in release.get("assets", []) if asset.get("name") == filename]
@@ -94,7 +101,7 @@ def validate_release(release, version):
         raise RuntimeError("Expected exactly one published Windows installer")
     asset = matches[0]
     api_url = f"https://api.github.com/repos/{REPOSITORY}/releases/assets/{expected['assetID']}"
-    download_url = f"https://github.com/{REPOSITORY}/releases/download/v{version}/{filename}"
+    download_url = f"https://github.com/{REPOSITORY}/releases/download/{tag}/{filename}"
     if (asset.get("id") != expected["assetID"]
             or asset.get("state") != "uploaded"
             or asset.get("size") != expected["bytes"]
@@ -156,7 +163,8 @@ def main():
         if not rclone.is_file():
             raise RuntimeError("The pinned rclone fixture is unavailable")
         receipt["rclone"] = {"bytes": rclone.stat().st_size, "sha256": digest_file(rclone)}
-        api_url = f"https://api.github.com/repos/{REPOSITORY}/releases/tags/v{args.version}"
+        tag = BASELINES[args.version].get("tag", "v" + args.version)
+        api_url = f"https://api.github.com/repos/{REPOSITORY}/releases/tags/{tag}"
         with request(api_url) as response:
             raw = response.read(1024 * 1024 + 1)
         if len(raw) > 1024 * 1024:

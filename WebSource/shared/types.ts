@@ -72,7 +72,7 @@ export interface Settings {
   interfaceScale: InterfaceScale;
   autoCheckUpdates: boolean; skippedRcloneVersion: string;
   streamPlayerPath: string; streamPlayerArguments: string[];
-  showStatusItem: boolean; notifyOnCompletion: boolean; showHiddenFiles: boolean; showFolderIcons: boolean; showFileIcons: boolean; alternatingRows: boolean;
+  showStatusItem: boolean; notifyOnCompletion: boolean; bounceDockOnCompletion?: boolean; showHiddenFiles: boolean; showFolderIcons: boolean; showFileIcons: boolean; alternatingRows: boolean;
   settingsRevision: number; settingsSchemaVersion: number;
   paneColumnWidths: {left?: PaneColumnWidths; right?: PaneColumnWidths};
   hiddenBuiltinPresets?: BuiltinPresetID[];

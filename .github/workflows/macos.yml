@@ -1,8 +1,8 @@
-name: Desktop builds and tests
+name: Unified desktop builds and tests
 
 on:
   push:
-    branches: [main, 'work/0.7.0', 'work/0.8.0', 'work/0.8.1', 'work/0.9.0']
+    branches: [main, 'work/0.7.0', 'work/0.8.0', 'work/0.8.1', 'work/0.9.0', 'work/0.9.1']
     tags: ['v*']
     paths-ignore:
       - '**/*.md'
@@ -19,6 +19,59 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  web:
+    name: Shared UI and version consistency
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    env:
+      RBN_TEST_OUTPUT: ${{ github.workspace }}/.build-cache/web-tests
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify unified version and preserved Windows filesystem
+        run: python3 Scripts/verify-version.py --output .build-cache/web-evidence/source-check.json
+      - name: Install pinned frontend tools and browser engines
+        working-directory: WebSource
+        run: |
+          npm ci --no-audit --no-fund
+          npx playwright install --with-deps chromium webkit
+      - name: Verify source types and reproducible bundled UI
+        working-directory: WebSource
+        run: |
+          npm run typecheck
+          npm run build
+          git diff --exit-code -- ../Resources/Web
+      - name: Run all shared UI regressions
+        working-directory: WebSource
+        env:
+          PLAYWRIGHT_JSON_OUTPUT_FILE: ${{ github.workspace }}/.build-cache/web-evidence/chromium.json
+        run: npx playwright test --config tests/playwright.config.ts --reporter=list,json
+      - name: Verify new motion and settings in WebKit
+        if: always()
+        working-directory: WebSource
+        env:
+          RBN_TEST_WEBKIT: '1'
+          RBN_TEST_OUTPUT: ${{ github.workspace }}/.build-cache/webkit-tests
+          PLAYWRIGHT_JSON_OUTPUT_FILE: ${{ github.workspace }}/.build-cache/web-evidence/webkit.json
+        run: npx playwright test --config tests/playwright.config.ts revision091.spec.ts --reporter=list,json
+      - name: Retain UI results and selected screenshots
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: RcloneBrowserNext-Web-verification
+          path: |
+            .build-cache/web-evidence/
+            .build-cache/web-tests/
+            .build-cache/webkit-tests/
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 30
+
   macos:
     name: macOS ${{ matrix.arch }}
     strategy:
@@ -37,6 +90,7 @@ jobs:
       - uses: actions/checkout@v7
         with:
           persist-credentials: false
+          fetch-depth: 0
       - name: Download a pinned rclone into this checkout
         run: /bin/bash Scripts/ci-rclone.sh
       - name: Build and verify the complete macOS app
@@ -55,6 +109,15 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
+      - name: Retain Mac verification logs
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: RcloneBrowserNext-macOS-${{ matrix.arch }}-verification
+          path: .build-cache/logs/*.log
+          if-no-files-found: error
+          retention-days: 30
+
   macos-current:
     name: macOS 26 native interface
     runs-on: macos-26
@@ -66,6 +129,7 @@ jobs:
       - uses: actions/checkout@v7
         with:
           persist-credentials: false
+          fetch-depth: 0
       - name: Download the pinned rclone fixture
         run: /bin/bash Scripts/ci-rclone.sh
       - name: Build and verify the complete app on current macOS
@@ -89,6 +153,7 @@ jobs:
       - uses: actions/checkout@v7
         with:
           persist-credentials: false
+          fetch-depth: 0
       - uses: SwiftyLab/setup-swift@d60245579ea3836a3f2fa65ebbe1e8891d577c76
         with:
           swift-version: '6.1.2'
@@ -98,6 +163,16 @@ jobs:
           sudo apt-get install -y libwebkit2gtk-4.1-dev libgtk-3-dev libxdo-dev libayatana-appindicator3-dev librsvg2-dev libssl-dev patchelf xvfb xterm
           rustup toolchain install 1.90.0 --profile minimal
           rustup override set 1.90.0
+      - name: Cache Linux compiler dependencies
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
+        with:
+          path: |
+            .build-cache/compat/cargo/registry
+            .build-cache/compat/cargo/git
+            .build-cache/compat/target
+            .build-cache/compat/npm
+          key: linux-rust1.90-swift6.1.2-${{ hashFiles('Compat/desktop/Cargo.lock', 'Compat/cli/package-lock.json') }}
+          restore-keys: linux-rust1.90-swift6.1.2-
       - name: Download a pinned rclone fixture
         run: python3 Scripts/ci-compat-rclone.py
       - name: Build the Linux installer
@@ -123,52 +198,148 @@ jobs:
           retention-days: 30
 
   compat-windows:
-    name: Windows x64 compatibility
+    name: Build Windows x64
     runs-on: windows-2025
-    timeout-minutes: 60
+    timeout-minutes: 75
+    env:
+      CARGO_TERM_COLOR: never
     steps:
       - uses: actions/checkout@v7
         with:
           persist-credentials: false
+          fetch-depth: 0
+      - name: Verify unified source before building
+        run: python Scripts/verify-version.py --output .build-cache/windows-candidate/build/source-check.json
       - uses: ilammy/msvc-dev-cmd@0b201ec74fa43914dc39ae48a89fd1d8cb592756
       - uses: SwiftyLab/setup-swift@d60245579ea3836a3f2fa65ebbe1e8891d577c76
         with:
           swift-version: '6.1.2'
-      - name: Install pinned Rust in CI
+          cache-snapshot: true
+      - name: Install pinned Rust
         run: |
           rustup toolchain install 1.90.0 --profile minimal
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           rustup override set 1.90.0
-      - name: Download a pinned rclone fixture
+          exit $LASTEXITCODE
+      - name: Cache compiler and bundler dependencies
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            .build-cache/compat/cargo/registry
+            .build-cache/compat/cargo/git
+            .build-cache/compat/target
+            .build-cache/compat/npm
+          key: windows-2025-rust1.90-swift6.1.2-${{ hashFiles('Compat/desktop/Cargo.lock', 'Compat/cli/package-lock.json') }}
+          restore-keys: windows-2025-rust1.90-swift6.1.2-
+      - name: Download the pinned rclone fixture
         run: python Scripts/ci-compat-rclone.py
-      - name: Build the Windows installer
-        run: ./Scripts/build-compat-windows.ps1
-      - name: Verify platform file operations
+      - name: Build the candidate and run the native host tests
+        run: |
+          & ./Scripts/build-compat-windows.ps1 2>&1 | Tee-Object -FilePath .build-cache/windows-candidate/build/build.log
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Run the existing platform regressions
         run: |
           $rbnCore = Get-ChildItem Sources/Core/*.swift | Sort-Object Name | ForEach-Object { $_.FullName }
           $rbnSdk = @('-sdk', $env:SDKROOT, '-I', (Join-Path $env:SDKROOT 'usr/lib/swift'), '-L', (Join-Path $env:SDKROOT 'usr/lib/swift/windows'))
           & swiftc @rbnSdk -swift-version 5 @rbnCore Tests/PlatformTests.swift -o .build-cache/compat/runtime/platform-tests.exe
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          & ./.build-cache/compat/runtime/platform-tests.exe "$env:GITHUB_WORKSPACE/.build-cache/ci-engine/rclone.exe"
+          & ./.build-cache/compat/runtime/platform-tests.exe "$env:GITHUB_WORKSPACE/.build-cache/ci-engine/rclone.exe" 2>&1 | Tee-Object -FilePath .build-cache/windows-candidate/build/platform.log
           exit $LASTEXITCODE
-      - name: Exercise transfers and cancellation with the bundled runtime
-        run: python Scripts/test-compat.py --engine .build-cache/compat/runtime/rbn-engine.exe --rclone .build-cache/ci-engine/rclone.exe --clean-runtime --output .build-cache/compat/smoke-windows.json
-      - name: Open the native window and verify its bridge
-        run: python Scripts/test-compat-ui.py --output .build-cache/compat/smoke-ui-windows.json
-      - name: Retain installer and test evidence
+      - name: Run the existing transfer and cancellation regressions
+        run: python Scripts/test-compat.py --engine .build-cache/compat/runtime/rbn-engine.exe --rclone .build-cache/ci-engine/rclone.exe --clean-runtime --output .build-cache/windows-candidate/build/transfer.json
+      - name: Retain the exact candidate package
         uses: actions/upload-artifact@v7
         with:
           name: RcloneBrowserNext-Windows-x64
           path: |
-            Distribution/*.exe
-            Distribution/*.sha256
-            .build-cache/compat/smoke-*.json
-            .build-cache/compat/package-*.json
+            Distribution/Rclone_Browser_Next_0.9.1_Windows_x64_Setup.exe
+            Distribution/Rclone_Browser_Next_0.9.1_Windows_x64_Setup.exe.sha256
+            .build-cache/compat/package-windows.json
+          include-hidden-files: true
           if-no-files-found: error
+          overwrite: true
+          retention-days: 30
+      - name: Retain build and regression evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: RcloneBrowserNext-Windows-build-evidence
+          path: .build-cache/windows-candidate/build/
+          include-hidden-files: true
+          if-no-files-found: error
+          overwrite: true
+          retention-days: 30
+
+  windows-verify:
+    name: Windows installed app and upgrade from ${{ matrix.baseline }}
+    strategy:
+      fail-fast: false
+      matrix:
+        baseline: ['0.9.0', '0.9.0-r1']
+    needs: compat-windows
+    runs-on: windows-2025
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Download the candidate from this run
+        id: package
+        uses: actions/download-artifact@v8
+        with:
+          name: RcloneBrowserNext-Windows-x64
+          path: .
+      - uses: actions/download-artifact@v8
+        with:
+          name: RcloneBrowserNext-Windows-build-evidence
+          path: .build-cache/windows-candidate/build
+      - name: Download the pinned rclone fixture
+        id: rclone
+        run: python Scripts/ci-compat-rclone.py
+      - name: Install the CDP test client
+        id: playwright
+        run: python -m pip install --disable-pip-version-check playwright==1.55.0
+      - name: Run the existing installed native UI smoke
+        run: python Scripts/test-compat-ui.py --output .build-cache/windows-candidate/verification/native-smoke.json
+      - name: Verify a clean installation and PE versions
+        id: fresh
+        if: always() && steps.package.outcome == 'success' && steps.rclone.outcome == 'success'
+        run: python Scripts/windows/verify-installation.py --phase fresh --candidate Distribution/Rclone_Browser_Next_0.9.1_Windows_x64_Setup.exe --receipt .build-cache/compat/package-windows.json --rclone .build-cache/ci-engine/rclone.exe --output .build-cache/windows-candidate/verification
+      - name: Probe the installed helper against real Windows locations
+        if: always() && steps.fresh.outcome == 'success'
+        run: python Scripts/windows/probe-filesystem.py --engine "${{ steps.fresh.outputs.engine }}" --rclone .build-cache/ci-engine/rclone.exe --output .build-cache/windows-candidate/verification/filesystem.json
+      - name: Verify local mutations, large files and junction boundaries
+        if: always() && steps.fresh.outcome == 'success'
+        run: python Scripts/windows/probe-mutations.py --engine "${{ steps.fresh.outputs.engine }}" --rclone .build-cache/ci-engine/rclone.exe --output .build-cache/windows-candidate/verification/mutations.json
+      - name: Exercise the real WebView2 remote selectors and navigation
+        if: always() && steps.fresh.outcome == 'success' && steps.playwright.outcome == 'success'
+        run: python Scripts/windows/probe-ui.py --app "${{ steps.fresh.outputs.app }}" --rclone .build-cache/ci-engine/rclone.exe --output .build-cache/windows-candidate/verification/ui --label unified-0.9.1
+      - name: Upgrade the published baseline and verify state preservation
+        if: always() && steps.fresh.outcome == 'success'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python Scripts/windows/verify-installation.py --phase upgrade --baseline "${{ matrix.baseline }}" --candidate Distribution/Rclone_Browser_Next_0.9.1_Windows_x64_Setup.exe --receipt .build-cache/compat/package-windows.json --rclone .build-cache/ci-engine/rclone.exe --output .build-cache/windows-candidate/verification
+      - name: Verify unified version on the clean runner
+        if: always()
+        run: python Scripts/verify-version.py
+      - name: Require complete passing product results
+        if: always()
+        run: python Scripts/windows/verify-candidate.py --evidence .build-cache/windows-candidate/verification --build-evidence .build-cache/windows-candidate/build --package .build-cache/compat/package-windows.json
+      - name: Retain installation and product verification evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: RcloneBrowserNext-Windows-verification-${{ matrix.baseline }}
+          path: .build-cache/windows-candidate/verification/
+          include-hidden-files: true
+          if-no-files-found: error
+          overwrite: true
           retention-days: 30
 
   release:
     name: Publish a new verified version
-    needs: [macos, macos-current, compat-linux, compat-windows]
+    needs: [web, macos, macos-current, compat-linux, compat-windows, windows-verify]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -179,6 +350,7 @@ jobs:
       - uses: actions/checkout@v7
         with:
           persist-credentials: false
+          fetch-depth: 0
       - name: Check whether this version is already published
         id: version
         env:
@@ -213,3 +385,19 @@ jobs:
             --title "Rclone Browser Next $RBN_RELEASE_VERSION" \
             --notes-file "docs/RELEASE_$RBN_RELEASE_VERSION.md"
 
+      - name: Retain exact source history for the private handoff
+        run: |
+          mkdir -p .build-cache/handoff-source
+          git bundle create .build-cache/handoff-source/RcloneBrowserNext.bundle HEAD --branches --tags
+          git bundle verify .build-cache/handoff-source/RcloneBrowserNext.bundle
+          git rev-parse HEAD > .build-cache/handoff-source/source-commit.txt
+      - name: Retain public release assets and source history
+        uses: actions/upload-artifact@v7
+        with:
+          name: RcloneBrowserNext-Release-delivery
+          path: |
+            .release-assets/
+            .build-cache/handoff-source/
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 30

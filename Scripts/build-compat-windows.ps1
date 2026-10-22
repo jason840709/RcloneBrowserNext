@@ -118,5 +118,5 @@ try {
     & (Join-Path $RbnCli 'node_modules/.bin/tauri.cmd') build --bundles nsis --ci
     if ($LASTEXITCODE -ne 0) { throw 'The Windows installer build failed.' }
 } finally { Pop-Location }
-python Scripts/windows/package-candidate.py --cache $RbnCache
-if ($LASTEXITCODE -ne 0) { throw 'The Windows candidate package could not be prepared.' }
+python Scripts/package-compat.py --platform windows --cache $RbnCache
+if ($LASTEXITCODE -ne 0) { throw 'The Windows package could not be prepared.' }
