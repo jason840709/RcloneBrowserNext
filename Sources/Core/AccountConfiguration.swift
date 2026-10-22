@@ -265,7 +265,7 @@ final class RBNAccountConfiguration {
         guard let value = value, !(value is NSNull) else { return "" }
         if let s = value as? String { return s }
         if let n = value as? NSNumber {
-            if CFGetTypeID(n) == CFBooleanGetTypeID() { return n.boolValue ? "true" : "false" }
+            if EngineJSON.isBoolean(n) { return n.boolValue ? "true" : "false" }
             return n.stringValue
         }
         return String(describing: value)
@@ -346,7 +346,6 @@ final class RBNAccountConfiguration {
     }
 }
 
-import CoreFoundation
 private final class AccountOutput {
     private let lock = NSLock()
     private var stdout = Data(), stderr = Data()

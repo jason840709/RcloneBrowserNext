@@ -1,7 +1,7 @@
 {
   "version": "0.9.2",
   "file_count_excluding_manifest": 239,
-  "total_bytes_excluding_manifest": 7640789,
+  "total_bytes_excluding_manifest": 7640752,
   "files": {
     ".github/workflows/macos.yml": {
       "bytes": 19219,
@@ -312,8 +312,8 @@
       "sha256": "fa96edb1c519e087dfae48033bc3fca1498f4835a28aa58f8353f7791e8ec370"
     },
     "Sources/Core/AccountConfiguration.swift": {
-      "bytes": 22807,
-      "sha256": "6627e0b588517e7a787bf54c0e3814ed07f0fae5cabbbaae0a0b2df4b749cee4"
+      "bytes": 22770,
+      "sha256": "3ad66fd883604cc90aef33ca315b0709af23ff402c3d1864e92b1976b3642ebf"
     },
     "Sources/Core/AppReleaseChecker.swift": {
       "bytes": 8814,
