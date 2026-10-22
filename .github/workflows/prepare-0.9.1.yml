@@ -20,21 +20,15 @@ jobs:
         run: |
           python3 - <<'PY'
           from pathlib import Path
-          import base64, zlib, hashlib, json, subprocess
+          import base64,zlib,hashlib,json,subprocess
           base='167be06a8ef7660e959d7c457c284b7c2626dd0d'
-          expected='4d2cf3938dd7bc6fce2491dd097d4e2c8c131c1e837b711cb06e00dc00e53848'
           text=''.join(Path('.prepare091/part'+str(i)).read_text().strip() for i in (1,2))
-          corrections={
-            'nnHnwvrHvxfhf4t':'nnnwvrHvxf4t',
-            'u6pm3fWbP3bp7':'u6pm3dP3bp7',
-            'Ej09befLpt++':'Ej09e6pt++',
-            'cQ5frtFdWixMfy5R/Un3NPvUe8etLjSbFpKvly7+u2h4sPrb51duZeDO4/8GmnW6W1H6+9e8fVvVv97BGs4/U7v9+nV/t2cun4eWxi7f2X97r+7t1Xbyz/7m7vwpnejQ9671xe+/Tbtdvnl19zfO0XUNVQ':'cQ5r+9up1Rtvr50/sXrmPIxq9dWbq5c+X719pXfrtxgtdub86mtnV/9caKh35pO1V6/f+/Y3q1+9gjW8fqd3+/Tq306uXT8PTay9f/LeV1/d++qd1Zff7V0407v0Xu+dy2uffrt2663V1z5fe+U3UNVQ'
-          }
-          for old,new in corrections.items():
-              assert text.count(old)==1,old
-              text=text.replace(old,new)
+          assert hashlib.sha256(text.encode()).hexdigest()=='c3cbcfd3b5a45863b0ce7463a86c70f1698642bfcf4f585285985dc678b9850d'
+          fixes=[[18919,18920,''],[18927,18929,''],[19041,19044,'d'],[19122,19123,''],[19124,19126,'6'],[23498,23648,'r+9up1Rtvr50/sXrmPIxq9dWbq5c+X719pXfrtxgtdub86mtnV/9caKh35pO1V6/f+/Y3q1+9gjW8fqd3+/Tq306uXT8PTay9f/LeV1/d++qd1Zff7V0407v0Xu+dy2uffrt2663V1z5fe+U3UNV']]
+          for a,b,s in reversed(fixes): text=text[:a]+s+text[b:]
+          assert hashlib.sha256(text.encode()).hexdigest()=='afdf968fa32ec6e575df5285ee1ff3a37da1233723222e2e6e7d0facd4f710a6'
           raw=zlib.decompress(base64.b64decode(text,validate=True))
-          assert hashlib.sha256(raw).hexdigest()==expected
+          assert hashlib.sha256(raw).hexdigest()=='4d2cf3938dd7bc6fce2491dd097d4e2c8c131c1e837b711cb06e00dc00e53848'
           delta=json.loads(raw)
           assert subprocess.check_output(['git','rev-parse',base+'^{tree}'],text=True).strip()==delta['baseTree']
           for item in delta['files']:
