@@ -1,0 +1,39 @@
+name: Prepare account configuration test tools
+on:
+  push:
+    branches: ['work/0.9.2']
+    paths: ['.github/workflows/development-tools.yml']
+permissions:
+  contents: read
+jobs:
+  tools:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Prepare the pinned engine and frontend tools
+        run: |
+          python3 Scripts/ci-compat-rclone.py
+          cd WebSource
+          npm ci --no-audit --no-fund
+          cd ..
+          mkdir -p .build-cache/development-tools
+          tar -czf .build-cache/development-tools/frontend-tools.tar.gz -C WebSource node_modules
+          cp .build-cache/ci-engine/rclone .build-cache/development-tools/rclone
+          .build-cache/ci-engine/rclone version > .build-cache/development-tools/rclone-version.txt
+          .build-cache/ci-engine/rclone rc --loopback config/providers > .build-cache/development-tools/providers.json
+          RCLONE_JSON='{"name":"gui_probe","type":"alias","parameters":{},"opt":{"nonInteractive":true,"all":true}}' .build-cache/ci-engine/rclone --config .build-cache/development-tools/probe.conf --ask-password=false rc --loopback config/create > .build-cache/development-tools/config-probe.json
+          curl --fail --location https://raw.githubusercontent.com/kapitainsky/RcloneBrowser/master/src/main_window.cpp -o .build-cache/development-tools/original-main-window.cpp
+          curl --fail --location https://raw.githubusercontent.com/qt/qtbase/5.15/src/plugins/platforms/cocoa/qcocoaintegration.mm -o .build-cache/development-tools/qt-cocoa.mm
+          rm -f .build-cache/development-tools/probe.conf
+      - uses: actions/upload-artifact@v7
+        with:
+          name: RcloneBrowserNext-Account-Development-Tools
+          path: .build-cache/development-tools/
+          retention-days: 7
+          if-no-files-found: error
