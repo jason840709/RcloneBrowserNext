@@ -1,0 +1,46 @@
+
+/* Account setup follows the installed rclone's JSON state machine. */
+.account-terminal-button {font-size: .88em; font-weight: 500; padding-inline: .5rem; color: var(--muted); flex-shrink: 0;}
+.account-dialog {width: min(760px, calc(100vw - 40px));}
+.account-body {display: flex; flex-direction: column; gap: 18px; min-height: 240px; overflow-y: auto;}
+.account-list-heading {display: flex; align-items: center; justify-content: space-between; gap: 16px;}
+.account-list-heading p {margin: 0; color: var(--muted);}
+.account-list-heading button {flex-shrink: 0;}
+.account-list {display: grid; gap: 8px;}
+.account-row {display: flex; align-items: center; gap: 12px; padding: 14px 12px; border-bottom: 1px solid var(--border);}
+.account-row-name {display: flex; flex: 1; min-width: 0; flex-direction: column; gap: 4px;}
+.account-row-name strong {overflow-wrap: anywhere;}
+.account-row-name span {font-size: .86em; color: var(--muted);}
+.account-empty {padding: 28px 0; text-align: center; color: var(--muted);}
+.account-body form {display: grid; gap: 18px;}
+.account-body select[size] {width: 100%; min-height: 180px; margin-top: 8px; padding: 4px;}
+.account-body select[size] option {padding: 8px; white-space: normal;}
+.account-provider-note {border-left: 2px solid var(--accent); padding-left: 14px; color: var(--muted); font-size: .92em;}
+.account-provider-note p {margin: 0 0 8px; line-height: 1.65;}
+.account-config-path {font-size: .9em; color: var(--muted);}
+.account-config-path code {display: block; margin-top: 8px; overflow-wrap: anywhere; user-select: text;}
+.account-session-heading {display: flex; gap: 12px; align-items: center; padding-bottom: 14px; border-bottom: 1px solid var(--border);}
+.account-session-heading div {display: flex; flex-direction: column; gap: 3px;}
+.account-session-heading strong {font-size: 1.1em; overflow-wrap: anywhere;}
+.account-session-heading span {font-size: .85em; color: var(--muted);}
+.account-question-heading {display: flex; gap: 16px; align-items: baseline; justify-content: space-between;}
+.account-question-heading h3 {margin: 0;}
+.account-question-heading>span, .account-field-key {font-size: .85em; color: var(--muted);}
+.account-question-help {white-space: pre-wrap; overflow-wrap: anywhere; user-select: text; line-height: 1.6; margin: 0; max-height: 180px; overflow-y: auto;}
+.account-choice-list {display: grid; gap: 8px;}
+.account-choice {display: flex; align-items: flex-start; gap: 10px; border: 1px solid var(--border); border-radius: 8px; padding: 12px; cursor: pointer;}
+.account-choice.selected {border-color: var(--accent); background: var(--accent-soft);}
+.account-choice input {width: auto; margin-top: 3px; accent-color: var(--accent); flex-shrink: 0;}
+.account-choice span {display: grid; gap: 4px; min-width: 0;}
+.account-choice strong {font-weight: 500; white-space: pre-wrap; overflow-wrap: anywhere;}
+.account-choice small {color: var(--muted); overflow-wrap: anywhere;}
+.account-value-label input {width: 100%;}
+.account-working,.account-ready {display: flex; flex-direction: column; align-items: center; text-align: center; gap: 12px; padding: 28px 16px;}
+.account-working p,.account-ready p {margin: 0; line-height: 1.6;}
+.account-staging-note {margin: 8px 0 0; font-size: .85em; line-height: 1.5; color: var(--muted);}
+.account-spinner {animation: account-spin 1s linear infinite; color: var(--accent);}
+.account-ready>svg {color: var(--accent);}
+.account-inline-error {color: var(--danger); margin: 0;}
+@keyframes account-spin {to {transform: rotate(360deg);}}
+@media (prefers-reduced-motion: reduce) {.account-spinner {animation: none;}}
+@media(max-width: 640px) {.account-row {flex-wrap: wrap;} .account-row-name {min-width: 55%;} .account-list-heading {align-items: flex-start; flex-direction: column;} .account-footer {flex-wrap: wrap;}}

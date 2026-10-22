@@ -1,0 +1,85 @@
+name: Prepare and verify account interface source
+on:
+  push:
+    branches: ['prepare/0.9.2']
+permissions:
+  contents: write
+jobs:
+  prepare:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Apply changes with before and after hashes
+        run: python3 .stage092/apply.py
+      - name: Build the bundled interface
+        working-directory: WebSource
+        run: |
+          npm ci --no-audit --no-fund
+          npm run typecheck
+          npm run build
+      - name: Retain clean source and application tree for review
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GIT_AUTHOR_NAME: Rclone Browser Next build
+          GIT_AUTHOR_EMAIL: 41898282+github-actions[bot]@users.noreply.github.com
+          GIT_COMMITTER_NAME: Rclone Browser Next build
+          GIT_COMMITTER_EMAIL: 41898282+github-actions[bot]@users.noreply.github.com
+        run: |
+          git add -A
+          python3 Scripts/update-source-manifest.py
+          git add SOURCE_MANIFEST.json
+          git diff --cached --check
+          python3 Scripts/verify-version.py
+          python3 - <<'PY'
+          import json,subprocess
+          from pathlib import Path
+          base='397a3d5a73965adbd233da1eb097b95f3ac7c484'
+          def git(*a): return subprocess.check_output(['git',*a],text=True).strip()
+          modes={line.split('\t',1)[1]:line.split(' ',1)[0] for line in git('ls-files','--stage').splitlines()}
+          entries=[]
+          for line in git('diff','--cached','--name-status','--no-renames',base).splitlines():
+              status,name=line.split('\t')
+              assert not name.startswith('.stage092/') and not name.startswith('.github/')
+              entries.append({'path':name,'mode':modes.get(name,'100644'),'type':'blob',**({'sha':None} if status=='D' else {'content':Path(name).read_text()})})
+          data=json.dumps({'base_tree':git('rev-parse',base+'^{tree}'),'tree':entries},ensure_ascii=False)
+          tree=json.loads(subprocess.check_output(['gh','api','--method','POST','repos/jason840709/RcloneBrowserNext/git/trees','--input','-'],input=data,text=True))
+          output=Path('.build-cache/prepared092');output.mkdir(parents=True,exist_ok=True)
+          local=git('commit-tree',git('write-tree'),'-p',base,'-m','Prepared 0.9.2 account setup and Dock attention')
+          git('update-ref','refs/heads/prepared-source',local)
+          git('archive','--format=zip','--output='+str(output/'source.zip'),local)
+          git('bundle','create',str(output/'source.bundle'),'prepared-source','--tags')
+          (output/'receipt.json').write_text(json.dumps({'applicationTree':tree['sha'],'parent':base,'localCommit':local,'published':False,'changedFiles':len(entries)},indent=2)+'\n')
+          print('APPLICATION_TREE='+tree['sha'])
+          PY
+      - name: Install browser engines
+        working-directory: WebSource
+        run: npx playwright install --with-deps chromium webkit
+      - name: Verify accounts in Chromium
+        working-directory: WebSource
+        env:
+          RBN_TEST_OUTPUT: ${{ github.workspace }}/.build-cache/prepared092/chromium
+          PLAYWRIGHT_JSON_OUTPUT_FILE: ${{ github.workspace }}/.build-cache/prepared092/chromium.json
+        run: npx playwright test --config tests/playwright.config.ts accounts.spec.ts --reporter=list,json
+      - name: Verify accounts in WebKit
+        if: always()
+        working-directory: WebSource
+        env:
+          RBN_TEST_WEBKIT: '1'
+          RBN_TEST_OUTPUT: ${{ github.workspace }}/.build-cache/prepared092/webkit
+          PLAYWRIGHT_JSON_OUTPUT_FILE: ${{ github.workspace }}/.build-cache/prepared092/webkit.json
+        run: npx playwright test --config tests/playwright.config.ts accounts.spec.ts --reporter=list,json
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: RcloneBrowserNext-Prepared-0.9.2
+          path: .build-cache/prepared092/
+          include-hidden-files: true
+          retention-days: 7
+          if-no-files-found: error

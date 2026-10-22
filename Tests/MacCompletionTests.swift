@@ -3,85 +3,86 @@ import Foundation
 @preconcurrency import AppKit
 
 @main struct MacCompletionTests {
-    static var passed = 0
-    static var failed = 0
-    struct Failure: Error { let message: String }
-    static func check(_ title: String, _ body: () throws -> Void) {
-        do { try body(); passed += 1; print("PASS \(title)") }
-        catch { failed += 1; print("FAIL \(title): \(error)") }
-    }
-    static func expect(_ value: Bool, _ message: String) throws {
-        if !value { throw Failure(message: message) }
-    }
-    static func job(_ id: String, _ state: String = "completed", dry: Bool = false) -> [String: Any] {
-        ["id": id, "status": state, "request": ["dryRun": dry]]
-    }
-    static func main() {
+    static var passed=0,failed=0
+    static func expect(_ condition: Bool,_ message:String)throws{if !condition{throw NSError(domain:message,code:1)}}
+    static func test(_ title:String,_ action:()throws->Void){do{try action();passed+=1;print("PASS \(title)")}catch{failed+=1;print("FAIL \(title): \(error)")}}
+    static func job(_ id:String,_ status:String="completed",dry:Bool=false)->[String:Any]{["id":id,"status":status,"request":["dryRun":dry]]}
+    static func main(){
         _ = NSApplication.shared
-        var requests = [NSApplication.RequestUserAttentionType]()
-        var cancellations = [Int]()
-        var clock: TimeInterval = 10
-        let attention = RBNCompletionAttention(clock: { clock }, request: {
-            requests.append($0); return requests.count
-        }, cancel: { cancellations.append($0) })
-        check("background completion requests short informational Dock attention") {
-            try expect(attention.consume(job("done"), enabled: true, isActive: false, isTerminating: false), "new completion")
-            try expect(requests == [.informationalRequest], "must never use criticalRequest")
+        var requests=[NSApplication.RequestUserAttentionType](), cancelled=[Int]()
+        let a=RBNCompletionAttention(request:{requests.append($0);return requests.count},cancel:{cancelled.append($0)})
+        test("background completion uses persistent critical attention"){
+            try expect(a.consume(job("one"),enabled:true,isActive:false,isTerminating:false),"completion consumed")
+            try expect(requests == [.criticalRequest],"must continue until acknowledged")
         }
-        check("duplicate terminal events do not repeat attention or banners") {
-            try expect(!attention.consume(job("done"), enabled: true, isActive: false, isTerminating: false), "duplicate")
-            try expect(requests.count == 1, "duplicate attention")
+        test("duplicate terminal events and parallel completions do not restart the bounce"){
+            try expect(!a.consume(job("one"),enabled:true,isActive:false,isTerminating:false),"duplicate event")
+            _ = a.consume(job("two"),enabled:true,isActive:false,isTerminating:false)
+            _ = a.consume(job("three","failed"),enabled:true,isActive:false,isTerminating:false)
+            try expect(requests.count==1 && cancelled.isEmpty,"one pending request")
         }
-        check("parallel completions within a second share the ongoing bounce") {
-            clock = 10.4
-            try expect(attention.consume(job("parallel"), enabled: true, isActive: false, isTerminating: false), "banner remains eligible")
-            try expect(requests.count == 1, "do not restart ongoing bounce")
+        test("a covered or minimized window does not acknowledge completion"){
+            a.reconcile(enabled:true,isWindowPresented:false)
+            try expect(cancelled.isEmpty,"hidden window acknowledged")
         }
-        check("failed transfers can request attention after the previous bounce") {
-            clock = 12
-            try expect(attention.consume(job("failed", "failed"), enabled: true, isActive: false, isTerminating: false), "failure")
-            try expect(requests.count == 2 && cancellations == [1], "replace outstanding request")
+        test("menu-only activation retains pending result after AppKit clears its request"){
+            a.reconcile(enabled:true,isWindowPresented:false,applicationActivated:true)
+            try expect(cancelled==[1] && requests.count==2,"result must remain pending")
         }
-        check("foreground completion never bounces or steals focus") {
-            try expect(attention.consume(job("front"), enabled: true, isActive: true, isTerminating: false), "foreground banner")
-            try expect(requests.count == 2, "foreground attention")
+        test("showing the main window acknowledges completion exactly once"){
+            a.reconcile(enabled:true,isWindowPresented:true);a.reconcile(enabled:true,isWindowPresented:true)
+            try expect(cancelled==[1,2],"cancel must be idempotent")
         }
-        check("Dock switch off does not disable the independent banner path") {
-            try expect(attention.consume(job("disabled"), enabled: false, isActive: false, isTerminating: false), "banner eligible")
-            try expect(!attention.consume(job("disabled"), enabled: true, isActive: false, isTerminating: false), "no replay on enable")
-            try expect(requests.count == 2, "disabled attention")
+        test("switching away after acknowledging never replays completion"){
+            a.reconcile(enabled:true,isWindowPresented:false)
+            try expect(requests.count==2,"old result replayed")
         }
-        check("preview success and preview failure stay silent") {
-            for state in ["completed", "failed"] {
-                try expect(!attention.consume(job("dry-" + state, state, dry: true), enabled: true, isActive: false, isTerminating: false), "preview")
-            }
+        test("foreground visible completion remains silent"){
+            _ = a.consume(job("front"),enabled:true,isActive:true,isTerminating:false,isWindowPresented:true)
+            try expect(requests.count==2,"foreground request")
         }
-        check("queued running stopping cancelled interrupted and paused jobs stay silent") {
-            for state in ["queued", "running", "cancelling", "cancelled", "interrupted", "paused"] {
-                try expect(!attention.consume(job(state, state), enabled: true, isActive: false, isTerminating: false), state)
-            }
+        test("active app with hidden window retains its result"){
+            _ = a.consume(job("hidden"),enabled:true,isActive:true,isTerminating:false,isWindowPresented:false)
+            try expect(requests.count==3,"hidden completion lost")
+            a.reconcile(enabled:true,isWindowPresented:true)
         }
-        check("quit suppression never creates a new notification") {
-            try expect(!attention.consume(job("quitting"), enabled: true, isActive: false, isTerminating: true), "termination")
+        test("turning off Dock attention cancels without disabling banners"){
+            _ = a.consume(job("before-off"),enabled:true,isActive:false,isTerminating:false)
+            a.reconcile(enabled:false,isWindowPresented:false)
+            try expect(cancelled==[1,2,3,4],"off did not cancel")
+            try expect(a.consume(job("off"),enabled:false,isActive:false,isTerminating:false),"banner eligibility")
+            a.reconcile(enabled:true,isWindowPresented:false)
+            try expect(requests.count==4,"enabling replayed completion")
         }
-        check("activation or termination cancels outstanding attention idempotently") {
-            attention.cancel(); attention.cancel()
-            try expect(cancellations == [1, 2], "cancel once per outstanding request")
+        test("cancelled interrupted preview and running jobs stay silent"){
+            for state in ["queued","running","cancelling","cancelled","interrupted","paused"]{try expect(!a.consume(job(state,state),enabled:true,isActive:false,isTerminating:false),state)}
+            for state in ["completed","failed"]{try expect(!a.consume(job("dry-"+state,state,dry:true),enabled:true,isActive:false,isTerminating:false),"preview")}
         }
-        check("invalid requests cannot create attention") {
-            for event: [String: Any] in [[:], ["id": "bad", "status": "completed"], job("")] {
-                try expect(!attention.consume(event, enabled: true, isActive: false, isTerminating: false), "invalid event")
-            }
+        test("terminating and malformed events create no attention"){
+            try expect(!a.consume(job("quit"),enabled:true,isActive:false,isTerminating:true),"termination")
+            for value:[String:Any] in [[:],job(""),["id":"missing-request","status":"completed"]]{try expect(!a.consume(value,enabled:true,isActive:false,isTerminating:false),"malformed")}
         }
-        check("native AppKit attention and cancellation API can be invoked") {
-            let native = RBNCompletionAttention()
-            _ = native.consume(job("native-smoke"), enabled: true, isActive: false, isTerminating: false)
+        test("AppKit rejection while active is retried until acknowledgment"){
+            var count=0
+            let b=RBNCompletionAttention(request:{_ in count+=1;return count==1 ? -1 : 42},cancel:{_ in})
+            _ = b.consume(job("wait"),enabled:true,isActive:true,isTerminating:false,isWindowPresented:false)
+            b.reconcile(enabled:true,isWindowPresented:false)
+            try expect(count==2,"pending result dropped")
+            b.reconcile(enabled:true,isWindowPresented:true);b.reconcile(enabled:true,isWindowPresented:false)
+            try expect(count==2,"replayed acknowledged result")
+        }
+        test("termination clears an outstanding request"){
+            _ = a.consume(job("finish-quit"),enabled:true,isActive:false,isTerminating:false)
+            a.cancel();a.cancel();try expect(cancelled==[1,2,3,4,5],"outstanding request")
+        }
+        test("real AppKit critical request and cancellation APIs execute"){
+            let native=RBNCompletionAttention()
+            _ = native.consume(job("native-smoke"),enabled:true,isActive:false,isTerminating:false)
             native.cancel()
-            // This is API execution, not an assertion about Dock pixels or
-            // the host machine's user-controlled animation preference.
+            // API execution is not a visual Dock-pixel test.
         }
         print("RESULT \(passed) passed, \(failed) failed")
-        if failed != 0 { exit(1) }
+        if failed>0{exit(1)}
     }
 }
 #endif
