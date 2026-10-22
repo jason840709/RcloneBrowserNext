@@ -1,0 +1,99 @@
+name: Prepare and verify graphical account setup
+on:
+  push:
+    branches: ['work/0.9.2']
+    paths: ['.development092/**', '.github/workflows/prepare-0.9.2.yml']
+permissions:
+  contents: write
+jobs:
+  prepare:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Restore exact reviewed application source
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import base64,lzma,hashlib,subprocess
+          data=base64.b64decode(''.join(Path(f'.development092/source-{i}.txt').read_text().strip() for i in range(1,5)),validate=True)
+          assert hashlib.sha256(data).hexdigest()=='72783ae23ed1085d19c0f3620d8f1162413915b0f67feac80a06e314447d37f4'
+          patch=lzma.decompress(data)
+          assert hashlib.sha256(patch).hexdigest()=='732634248c8cd385220e4495df0ca991c48b7913924ba9520ea7ac05eb219bcd'
+          subprocess.run(['git','checkout','--detach','397a3d5a73965adbd233da1eb097b95f3ac7c484'],check=True)
+          subprocess.run(['git','apply','--index','--unidiff-zero','-'],input=patch,check=True)
+          PY
+      - name: Build and check the shared interface
+        working-directory: WebSource
+        run: |
+          npm ci --no-audit --no-fund
+          npm run typecheck
+          npm run build
+          npx playwright install --with-deps chromium webkit
+      - name: Test account setup and progress in Chromium
+        working-directory: WebSource
+        env:
+          RBN_TEST_OUTPUT: ${{ github.workspace }}/.build-cache/preparation/chromium
+          PLAYWRIGHT_JSON_OUTPUT_FILE: ${{ github.workspace }}/.build-cache/preparation/chromium.json
+        run: npx playwright test --config tests/playwright.config.ts accounts.spec.ts revision091.spec.ts --reporter=list,json
+      - name: Test account setup in WebKit
+        if: always()
+        working-directory: WebSource
+        env:
+          RBN_TEST_WEBKIT: '1'
+          RBN_TEST_OUTPUT: ${{ github.workspace }}/.build-cache/preparation/webkit
+          PLAYWRIGHT_JSON_OUTPUT_FILE: ${{ github.workspace }}/.build-cache/preparation/webkit.json
+        run: npx playwright test --config tests/playwright.config.ts accounts.spec.ts --reporter=list,json
+      - name: Retain clean source and application tree for review
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GIT_AUTHOR_NAME: Rclone Browser Next build
+          GIT_AUTHOR_EMAIL: 41898282+github-actions[bot]@users.noreply.github.com
+          GIT_COMMITTER_NAME: Rclone Browser Next build
+          GIT_COMMITTER_EMAIL: 41898282+github-actions[bot]@users.noreply.github.com
+        run: |
+          test "$(git rev-parse HEAD)" = 397a3d5a73965adbd233da1eb097b95f3ac7c484
+          git add Resources/Web
+          python3 Scripts/update-source-manifest.py
+          git add SOURCE_MANIFEST.json
+          git diff --cached --check
+          python3 Scripts/verify-version.py
+          python3 - <<'PY'
+          from pathlib import Path
+          import json,subprocess
+          def git(*a):return subprocess.check_output(['git',*a],text=True).strip()
+          base='397a3d5a73965adbd233da1eb097b95f3ac7c484'
+          dest=Path('.build-cache/preparation/source');dest.mkdir(parents=True,exist_ok=True)
+          entries=[]
+          for line in git('diff','--cached','--name-status',base).splitlines():
+              status,name=line.split('\t')
+              if name.startswith('.github/'):continue
+              assert status in ('A','M'),name
+              mode=git('ls-files','--stage',name).split()[0]
+              entries.append({'path':name,'mode':mode,'type':'blob','content':Path(name).read_text()})
+          payload=json.dumps({'base_tree':git('rev-parse',base+'^{tree}'),'tree':entries},ensure_ascii=False)
+          tree=json.loads(subprocess.check_output(['gh','api','--method','POST','repos/jason840709/RcloneBrowserNext/git/trees','--input','-'],input=payload,text=True))
+          expected=git('write-tree')
+          commit=git('commit-tree',expected,'-p',base,'-m','Prepared 0.9.2 graphical accounts and persistent Dock attention')
+          git('update-ref','refs/heads/prepared-092',commit)
+          git('bundle','create',str(dest/'source.bundle'),'prepared-092','--tags')
+          git('archive','--format=zip','--output='+str(dest/'source.zip'),commit)
+          receipt={'base':base,'applicationTree':tree['sha'],'expectedTree':expected,'localCommit':commit,'published':False}
+          (dest/'prepared.json').write_text(json.dumps(receipt,indent=2)+'\n')
+          print(json.dumps(receipt,indent=2))
+          PY
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: RBN-0.9.2-preparation
+          path: .build-cache/preparation/
+          include-hidden-files: true
+          if-no-files-found: warn
+          retention-days: 14
