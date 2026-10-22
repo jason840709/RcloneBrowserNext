@@ -27,11 +27,20 @@ jobs:
           cp .build-cache/ci-engine/rclone .build-cache/development-tools/rclone
           .build-cache/ci-engine/rclone version > .build-cache/development-tools/rclone-version.txt
           .build-cache/ci-engine/rclone rc --loopback config/providers > .build-cache/development-tools/providers.json
-          RCLONE_JSON='{"name":"gui_probe","type":"alias","parameters":{},"opt":{"nonInteractive":true,"all":true}}' .build-cache/ci-engine/rclone --config .build-cache/development-tools/probe.conf --ask-password=false rc --loopback config/create > .build-cache/development-tools/config-probe.json
+          .build-cache/ci-engine/rclone --config .build-cache/probe.conf --ask-password=false config create gui_probe alias --non-interactive --all > .build-cache/development-tools/config-probe.json
+          python3 - <<'PY'
+          import json,os,subprocess
+          from pathlib import Path
+          root=Path('.build-cache/development-tools')
+          question=json.loads((root/'config-probe.json').read_text())
+          env=dict(os.environ,RCLONE_STATE=question['State'],RCLONE_RESULT='/tmp')
+          result=subprocess.check_output(['.build-cache/ci-engine/rclone','--config','.build-cache/probe.conf','--ask-password=false','config','update','gui_probe','--non-interactive','--all','--continue'],env=env)
+          (root/'config-continue.json').write_bytes(result)
+          PY
           curl --fail --location https://raw.githubusercontent.com/kapitainsky/RcloneBrowser/master/src/main_window.cpp -o .build-cache/development-tools/original-main-window.cpp
           curl --fail --location https://raw.githubusercontent.com/qt/qtbase/5.15/src/plugins/platforms/cocoa/qcocoaintegration.mm -o .build-cache/development-tools/qt-cocoa.mm
-          rm -f .build-cache/development-tools/probe.conf
       - uses: actions/upload-artifact@v7
+        if: always()
         with:
           name: RcloneBrowserNext-Account-Development-Tools
           path: .build-cache/development-tools/
