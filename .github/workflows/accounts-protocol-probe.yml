@@ -1,0 +1,63 @@
+name: Inspect account configuration protocol
+on:
+  push:
+    branches: ['work/0.9.2-accounts-probe']
+permissions:
+  contents: read
+jobs:
+  protocol:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Obtain verified rclone and pinned UI tools
+        run: |
+          python3 Scripts/ci-compat-rclone.py
+          cd WebSource
+          npm ci --no-audit --no-fund
+          cd ..
+          mkdir -p .build-cache/protocol
+          tar -czf .build-cache/protocol/frontend-tools.tar.gz -C WebSource node_modules
+          cp .build-cache/ci-engine/rclone .build-cache/protocol/rclone
+      - name: Probe JSON-only configuration with isolated local test remotes
+        run: |
+          python3 - <<'PY'
+          import subprocess,json,os,tempfile
+          from pathlib import Path
+          exe=str(Path('.build-cache/ci-engine/rclone').resolve())
+          output=Path('.build-cache/protocol'); reports=[]
+          with tempfile.TemporaryDirectory() as d:
+            conf=Path(d)/'rclone.conf';conf.write_text('')
+            args=[exe,'--config',str(conf),'--ask-password=false','--use-json-log','rc','--loopback']
+            for variable in ['RCLONE_JSON','RCLONE_RC_JSON']:
+              env=dict(os.environ);env[variable]=json.dumps({'name':'probe_'+variable.lower(),'type':'alias','parameters':{},'opt':{'all':True,'nonInteractive':True}})
+              p=subprocess.run(args+['config/create'],env=env,capture_output=True,text=True,timeout=15)
+              reports.append({'env':variable,'code':p.returncode,'out':p.stdout,'err':p.stderr})
+            def rc(method,data):
+              env=dict(os.environ);env['RCLONE_JSON']=json.dumps(data)
+              p=subprocess.run(args+[method],env=env,capture_output=True,text=True,timeout=20)
+              return {'method':method,'code':p.returncode,'out':p.stdout,'err':p.stderr}
+            reports.append(rc('rc/list',{}))
+            for provider in ['alias','drive','onedrive','webdav','sftp']:
+              name='probe_'+provider
+              r=rc('config/create',{'name':name,'type':provider,'parameters':{},'opt':{'all':True,'nonInteractive':True}})
+              reports.append(r)
+              try: obj=json.loads(r['out'])
+              except Exception: continue
+              if provider=='alias' and obj.get('State'):
+                reports.append(rc('config/update',{'name':name,'parameters':{},'opt':{'all':True,'nonInteractive':True,'continue':True,'state':obj['State'],'result':d}}))
+            reports.append(rc('config/providers',{}))
+            (output/'protocol.json').write_text(json.dumps(reports,indent=2))
+          PY
+      - uses: actions/upload-artifact@v7
+        with:
+          name: Account-protocol-and-local-test-tools
+          path: .build-cache/protocol/
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 7
