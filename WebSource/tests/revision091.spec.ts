@@ -8,7 +8,9 @@ import type {Job, Theme} from '../shared/types';
 const url = pathToFileURL(path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../Resources/Web/index.html')).href;
 const t = translator('zh-TW');
 async function open(page: Page, platform = 'darwin', theme: Theme = 'purple-dark') {
-  await installHostFixture(page, {platform, job: true, settings: {autoCheckUpdates: false, theme}});
+  // Deliver the first job through the event stream; an already-running
+  // bootstrap job correctly rejects a later queued snapshot as stale.
+  await installHostFixture(page, {platform, job: false, settings: {autoCheckUpdates: false, theme}});
   await page.goto(url);
   await page.getByTestId('left-pane').waitFor();
   await page.locator('.main-nav button').nth(1).click();
