@@ -1,7 +1,7 @@
 {
   "name": "rclone-next-compat-build-cli",
   "private": true,
-  "version": "0.9.4",
+  "version": "0.9.5",
   "dependencies": {
     "@tauri-apps/cli": "2.12.3"
   }

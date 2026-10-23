@@ -21,6 +21,8 @@
 
 **Mac 是主要開發平台**，另提供 Windows x64 與 Linux amd64 相容版；三平台使用同一個正式版本。[下載與更新說明](https://github.com/jason840709/RcloneBrowserNext/releases/latest) · [相容版安裝](docs/BUILD_COMPATIBILITY.md)
 
+[0.9.5 修正說明](docs/RELEASE_0.9.5.md)：修正同名遠端項目在來回切換資料夾後造成的清單重複與畫面錯亂。
+
 ## 這是什麼？
 
 Rclone Browser Next 是由 **Jason Chen** 開發的 macOS [rclone](https://rclone.org/) 圖形介面。

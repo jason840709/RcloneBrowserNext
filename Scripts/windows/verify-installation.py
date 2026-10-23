@@ -326,7 +326,7 @@ def reject_lower_revision(candidate, directory, state, evidence):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--phase", choices=["fresh", "upgrade"], required=True)
-    parser.add_argument("--baseline", choices=["0.9.0", "0.9.0-r1", "0.9.2", "0.9.3"], default="0.9.0-r1")
+    parser.add_argument("--baseline", choices=["0.9.0", "0.9.0-r1", "0.9.2", "0.9.3", "0.9.4"], default="0.9.0-r1")
     parser.add_argument("--candidate", type=Path, required=True)
     parser.add_argument("--receipt", type=Path, required=True)
     parser.add_argument("--rclone", type=Path, required=True)
@@ -396,7 +396,7 @@ def main():
             settings = {"rclonePath": str(rclone), "rcloneDirectory": str(rclone.parent), "configPath": str(config),
                         "autoCheckUpdates": False, "language": "ja", "theme": "blue-light", "interfaceScale": 125,
                         "initialLocations": {"left": {"remote": None, "path": source.as_posix()}, "right": {"remote": "upgrade-alias", "path": ""}}}
-            if args.baseline in {"0.9.2", "0.9.3"}:
+            if args.baseline in {"0.9.2", "0.9.3", "0.9.4"}:
                 settings["bounceDockOnCompletion"] = False
             transfer = {"source": {"remote": None, "path": source.as_posix()}, "destination": {"remote": "upgrade-alias", "path": ""},
                         "mode": "copy", "selection": [{"name": "keep.txt", "isDir": False}], "dryRun": True,

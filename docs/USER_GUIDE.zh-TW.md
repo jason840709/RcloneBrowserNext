@@ -6,7 +6,7 @@ Rclone Browser Next 是給 macOS 使用的雙面板 rclone 圖形介面。左右
 
 [專案首頁](../README.md) · [English](../README.en.md) · [Mac 建置說明](BUILD_MAC.zh-TW.md) · [功能對照](FEATURE_MATRIX.zh-TW.md) · [修改記錄](CHANGELOG.zh-TW.md)
 
-Mac、Windows 與 Linux 現在統一為 0.9.4；Windows／Linux 使用[相容版安裝包](BUILD_COMPATIBILITY.md)。以下原生操作以 Mac 版為主，共用的傳輸設定與報告適用於三個平台。
+Mac、Windows 與 Linux 現在統一為 0.9.5；Windows／Linux 使用[相容版安裝包](BUILD_COMPATIBILITY.md)。以下原生操作以 Mac 版為主，共用的傳輸設定與報告適用於三個平台。
 
 ## 開始使用
 

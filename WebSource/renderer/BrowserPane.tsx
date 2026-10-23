@@ -4,6 +4,7 @@ import { ArrowLeft, ArrowRight, ArrowUp, ArrowClockwise, Folder, FolderOpen, Fol
   Eye, EyeSlash, CaretDown, CaretUp, File as FileIcon, FileText, FileImage, FileZip, PencilSimple, Trash, ChartBar, X, Plus } from '@phosphor-icons/react';
 import type { FileEntry, ResolvedLanguage, RemoteInfo, LocalLocation, PaneColumnWidths, Settings } from '../shared/types';
 import type { BrowserState } from './useBrowser';
+import { fileRows, type FileRow } from './fileRows';
 import type { Translate } from './i18n';
 import { childEndpoint, endpointEqual, endpointName, endpointText, errorMessage, formatBytes, formatDate, parentEndpoint } from './utils';
 import PaneMenu from './PaneMenu';
@@ -23,7 +24,7 @@ interface PaneContext {
   onKey(event: KeyboardEvent, item: FileEntry, index: number): void;
   onFocus(item: FileEntry): void;
 }
-const tableComponents: TableComponents<FileEntry, PaneContext> = {
+const tableComponents: TableComponents<FileRow, PaneContext> = {
   Table: ({ context, children, ...props }) => <table {...props} className="file-table" style={{width: '100%', minWidth: (context?.checkWidth || 14) + (context?.widths.name || 180) + (context?.widths.size || 86) + (context?.widths.modified || 164)}}><colgroup><col style={{width: context?.checkWidth || 14}}/><col style={{width: context?.widths.name}}/><col style={{width: context?.widths.size}}/><col style={{width: context?.widths.modified}}/><col className="row-fill"/></colgroup>{children}</table>,
   TableRow: ({ item, context, ...props }) => <tr {...props} data-row-parity={Number(props['data-index']) % 2} data-selected={context?.selected.has(item.name) || undefined}
     tabIndex={!context?.disabled && context?.focused === item.name ? 0 : -1} aria-selected={context?.selected.has(item.name)} aria-disabled={context?.disabled || undefined}
@@ -106,13 +107,14 @@ export default function BrowserPane({ side, browser, remotes, locations, home, p
   useLayoutEffect(() => { setPathDraft(null); setQuery(''); setFocused(''); anchor.current = null; }, [endpoint.remote, endpoint.path, browser.activeTab]);
   useLayoutEffect(() => { if (!browser.pathDirty) setPathDraft(null); }, [browser.pathDirty]);
   const selected = useMemo(() => new Set(isSource ? selection.map(item => item.name) : []), [selection, isSource]);
-  const filtered = useMemo(() => entries.filter(entry => (showHidden || !entry.name.startsWith('.')) && entry.name.toLocaleLowerCase().includes(query.toLocaleLowerCase()))
+  const rows = useMemo(() => fileRows(endpoint, entries), [endpoint.remote, endpoint.path, entries]);
+  const filtered = useMemo(() => rows.filter(entry => (showHidden || !entry.name.startsWith('.')) && entry.name.toLocaleLowerCase().includes(query.toLocaleLowerCase()))
     .sort((a, b) => {
       if (a.isDir !== b.isDir) return a.isDir ? -1 : 1;
       const primary = sort.key === 'size' ? a.size - b.size : sort.key === 'modified' ? Date.parse(a.modified) - Date.parse(b.modified) : a.name.localeCompare(b.name, language, {numeric: true, sensitivity: 'base'});
       const diff = Number.isFinite(primary) && primary !== 0 ? primary : a.name.localeCompare(b.name, language, {numeric: true});
       return sort.ascending ? diff : -diff;
-    }), [entries, query, showHidden, sort, language]);
+    }), [rows, query, showHidden, sort, language]);
   const visibleNames = useMemo(() => new Set(filtered.map(item => item.name)), [filtered]);
   const allSelected = useMemo(() => filtered.length > 0 && selected.size > 0 && filtered.every(item => selected.has(item.name)), [filtered, selected]);
   const someSelected = useMemo(() => selected.size > 0 && filtered.some(item => selected.has(item.name)), [filtered, selected]);
@@ -216,7 +218,7 @@ export default function BrowserPane({ side, browser, remotes, locations, home, p
           <EmptyState compact icon={query ? <MagnifyingGlass size={32}/> : <FolderOpen size={34} weight="duotone"/>} title={t(query || entries.length > 0 ? 'noMatches' : 'emptyFolder')}>{(query || entries.length > 0) ? t('noMatchesHint') : null}</EmptyState>}
         </div> :
         <TableVirtuoso ref={virtuoso} data={filtered} components={tableComponents} context={context} fixedItemHeight={37} overscan={200} onScroll={event => { const element = event.currentTarget as HTMLElement; element.closest<HTMLElement>('.file-list')?.style.setProperty('--stripe-offset', `${33 - element.scrollTop % 74}px`); }}
-          computeItemKey={(_index, item) => item.name}
+          computeItemKey={(_index, item) => item.rowKey}
           fixedHeaderContent={() => <tr><th scope="col" className="check-cell" aria-hidden={!isSource || undefined}>{isSource && <input type="checkbox" aria-label={`${t(side)} ${t('selectAll')}`} checked={allSelected} disabled={listingDisabled} ref={element => { if (element) element.indeterminate = someSelected && !allSelected; }} onChange={selectVisible}/>}</th><th scope="col" aria-sort={sort.key === 'name' ? sort.ascending ? 'ascending' : 'descending' : 'none'}>{sortHeader('name', t('name'))}{resizeHandle('name', t('name'))}</th><th scope="col" className="numeric" aria-sort={sort.key === 'size' ? sort.ascending ? 'ascending' : 'descending' : 'none'}>{sortHeader('size', t('size'))}{resizeHandle('size', t('size'))}</th><th scope="col" aria-sort={sort.key === 'modified' ? sort.ascending ? 'ascending' : 'descending' : 'none'}>{sortHeader('modified', t('modified'))}{resizeHandle('modified', t('modified'))}</th><th scope="col" className="row-fill" aria-label=""/></tr>}
           itemContent={(_index, entry) => <><td className="check-cell" aria-hidden={!isSource || undefined}>{isSource && <input type="checkbox" aria-label={`${t('selected')} ${entry.name}`} checked={selected.has(entry.name)} disabled={listingDisabled} onChange={() => toggle(entry)} onClick={event => event.stopPropagation()}/>}</td><td><div className="file-name" title={entry.name}>{(entry.isDir ? preferences.showFolderIcons : preferences.showFileIcons) && <EntryIcon entry={entry}/>}<span>{entry.name}</span>{entry.isLink && <span className="link-marker">↗</span>}</div></td><td className="numeric muted">{entry.isDir ? '—' : formatBytes(entry.size)}</td><td className="date-cell muted" title={formatDate(entry.modified, language)}>{formatDate(entry.modified, language)}</td><td className="row-fill" aria-hidden="true"/></>}/>
       }

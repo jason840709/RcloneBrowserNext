@@ -1,16 +1,20 @@
-# 0.9.4 驗證範圍與結果位置
+# 0.9.5 驗證範圍與結果位置
 
-0.9.4 的新增範圍是資料夾工作階段快取、每窗格全深度重新整理，以及可取消的清單載入。三平台維持統一發布，保留快速／詳細帳號設定、Mac 持續 Dock 提醒與 Windows R1 檔案系統實作。
+0.9.5 修正遠端清單含有同名項目時的畫面列識別衝突，新增來回導航及重新整理的實際畫面回歸。保留 0.9.4 的資料夾工作階段快取、每窗格全深度重新整理與可取消載入。三平台維持統一發布，快速／詳細帳號設定、Mac 持續 Dock 提醒與 Windows R1 檔案系統實作延續。
 
 本文件列出本版的測試範圍與發布條件。**同一來源 commit 的正式 CI 尚未完成前，不將測試要求寫成已通過結果，也不填入未取得的通過數量。** 本機或較早版本的結果不能代替正式版證據。
 
 ## 發布門檻與查核方式
 
-正式發布須通過 Web 介面、Mac arm64／Intel 核心及原生測試、macOS 26 原生介面、Linux 套件與原生視窗，以及 Windows 建置和安裝後驗證。Windows 保留乾淨安裝、檔案操作、真實 WebView2 互動，升級 baseline 為 0.9.0、0.9.0-r1、0.9.2、0.9.3；後兩者須保留已設定的 Dock 提醒偏好與原有設定。
+正式發布須通過 Web 介面、Mac arm64／Intel 核心及原生測試、macOS 26 原生介面、Linux 套件與原生視窗，以及 Windows 建置和安裝後驗證。Windows 保留乾淨安裝、檔案操作、真實 WebView2 互動，升級 baseline 為 0.9.0、0.9.0-r1、0.9.2、0.9.3、0.9.4；0.9.2 以後的 baseline 須保留已設定的 Dock 提醒偏好與原有設定。
 
-[CI 執行紀錄](https://github.com/jason840709/RcloneBrowserNext/actions/workflows/macos.yml) 保留各工作的日誌及結果。應核對 `v0.9.4` 標籤、來源 commit、CI run、候選安裝檔與正式資產的校驗值一致。Windows 的 `candidate-verification.json` 核對測試名稱、數量與執行檔雜湊；缺漏或失敗不能視為通過。Web JSON 報告區分 Chromium 全套回歸與 WebKit 明列的動畫、設定、帳號及導航案例。單一工作成功不能代替完整發布門檻。
+[CI 執行紀錄](https://github.com/jason840709/RcloneBrowserNext/actions/workflows/macos.yml) 保留各工作的日誌及結果。應核對 `v0.9.5` 標籤、來源 commit、CI run、候選安裝檔與正式資產的校驗值一致。Windows 的 `candidate-verification.json` 核對測試名稱、數量與執行檔雜湊；缺漏或失敗不能視為通過。Web JSON 報告區分 Chromium 全套回歸與 WebKit 明列的動畫、設定、帳號及導航案例。單一工作成功不能代替完整發布門檻。
 
-## 0.9.4 新增驗證範圍
+## 0.9.5 新增驗證範圍
+
+使用含同名、同路徑項目的合成清單重現「第一層 → 子資料夾 → 返回 → 另一子資料夾 → 返回」；核對每次畫面上的完整名稱序列、實際列數及底部計數。重新整理須重新呼叫原生清單介面，回應正確時畫面也須正確，所有同名項目都保留。測試應涵蓋快取命中與強制讀取，不可只檢查底層陣列長度。`duplicate-entry-navigation.spec.ts` 同時列入 Chromium 全套與 WebKit 指定回歸。
+
+## 延續 0.9.4 的驗證範圍
 
 | 範圍 | 必須核對的行為 |
 | --- | --- |
@@ -36,4 +40,4 @@ Dock 測試涵蓋背景完成／失敗持續提醒、去重、切回後取消與
 
 原生 Dock 測試確認事件判斷及 AppKit API，沒有量測每台電腦的實體 Dock 動畫。Windows Server 2025 x64、Ubuntu 24.04 與 CI 的 macOS 版本也不涵蓋所有桌面系統及裝置。Mac 公開 App 使用 ad-hoc 簽章，Windows 安裝程式沒有 Authenticode 簽章。
 
-歷史資料：[0.9.3 發布說明](RELEASE_0.9.3.md) · [0.9.0 驗證](VALIDATION_0.9.0.zh-TW.md) · [Windows r1](WINDOWS_0.9.0_R1.md)。歷史結果不可當作 0.9.4 新測試的通過證據。
+歷史資料：[0.9.4 發布說明](RELEASE_0.9.4.md) · [0.9.3 發布說明](RELEASE_0.9.3.md) · [0.9.0 驗證](VALIDATION_0.9.0.zh-TW.md) · [Windows r1](WINDOWS_0.9.0_R1.md)。歷史結果不可當作 0.9.5 新測試的通過證據。

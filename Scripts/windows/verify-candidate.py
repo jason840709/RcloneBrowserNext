@@ -241,9 +241,9 @@ def main():
         report["scope"] = ["Windows part of the unified desktop release, including scoped directory listing cancellation",
                            "Fresh Windows verification runner has no Swift setup; installed child PATH contains system directories only",
                            "Local filesystem and synthetic rclone alias remotes; no real cloud credentials or user data",
-                           "Upgrade uses a pinned published 0.9.0, Windows r1, 0.9.2 or 0.9.3 installer and verifies preserved saved state",
+                           "Upgrade uses a pinned published 0.9.0, Windows r1, 0.9.2, 0.9.3 or 0.9.4 installer and verifies preserved saved state",
                            "NSIS downgrade check temporarily raises only the owned registry DisplayVersion to the next patch version",
-                           "Publication requires successful Web, Mac, Linux and all four Windows upgrade jobs from this same source commit"]
+                           "Publication requires successful Web, Mac, Linux and all five Windows upgrade jobs from this same source commit"]
         report["passed"] = True
     except Exception as error:
         report["error"] = {"type": type(error).__name__, "message": str(error), "traceback": traceback.format_exc()}

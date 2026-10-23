@@ -21,6 +21,8 @@
 
 Mac is the primary platform, with Windows x64 and Linux amd64 compatibility editions. All platforms share one release version. [Latest release](https://github.com/jason840709/RcloneBrowserNext/releases/latest) · [Compatibility installation](docs/BUILD_COMPATIBILITY.md)
 
+[0.9.5 hotfix notes](docs/RELEASE_0.9.5.md): fixes duplicated and stale display rows when navigating folders containing remote entries with the same name.
+
 ## What is it?
 
 Rclone Browser Next is a macOS interface for [rclone](https://rclone.org/), developed by **Jason Chen**.
