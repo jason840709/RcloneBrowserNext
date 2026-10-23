@@ -16,12 +16,13 @@ import Foundation
         let engine: RcloneEngine
         let tools: RcloneTools
         let indexURL: URL
-        let queue = DispatchQueue(label: "RcloneBrowser.navigation-integration")
+        let queue = DispatchQueue(label: "RcloneBrowser.navigation-integration", qos: .userInitiated, attributes: .concurrent)
         weak var view: RcloneWebView?
         var loaded = false
         var loadError: Error?
         var errors = [String]()
         var methods = [String]()
+        var requestedPaths = [String]()
         var listedPaths = [String]()
         var listingNames = [String: [String]]()
         var pendingRequests = 0
@@ -47,15 +48,44 @@ import Foundation
             }
             methods.append(method); pendingRequests += 1
             let engine = engine, tools = tools
+            // Reserve listing IDs before enqueueing, as AppMain does, so a
+            // later cancelList can also stop a worker that has not started.
+            let preparation = Result<Void, Error> {
+                if method == "list" {
+                    try engine.prepareListing(options: arguments.count > 1 ? arguments[1] : nil)
+                    guard let endpoint = arguments.first as? [String: Any], let path = endpoint["path"] as? String else {
+                        throw Failure(description: "A listing request had no endpoint path")
+                    }
+                    requestedPaths.append(path)
+                }
+            }
             queue.async {
                 // Match AppMain's asynchronous request boundary. Blocking
                 // rclone work must never stop WebKit's main-thread run loop.
                 precondition(!Thread.isMainThread)
                 var reply: [String: Any] = ["id": id]
                 var requestError: String?
+                var listedNames: [String]?
                 do {
+                    try preparation.get()
                     switch method {
-                    case "bootstrap", "list": reply["result"] = try engine.invoke(method, arguments: arguments)
+                    case "bootstrap", "cancelList": reply["result"] = try engine.invoke(method, arguments: arguments)
+                    case "list":
+                        let value = try engine.invoke(method, arguments: arguments)
+                        reply["result"] = value
+                        guard arguments.count > 1, let options = arguments[1] as? [String: Any],
+                              let requestID = options["requestId"] as? String, !requestID.isEmpty,
+                              let listing = value as? [String: Any], listing["requestId"] as? String == requestID,
+                              let status = listing["status"] as? String,
+                              let entries = listing["entries"] as? [[String: Any]] else {
+                            throw Failure(description: "Core's scoped listing did not match its request")
+                        }
+                        switch status {
+                        case "completed": listedNames = entries.compactMap { $0["name"] as? String }
+                        case "cancelled":
+                            guard entries.isEmpty else { throw Failure(description: "A cancelled Core listing returned entries") }
+                        default: throw Failure(description: "Unexpected Core listing status: \(status)")
+                        }
                     case "listToolSessions": reply["result"] = tools.listSessions()
                     default: throw Failure(description: "Unexpected integration request: \(method)")
                     }
@@ -67,10 +97,10 @@ import Foundation
                     String(decoding: try JSONSerialization.data(withJSONObject: reply), as: UTF8.self)
                 }
                 let completedError = requestError
-                let completedNames = (reply["result"] as? [[String: Any]])?.compactMap { $0["name"] as? String }
+                let completedNames = listedNames
                 DispatchQueue.main.async {
                     if let error = completedError { self.errors.append(error) }
-                    if completedError == nil, method == "list",
+                    if completedError == nil, method == "list", let completedNames = completedNames,
                        let endpoint = arguments.first as? [String: Any], let path = endpoint["path"] as? String {
                         self.listedPaths.append(path)
                         self.listingNames[path] = completedNames
@@ -351,18 +381,24 @@ import Foundation
             try require(host.listedPaths.count == before + 4, "A swipe was lost or caused extra Core listings")
         }
 
-        test("Duplicate window/responder delivery navigates once while two rapid swipes visit two actual ancestors") {
+        test("Duplicate window/responder delivery navigates once while two rapid swipes request two real ancestors") {
             let time = ProcessInfo.processInfo.systemUptime
             let first = try swipe(.left, time: time, in: view)
             let second = try swipe(.left, time: time + 0.01, in: view)
-            let before = host.listedPaths.count
+            let before = host.requestedPaths.count
+            let completedBefore = host.listedPaths.count
             window.sendEvent(first); window.sendEvent(first); view.swipe(with: first)
             window.sendEvent(second)
             try expectPath(.left, depth: 0, root: root, in: view, host: host)
             try expectPath(.right, depth: 2, root: root, in: view, host: host)
             try settle(host, in: view)
-            try require(Array(host.listedPaths.dropFirst(before)) == [path(.left, root: root, depth: 1).path, path(.left, root: root, depth: 0).path],
-                        "Duplicate/rapid swipe handling did not produce exactly the two ancestor listings")
+            // The second navigation may cancel the first listing. Both native
+            // requests must still occur once, in order; expectPath above checks
+            // that the final rows came from the completed real Core listing.
+            try require(Array(host.requestedPaths.dropFirst(before)) == [path(.left, root: root, depth: 1).path, path(.left, root: root, depth: 0).path],
+                        "Duplicate/rapid swipe handling did not request exactly the two ancestors")
+            try require(host.listedPaths.dropFirst(completedBefore).contains(path(.left, root: root, depth: 0).path),
+                        "Rapid navigation did not complete a new Core listing for the final ancestor")
             window.sendEvent(try swipe(.left, forward: true, in: view))
             try expectPath(.left, depth: 1, root: root, in: view, host: host)
             window.sendEvent(try swipe(.left, forward: true, in: view))
@@ -415,7 +451,7 @@ import Foundation
             window.sendEvent(try swipe(.right, forward: true, in: view))
             try expectPath(.right, depth: 2, root: root, in: view, host: host)
             try settle(host, in: view)
-            try require(Set(host.methods).isSubset(of: ["bootstrap", "list", "listToolSessions"]), "Navigation unexpectedly mutated engine data")
+            try require(Set(host.methods).isSubset(of: ["bootstrap", "list", "cancelList", "listToolSessions"]), "Navigation unexpectedly mutated engine data")
         }
     }
 
