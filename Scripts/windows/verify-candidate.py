@@ -38,6 +38,22 @@ UI_CASES = {f"{size}-{side}-pointer-probe-{index:02d}" for size in ("normal", "c
      "endpoint-editor-startup-remote", "native-minimum-window-125-percent", "compact-endpoint-editor-startup-remote"}
 
 
+LISTING_CASES = {
+    'browse preserves legacy arrays and starts only one lsjson per ready remote listing',
+    'cancellation before dispatch prevents spawn and rejects reused active request IDs',
+    'context reset cancels a reserved worker before it starts',
+    'cancel reaps only its child while same-folder other pane and newer request continue',
+    'cancel covers environment discovery and allows a clean retry',
+    'native deadline stops its listing process and reports an error rather than empty success',
+    'connection change cancels old reading and queued requests before publishing new settings',
+    'cancel during a replacement environment probe never waits for or stops the unrelated probe',
+    'shutdown reaps both listing children and prevents reserved late workers',
+    'local adapter keeps original errors and pre-cancel performs no filesystem read',
+    'real rclone keeps Unicode names sizes modification times and missing-remote errors',
+    'real throttled HTTP listing cancellation reaps rclone and preserves a running transfer',
+}
+
+
 def require(condition, message):
     if not condition:
         raise AssertionError(message)
@@ -124,10 +140,44 @@ def main():
         require(len(platform_results) == 1 and int(platform_results[0][0]) == 9 and platform_results[0][1] == "0"
                 and len(re.findall(r"^PASS ", platform_log, re.MULTILINE)) == 9, "Existing Windows platform regressions did not all pass")
         report["suites"].append({"name": "existing-platform", "passed": 9, "failed": 0, "skipped": None})
+        listing_log = text(build / "listings.log", "build/listings.log")
+        listing_results = re.findall(r"^RESULT (\d+) passed, (\d+) failed\s*$", listing_log, re.MULTILINE)
+        listing_cases = re.findall(r"^PASS ([^\r\n]+)\s*$", listing_log, re.MULTILINE)
+        require(listing_results == [(str(len(LISTING_CASES)), "0")]
+                and len(listing_cases) == len(LISTING_CASES) and set(listing_cases) == LISTING_CASES,
+                "Scoped directory listing regressions are missing, duplicated or failing")
+        listing_proofs = re.findall(r"^REAL_LISTING_CANCEL_EVIDENCE (.+)$", listing_log, re.MULTILINE)
+        require(len(listing_proofs) == 1, "Missing real rclone directory cancellation evidence")
+        listing_proof = json.loads(listing_proofs[0])
+        require(listing_proof.get("aliveAfterAck") is False
+                and listing_proof.get("transferStillRunning") is True
+                and listing_proof.get("loopbackOnly") is True
+                and 0 <= listing_proof.get("elapsedSeconds", -1) < 5,
+                "Real listing cancellation did not reap its process independently")
+        child_proofs = re.findall(r"^LISTING_CANCEL_EVIDENCE (.+)$", listing_log, re.MULTILINE)
+        require(len(child_proofs) == 1, "Missing directory cancellation child process evidence")
+        child_proof = json.loads(child_proofs[0])
+        require(child_proof.get("aliveAfterAck") is False
+                and len(set(child_proof.get("actualChildPIDs", []))) == 2
+                and child_proof.get("actualChildrenAliveAfterAck") == 1,
+                "Directory cancellation did not isolate its actual child from the other pane")
+        report["suites"].append({"name": "scoped-directory-listing", "passed": len(LISTING_CASES),
+                                 "failed": 0, "skipped": 0, "realRcloneCancellation": listing_proof})
         transfers = read(build / "transfer.json", "build/transfer.json")
-        require(transfers.get("passed") == 10 and transfers.get("failed") == 0 and len(transfers.get("tests", [])) == 10
+        require(transfers.get("passed") == 11 and transfers.get("failed") == 0 and len(transfers.get("tests", [])) == 11
                 and all(item.get("status") == "passed" for item in transfers["tests"]), "Existing transfers/cancellation regressions did not all pass")
-        report["suites"].append({"name": "existing-transfers-and-cancellation", "passed": 10, "failed": 0, "skipped": None})
+        barrier_tests = [item for item in transfers["tests"]
+                         if item.get("name") == "scoped folder cancellation bypasses queued native state barriers"]
+        require(len(barrier_tests) == 1, "Missing native queued-barrier cancellation regression")
+        barrier_proof = barrier_tests[0].get("evidence", {})
+        require(barrier_proof.get("loopbackOnly") is True
+                and barrier_proof.get("stateBarrierQueuedFirst") is True
+                and barrier_proof.get("httpGateStillClosedAtAck") is True
+                and barrier_proof.get("childrenAliveAfterAck") == 0
+                and len(barrier_proof.get("actualRclonePIDs", [])) >= 1,
+                "Native listing cancellation did not bypass a queued state barrier and reap its real child")
+        report["suites"].append({"name": "existing-transfers-and-cancellation", "passed": 11,
+                                 "failed": 0, "skipped": None, "queuedBarrierCancellation": barrier_proof})
 
         installations = {}
         for phase in ("fresh", "upgrade"):
@@ -188,18 +238,18 @@ def main():
         require(smoke.get("passed") is True and smoke.get("exitCode") == 0 and smoke.get("version") == report["version"]
                 and smoke.get("installer", {}).get("sha256") == package["sha256"], "The existing installed native UI smoke did not pass this revision")
         report["suites"].append({"name": "existing-native-ui-smoke", "passed": 1, "failed": 0, "skipped": None, "unit": "aggregate native UI receipt"})
-        report["scope"] = ["Windows part of the unified desktop release; Mac has its own new attention feature and tests",
+        report["scope"] = ["Windows part of the unified desktop release, including scoped directory listing cancellation",
                            "Fresh Windows verification runner has no Swift setup; installed child PATH contains system directories only",
                            "Local filesystem and synthetic rclone alias remotes; no real cloud credentials or user data",
-                           "Upgrade uses a pinned published 0.9.0 or Windows r1 installer, verifies saved bytes and the one new Dock preference default",
+                           "Upgrade uses a pinned published 0.9.0, Windows r1, 0.9.2 or 0.9.3 installer and verifies preserved saved state",
                            "NSIS downgrade check temporarily raises only the owned registry DisplayVersion to the next patch version",
-                           "Publication requires successful Web, Mac, Linux and both Windows upgrade jobs from this same source commit"]
+                           "Publication requires successful Web, Mac, Linux and all four Windows upgrade jobs from this same source commit"]
         report["passed"] = True
     except Exception as error:
         report["error"] = {"type": type(error).__name__, "message": str(error), "traceback": traceback.format_exc()}
     report["verifiedAt"] = datetime.now(timezone.utc).isoformat()
     (evidence / "candidate-verification.json").write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
-    print(json.dumps({key: report.get(key) for key in ("passed", "sourceCommit", "runID", "installerSha256", "suites", "error")}, indent=2))
+    print(json.dumps({key: report.get(key) for key in ("passed", "version", "sourceCommit", "runID", "installerSha256", "suites", "error")}, indent=2))
     return 0 if report["passed"] else 1
 
 

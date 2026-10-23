@@ -21,6 +21,13 @@ enum RBNNativeStrings {
         }
     }
     private static let entries: [Entry] = [
+        Entry("目錄讀取已取消。", "Folder loading was cancelled.", "フォルダの読み込みをキャンセルしました。"),
+        Entry("目錄讀取尚未停止，請稍後再試。", "Folder loading has not stopped yet. Try again shortly.", "フォルダの読み込みはまだ停止していません。少し待ってから再試行してください。"),
+        Entry("目錄讀取逾時設定不正確。", "The folder loading timeout is invalid.", "フォルダの読み込みタイムアウト設定が正しくありません。"),
+        Entry("目錄讀取要求格式不正確。", "The folder loading request is invalid.", "フォルダの読み込み要求が正しくありません。"),
+        Entry("目錄讀取編號已使用，請重新載入。", "This folder request was already used. Reload the folder.", "このフォルダ要求はすでに使われています。フォルダを再読み込みしてください。"),
+        Entry("目錄讀取編號不可空白。", "A folder loading request ID is required.", "フォルダの読み込み要求 ID が必要です。"),
+        Entry("目錄讀取要求過多，請稍後重試。", "Too many folder loading requests. Try again shortly.", "フォルダの読み込み要求が多すぎます。少し待ってから再試行してください。"),
         Entry("請先結束帳號設定，再執行工具。", "Finish account setup before using the tools.", "アカウント設定を終了してからツールを使ってください。"),
         Entry("請先關閉帳號設定視窗，再結束程式。", "Close the account setup window before quitting the app.", "アカウント設定のウインドウを閉じてからアプリを終了してください。"),
         Entry("請先停止播放，再開啟帳號設定。", "Stop playback before opening account setup.", "再生を停止してからアカウント設定を開いてください。"),

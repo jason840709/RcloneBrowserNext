@@ -11,7 +11,7 @@ use tauri_plugin_clipboard_manager::ClipboardExt;
 use tauri_plugin_dialog::{DialogExt, MessageDialogButtons, MessageDialogKind, MessageDialogResult};
 
 const METHODS: &[&str] = &[
-    "bootstrap", "list", "mkdir", "rename", "remove", "size", "chooseFolder", "chooseFile", "previewTransfer",
+    "bootstrap", "list", "cancelList", "mkdir", "rename", "remove", "size", "chooseFolder", "chooseFile", "previewTransfer",
     "startTransfer", "cancelJob", "retryJob", "listJobs", "clearFinishedJobs", "clearJobs", "saveTask", "deleteTask",
     "listTasks", "saveSettings", "unlockConfig", "configureRemotes", "accountConfig", "openAccountAuthorization", "openExternal", "exportLog", "getJobReport",
     "exportJobReport", "exportTasks", "importTasks", "checkForUpdates", "checkAppUpdates", "showAbout", "copyText",
@@ -108,7 +108,7 @@ impl Host {
             let mut input = self.input.lock().unwrap();
             // Check under the pipe lock: a dialog opened before Quit must not
             // submit a new transfer after the quit snapshot has been taken.
-            if self.quitting.load(Ordering::SeqCst) && !["_state", "_shutdown", "_endConfiguration"].contains(&method) {
+            if self.quitting.load(Ordering::SeqCst) && !["_state", "_shutdown", "_endConfiguration", "_cancelListings", "cancelList"].contains(&method) {
                 Err("The app is closing.")
             } else {
                 input.as_mut().ok_or("The engine is closing.").and_then(|stdin| stdin.write_all(&packet).map_err(|_| "Cannot contact the engine."))
@@ -523,6 +523,9 @@ fn start_quit(app: AppHandle, host: Arc<Host>) {
         let result = (|| -> Result<bool, String> {
             if host.alive.load(Ordering::SeqCst) && host.update_busy.load(Ordering::SeqCst) { return Err(host.text("請等更新完成，再結束程式。", "Wait for the update to finish before quitting.", "更新が完了してからアプリを終了してください。")); }
             let state = if host.alive.load(Ordering::SeqCst) {
+                // _state is ordered behind earlier helper requests. Interrupt
+                // read-only listings first so a slow folder cannot block Quit.
+                host.call("_cancelListings", vec![])?;
                 match host.call("_state", vec![]) {
                     Ok(state) => state,
                     Err(_) if !host.alive.load(Ordering::SeqCst) => Value::Null,
@@ -689,7 +692,7 @@ mod tests {
         for url in ["file:///etc/passwd", "https://github.com/another/repo", "https://evil.test/", "https://github.com/jason840709/RcloneBrowserNext-evil", "https://user@rclone.org/"] { assert!(!external_url_allowed(url)); }
     }
     #[test] fn native_only_methods_are_not_exposed() {
-        for name in ["_shutdown", "_beginConfiguration", "_installRclone", "_exportTo", "getLogPath", "getJobReportPath"] { assert!(!METHODS.contains(&name)); }
+        for name in ["_shutdown", "_cancelListings", "_beginConfiguration", "_installRclone", "_exportTo", "getLogPath", "getJobReportPath"] { assert!(!METHODS.contains(&name)); }
     }
     #[test] fn displayed_scale_maps_to_the_retained_visual_sizes() {
         for (displayed, expected) in [(80, 0.7), (90, 0.8), (100, 0.9), (110, 1.0), (120, 1.1), (125, 1.15), (135, 1.25)] {

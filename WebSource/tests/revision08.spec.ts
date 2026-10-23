@@ -81,12 +81,13 @@ test('folder navigation retains the table until success and cannot operate on it
       const event = new MouseEvent(type, {bubbles: true, cancelable: true}); row.dispatchEvent(event); return event.defaultPrevented;
     }))).toEqual([true, true]);
     await expect(page.locator('.start-button')).toBeDisabled();
-    await expect(pathInput(page)).toHaveValue('/Users/test/Next');
+    await expect(pathInput(page)).toHaveValue('/Users/test');
     expect(await page.evaluate(() => (window as any).__fixture.calls.filter((call: any) => call.method === 'list').length)).toBe(countBefore + 1);
     await expect.poll(() => page.evaluate(() => (window as any).__listingFrames.filter((frame: any) => frame.busy === 'true').length)).toBeGreaterThan(3);
     await expect.poll(() => page.evaluate(() => Boolean((window as any).__heldListingReply))).toBe(true);
     await page.evaluate(() => (window as any).__releaseNextListing());
     await expect(left.locator('.file-list')).toHaveAttribute('aria-busy', 'false');
+    await expect(pathInput(page)).toHaveValue('/Users/test/Next');
     await expect(left.locator('.file-name')).toHaveText(['Next-only.txt']);
     await expect(left.getByRole('checkbox', {name: `${t('selected')} Next-only.txt`, exact: true})).toBeEnabled();
     await expect(pane(page, 'right').locator('.file-name').first()).toBeVisible();

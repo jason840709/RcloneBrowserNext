@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent, type MouseEvent, type PointerEvent } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent, type MouseEvent, type PointerEvent } from 'react';
 import { TableVirtuoso, type TableComponents, type TableVirtuosoHandle } from 'react-virtuoso';
 import { ArrowLeft, ArrowRight, ArrowUp, ArrowClockwise, Folder, FolderOpen, FolderPlus, HardDrives, Cloud, MagnifyingGlass,
   Eye, EyeSlash, CaretDown, CaretUp, File as FileIcon, FileText, FileImage, FileZip, PencilSimple, Trash, ChartBar, X, Plus } from '@phosphor-icons/react';
@@ -46,11 +46,13 @@ export default function BrowserPane({ side, browser, remotes, locations, home, p
   {side: 'left' | 'right'; browser: BrowserState; remotes: RemoteInfo[]; locations: LocalLocation[]; home: string; platform: string; t: Translate; language: ResolvedLanguage;
     active: boolean; isSource: boolean; disabled: boolean; remoteAvailable: boolean; onActivate(): void; onFileAction(action: FileAction): void; onError(message: string): void; columnWidths?: PaneColumnWidths; onColumnWidths(widths: PaneColumnWidths): void; preferences: Settings; onToolAction(action: ToolAction): void}) {
   const { endpoint, entries, selection, loading, error } = browser;
+  const openingName = browser.pendingEndpoint ? browser.pendingEndpoint.remote ? browser.pendingEndpoint.path.replace(/\/+$/, '').split('/').at(-1) || browser.pendingEndpoint.remote : endpointName(browser.pendingEndpoint) : '';
+  const loadingLabel = browser.cancelling ? t('cancellingFolder') : openingName ? t('openingFolder').replace('{name}', openingName) : t('loadingFolder');
   const fileSelection = isSource ? selection : browser.focusedEntry ? [browser.focusedEntry] : [];
   const checkWidth = isSource ? 36 : 14;
   useEffect(() => { if (!isSource) browser.clearSelections(); }, [isSource, browser.clearSelections]);
-  const navigationDisabled = disabled || Boolean(endpoint.remote && !remoteAvailable);
-  const listingDisabled = navigationDisabled || loading || Boolean(error);
+  const navigationDisabled = disabled || browser.cancelling || Boolean(endpoint.remote && !remoteAvailable);
+  const listingDisabled = navigationDisabled || loading || !browser.hasListing;
   const [query, setQuery] = useState('');
   const [showHidden, setShowHidden] = useState(preferences.showHiddenFiles);
   useEffect(() => setShowHidden(preferences.showHiddenFiles), [preferences.showHiddenFiles]);
@@ -101,7 +103,8 @@ export default function BrowserPane({ side, browser, remotes, locations, home, p
   const anchor = useRef<number | null>(null);
   const rememberedPaths = useRef<Record<string, string>>({});
   rememberedPaths.current[endpoint.remote || ''] = endpoint.path;
-  useEffect(() => { setPathDraft(null); setQuery(''); setFocused(''); anchor.current = null; }, [endpoint.remote, endpoint.path, browser.activeTab]);
+  useLayoutEffect(() => { setPathDraft(null); setQuery(''); setFocused(''); anchor.current = null; }, [endpoint.remote, endpoint.path, browser.activeTab]);
+  useLayoutEffect(() => { if (!browser.pathDirty) setPathDraft(null); }, [browser.pathDirty]);
   const selected = useMemo(() => new Set(isSource ? selection.map(item => item.name) : []), [selection, isSource]);
   const filtered = useMemo(() => entries.filter(entry => (showHidden || !entry.name.startsWith('.')) && entry.name.toLocaleLowerCase().includes(query.toLocaleLowerCase()))
     .sort((a, b) => {
@@ -115,8 +118,15 @@ export default function BrowserPane({ side, browser, remotes, locations, home, p
   const someSelected = useMemo(() => selected.size > 0 && filtered.some(item => selected.has(item.name)), [filtered, selected]);
   const hiddenSelection = useMemo(() => selection.some(item => !visibleNames.has(item.name)), [selection, visibleNames]);
   const navigate = useCallback((target: typeof endpoint) => {
-    setPathDraft(null); setQuery(''); setFocused(''); anchor.current = null; browser.navigate(target);
+    setPathDraft(null); browser.navigate(target);
   }, [browser.navigate]);
+  const cancelRead = async () => {
+    await browser.cancelLoading();
+    requestAnimationFrame(() => {
+      const row = sectionRef.current?.querySelector<HTMLElement>('.file-table tbody tr[tabindex="0"]');
+      (row || pathRef.current)?.focus();
+    });
+  };
   const toggle = (item: FileEntry) => { if (isSource && !listingDisabled) browser.setSelection(selected.has(item.name) ? selection.filter(x => x.name !== item.name) : [...selection, { name: item.name, isDir: item.isDir }]); };
   const selectVisible = () => {
     if (!isSource || listingDisabled) return;
@@ -162,9 +172,11 @@ export default function BrowserPane({ side, browser, remotes, locations, home, p
     if (navigationDisabled) return;
     const modifier = event.metaKey || event.ctrlKey;
     if (modifier && event.key.toLowerCase() === 'l') { event.preventDefault(); pathRef.current?.focus(); pathRef.current?.select(); }
-    if (modifier && event.key.toLowerCase() === 'r') { event.preventDefault(); browser.reload(); }
+    if ((modifier && event.key.toLowerCase() === 'r') || event.key === 'F5') { event.preventDefault(); browser.reload(); return; }
+    if (event.key === 'Escape' && loading && pathDraft === null) { event.preventDefault(); event.stopPropagation(); void cancelRead(); return; }
     const editing = (event.target as HTMLElement).closest('input,textarea,select');
     if (editing) return;
+    if (event.key === 'Escape' && loading) { event.preventDefault(); event.stopPropagation(); void cancelRead(); return; }
     if (modifier && event.key.toLowerCase() === 'a') { event.preventDefault(); if (isSource && !listingDisabled) browser.setSelection(filtered.map(item => ({name: item.name, isDir: item.isDir}))); }
     if ((modifier && event.key === 'ArrowUp') || event.key === 'Backspace') { event.preventDefault(); event.stopPropagation(); setPathDraft(null); browser.up(); }
   };
@@ -172,7 +184,7 @@ export default function BrowserPane({ side, browser, remotes, locations, home, p
   return <section ref={sectionRef} className={`browser-pane ${active ? 'pane-active' : ''} ${preferences.alternatingRows ? 'striped-rows' : ''} ${isSource ? 'source-pane' : 'destination-pane'}`} aria-label={`${t(side)} ${t('files')}`} data-testid={`${side}-pane`} data-pane-side={side}
     onFocusCapture={onActivate} onPointerDown={onActivate} onKeyDownCapture={onKeyDown}>
     <header className="pane-heading"><span className="pane-side">{t(side)}</span><span className={`role-tag ${isSource ? 'source-tag' : ''}`}>{t(isSource ? 'source' : 'destination')}</span></header>
-    <div className="pane-tabs" role="tablist" aria-label={`${t(side)} ${t('locationTabs')}`}>{browser.tabs.map(tab => <div key={tab.id} className={`pane-tab ${tab.id === browser.activeTab ? 'active' : ''}`}><button type="button" role="tab" aria-selected={tab.id === browser.activeTab} title={endpointText(tab.endpoint)} onClick={() => browser.switchTab(tab.id)} onKeyDown={event => { if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') { event.preventDefault(); const index = browser.tabs.findIndex(item => item.id === tab.id); const next = browser.tabs[(index + (event.key === 'ArrowRight' ? 1 : browser.tabs.length - 1)) % browser.tabs.length]; browser.switchTab(next.id); requestAnimationFrame(() => sectionRef.current?.querySelector<HTMLButtonElement>('[role="tab"][aria-selected="true"]')?.focus()); } }}>{tab.endpoint.remote ? <Cloud size={13}/> : <HardDrives size={13}/>}<span>{endpointName(tab.endpoint)}</span></button>{browser.tabs.length > 1 && <button type="button" className="tab-close" aria-label={`${t('closeTab')} ${endpointName(tab.endpoint)}`} onClick={() => browser.closeTab(tab.id)}><X size={11}/></button>}</div>)}<IconButton title={t('newTab')} disabled={browser.tabs.length >= 12} onClick={browser.newTab}><Plus size={15}/></IconButton></div>
+    <div className="pane-tabs" role="tablist" aria-label={`${t(side)} ${t('locationTabs')}`}>{browser.tabs.map(tab => <div key={tab.id} className={`pane-tab ${tab.id === browser.activeTab ? 'active' : ''}`}><button type="button" role="tab" aria-selected={tab.id === browser.activeTab} title={endpointText(tab.endpoint)} onClick={() => browser.switchTab(tab.id)} onKeyDown={event => { if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') { event.preventDefault(); const index = browser.tabs.findIndex(item => item.id === tab.id); const next = browser.tabs[(index + (event.key === 'ArrowRight' ? 1 : browser.tabs.length - 1)) % browser.tabs.length]; browser.switchTab(next.id); requestAnimationFrame(() => sectionRef.current?.querySelector<HTMLButtonElement>('[role="tab"][aria-selected="true"]')?.focus()); } }}>{tab.endpoint.remote ? <Cloud size={13}/> : <HardDrives size={13}/>}<span>{endpointName(tab.endpoint)}</span></button>{browser.tabs.length > 1 && <button type="button" className="tab-close" aria-label={`${t('closeTab')} ${endpointName(tab.endpoint)}`} onClick={() => browser.closeTab(tab.id)}><X size={11}/></button>}</div>)}<IconButton title={t('newTab')} disabled={browser.tabs.length >= 12 || !browser.hasListing || browser.cancelling} onClick={browser.newTab}><Plus size={15}/></IconButton></div>
     <div className="path-toolbar">
       <LocationPicker compact endpoint={endpoint} locations={locations} remotes={remotes} label={`${t(side)} ${t('location')}`} disabled={disabled} remoteAvailable={remoteAvailable} t={t} onChange={navigate} remotePath={name => rememberedPaths.current[name] || ''}/>
       <IconButton title={t('back')} disabled={!browser.canBack || navigationDisabled} onClick={() => { setPathDraft(null); browser.back(); }}><ArrowLeft size={17}/></IconButton>
@@ -188,26 +200,31 @@ export default function BrowserPane({ side, browser, remotes, locations, home, p
     <div className="file-toolbar">
       <div className="search-field"><MagnifyingGlass size={15}/><input aria-label={`${t(side)} ${t('search')}`} placeholder={t('search')} value={query} onChange={event => setQuery(event.target.value)} spellCheck={false}/>{query && <button type="button" onClick={() => setQuery('')} aria-label={t('clearSelection')}><X size={12}/></button>}</div>
       {!endpoint.remote && <IconButton title={t('chooseFolder')} onClick={chooseLocal} disabled={disabled}><FolderOpen size={18}/></IconButton>}
-      <IconButton title={t('newFolder')} onClick={() => onFileAction('newFolder')} disabled={navigationDisabled || browser.pathDirty || loading || Boolean(error)}><FolderPlus size={18}/></IconButton>
-      <PaneMenu t={t} remote={Boolean(endpoint.remote)} canMount={platform === 'darwin'} selectedCount={fileSelection.length} selectedDirectory={fileSelection[0]?.isDir || false} disabled={navigationDisabled || browser.pathDirty || loading || Boolean(error)} onAction={onToolAction} onResetColumns={resetWidths}/>
+      <IconButton title={t('newFolder')} onClick={() => onFileAction('newFolder')} disabled={listingDisabled || browser.pathDirty}><FolderPlus size={18}/></IconButton>
+      <PaneMenu t={t} remote={Boolean(endpoint.remote)} canMount={platform === 'darwin'} selectedCount={fileSelection.length} selectedDirectory={fileSelection[0]?.isDir || false} disabled={listingDisabled || browser.pathDirty} onAction={onToolAction} onResetColumns={resetWidths}/>
       <IconButton title={t(showHidden ? 'hideHidden' : 'showHidden')} aria-pressed={showHidden} onClick={() => setShowHidden(!showHidden)}>{showHidden ? <Eye size={18}/> : <EyeSlash size={18}/>}</IconButton>
     </div>
     {isSource && browser.missingSelection && <Notice kind="warning">{t('missingSelection')} <button type="button" className="text-button" onClick={() => browser.setSelection([])}>{t('clearSelection')}</button></Notice>}
-    <div className="file-list" data-empty={Boolean(error) || !filtered.length || undefined} aria-busy={loading}
+    {error && browser.hasListing && <Notice kind="error">{t('cannotBrowse')}: {error} <button type="button" className="text-button" onClick={browser.retry}>{t('retry')}</button></Notice>}
+    <span className="sr-only" role="status">{loading ? loadingLabel : ''}</span>
+    <div className="file-list" data-empty={!filtered.length || undefined} aria-busy={loading}
       onDragStartCapture={event => { if (listingDisabled) { event.preventDefault(); event.stopPropagation(); } }}
       onContextMenuCapture={event => { if (listingDisabled) { event.preventDefault(); event.stopPropagation(); } }}>
-      {loading && !browser.hasListing ? <div className="file-loading" role="status"><span>{t('loadingFolder')}</span>{[0, 1, 2, 3, 4, 5].map(i => <div className="skeleton-row" key={i}><i/><span/><small/></div>)}</div> : error ?
-        <EmptyState compact kind="error" icon={endpoint.remote ? <Cloud size={30}/> : <FolderOpen size={30}/>} title={t('cannotBrowse')} action={<button type="button" onClick={browser.reload}>{t('retry')}</button>}>{error}</EmptyState> : filtered.length === 0 ?
-        <EmptyState compact icon={query ? <MagnifyingGlass size={32}/> : <FolderOpen size={34} weight="duotone"/>} title={t(query || entries.length > 0 ? 'noMatches' : 'emptyFolder')}>{(query || entries.length > 0) ? t('noMatchesHint') : null}</EmptyState> :
+      {!browser.hasListing || filtered.length === 0 ?
+        <div className="file-empty-scroller">{error && !browser.hasListing ?
+          <EmptyState compact kind="error" icon={endpoint.remote ? <Cloud size={30}/> : <FolderOpen size={30}/>} title={t('cannotBrowse')} action={<button type="button" onClick={browser.retry}>{t('retry')}</button>}>{error}</EmptyState> : !browser.hasListing ? null :
+          <EmptyState compact icon={query ? <MagnifyingGlass size={32}/> : <FolderOpen size={34} weight="duotone"/>} title={t(query || entries.length > 0 ? 'noMatches' : 'emptyFolder')}>{(query || entries.length > 0) ? t('noMatchesHint') : null}</EmptyState>}
+        </div> :
         <TableVirtuoso ref={virtuoso} data={filtered} components={tableComponents} context={context} fixedItemHeight={37} overscan={200} onScroll={event => { const element = event.currentTarget as HTMLElement; element.closest<HTMLElement>('.file-list')?.style.setProperty('--stripe-offset', `${33 - element.scrollTop % 74}px`); }}
           computeItemKey={(_index, item) => item.name}
           fixedHeaderContent={() => <tr><th scope="col" className="check-cell" aria-hidden={!isSource || undefined}>{isSource && <input type="checkbox" aria-label={`${t(side)} ${t('selectAll')}`} checked={allSelected} disabled={listingDisabled} ref={element => { if (element) element.indeterminate = someSelected && !allSelected; }} onChange={selectVisible}/>}</th><th scope="col" aria-sort={sort.key === 'name' ? sort.ascending ? 'ascending' : 'descending' : 'none'}>{sortHeader('name', t('name'))}{resizeHandle('name', t('name'))}</th><th scope="col" className="numeric" aria-sort={sort.key === 'size' ? sort.ascending ? 'ascending' : 'descending' : 'none'}>{sortHeader('size', t('size'))}{resizeHandle('size', t('size'))}</th><th scope="col" aria-sort={sort.key === 'modified' ? sort.ascending ? 'ascending' : 'descending' : 'none'}>{sortHeader('modified', t('modified'))}{resizeHandle('modified', t('modified'))}</th><th scope="col" className="row-fill" aria-label=""/></tr>}
           itemContent={(_index, entry) => <><td className="check-cell" aria-hidden={!isSource || undefined}>{isSource && <input type="checkbox" aria-label={`${t('selected')} ${entry.name}`} checked={selected.has(entry.name)} disabled={listingDisabled} onChange={() => toggle(entry)} onClick={event => event.stopPropagation()}/>}</td><td><div className="file-name" title={entry.name}>{(entry.isDir ? preferences.showFolderIcons : preferences.showFileIcons) && <EntryIcon entry={entry}/>}<span>{entry.name}</span>{entry.isLink && <span className="link-marker">↗</span>}</div></td><td className="numeric muted">{entry.isDir ? '—' : formatBytes(entry.size)}</td><td className="date-cell muted" title={formatDate(entry.modified, language)}>{formatDate(entry.modified, language)}</td><td className="row-fill" aria-hidden="true"/></>}/>
       }
+      {loading && <div className="folder-loading-overlay"><button type="button" className="folder-load-cancel" aria-label={t(browser.cancelling ? 'cancellingFolder' : 'cancelLoadingFolder')} aria-describedby={`${side}-folder-read-label`} title={t(browser.cancelling ? 'cancellingFolder' : 'cancelLoadingFolder')} disabled={browser.cancelling} onClick={() => void cancelRead()}><span className="folder-loading-ring" aria-hidden="true"/><X className="folder-loading-cross" size={13} weight="bold" aria-hidden="true"/></button><span className="folder-loading-label" id={`${side}-folder-read-label`} title={browser.pendingEndpoint ? endpointText(browser.pendingEndpoint) : undefined}>{loadingLabel}</span></div>}
     </div>
     <footer className="pane-footer">
       <div className="selection-summary" title={hiddenSelection ? t('hiddenSelection') : endpointText(endpoint)}><span>{filtered.length.toLocaleString()} {t('items')}</span>{isSource && selection.length > 0 && <><span className="dot-separator">·</span><button type="button" className="text-button" onClick={() => browser.setSelection([])} title={t('clearSelection')}>{t('selected')} {selection.length}{hiddenSelection ? ' *' : ''}<X size={11}/></button></>}</div>
-      <div className="pane-file-actions"><IconButton title={t('rename')} disabled={navigationDisabled || browser.pathDirty || fileSelection.length !== 1 || loading || (isSource && browser.missingSelection)} onClick={() => onFileAction('rename')}><PencilSimple size={15}/></IconButton><IconButton title={t('remove')} disabled={navigationDisabled || browser.pathDirty || fileSelection.length === 0 || loading || (isSource && browser.missingSelection)} onClick={() => onFileAction('remove')}><Trash size={15}/></IconButton><IconButton title={t('folderSize')} disabled={navigationDisabled || browser.pathDirty || loading || Boolean(error)} onClick={() => onFileAction('size')}><ChartBar size={15}/></IconButton></div>
+      <div className="pane-file-actions"><IconButton title={t('rename')} disabled={listingDisabled || browser.pathDirty || fileSelection.length !== 1 || (isSource && browser.missingSelection)} onClick={() => onFileAction('rename')}><PencilSimple size={15}/></IconButton><IconButton title={t('remove')} disabled={listingDisabled || browser.pathDirty || fileSelection.length === 0 || (isSource && browser.missingSelection)} onClick={() => onFileAction('remove')}><Trash size={15}/></IconButton><IconButton title={t('folderSize')} disabled={listingDisabled || browser.pathDirty} onClick={() => onFileAction('size')}><ChartBar size={15}/></IconButton></div>
     </footer>
   </section>;
 }

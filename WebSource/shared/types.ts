@@ -6,6 +6,9 @@ export interface Endpoint { remote: string | null; path: string }
 export interface RemoteInfo { name: string; type: string; group?: 'cloud' | 'network' | 'other' }
 export interface LocalLocation { id: string; name: string; path: string; kind: 'home' | 'desktop' | 'documents' | 'downloads' | 'pictures' | 'music' | 'movies' | 'volumes' | 'volume'; group: 'local' | 'network'; isRemovable?: boolean }
 export interface FileEntry { name: string; path: string; size: number; modified: string; isDir: boolean; isLink?: boolean }
+export interface ListOptions { requestId: string }
+export interface ListResult { requestId: string; status: 'completed' | 'cancelled'; entries: FileEntry[] }
+export interface CancelListResult { requestId: string; cancelled: boolean }
 export interface FinderDrop { source: Endpoint; selection: Selection[]; x: number; y: number }
 export interface Selection { name: string; isDir: boolean }
 export type BuiltinPresetID = 'local-nas' | 'nas-cloud' | 'local-cloud' | 'local-local' | 'cloud-cloud' | 'cloud-local';
@@ -107,6 +110,8 @@ export interface AppAPI {
   onToolSessionUpdate(callback: (session: ToolSession) => void): () => void;
   bootstrap(): Promise<Bootstrap>;
   list(endpoint: Endpoint): Promise<FileEntry[]>;
+  list(endpoint: Endpoint, options: ListOptions): Promise<ListResult>;
+  cancelList(requestId: string): Promise<CancelListResult>;
   mkdir(endpoint: Endpoint, name: string): Promise<void>;
   rename(endpoint: Endpoint, name: string, newName: string, isDir: boolean): Promise<void>;
   remove(endpoint: Endpoint, selection: Selection[]): Promise<boolean>;

@@ -7,6 +7,7 @@ remote, credential or application setting is read or modified.
 from pathlib import Path
 import argparse
 import hashlib
+import http.server
 import json
 import os
 import platform
@@ -15,6 +16,7 @@ import subprocess
 import tempfile
 import threading
 import time
+import uuid
 
 ROOT = Path(__file__).resolve().parents[1]
 parser = argparse.ArgumentParser()
@@ -48,6 +50,7 @@ class Client:
             stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env, text=True, encoding="utf-8", bufsize=1)
         self.sequence = 0
         self.replies = queue.Queue()
+        self.pending = {}
         self.stderr = []
         def read():
             try:
@@ -68,17 +71,28 @@ class Client:
         threading.Thread(target=read, daemon=True).start()
         threading.Thread(target=read_error, daemon=True).start()
 
-    def call(self, method, *values):
+    def send(self, method, *values):
         self.sequence += 1
         ident = f"smoke-{self.sequence}"
         packet = {"id": ident, "method": method, "args": list(values)}
         self.child.stdin.write(json.dumps(packet, ensure_ascii=False) + "\n")
         self.child.stdin.flush()
-        result = self.replies.get(timeout=90)
+        return ident
+
+    def receive(self, ident, timeout=90):
+        deadline = time.monotonic() + timeout
+        while ident not in self.pending:
+            result = self.replies.get(timeout=max(0.001, deadline - time.monotonic()))
+            if "id" not in result:
+                raise RuntimeError(result.get("error", "Helper returned an invalid reply"))
+            self.pending[result["id"]] = result
+        result = self.pending.pop(ident)
         if result.get("error"):
             raise RuntimeError(result["error"] + ("\n" + "\n".join(self.stderr) if self.stderr else ""))
-        assert result["id"] == ident, result
         return result.get("result")
+
+    def call(self, method, *values):
+        return self.receive(self.send(method, *values))
 
     def job(self, ident):
         return next(j for j in self.call("listJobs") if j["id"] == ident)
@@ -103,13 +117,92 @@ class Client:
 
 def check(name, callback):
     start = time.monotonic()
-    callback()
-    records.append({"name": name, "status": "passed", "seconds": round(time.monotonic() - start, 3)})
+    evidence = callback()
+    record = {"name": name, "status": "passed", "seconds": round(time.monotonic() - start, 3)}
+    if isinstance(evidence, dict):
+        record["evidence"] = evidence
+    records.append(record)
     print("PASS", name, flush=True)
 
 
 def endpoint(path):
     return {"remote": None, "path": str(path)}
+
+
+def process_snapshot():
+    """Observe only PIDs; no command lines, environment or credentials."""
+    if os.name == "nt":
+        import ctypes
+        from ctypes import wintypes
+        class Entry(ctypes.Structure):
+            _fields_ = [("dwSize", wintypes.DWORD), ("cntUsage", wintypes.DWORD), ("pid", wintypes.DWORD),
+                        ("heap", ctypes.c_size_t), ("module", wintypes.DWORD), ("threads", wintypes.DWORD),
+                        ("parent", wintypes.DWORD), ("priority", wintypes.LONG), ("flags", wintypes.DWORD),
+                        ("name", wintypes.WCHAR * 260)]
+        api = ctypes.WinDLL("kernel32", use_last_error=True)
+        api.CreateToolhelp32Snapshot.argtypes = [wintypes.DWORD, wintypes.DWORD]
+        api.CreateToolhelp32Snapshot.restype = wintypes.HANDLE
+        api.Process32FirstW.argtypes = api.Process32NextW.argtypes = [wintypes.HANDLE, ctypes.POINTER(Entry)]
+        api.Process32FirstW.restype = api.Process32NextW.restype = wintypes.BOOL
+        api.CloseHandle.argtypes = [wintypes.HANDLE]
+        snapshot = api.CreateToolhelp32Snapshot(2, 0)
+        if snapshot == ctypes.c_void_p(-1).value:
+            raise ctypes.WinError(ctypes.get_last_error())
+        result = {}
+        try:
+            entry = Entry(); entry.dwSize = ctypes.sizeof(Entry)
+            more = api.Process32FirstW(snapshot, ctypes.byref(entry))
+            while more:
+                result[entry.pid] = entry.parent
+                more = api.Process32NextW(snapshot, ctypes.byref(entry))
+        finally:
+            api.CloseHandle(snapshot)
+        return result
+    result = {}
+    for path in Path("/proc").iterdir():
+        if not path.name.isdigit():
+            continue
+        try:
+            text = (path / "stat").read_text()
+            result[int(path.name)] = int(text[text.rfind(")") + 2:].split()[1])
+        except (OSError, ValueError, IndexError):
+            pass  # A process can exit while the snapshot is being read.
+    return result
+
+
+def child_processes(parent):
+    parents = process_snapshot()
+    children = set()
+    while True:
+        added = {pid for pid, owner in parents.items() if owner == parent or owner in children} - children
+        if not added:
+            return {pid: parents[pid] for pid in children}
+        children.update(added)
+
+
+def process_alive(pid):
+    if os.name == "nt":
+        import ctypes
+        from ctypes import wintypes
+        api = ctypes.WinDLL("kernel32", use_last_error=True)
+        api.OpenProcess.argtypes = [wintypes.DWORD, wintypes.BOOL, wintypes.DWORD]
+        api.OpenProcess.restype = wintypes.HANDLE
+        api.GetExitCodeProcess.argtypes = [wintypes.HANDLE, ctypes.POINTER(wintypes.DWORD)]
+        api.GetExitCodeProcess.restype = wintypes.BOOL
+        api.CloseHandle.argtypes = [wintypes.HANDLE]
+        handle = api.OpenProcess(0x1000, False, pid)
+        if not handle:
+            return False
+        try:
+            code = wintypes.DWORD()
+            return bool(api.GetExitCodeProcess(handle, ctypes.byref(code))) and code.value == 259
+        finally:
+            api.CloseHandle(handle)
+    try:
+        os.kill(pid, 0)
+        return True
+    except ProcessLookupError:
+        return False
 
 
 with tempfile.TemporaryDirectory(prefix="fixture-", dir=cache) as value:
@@ -160,6 +253,64 @@ with tempfile.TemporaryDirectory(prefix="fixture-", dir=cache) as value:
                 client.call("_endConfiguration")
                 client.call("saveSettings", {"language": "en", "interfaceScale": 100})
         check("account setup preserves its engine while appearance applies immediately", account_preferences)
+        def listing_cancellation():
+            arrived, release = threading.Event(), threading.Event()
+            class SlowDirectory(http.server.BaseHTTPRequestHandler):
+                def log_message(self, *_):
+                    pass
+                def respond(self, body):
+                    arrived.set()
+                    release.wait(timeout=30)
+                    content = b"<html><body><a href='entry.txt'>entry.txt</a></body></html>"
+                    try:
+                        self.send_response(200)
+                        self.send_header("Content-Type", "text/html")
+                        self.send_header("Content-Length", str(len(content)))
+                        self.end_headers()
+                        if body:
+                            self.wfile.write(content)
+                    except (BrokenPipeError, ConnectionResetError, ConnectionAbortedError):
+                        pass  # The cancelled rclone has already closed its socket.
+                def do_GET(self):
+                    self.respond(True)
+                def do_HEAD(self):
+                    self.respond(False)
+            server = http.server.ThreadingHTTPServer(("127.0.0.1", 0), SlowDirectory)
+            server.daemon_threads = True
+            serving = threading.Thread(target=server.serve_forever, daemon=True)
+            serving.start()
+            listing_config = fixture / "listing-rclone.conf"
+            listing_config.write_text(f"[slow]\ntype = http\nurl = http://127.0.0.1:{server.server_port}/\n", encoding="utf-8")
+            try:
+                client.call("saveSettings", {"configPath": str(listing_config)})
+                request_id = uuid.uuid4().hex
+                listing = client.send("list", {"remote": "slow", "path": ""}, {"requestId": request_id})
+                assert arrived.wait(timeout=10), "Real rclone never reached the controlled HTTP read"
+                children = child_processes(client.child.pid)
+                actual = sorted(set(children) - set(children.values()))
+                assert actual and all(process_alive(pid) for pid in children), children
+                if os.name == "nt":
+                    assert len(children) >= 2, "Windows launcher and actual rclone were not both observed"
+                # Both packets have reached the helper before cancel is sent.
+                # A stop control queued behind this barrier would deadlock until
+                # the HTTP gate or native listing deadline expired.
+                state = client.send("_state")
+                started = time.monotonic()
+                ack = client.receive(client.send("cancelList", request_id), timeout=8)
+                elapsed = time.monotonic() - started
+                assert ack == {"requestId": request_id, "cancelled": True}, ack
+                assert not any(process_alive(pid) for pid in children), "Cancellation acknowledged before its process tree stopped"
+                assert client.receive(listing, timeout=2) == {"requestId": request_id, "status": "cancelled", "entries": []}
+                assert client.receive(state, timeout=2)["activeJobs"] is False
+                assert not release.is_set(), "The HTTP gate was released before native cancellation completed"
+                return {"loopbackOnly": True, "stateBarrierQueuedFirst": True, "httpGateStillClosedAtAck": True,
+                        "childPIDs": sorted(children), "actualRclonePIDs": actual, "childrenAliveAfterAck": 0,
+                        "cancelSeconds": round(elapsed, 4)}
+            finally:
+                release.set()
+                server.shutdown(); server.server_close(); serving.join(timeout=2)
+                client.call("saveSettings", {"configPath": str(config)})
+        check("scoped folder cancellation bypasses queued native state barriers", listing_cancellation)
         request = {"source": endpoint(source), "destination": endpoint(target), "mode": "sync", "selection": [], "dryRun": True,
                    "options": {"comparison": "default", "localHashPolicy": "none", "transfers": 1, "checkers": 10, "maxDelete": -1, "deleteMode": "during"}}
         def dry_run():

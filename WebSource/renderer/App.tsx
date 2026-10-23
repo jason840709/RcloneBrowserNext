@@ -49,6 +49,7 @@ export default function App() {
   const settingsEpoch = useRef(0);
   const serverRevision = useRef(0);
   const bootstrapSequence = useRef(0);
+  const listingContextDirty = useRef(false);
   const [pendingSettings, setPendingSettings] = useState(0);
   const [jobs, setJobs] = useState<Job[]>([]);
   const [tasks, setTasks] = useState<SavedTask[]>([]);
@@ -94,6 +95,21 @@ export default function App() {
 
   const showError = useCallback((message: string) => { setError(message); setNotice(''); setNoticeSerial(value => value + 1); }, []);
   const showNotice = useCallback((message: string) => { setNotice(message); setError(''); setNoticeSerial(value => value + 1); }, []);
+  const resetListingContext = useCallback(() => {
+    listingContextDirty.current = true;
+    return Promise.all([left.resetContext(), right.resetContext()]).then(() => {});
+  }, [left.resetContext, right.resetContext]);
+  const refreshAffectedLocations = useCallback((targets: Endpoint[]) => {
+    let refreshLeft = false, refreshRight = false;
+    for (const target of targets) {
+      // Each pane owns its cache. File changes invalidate matching locations in
+      // both panes; a user's Refresh button only resets the initiating pane.
+      refreshLeft = left.invalidate(target) || refreshLeft;
+      refreshRight = right.invalidate(target) || refreshRight;
+    }
+    if (refreshLeft) left.refreshCurrent();
+    if (refreshRight) right.refreshCurrent();
+  }, [left.invalidate, right.invalidate, left.refreshCurrent, right.refreshCurrent]);
   const upsertJob = useCallback((job: Job) => {
     if (clearedJobIds.current.has(job.id)) return;
     const previous = observedStatuses.current.get(job.id);
@@ -108,10 +124,11 @@ export default function App() {
       return next.filter(item => jobIsActive(item) || item.status === 'interrupted' || retained.has(item.id));
     });
     if (!job.request.dryRun && !jobIsActive(job) && !previousTerminal) {
-      // Failed or cancelled transfers can also have copied/deleted files. Refresh once on termination, never on each statistics update.
-      left.reload(); right.reload();
+      // Failed or cancelled transfers can also have copied/deleted files.
+      // Invalidate once on termination, never on each statistics update.
+      refreshAffectedLocations([job.request.destination, ...(job.request.mode === 'move' ? [job.request.source] : [])]);
     }
-  }, [left.reload, right.reload]);
+  }, [refreshAffectedLocations]);
   const removeClearedJobs = useCallback((ids: string[]) => {
     for (const id of ids) { clearedJobIds.current.add(id); observedStatuses.current.delete(id); }
     setJobs(old => old.filter(job => !clearedJobIds.current.has(job.id)));
@@ -135,9 +152,15 @@ export default function App() {
         if (workspace) { setDirection(workspace.direction); setMode(workspace.mode); }
         left.navigate(workspace?.left || data.settings.initialLocations.left || {remote: null, path: data.home});
         right.navigate(workspace?.right || data.settings.initialLocations.right || (data.environment.available && data.remotes.length > 0 ? {remote: data.remotes[0].name, path: ''} : {remote: null, path: data.home}));
-      } else if (reloadLocations) { left.reload(); right.reload(); }
+        listingContextDirty.current = false;
+      } else if (reloadLocations || listingContextDirty.current) {
+        // A later appearance save can supersede the bootstrap of an earlier
+        // connection save; it must still reload the cleared listing context.
+        listingContextDirty.current = false;
+        left.refreshCurrent(); right.refreshCurrent();
+      }
     } catch (reason) { if (initial) setStartupError(errorMessage(reason)); else throw reason; }
-  }, [left.navigate, right.navigate, left.reload, right.reload]);
+  }, [left.navigate, right.navigate, left.refreshCurrent, right.refreshCurrent]);
   const loadBootstrap = useCallback(async (initial = false) => {
     // Configuration completion and updater events can arrive during a settings save.
     await saveQueue.current.catch(() => {});
@@ -151,9 +174,11 @@ export default function App() {
     setSettings(next); // Theme and language update on the initiating click.
     setBootstrap(old => old ? {...old, settings: next} : old);
     setPendingSettings(count => count + 1);
-    const changesLocation = 'rclonePath' in patch || 'rcloneDirectory' in patch || 'configPath' in patch;
+    const changesLocation = ['rclonePath', 'rcloneDirectory', 'configPath', 'defaultRcloneOptions', 'networkOptions', 'proxyMode', 'httpProxy', 'httpsProxy', 'noProxy'].some(key => key in patch);
+    const stoppedListings = changesLocation ? resetListingContext() : Promise.resolve();
     const operation = saveQueue.current.catch(() => {}).then(async () => {
       try {
+        await stoppedListings;
         const environment = await window.rclone.saveSettings(patch);
         serverRevision.current = Math.max(serverRevision.current, environment.settingsRevision ?? 0);
         if (epoch === settingsEpoch.current) {
@@ -168,7 +193,7 @@ export default function App() {
     });
     saveQueue.current = operation.catch(() => {});
     return operation;
-  }, [fetchBootstrap]);
+  }, [fetchBootstrap, resetListingContext]);
   const configureTerminal = useCallback(async () => {
     await saveQueue.current;
     await window.rclone.configureRemotes();
@@ -203,10 +228,12 @@ export default function App() {
     const unsubscribe = window.rclone.onJobUpdate(upsertJob);
     const unsubscribeUpdates = window.rclone.onUpdateStatus(status => {
       setUpdateStatus(status.status ? null : status);
-      if (status.status === 'updated') void loadBootstrap().catch(reason => showError(errorMessage(reason)));
+      if (status.status === 'updated') {
+        void resetListingContext().then(() => loadBootstrap()).catch(reason => showError(errorMessage(reason)));
+      }
     });
     const unsubscribeConfiguration = window.rclone.onConfigurationChanged(() => {
-      void loadBootstrap().catch(reason => showError(errorMessage(reason)));
+      void resetListingContext().then(() => loadBootstrap()).catch(reason => showError(errorMessage(reason)));
     });
     const unsubscribeMenu = window.rclone.onMenuAction(action => {
       if (action.action === 'settings' || action.action === 'help') setModal(action.action);
@@ -218,7 +245,7 @@ export default function App() {
     });
     void loadBootstrap(true);
     return () => { unsubscribe(); unsubscribeUpdates(); unsubscribeConfiguration(); unsubscribeMenu(); };
-  }, [bridgeAvailable, loadBootstrap, upsertJob, showError, saveSettings, configureAccounts, checkAppUpdates, checkEngineUpdates, showAbout]);
+  }, [bridgeAvailable, loadBootstrap, upsertJob, showError, saveSettings, configureAccounts, checkAppUpdates, checkEngineUpdates, showAbout, resetListingContext]);
   useEffect(() => {
     if (startupCheck.current || !bootstrap) return;
     startupCheck.current = true;
@@ -234,10 +261,20 @@ export default function App() {
     document.documentElement.lang = language === 'zh-TW' ? 'zh-Hant' : language;
   }, [settings.theme, language]);
   useEffect(() => {
-    const onKey = (event: globalThis.KeyboardEvent) => { if ((event.metaKey || event.ctrlKey) && event.key === ',') { event.preventDefault(); setModal('settings'); } };
+    const onKey = (event: globalThis.KeyboardEvent) => {
+      if (event.defaultPrevented) return;
+      const modifier = event.metaKey || event.ctrlKey;
+      if (modifier && event.key === ',') { event.preventDefault(); setModal('settings'); }
+      if (event.key === 'F5' || (modifier && event.key.toLowerCase() === 'r')) {
+        event.preventDefault();
+        if (page === 'files' && !modal && !fileDialog && pendingSettings === 0) {
+          (activePane === 'left' ? left : right).reload();
+        }
+      }
+    };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, []);
+  }, [activePane, page, modal, fileDialog, pendingSettings, left.reload, right.reload]);
 
   useEffect(() => {
     if (!bridgeAvailable) return;
@@ -270,7 +307,7 @@ export default function App() {
 
   const blocked = pendingSettings > 0 ? t('confirmingSettings') : !ready ? t('unavailable') : source.pathDirty || destination.pathDirty ? t('uncommittedPath') : (!source.endpoint.path && !source.endpoint.remote) || (!destination.endpoint.path && !destination.endpoint.remote) ? t('selectLocation') :
     endpointEqual(source.endpoint, destination.endpoint) ? t('sameEndpoint') : source.missingSelection ? t('missingSelection') :
-    mode === 'move' && options.updateOnly ? t('moveNewerHint') : mode === 'sync' && source.selection.some(item => !item.isDir) ? t('syncSelection') : mode === 'sync' && source.selection.length > 0 && options.deleteExcluded ? t('syncSelectionDeleteExcluded') : source.error || destination.error ? t('cannotBrowse') : '';
+    mode === 'move' && options.updateOnly ? t('moveNewerHint') : mode === 'sync' && source.selection.some(item => !item.isDir) ? t('syncSelection') : mode === 'sync' && source.selection.length > 0 && options.deleteExcluded ? t('syncSelectionDeleteExcluded') : !source.hasListing || !destination.hasListing ? t('cannotBrowse') : '';
   const transferDisabled = Boolean(blocked) || busy || source.loading || destination.loading;
   const run = async (dryRun: boolean) => {
     if (transferDisabled) return;
@@ -315,13 +352,23 @@ export default function App() {
   };
   const fileAction = async (side: 'left'|'right', kind: FileAction) => {
     const browser = side === 'left' ? left : right;
-    if (browser.loading || browser.error || fileBusy) return;
+    if (browser.loading || !browser.hasListing || fileBusy) return;
     const selection = (direction === 'lr' ? side === 'left' : side === 'right') ? browser.selection : browser.focusedEntry ? [browser.focusedEntry] : [];
     if (browser.pathDirty) { showError(t('uncommittedPath')); return; }
     if ((kind === 'rename' && selection.length !== 1) || (kind === 'remove' && selection.length === 0)) return;
     if (kind === 'remove') {
+      const target = {...browser.endpoint};
       setFileBusy(true);
-      try { const removed = await window.rclone.remove(browser.endpoint, selection); if (removed) { browser.setSelection([]); browser.setFocusedEntry(null); browser.reload(); showNotice(t('removed')); } } catch (reason) { showError(errorMessage(reason)); } finally { setFileBusy(false); }
+      try {
+        const removed = await window.rclone.remove(target, selection);
+        if (removed) {
+          browser.setSelection([]); browser.setFocusedEntry(null);
+          refreshAffectedLocations([target]); showNotice(t('removed'));
+        }
+      } catch (reason) {
+        // A batch removal can fail after some entries were already removed.
+        refreshAffectedLocations([target]); showError(errorMessage(reason));
+      } finally { setFileBusy(false); }
       return;
     }
     setFileError(''); setSizeResult(null); setFileName(kind === 'rename' ? selection[0]?.name || '' : '');
@@ -339,8 +386,8 @@ export default function App() {
       if (fileDialog.kind === 'newFolder') await window.rclone.mkdir(fileDialog.endpoint, fileName);
       else await window.rclone.rename(fileDialog.endpoint, fileDialog.oldName!, fileName, Boolean(fileDialog.isDir));
       const browser = fileDialog.side === 'left' ? left : right;
-      browser.setSelection([]); browser.setFocusedEntry(null); browser.reload(); setFileDialog(null); showNotice(t(fileDialog.kind === 'newFolder' ? 'folderCreated' : 'renamed'));
-    } catch (reason) { setFileError(errorMessage(reason)); } finally { setFileBusy(false); }
+      browser.setSelection([]); browser.setFocusedEntry(null); refreshAffectedLocations([fileDialog.endpoint]); setFileDialog(null); showNotice(t(fileDialog.kind === 'newFolder' ? 'folderCreated' : 'renamed'));
+    } catch (reason) { refreshAffectedLocations([fileDialog.endpoint]); setFileError(errorMessage(reason)); } finally { setFileBusy(false); }
   };
   const changeDirection = (next: 'lr'|'rl') => {
     if (next === direction) return;
@@ -361,7 +408,7 @@ export default function App() {
   }, [bridgeAvailable, upsertToolSession, showError]);
   const toolAction = async (side: 'left'|'right', action: ToolAction) => {
     const browser = side === 'left' ? left : right;
-    if (browser.loading || browser.error || fileBusy) return;
+    if (browser.loading || !browser.hasListing || fileBusy) return;
     if (browser.pathDirty) { showError(t('uncommittedPath')); return; }
     const endpoint = {...browser.endpoint};
     const selection = (direction === 'lr' ? side === 'left' : side === 'right') ? browser.selection : browser.focusedEntry ? [browser.focusedEntry] : [];
@@ -396,7 +443,7 @@ export default function App() {
         <div className="workspace-title"><IconButton title={t('settings')} onClick={() => setModal('settings')}><GearSix size={19}/></IconButton><button type="button" className="account-setup-button" onClick={() => void configureAccounts().catch(reason => showError(errorMessage(reason)))} disabled={!ready || pendingSettings > 0}><Cloud size={16}/>{t('configLabel')}</button><button type="button" className="text-button terminal-config-link" title={t('remoteSetupOpened')} onClick={() => void configureTerminal().catch(reason => showError(errorMessage(reason)))} disabled={!ready || pendingSettings > 0}>config</button></div>
         {loadedTask && <div className="loaded-task"><BookBookmark size={14}/><span>{t('loadedTask')}：{loadedTask.name}</span><IconButton title={t('close')} onClick={() => setLoadedTask(null)}><X size={13}/></IconButton></div>}
         <div className="workspace-save-actions" role="group" aria-label={t('workspaceTaskDifference')}>
-          <button type="button" disabled={pendingSettings > 0 || left.pathDirty || right.pathDirty || left.loading || right.loading || Boolean(left.error || right.error)} onClick={() => void rememberWorkspace().catch(reason => showError(errorMessage(reason)))}><FloppyDisk size={16}/>{t('rememberWorkspace')}</button>
+          <button type="button" disabled={pendingSettings > 0 || left.pathDirty || right.pathDirty || left.loading || right.loading || !left.hasListing || !right.hasListing} onClick={() => void rememberWorkspace().catch(reason => showError(errorMessage(reason)))}><FloppyDisk size={16}/>{t('rememberWorkspace')}</button>
           <span className="workspace-save-divider" aria-hidden="true"/>
           <button type="button" onClick={() => openSaveTask()} disabled={source.missingSelection}><FloppyDisk size={16}/>{t('saveTask')}</button>
           <InfoTooltip label={t('workspaceTaskDifference')} text={t('workspaceTaskDifferenceHint')}/>
@@ -414,12 +461,12 @@ export default function App() {
       {page === 'jobs' && <div className="jobs-page-layout"><Jobs jobs={jobs} t={t} language={language} onJobsCleared={removeClearedJobs} onError={showError} onNotice={showNotice} onRetry={upsertJob}/><ToolSessions sessions={toolSessions} t={t} language={language} onError={showError}/></div>}
       {page === 'tasks' && <Tasks tasks={tasks} t={t} language={language} available={ready && pendingSettings === 0} onEdit={editTask} onRun={runTask} onTasksChange={setTasks} onSaveCurrent={() => openSaveTask(true)} onError={showError} onNotice={showNotice}/>}
     </main>
-    <footer className="app-statusbar"><div><span className={`status-dot ${ready ? 'ready' : ''}`}/><span>{ready ? `rclone ${bootstrap.environment.version.replace(/^rclone\s+/i, '')}` : t('notReady')}</span></div><span className="statusbar-center" role={updateStatus?.message ? 'status' : undefined}>{updateStatus?.message || `${bootstrap.remotes.length} ${t('remoteCount')}`}</span><span className="statusbar-version">0.9.3</span></footer>
+    <footer className="app-statusbar"><div><span className={`status-dot ${ready ? 'ready' : ''}`}/><span>{ready ? `rclone ${bootstrap.environment.version.replace(/^rclone\s+/i, '')}` : t('notReady')}</span></div><span className="statusbar-center" role={updateStatus?.message ? 'status' : undefined}>{updateStatus?.message || `${bootstrap.remotes.length} ${t('remoteCount')}`}</span><span className="statusbar-version">0.9.4</span></footer>
 
     {toolTarget && <ToolDialog target={toolTarget} t={t} onClose={() => setToolTarget(null)} onSession={session => { upsertToolSession(session); setPage('jobs'); }}/> }
-    {modal === 'accounts' && <AccountSetup language={language} t={t} onClose={() => setModal(null)} onSettings={saveSettings} onTerminal={configureTerminal} onSaved={async () => { setModal(null); await loadBootstrap(); showNotice(language === 'en' ? 'Account settings saved.' : language === 'ja' ? 'アカウント設定を保存しました。' : '帳號設定已儲存。'); }}/>}
+    {modal === 'accounts' && <AccountSetup language={language} t={t} onClose={() => setModal(null)} onSettings={saveSettings} onTerminal={configureTerminal} onSaved={async () => { setModal(null); await resetListingContext(); await loadBootstrap(); showNotice(language === 'en' ? 'Account settings saved.' : language === 'ja' ? 'アカウント設定を保存しました。' : '帳號設定已儲存。'); }}/>}
     {modal === 'options' && <TransferOptionsDialog options={options} mode={mode} recommendation={currentRecommendation} hiddenPresets={settings.hiddenBuiltinPresets || []} onRestorePresets={restorePresets} defaults={settings.defaultTransferOptions} t={t} onClose={() => setModal(null)} onSave={(next, nextMode) => { setOptions(next); setMode(nextMode); setActivePreset(null); setError(''); setNotice(''); setModal(null); }} onSaveDefaults={async next => { await saveSettings({defaultTransferOptions: next}); }}/>}
-    {modal === 'settings' && <SettingsDialog settings={settings} environment={bootstrap.environment} locations={bootstrap.localLocations || []} remotes={bootstrap.remotes} home={bootstrap.home} pending={pendingSettings > 0} currentLocations={{left: left.endpoint, right: right.endpoint}} currentLocationsValid={!left.pathDirty && !right.pathDirty && !left.error && !right.error} t={t} onSave={saveSettings} onFlush={flushSettings} onReload={() => loadBootstrap()} onConfigure={configureAccounts} onClose={() => setModal(null)}/>}
+    {modal === 'settings' && <SettingsDialog settings={settings} environment={bootstrap.environment} locations={bootstrap.localLocations || []} remotes={bootstrap.remotes} home={bootstrap.home} pending={pendingSettings > 0} currentLocations={{left: left.endpoint, right: right.endpoint}} currentLocationsValid={!left.pathDirty && !right.pathDirty && !left.loading && !right.loading && left.hasListing && right.hasListing} t={t} onSave={saveSettings} onFlush={flushSettings} onReload={async () => { await resetListingContext(); await loadBootstrap(); }} onConfigure={configureAccounts} onClose={() => setModal(null)}/>}
     {modal === 'saveTask' && editingTask && <TransferOptionsDialog options={editingTask.request.options} mode={editingTask.request.mode} hiddenPresets={settings.hiddenBuiltinPresets || []} onRestorePresets={restorePresets} defaults={settings.defaultTransferOptions} t={t} onClose={() => { setModal(null); setEditingTask(null); }} onSave={() => {}} onSaveDefaults={async next => { await saveSettings({defaultTransferOptions: next}); }} task={{...editingTask, locations: bootstrap.localLocations || [], remotes: bootstrap.remotes, home: bootstrap.home, onSave: saveTask}}/>}
     {modal === 'appUpdate' && <Dialog title={t('checkAppUpdates')} t={t} onClose={() => setModal(null)} className="small-dialog"><div className="dialog-body">{modalError ? <Notice kind="error">{modalError}</Notice> : appUpdate ? <><h3>{t(appUpdate.status === 'available' ? 'appUpdateAvailable' : appUpdate.status === 'current' ? 'appCurrent' : 'appUnpublished')}</h3><p>Rclone Next {appUpdate.current}{appUpdate.latest && appUpdate.latest !== appUpdate.current ? ` → ${appUpdate.latest}` : ''}</p>{appUpdate.status !== 'unpublished' && <p>{t('appUpdateHint')}</p>}</> : <p role="status">{t('checkingUpdates')}</p>}</div><footer className="dialog-footer"><span className="spacer"/><button type="button" onClick={() => setModal(null)}>{t('close')}</button>{appUpdate && appUpdate.status !== 'unpublished' && <button type="button" className="primary" onClick={() => void external(appUpdate.releaseURL)}>{t('openReleasePage')}<ArrowSquareOut size={14}/></button>}</footer></Dialog>}
     {modal === 'preview' && <Dialog title={t('previewTitle')} t={t} onClose={() => setModal(null)} className="preview-dialog"><div className="dialog-body"><p>{t('previewHint')}</p>{modalError && <Notice kind="error">{modalError}</Notice>}{preview ? <>{preview.warnings.map((warning, index) => <Notice kind="warning" key={index}>{warning}</Notice>)}<pre className="command-output" tabIndex={0}>{preview.command}</pre><button type="button" className="text-button" onClick={() => void window.rclone.copyText(preview.command).then(() => showNotice(t('copied'))).catch(reason => showError(errorMessage(reason)))}>{t('copyText')}</button></> : !modalError && <p role="status">{t('processing')}</p>}</div><footer className="dialog-footer"><span className="spacer"/><button type="button" onClick={() => setModal(null)}>{t('close')}</button></footer></Dialog>}

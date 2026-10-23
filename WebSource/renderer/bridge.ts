@@ -1,4 +1,4 @@
-import type { AppAPI, Job, UpdateStatus, MenuAction, ToolSession, FinderDrop } from '../shared/types';
+import type { AppAPI, Job, UpdateStatus, MenuAction, ToolSession, FinderDrop, Endpoint, FileEntry, ListOptions, ListResult } from '../shared/types';
 
 type Reply = { id: string; result?: unknown; error?: string | { message?: string } | null };
 type HistoryNavigation = {direction: 'back'|'forward'; x: number; y: number; eventTime?: number; phase?: 'down'|'up'|'swipe'|'command'};
@@ -41,6 +41,9 @@ export function installNativeBridge(): void {
     while (args.length && args[args.length - 1] === undefined) args.pop();
     const timer = setTimeout(() => {
       pending.delete(id);
+      if (method === 'list' && (args[1] as ListOptions | undefined)?.requestId) {
+        void call('cancelList', (args[1] as ListOptions).requestId).catch(() => {});
+      }
       const language = document.documentElement.lang;
       reject(new Error(language === 'ja' ? 'アプリの応答がありません。処理が続いている可能性があります。再試行する前に状態を確認してください。' : language === 'en' ? 'The app did not respond in time. The operation may still be running; check its status before trying again.' : '程式回應逾時。操作可能仍在進行，請先查看狀態再重試。'));
     }, limits[method] ?? 90_000);
@@ -70,6 +73,9 @@ export function installNativeBridge(): void {
     if (event.type === 'finderDrop') for (const callback of finderDrops) callback(event.data);
     if (event.type === 'menuAction') for (const callback of menuActions) callback(event.data);
   };
+  function list(endpoint: Endpoint): Promise<FileEntry[]>;
+  function list(endpoint: Endpoint, options: ListOptions): Promise<ListResult>;
+  function list(endpoint: Endpoint, options?: ListOptions): Promise<FileEntry[] | ListResult> { return call('list', endpoint, options); }
   const api: AppAPI = {
     accountConfig: request => call('accountConfig',request),
     openAccountAuthorization: () => call('openAccountAuthorization'),
@@ -83,7 +89,7 @@ export function installNativeBridge(): void {
     startStream: (endpoint, name) => call('startStream', endpoint, name),
     listToolSessions: () => call('listToolSessions'), stopToolSession: id => call('stopToolSession', id),
     onToolSessionUpdate: callback => { toolSessions.add(callback); return () => { toolSessions.delete(callback); }; },
-    bootstrap: () => call('bootstrap'), list: endpoint => call('list', endpoint),
+    bootstrap: () => call('bootstrap'), list, cancelList: requestId => call('cancelList', requestId),
     mkdir: (endpoint, name) => call('mkdir', endpoint, name),
     rename: (endpoint, name, newName, isDir) => call('rename', endpoint, name, newName, isDir),
     remove: (endpoint, selection) => call('remove', endpoint, selection),

@@ -30,6 +30,8 @@ final class RcloneEngine {
     private var active: [String: EngineActiveJob] = [:]
     private var transferReports: [String: EngineTransferReport] = [:]
     private var captureChildren: [UUID: Process] = [:]
+    private var listings: [String: EngineListing] = [:]
+    private let listingTimeout: TimeInterval
     private struct StopRequest {
         let jobID: String?
         var timers: [DispatchWorkItem]
@@ -77,7 +79,9 @@ final class RcloneEngine {
         }
     }
 
-    init(stateDirectory: URL, defaultRcloneDirectory: URL) throws {
+    init(stateDirectory: URL, defaultRcloneDirectory: URL, listingTimeout: TimeInterval = 120) throws {
+        guard listingTimeout.isFinite, listingTimeout > 0 else { throw EngineError("目錄讀取逾時設定不正確。") }
+        self.listingTimeout = listingTimeout
         self.stateDirectory = stateDirectory.standardizedFileURL
         self.defaultRcloneDirectory = defaultRcloneDirectory.standardizedFileURL
         logDirectory = stateDirectory.appendingPathComponent("logs", isDirectory: true)
@@ -270,7 +274,8 @@ final class RcloneEngine {
         case "accountConfig": return try accounts.handle(argument(0))
         case "bootstrap": return try bootstrap()
         case "environment", "refreshEnvironment": return try withOperation { try detectEnvironment() }
-        case "list": return try list(EngineEndpoint(argument(0)))
+        case "list": return try listDirectory(EngineEndpoint(argument(0)), options: arguments.count > 1 ? argument(1) : nil)
+        case "cancelList": return try cancelListing(text(0, "目錄讀取編號"))
         case "mkdir": try mkdir(EngineEndpoint(argument(0)), name: text(1, "名稱")); return NSNull()
         case "rename": try renameEntry(EngineEndpoint(argument(0)), name: text(1), newName: text(2), isDir: EngineJSON.bool(argument(3), "項目類型")); return NSNull()
         case "remove": try remove(EngineEndpoint(argument(0)), selection: EngineSelection.parse(argument(1))); return true
@@ -298,15 +303,25 @@ final class RcloneEngine {
         }
     }
 
-    private func withOperation<T>(_ body: () throws -> T) throws -> T {
-        try settingsMutationLock.holding {
+    private func withOperation<T>(listing: EngineListing? = nil, _ body: () throws -> T) throws -> T {
+        if let listing = listing {
+            // A settings probe can own this gate while a folder request waits.
+            // Cancellation must still unwind that waiting request promptly.
+            while !settingsMutationLock.try() {
+                try checkListing(listing)
+                Thread.sleep(forTimeInterval: 0.01)
+            }
+        } else { settingsMutationLock.lock() }
+        do {
             try stateLock.holding {
+                try checkListing(listing)
                 guard !closing else { throw EngineError("程式正在關閉。") }
                 guard !maintenance else { throw EngineError("rclone 正在更新，請稍候。") }
                 guard !configurationChanging else { throw EngineError("rclone 位置正在切換，請稍候。") }
                 operationCount += 1
             }
-        }
+        } catch { settingsMutationLock.unlock(); throw error }
+        settingsMutationLock.unlock()
         defer { stateLock.holding { operationCount -= 1 } }
         return try body()
     }
@@ -352,7 +367,8 @@ final class RcloneEngine {
     private func runProcess(_ arguments: [String], binary: String? = nil, timeout: TimeInterval? = 120,
                             maximum: Int = 64 * 1024 * 1024, activeJob: EngineActiveJob? = nil,
                             lines: ((String) -> Void)? = nil, stdoutLines: ((String, Bool) -> Void)? = nil,
-                            checked: Bool = true) throws -> EngineProcessResult {
+                            checked: Bool = true, listing: EngineListing? = nil) throws -> EngineProcessResult {
+        try checkListing(listing)
         let executable = try binary ?? resolvedRclonePath()
         let process = Process()
         process.executableURL = URL(fileURLWithPath: executable)
@@ -362,12 +378,6 @@ final class RcloneEngine {
         let outputPipe = Pipe(), errorPipe = Pipe()
         process.standardOutput = outputPipe; process.standardError = errorPipe
         let token = UUID(), buffers = EngineProcessOutput(maximum: maximum)
-        try stateLock.holding {
-            guard !closing, !maintenance else { throw EngineError(closing ? "程式正在關閉。" : "rclone 正在更新。") }
-            guard activeJob?.cancel != true else { throw EngineError("已取消。") }
-            if let failure = activeJob?.failure { throw EngineError(failure) }
-            captureChildren[token] = process; activeJob?.child = process
-        }
         defer {
             stateLock.holding {
                 captureChildren.removeValue(forKey: token)
@@ -375,14 +385,36 @@ final class RcloneEngine {
                 for item in stoppingChildren[key]?.timers ?? [] { item.cancel() }
                 stoppingChildren.removeValue(forKey: key)
                 if activeJob?.child === process { activeJob?.child = nil }
+                if listing?.child === process { listing?.child = nil }
             }
             try? outputPipe.fileHandleForReading.close(); try? errorPipe.fileHandleForReading.close()
         }
-        do { try EnginePlatform.prepare(process); try process.run() }
-        catch { throw EngineError("無法啟動 rclone：\(error.localizedDescription)") }
-        let timer: DispatchWorkItem? = timeout.map { seconds in
+        try stateLock.holding {
+            guard !closing, !maintenance else { throw EngineError(closing ? "程式正在關閉。" : "rclone 正在更新。") }
+            guard activeJob?.cancel != true else { throw EngineError("已取消。") }
+            if let failure = activeJob?.failure { throw EngineError(failure) }
+            try checkListing(listing)
+            captureChildren[token] = process; activeJob?.child = process; listing?.child = process
+            // Cancellation cannot acknowledge an unstarted child and then race
+            // with Process.run. The spawn and its final cancellation check form
+            // one short transaction; pipe draining/waiting happens outside it.
+            do { try EnginePlatform.prepare(process); try process.run() }
+            catch { throw EngineError("無法啟動 rclone：\(error.localizedDescription)") }
+        }
+        let remaining = listing?.deadline.map { max(0, $0.timeIntervalSinceNow) }
+        let effectiveTimeout = remaining.map { min(timeout ?? $0, $0) } ?? timeout
+        let timer: DispatchWorkItem? = effectiveTimeout.map { seconds in
             let item = DispatchWorkItem {
-                if process.isRunning { buffers.fail("rclone 回應逾時，請檢查連線後重試。"); Self.kill(process, signal: SIGKILL) }
+                if let listing = listing {
+                    let shouldStop = self.stateLock.holding { () -> Bool in
+                        guard !listing.finished, listing.child === process, process.isRunning else { return false }
+                        if listing.stop == nil { listing.stop = .timedOut }
+                        return true
+                    }
+                    if shouldStop { self.requestStop(process) }
+                } else if process.isRunning {
+                    buffers.fail("rclone 回應逾時，請檢查連線後重試。"); Self.kill(process, signal: SIGKILL)
+                }
             }
             DispatchQueue.global(qos: .utility).asyncAfter(deadline: .now() + seconds, execute: item); return item
         }
@@ -417,9 +449,10 @@ final class RcloneEngine {
                 } catch { buffers.fail("無法讀取 rclone 輸出：\(error.localizedDescription)"); self.requestStop(process) }
             }
         }
-        if stateLock.holding({ activeJob?.cancel == true || activeJob?.failure != nil || closing }) { requestStop(process) }
+        if stateLock.holding({ activeJob?.cancel == true || activeJob?.failure != nil || listing?.stop != nil || closing }) { requestStop(process) }
         process.waitUntilExit()
         drains.wait()
+        try checkListing(listing)
         if let failure = buffers.failure { throw EngineError(failure) }
         let result = EngineProcessResult(stdout: buffers.stdout, stderr: buffers.stderr, exitCode: process.terminationStatus)
         if checked && result.exitCode != 0 { throw EngineError(Self.processError(result.stderr, code: result.exitCode)) }
@@ -434,6 +467,11 @@ final class RcloneEngine {
         let started: (Bool, String?) = stateLock.holding {
             guard child.isRunning, stoppingChildren[key] == nil else { return (false, nil) }
             let id = active.first { $0.value.child === child }?.key
+            // Browsing has no transfer partial files to clean up. Give its
+            // SIGINT handler a bounded grace without delaying another pane.
+            let isListing = listings.values.contains { $0.child === child }
+            let interruptGrace: TimeInterval = isListing ? 1 : Self.interruptGrace
+            let terminateGrace: TimeInterval = isListing ? 0.5 : Self.terminateGrace
             if let id = id, let job = jobs[id] {
                 if job.cancellation == nil { job.cancellation = EngineJobCancellation() }
                 job.cancellation?.lastSignal = "SIGINT"
@@ -447,8 +485,8 @@ final class RcloneEngine {
                 self.escalateStop(child, signal: SIGKILL, name: "SIGKILL")
             }
             stoppingChildren[key] = StopRequest(jobID: id, timers: [terminate, kill])
-            DispatchQueue.global(qos: .utility).asyncAfter(deadline: .now() + Self.interruptGrace, execute: terminate)
-            DispatchQueue.global(qos: .utility).asyncAfter(deadline: .now() + Self.interruptGrace + Self.terminateGrace, execute: kill)
+            DispatchQueue.global(qos: .utility).asyncAfter(deadline: .now() + interruptGrace, execute: terminate)
+            DispatchQueue.global(qos: .utility).asyncAfter(deadline: .now() + interruptGrace + terminateGrace, execute: kill)
             Self.kill(child, signal: SIGINT)
             return (true, id)
         }
@@ -477,27 +515,31 @@ final class RcloneEngine {
         return "rclone 執行失敗（代碼 \(code)）" + (lines.isEmpty ? "。" : "：\n" + String(lines.suffix(8000)))
     }
 
-    private func detectEnvironment() throws -> [String: Any] {
+    private func detectEnvironment(listing: EngineListing? = nil) throws -> [String: Any] {
         var result = Self.blankEnvironment(configPath: settingsSnapshot()["configPath"] as? String ?? "")
         do {
             let path = try resolvedRclonePath()
-            let version = try runProcess(["version", "--ask-password=false"], binary: path, timeout: 15)
+            let version = try runProcess(["version", "--ask-password=false"], binary: path, timeout: 15, listing: listing)
             let firstLine = String(decoding: version.stdout, as: UTF8.self).split(whereSeparator: \.isNewline).first.map(String.init) ?? ""
             guard firstLine.range(of: "^rclone v[0-9]+\\.[0-9]+", options: .regularExpression) != nil else { throw EngineError("指定的執行檔不是 rclone。") }
             result["version"] = firstLine; result["rclonePath"] = path; result["available"] = true
             if (result["configPath"] as? String ?? "").isEmpty,
-               let config = try? runProcess(["config", "file", "--ask-password=false"], binary: path, timeout: 15) {
+               let config = try? runProcess(["config", "file", "--ask-password=false"], binary: path, timeout: 15, listing: listing) {
                 let paths = String(decoding: config.stdout, as: UTF8.self).split(whereSeparator: \.isNewline).map { $0.trimmingCharacters(in: .whitespaces) }.filter { EnginePlatform.absoluteLocalPath($0) }
                 result["configPath"] = paths.last ?? ""
             }
-        } catch { result["error"] = error.localizedDescription }
-        stateLock.holding { result["settingsRevision"] = settings["settingsRevision"]; environment = result }
+        } catch { try checkListing(listing); result["error"] = error.localizedDescription }
+        try stateLock.holding {
+            try checkListing(listing)
+            result["settingsRevision"] = settings["settingsRevision"]; environment = result
+        }
         return result
     }
 
-    private func requireAvailable() throws -> String {
+    private func requireAvailable(listing: EngineListing? = nil) throws -> String {
+        try checkListing(listing)
         let available = stateLock.holding { environment["available"] as? Bool ?? false }
-        if !available { _ = try detectEnvironment() }
+        if !available { _ = try detectEnvironment(listing: listing) }
         let snapshot = stateLock.holding { environment }
         guard snapshot["available"] as? Bool == true else { throw EngineError(snapshot["error"] as? String ?? "找不到 rclone。") }
         return try resolvedRclonePath()
@@ -536,11 +578,12 @@ final class RcloneEngine {
         }
     }
 
-    private func localList(_ endpoint: EngineEndpoint) throws -> [[String: Any]] {
+    private func localList(_ endpoint: EngineEndpoint, listing: EngineListing? = nil) throws -> [[String: Any]] {
         let keys: [URLResourceKey] = [.isDirectoryKey, .isSymbolicLinkKey, .fileSizeKey, .contentModificationDateKey]
         let urls = try FileManager.default.contentsOfDirectory(at: URL(fileURLWithPath: endpoint.path), includingPropertiesForKeys: keys)
         guard urls.count <= 250000 else { throw EngineError("目錄超過 250,000 個項目，請選擇較小的資料夾。") }
-        return try urls.map { url in
+        return try urls.enumerated().map { index, url in
+            if index % 256 == 0 { try checkListing(listing) }
             let values = try url.resourceValues(forKeys: Set(keys))
             var isDir: ObjCBool = false
             _ = FileManager.default.fileExists(atPath: url.path, isDirectory: &isDir)
@@ -558,9 +601,9 @@ final class RcloneEngine {
     }
 
     private func listRaw(_ endpoint: EngineEndpoint, extra: [String] = [], activeJob: EngineActiveJob? = nil,
-                         allowMissingDirectory: Bool = false) throws -> [[String: Any]] {
+                         allowMissingDirectory: Bool = false, listing: EngineListing? = nil) throws -> [[String: Any]] {
         let output = try runProcess(["lsjson", "--no-mimetype", "--ask-password=false", "--use-json-log"] + extra + ["--", endpoint.argument],
-                                    activeJob: activeJob, checked: false)
+                                    activeJob: activeJob, checked: false, listing: listing)
         // rclone's DirNotFound exit status is 3. Only the destination-side
         // selection pre-scan may treat that as empty; authorization, connection,
         // filter and partial-listing errors must stop before any sync is run.
@@ -570,14 +613,152 @@ final class RcloneEngine {
         return array
     }
 
-    private func list(_ endpoint: EngineEndpoint) throws -> [[String: Any]] {
-        if endpoint.remote == nil { return try localList(endpoint) }
-        return try withOperation {
-            _ = try requireAvailable(); try requireEndpoints([endpoint])
-            return try listRaw(endpoint).map { item in
-                ["name": item["Name"] as? String ?? "", "path": item["Path"] as? String ?? item["Name"] as? String ?? "",
+    private func list(_ endpoint: EngineEndpoint, listing: EngineListing,
+                      localListing: ((EngineEndpoint) throws -> [[String: Any]])?) throws -> [[String: Any]] {
+        try checkListing(listing)
+        if endpoint.remote == nil {
+            // The Windows host supplies its existing protected filesystem
+            // implementation. Listing scope does not alter path/ACL behavior.
+            let result = try localListing?(endpoint) ?? localList(endpoint, listing: listing)
+            try checkListing(listing)
+            return result
+        }
+        return try withOperation(listing: listing) {
+            _ = try requireAvailable(listing: listing)
+            // lsjson itself validates the selected remote against the current
+            // config. Browsing need not start a second listremotes process for
+            // every folder. Transfer/rename/delete preflights stay unchanged.
+            return try listRaw(endpoint, listing: listing).enumerated().map { index, item in
+                if index % 256 == 0 { try checkListing(listing) }
+                return ["name": item["Name"] as? String ?? "", "path": item["Path"] as? String ?? item["Name"] as? String ?? "",
                  "size": item["Size"] as? NSNumber ?? -1, "modified": item["ModTime"] as? String ?? "", "isDir": item["IsDir"] as? Bool ?? false] as [String: Any]
             }.sorted(by: Self.entryOrder)
+        }
+    }
+
+    /// The optional request ID is independent of a bridge envelope or pane. Old
+    /// callers keep their array result; scoped callers get an explicit cancelled
+    /// result so cancellation never masquerades as a successfully empty folder.
+    func listDirectory(_ endpoint: EngineEndpoint, options: Any? = nil,
+                       localListing: ((EngineEndpoint) throws -> [[String: Any]])? = nil) throws -> Any {
+        let scoped = options != nil && !(options is NSNull)
+        let id: String
+        if scoped { id = try listingOptionsID(options) }
+        else { id = UUID().uuidString }
+        let listing = try stateLock.holding { () -> EngineListing in
+            trimFinishedListings()
+            let value = listings[id] ?? EngineListing(id: id)
+            guard !value.claimed else { throw EngineError("目錄讀取編號已使用，請重新載入。") }
+            guard listings[id] != nil || listings.count < 4096 else { throw EngineError("目錄讀取要求過多，請稍後重試。") }
+            value.done.enter(); value.claimed = true
+            value.deadline = Date().addingTimeInterval(listingTimeout)
+            if closing || configurationChanging { value.stop = .cancelled }
+            listings[id] = value
+            return value
+        }
+        // Mark completion under the same lock as cancellation. A cancellation
+        // received after this point cannot change the already-completed result.
+        func finish(_ entries: [[String: Any]]?, error: Error? = nil) throws -> Any {
+            try stateLock.holding {
+                let stop = listing.stop
+                listing.finished = true; listing.finishedAt = Date(); listing.done.leave()
+                if let stop = stop {
+                    if stop == .cancelled, scoped { return ["requestId": id, "status": "cancelled", "entries": [[String: Any]]()] as [String: Any] }
+                    throw stop
+                }
+                if let error = error { throw error }
+                let entries = entries ?? []
+                return scoped ? ["requestId": id, "status": "completed", "entries": entries] as [String: Any] : entries as Any
+            }
+        }
+        let entries: [[String: Any]]
+        do { entries = try list(endpoint, listing: listing, localListing: localListing); try checkListing(listing) }
+        catch { return try finish(nil, error: error) }
+        return try finish(entries)
+    }
+
+    private func listingID(_ value: Any?) throws -> String {
+        let id = try EngineJSON.text(value, "目錄讀取編號", maximum: 96)
+        guard !id.isEmpty else { throw EngineError("目錄讀取編號不可空白。") }
+        return id
+    }
+
+    private func listingOptionsID(_ options: Any?) throws -> String {
+        let raw = try EngineJSON.dictionary(options, "目錄讀取要求格式不正確。")
+        guard Set(raw.keys) == ["requestId"] else { throw EngineError("目錄讀取要求格式不正確。") }
+        return try listingID(raw["requestId"])
+    }
+
+    /// Hosts reserve scoped requests before enqueueing their worker, so a page
+    /// reset or Quit can stop requests that have not reached invoke() yet.
+    func prepareListing(options: Any?) throws {
+        guard let options = options, !(options is NSNull) else { return }
+        let id = try listingOptionsID(options)
+        try stateLock.holding {
+            trimFinishedListings()
+            let listing = listings[id] ?? EngineListing(id: id)
+            guard !listing.prepared, !listing.claimed else { throw EngineError("目錄讀取編號已使用，請重新載入。") }
+            guard listings[id] != nil || listings.count < 4096 else { throw EngineError("目錄讀取要求過多，請稍後重試。") }
+            listing.prepared = true
+            if closing || configurationChanging { listing.stop = .cancelled }
+            listings[id] = listing
+        }
+    }
+
+    private func checkListing(_ listing: EngineListing?) throws {
+        guard let listing = listing else { return }
+        try stateLock.holding {
+            if listing.stop == nil, let deadline = listing.deadline, deadline <= Date() { listing.stop = .timedOut }
+            if let stop = listing.stop { throw stop }
+        }
+    }
+
+    private func trimFinishedListings() {
+        guard listings.count >= 2048 else { return }
+        let finished = listings.values.filter(\.finished).sorted { ($0.finishedAt ?? .distantPast) < ($1.finishedAt ?? .distantPast) }
+        for listing in finished.prefix(max(0, listings.count - 1024)) { listings.removeValue(forKey: listing.id) }
+        // Unclaimed pre-cancellations are never evicted: their corresponding
+        // worker may still be waiting to reach the engine. A full registry
+        // rejects new IDs instead of acknowledging cancellation then forgetting.
+    }
+
+    private func cancelListing(_ rawID: String) throws -> [String: Any] {
+        let id = try listingID(rawID)
+        let result = try stateLock.holding { () -> (EngineListing, Bool, Bool) in
+            trimFinishedListings()
+            if let existing = listings[id], existing.finished { return (existing, false, false) }
+            guard listings[id] != nil || listings.count < 4096 else { throw EngineError("目錄讀取要求過多，請稍後重試。") }
+            let listing = listings[id] ?? EngineListing(id: id)
+            listings[id] = listing
+            if listing.stop == nil { listing.stop = .cancelled }
+            return (listing, true, listing.claimed)
+        }
+        let listing = result.0
+        if let child = stateLock.holding({ listing.child }) { requestStop(child) }
+        if result.2, listing.done.wait(timeout: .now() + 5) != .success {
+            throw EngineError("目錄讀取尚未停止，請稍後再試。")
+        }
+        return ["requestId": id, "cancelled": result.1]
+    }
+
+    /// Native close/configuration hook. Signal before waiting behind requests;
+    /// only directory listings are affected, never transfers or tool sessions.
+    func cancelListings() {
+        let children = stateLock.holding { () -> [Process] in
+            listings.values.filter { !$0.finished }.compactMap { listing in
+                if listing.stop == nil { listing.stop = .cancelled }
+                return listing.child
+            }
+        }
+        children.forEach(requestStop)
+    }
+
+    /// Native diagnostics only. The web bridge never exposes process IDs; this
+    /// also lets integration tests verify OS-level exit rather than a UI flag.
+    func listingProcessIdentifier(_ requestID: String) -> Int32? {
+        stateLock.holding {
+            guard let child = listings[requestID]?.child, child.isRunning else { return nil }
+            return child.processIdentifier
         }
     }
 
@@ -1330,8 +1511,10 @@ final class RcloneEngine {
                 }
             }
             if connectionChanged {
-                // Existing directory reads keep their previous context. New calls
-                // wait at settingsMutationLock until the new path is fully probed.
+                // Cancel obsolete browsing before waiting for the old context.
+                // Transfer/file operations still finish under the existing gate;
+                // new calls wait until the replacement context is fully probed.
+                cancelListings()
                 let deadline = Date().addingTimeInterval(30)
                 while stateLock.holding({ operationCount != 0 || !captureChildren.isEmpty }) {
                     guard Date() < deadline else { throw EngineError("目前的目錄讀取尚未結束。請稍後再切換位置。") }
@@ -1444,6 +1627,7 @@ final class RcloneEngine {
     }
 
     func shutdown() {
+        cancelListings()
         accountLock.holding { accountService }?.shutdown()
         let children: [Process] = stateLock.holding {
             closing = true
@@ -1455,6 +1639,8 @@ final class RcloneEngine {
             return Array(captureChildren.values)
         }
         for child in children { requestStop(child) }
+        let reading = stateLock.holding { listings.values.filter { $0.claimed && !$0.finished } }
+        for listing in reading { listing.done.wait() }
         let running = stateLock.holding { Array(active.values) }
         for item in running { item.done.wait() }
         stateLock.holding { configPassword = nil }

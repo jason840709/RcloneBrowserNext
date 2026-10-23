@@ -75,8 +75,23 @@ Account setup defaults to a short form with browser authorization. Detailed setu
 
 ## Navigation and progress
 
-Each folder request has a generation number. Keep the previous successful listing mounted while a newer request is loading; disable its selection, opening, drag and file-action controls. Commit only the latest successful result. A failed request shows its error card for the requested path and does not expose the previous listing as that path's files.
+Each folder request has a generation number and an identity for native cancellation. Keep the previous successful path and listing mounted while a newer request is loading; disable the listing's selection, opening, drag and file-action controls. Commit the path, listing and history only for the latest successful result. Cancellation preserves the previous successful state. A failed request shows its error card for the requested path and does not expose the previous listing as that path's files.
 
+### Session listing cache and cancellation (0.9.4)
+
+Each pane owns a separate least-recently-used cache of remote listings, shared by its tabs and accounts for the current session. Native local endpoints bypass this cache and are read afresh on navigation. The limits are 64 directory listings, 50,000 total entries and an estimated 16 MiB per pane; the byte budget estimates cache data, not total JavaScript heap usage. Evict the least recently used listings to stay within all limits. Do not persist listing data to settings, apply a five-minute TTL, poll folders, or schedule background network refreshes.
+
+Explicit Refresh invalidates **all** cached locations in the invoking pane, across every depth, tab and account, and then fetches the current location afresh. Preserve history and the opposite pane's cache. This is lazy invalidation, not an eager recursive scan of the remote. Advance request/cache generations so an older in-flight result cannot refill an invalidated entry or replace the displayed path. Cache hits and successful network reads use the same navigation commit rules.
+
+File mutations invalidate related locations in both panes. A non-Dry-Run transfer reaching completed, failed or cancelled also invalidates affected destination locations because a partial run may have changed files; a move includes its source. Account and connection changes clear both panes. Browsing state must remain separate from transfer preflight and comparison semantics.
+
+The loading control stays in the centre of the listing with the previous rows visible underneath. Hover and keyboard focus reveal its cancel symbol; reduced motion uses a static indicator. Native cancellation targets the associated listing child, waits for its exit and leaves other listings and transfers alone. Renderer generation checks remain necessary even after native cancellation, because completion can race a navigation or refresh. Local enumeration must also stop cooperatively without committing a partial result.
+
+Remote browsing uses a single `lsjson --no-mimetype` listing after engine availability is established. `lsjson` resolves and validates its remote; an additional `listremotes` existence check is unnecessary for each browse request. Keep endpoint validation, size, modification time and command error handling. Do not add `--no-modtime` or `--http-no-head`: the latter makes HTTP object size/time unknown. Transfer preflight remains unchanged. These changes remove overhead; they do not promise a fixed first-load time for any provider.
+
+The original application's [lazy tree cache](https://github.com/kapitainsky/RcloneBrowser/blob/45bf7411839b0919c488a3e3a0a5272b50c9fc7b/src/item_model.cpp#L192-L211) and [single-folder refresh](https://github.com/kapitainsky/RcloneBrowser/blob/45bf7411839b0919c488a3e3a0a5272b50c9fc7b/src/item_model.cpp#L130-L137) informed the cache design. The all-depth per-pane invalidation and explicit listing cancellation are Next behaviour. rclone's pinned [`lsjson` implementation](https://github.com/rclone/rclone/blob/be8d6044eacb843b74d335db0c5fbe09222031fe/fs/operations/lsjson.go#L174-L186) preserves size and modification time when MIME type lookup is disabled; its [HTTP no-head path](https://github.com/rclone/rclone/blob/be8d6044eacb843b74d335db0c5fbe09222031fe/backend/http/http.go#L717-L723) does not.
+
+### History and transfer progress
 
 Folder history belongs to each pane tab, not the WKWebView document. The main `RcloneBrowserWindow.sendEvent` route, window-local AppKit monitor and responder fallback share one handler for auxiliary buttons 3/4. It handles both down and up phases, forwards a `navigateHistory` native event with CSS coordinates, the original event's epoch-millisecond time and its phase, and consumes repeated delivery of the same event. A matching release ends a handled press; a release without a preceding down is also a navigation request. The bridge dispatches `rbn:navigate-history`. The renderer ignores navigation while a dialog is open and routes it to the pointed-at pane or the active pane. The DOM fallback schedules navigation on mousedown and also accepts mouseup-only or auxclick-only delivery. A 50 ms pairing window lets a native copy win without waiting for a release. Native/DOM copies of one press are paired by timestamp; repeated presses are not discarded just because their directions match. No global input or Accessibility permission is requested.
 
@@ -130,7 +145,7 @@ Runtime icons are cached by purple, blue or green family. `RBNAppIconAppearance.
 
 The engine updater and app release checker are separate components. The app checker fetches only the configured public repository's `releases/latest` JSON endpoint. It validates full stable release metadata, caps the body size, rejects redirects and unexpected release links, and reports 404 as no available published release. It needs no GitHub credential. It opens a verified release page only after a user action and does not self-replace the app.
 
-Release tags use `vMAJOR.MINOR.PATCH`. Update `RBNProject.version`, `Resources/Info.plist` (marketing and build versions), `Scripts/common-mac.sh`, WebSource package and lockfile versions, the status-bar version, Compat CLI package and lockfile, Compat Cargo package and lockfile, `tauri.conf.json` and release documentation together. Change only the app's own package version in lockfiles. The workflow publishes a new version pushed to `main` after the platform and native-interface checks pass. A `work/0.9.3` push runs the same checks without publishing a release.
+Release tags use `vMAJOR.MINOR.PATCH`. Update `RBNProject.version`, `Resources/Info.plist` (marketing and build versions), `Scripts/common-mac.sh`, WebSource package and lockfile versions, the status-bar version, Compat CLI package and lockfile, Compat Cargo package and lockfile, `tauri.conf.json` and release documentation together. Change only the app's own package version in lockfiles. The workflow publishes a new version pushed to `main` after the platform and native-interface checks pass. A `work/0.9.4` push runs the same checks without publishing a release.
 
 ## Verification
 
@@ -140,7 +155,9 @@ Build the signed app before running the native suites. `MacStartupTests` combine
 
 The GitHub workflow runs the full suites on standard public `macos-15` (Apple Silicon) and `macos-15-intel` runners, with an additional native-interface job on `macos-26`. It uses the same build scripts, checks the finished bundle and uploads ZIPs that preserve the bundle's metadata. Native input tests use constructed AppKit events; physical-device observations are recorded separately.
 
-Read [the release verification record](VALIDATION.zh-TW.md) for completed checks and material limits. Changes to UI layout require inspection of the actual production bundle in all six themes and at the largest interface scale, including resized columns, narrow windows, task dialogs and overflow states.
+For 0.9.4, release gates must cover cache hits and limits, all-depth refresh isolation, mutations and transfer invalidation, cancellation before and during a listing, late responses, and path/history preservation. Run real listing-process cancellation on Mac, Windows and Linux; a mocked bridge response alone cannot prove that a child exited. Include the navigation cases in the explicit WebKit spec list as well as the complete Chromium suite. Windows installation verification includes the published 0.9.3 baseline alongside 0.9.0, 0.9.0-r1 and 0.9.2. Keep evidence tied to the candidate installer and exact source commit.
+
+Read [the release verification record](VALIDATION.zh-TW.md) for required checks, recorded results and material limits. Changes to UI layout require inspection of the actual production bundle in all six themes and at the largest interface scale, including resized columns, narrow windows, task dialogs and overflow states.
 
 ## Public-source hygiene
 

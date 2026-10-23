@@ -59,6 +59,7 @@ final class CompatEngineHost {
             guard !tools.hasActiveSessions, !controlLock.holding({ configuring || closing }) else { throw EngineError("請先結束終端機設定或播放，再開啟圖形帳號設定。") }
             return try engine.invoke(method, arguments: arguments)
         case "_accountAuthorization": return try engine.accounts.authorizationURL().absoluteString
+        case "_cancelListings": engine.cancelListings(); return true
         case "_preferences":
             return ["settings": engine.settingsSnapshot(), "resolvedLanguage": language]
         case "_state":
@@ -163,7 +164,7 @@ final class CompatEngineHost {
                   (attrs[.size] as? NSNumber)?.intValue ?? Int.max <= 8 * 1024 * 1024 else { throw EngineError("作業檔必須是 8 MiB 以內的 JSON 檔案。") }
             return try engine.invoke("importTasks", arguments: [JSONSerialization.jsonObject(with: Data(contentsOf: source))])
         default:
-            let permitted: Set<String> = ["bootstrap", "list", "mkdir", "rename", "remove", "size", "previewTransfer", "startTransfer", "cancelJob", "retryJob", "listJobs", "clearFinishedJobs", "clearJobs", "saveTask", "deleteTask", "listTasks", "saveSettings", "unlockConfig", "getJobReport"]
+            let permitted: Set<String> = ["bootstrap", "list", "cancelList", "mkdir", "rename", "remove", "size", "previewTransfer", "startTransfer", "cancelJob", "retryJob", "listJobs", "clearFinishedJobs", "clearJobs", "saveTask", "deleteTask", "listTasks", "saveSettings", "unlockConfig", "getJobReport"]
             guard permitted.contains(method) else { throw EngineError("不支援這項操作。") }
             #if os(Windows)
             if method == "bootstrap", let result = try engine.invoke(method, arguments: arguments) as? [String: Any] {
@@ -173,7 +174,7 @@ final class CompatEngineHost {
                 let endpoint = try EngineEndpoint(argument(0))
                 if endpoint.remote == nil {
                     switch method {
-                    case "list": return try WindowsLocalFileSystem.list(endpoint)
+                    case "list": return try engine.listDirectory(endpoint, options: argument(1), localListing: WindowsLocalFileSystem.list)
                     case "size": return try WindowsLocalFileSystem.size(endpoint)
                     case "mkdir": try WindowsLocalFileSystem.mkdir(endpoint, name: text(1)); return NSNull()
                     case "rename":
@@ -246,16 +247,28 @@ enum CompatMain {
                       let id = raw["id"] as? String, !id.isEmpty, id.count <= 96,
                       let method = raw["method"] as? String, method.count <= 80,
                       let arguments = raw["args"] as? [Any], arguments.count <= 8 else { continue }
+                if method == "list" {
+                    do { try host.engine.prepareListing(options: arguments.count > 1 ? arguments[1] : nil) }
+                    catch { host.send(["id": id, "error": host.translatedError(error.localizedDescription)]); continue }
+                }
                 group.enter()
+                // Stop listings before placing shutdown behind their workers.
+                // Waiting at the barrier first would defer cancellation until
+                // the very directory read we intend to stop had timed out.
+                if method == "_shutdown" { host.engine.cancelListings() }
                 // Quit snapshots follow every already-submitted operation. The
                 // native host blocks new submissions while deciding to quit.
                 let flags: DispatchWorkItemFlags = ["_state", "_shutdown"].contains(method) ? .barrier : []
-                queue.async(flags: flags) {
+                // Stop controls must bypass a previously queued state barrier;
+                // that barrier may itself be waiting for the folder being read.
+                let targetQueue = ["cancelList", "_cancelListings"].contains(method) ? DispatchQueue.global(qos: .userInitiated) : queue
+                targetQueue.async(flags: flags) {
                     defer { group.leave() }
                     do { host.send(["id": id, "result": try host.handle(method, arguments: arguments)]) }
                     catch { host.send(["id": id, "error": host.translatedError(error.localizedDescription)]) }
                 }
             }
+            host.engine.cancelListings()
             group.wait()
             _ = try? host.handle("_shutdown", arguments: [])
         } catch {

@@ -52,7 +52,7 @@ final class BrowserAppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegat
     private var returnedAccountAuthorizationID: String?
 
     private let permittedMethods: Set<String> = [
-        "bootstrap", "list", "mkdir", "rename", "remove", "size", "chooseFolder", "chooseFile",
+        "bootstrap", "list", "cancelList", "mkdir", "rename", "remove", "size", "chooseFolder", "chooseFile",
         "previewTransfer", "startTransfer", "cancelJob", "retryJob", "listJobs", "clearFinishedJobs", "clearJobs",
         "saveTask", "deleteTask", "listTasks", "saveSettings", "unlockConfig", "configureRemotes", "accountConfig", "openAccountAuthorization",
         "openExternal", "exportLog", "getJobReport", "exportJobReport", "exportTasks", "importTasks", "checkForUpdates", "checkAppUpdates", "showAbout",
@@ -421,6 +421,7 @@ final class BrowserAppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegat
                 : local("還有失敗或未完成的工作。工作紀錄會保留，下次可重試。", "There are failed or unfinished jobs. Their history will be kept so you can retry them next time.", "失敗または未完了の処理があります。履歴は保存され、次回再試行できます。"),
             action: hasWork ? local("停止並結束", "Stop and quit", "停止して終了") : local("結束", "Quit", "終了"))
         guard approved else { terminationStarted = false; return .terminateCancel }
+        engine.cancelListings()
         requestQueue.async { [weak self] in
             do { try self?.toolsManager.shutdown() }
             catch {
@@ -513,10 +514,12 @@ final class BrowserAppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegat
     }
 
     func webViewWebContentProcessDidTerminate(_ webView: WKWebView) {
+        engine.cancelListings()
         showStartupTimeout()
     }
 
     private func loadStartupDocument() {
+        engine.cancelListings()
         pageReady = false
         startupSurface?.beginLoading(message: local("正在啟動…", "Starting…", "起動中…"))
         startupNavigation = webView.loadFileURL(indexURL, allowingReadAccessTo: webRoot)
@@ -552,6 +555,14 @@ final class BrowserAppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegat
             sendReply(id: id, error: EngineError("不支援的操作。")); return
         }
         guard pendingIDs.count < 256, pendingIDs.insert(idKey).inserted else { return }
+        if method == "list" {
+            do { try engine.prepareListing(options: args.count > 1 ? args[1] : nil) }
+            catch {
+                pendingIDs.remove(idKey)
+                sendReply(id: id, error: error)
+                return
+            }
+        }
         requestQueue.async { [weak self] in
             guard let self = self else { return }
             do {

@@ -50,8 +50,26 @@ def main():
         require(git('hash-object','--path='+path,path)==blob,'Verified Windows filesystem changed: '+path)
     compat_addition='        case "accountConfig":\n            guard !tools.hasActiveSessions, !controlLock.holding({ configuring || closing }) else { throw EngineError("請先結束終端機設定或播放，再開啟圖形帳號設定。") }\n            return try engine.invoke(method, arguments: arguments)\n        case "_accountAuthorization": return try engine.accounts.authorizationURL().absoluteString\n'
     baseline=git('show','windows-v0.9.0-r1:Sources/Compat/CompatMain.swift')
-    require(text('Sources/Compat/CompatMain.swift').replace(compat_addition,'').strip()==baseline,
-            'Compatibility host changed outside the reviewed account routes')
+    compat_source=text('Sources/Compat/CompatMain.swift')
+    # 0.9.4 adds scoped listing lifetime around the unchanged Windows adapter.
+    # Reverse only these reviewed dispatch/cancellation additions before the
+    # complete r1 host comparison; filesystem implementation hashes stay pinned.
+    listing_routes={
+        '        case "_cancelListings": engine.cancelListings(); return true\n':'',
+        '"bootstrap", "list", "cancelList", "mkdir"':'"bootstrap", "list", "mkdir"',
+        'case "list": return try engine.listDirectory(endpoint, options: argument(1), localListing: WindowsLocalFileSystem.list)':
+            'case "list": return try WindowsLocalFileSystem.list(endpoint)',
+        '                if method == "list" {\n                    do { try host.engine.prepareListing(options: arguments.count > 1 ? arguments[1] : nil) }\n                    catch { host.send(["id": id, "error": host.translatedError(error.localizedDescription)]); continue }\n                }\n':'',
+        '                // Stop listings before placing shutdown behind their workers.\n                // Waiting at the barrier first would defer cancellation until\n                // the very directory read we intend to stop had timed out.\n                if method == "_shutdown" { host.engine.cancelListings() }\n':'',
+        '            host.engine.cancelListings()\n':'',
+        '                // Stop controls must bypass a previously queued state barrier;\n                // that barrier may itself be waiting for the folder being read.\n                let targetQueue = ["cancelList", "_cancelListings"].contains(method) ? DispatchQueue.global(qos: .userInitiated) : queue\n                targetQueue.async(flags: flags) {':
+            '                queue.async(flags: flags) {',
+    }
+    for addition, original in listing_routes.items():
+        require(compat_source.count(addition)==1, 'Reviewed listing host route changed: '+addition.splitlines()[0])
+        compat_source=compat_source.replace(addition,original,1)
+    require(compat_source.replace(compat_addition,'').strip()==baseline,
+            'Compatibility host changed outside the reviewed account and listing routes')
     result={'passed':True,'version':version,'macBuild':plist['CFBundleVersion'],
             'sourceCommit':git('rev-parse','HEAD'),'windowsFilesystemUnchanged':True,'windowsFilesystemBlobs':pinned}
     if args.output:

@@ -37,7 +37,7 @@ export async function installHostFixture(page: Page, options: {
     const win = window as any;
     const state = {
       bootstrap, job, preferredLanguage, appStatus, started: 0, calls: [] as {id: string; method: string; args: any[]}[],
-      reports: {} as Record<string, any[]>, reportOverrides: {} as Record<string, any>, reportError: '',
+      reports: {} as Record<string, any[]>, reportOverrides: {} as Record<string, any>, reportError: '', cancelledListings: new Set<string>(),
       chosenFolder, chosenExecutable, manualStatus, listingError: '', listings: {} as Record<string, FileEntry[]>, bulkStopDelay: 350, forcedStopIds: [] as string[], bulkRetainIds: [] as string[], bulkError: '', delays: delays || {} as Record<string, number[]>, rejectSave: false, manualErrorOnce: false, toolSessions: [] as any[],
     };
     win.__fixture = state;
@@ -64,11 +64,16 @@ export async function installHostFixture(page: Page, options: {
     const handle = async (method: string, args: any[]) => {
       switch (method) {
         case 'bootstrap': return state.bootstrap;
-        case 'list':
+        case 'cancelList': state.cancelledListings.add(args[0]); return {requestId: args[0], cancelled: true};
+        case 'list': {
+          const requestId = args[1]?.requestId;
+          if (requestId && state.cancelledListings.has(requestId)) return {requestId, status: 'cancelled', entries: []};
           if (state.listingError) throw new Error(state.listingError);
           if (args[0].path === '/missing-folder') throw new Error('Directory does not exist: /missing-folder');
           if (args[0].remote && !state.bootstrap.environment.available) throw new Error('Remote browsing requires rclone.');
-          return state.listings[args[0].remote ? `${args[0].remote}:${args[0].path}` : args[0].path] || files;
+          const entries = state.listings[args[0].remote ? `${args[0].remote}:${args[0].path}` : args[0].path] || files;
+          return requestId ? {requestId, status: 'completed', entries} : entries;
+        }
         case 'chooseFolder': return state.chosenFolder;
         case 'chooseFile': return args[0] === 'rclone' ? state.chosenExecutable : args[0] === 'player' ? '/Applications/VLC.app' : '/Users/test/config & backup.conf';
         case 'saveSettings': {

@@ -33,9 +33,11 @@ test('empty Tasks has one contained prompt and no phantom selected task or execu
   await expect(tasks.locator('.task-list-footer')).toHaveCount(0);await expect(tasks.getByRole('heading',{name:t('noTasks')})).toBeVisible();expect(await calls(page,'startTransfer')).toHaveLength(0);
 });
 
-test('directory failure keeps icon, title, long diagnostic and Retry within one scrollable card', async ({page},info) => {
-  await open(page); await page.evaluate(()=>{(window as any).__fixture.listingError='Sample cloud session expired. Reconnect the sample account.\n'.repeat(18);});
-  const pane=page.getByTestId('right-pane');await pane.getByRole('button',{name:t('refresh'),exact:true}).click();const card=pane.locator('.status-card-error');await expect(card).toContainText('Sample cloud session expired');
+test('initial directory failure keeps icon, title, long diagnostic and Retry within one scrollable card', async ({page},info) => {
+  await installHostFixture(page,{settings:{autoCheckUpdates:false,theme:'purple-dark'}});
+  await page.addInitScript(()=>{(window as any).__fixture.listingError='Sample cloud session expired. Reconnect the sample account.\n'.repeat(18);});
+  await page.goto(url);
+  const pane=page.getByTestId('right-pane');const card=pane.locator('.status-card-error');await expect(card).toContainText('Sample cloud session expired');
   await expect(card.getByRole('heading',{name:t('cannotBrowse')})).toBeVisible();await expect(card.locator('.empty-icon')).toBeVisible();await expect(card.getByRole('button',{name:t('retry')})).toHaveCount(1);
   expect(await pane.locator('.file-list').evaluate(e=>getComputedStyle(e).backgroundImage)).toBe('none');
   const bounds=await card.evaluate(e=>{const p=e.parentElement!.getBoundingClientRect(),c=e.getBoundingClientRect();return{inside:c.x>=p.x&&c.right<=p.right&&c.y>=p.y&&c.bottom<=p.bottom,bg:getComputedStyle(e).backgroundColor};});expect(bounds.inside).toBe(true);expect(bounds.bg).not.toBe('rgba(0, 0, 0, 0)');

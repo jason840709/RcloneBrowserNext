@@ -339,13 +339,22 @@ select.language-select { width: 61px; padding: 4px 3px 4px 8px; min-height: 28px
 .pane-file-actions { display: flex; align-items: center; gap: 1px; }
 .pane-file-actions .icon-button { width: 24px; min-width: 24px; min-height: 22px; }
 .browser-pane > .notice { margin: 0 8px 6px; font-size: 12px; padding: 7px 8px; }
-.file-loading { padding: 12px; }
-.file-loading > span { display: block; color: var(--muted); font-size: 13px; margin-bottom: 12px; }
-.skeleton-row { display: flex; align-items: center; gap: 10px; height: 37px; }
-.skeleton-row i { width: 16px; height: 13px; border-radius: 3px; background: var(--border-subtle); }
-.skeleton-row span { width: 37%; height: 7px; border-radius: 3px; background: var(--border-subtle); }
-.skeleton-row:nth-child(3n) span { width: 51%; }
-.skeleton-row small { margin-left: auto; width: 50px; height: 7px; border-radius: 3px; background: var(--border-subtle); }
+.browser-pane > .notice.error { max-height: min(120px, 25%); flex-shrink: 0; overflow: auto; }
+.browser-pane > .notice > svg { flex-shrink: 0; }
+.folder-loading-overlay { position: absolute; inset: 0; z-index: 4; display: grid; place-items: center; pointer-events: none; }
+.folder-load-cancel { position: relative; width: 40px; height: 40px; min-height: 40px; padding: 0; border: 1px solid transparent; border-radius: 50%; background: var(--surface); color: var(--accent); box-shadow: none; pointer-events: auto; }
+.folder-loading-ring { position: absolute; inset: 7px; border: 2px solid var(--accent-soft); border-top-color: var(--accent); border-right-color: var(--accent); border-radius: 50%; animation: folder-reading 800ms linear infinite; }
+.folder-loading-cross { position: relative; opacity: 0; transition: opacity var(--hover-time) var(--ease-out); }
+.folder-loading-label { position: absolute; top: calc(50% + 26px); left: 50%; transform: translateX(-50%); width: max-content; max-width: min(280px, calc(100% - 32px)); padding: 2px 5px; border-radius: 3px; background: var(--surface); color: var(--muted); font-size: 12px; line-height: 1.45; text-align: center; overflow-wrap: anywhere; }
+.folder-load-cancel:focus-visible .folder-loading-cross { opacity: 1; }
+.folder-load-cancel:disabled .folder-loading-cross { opacity: .5; }
+@keyframes folder-reading { to { transform: rotate(360deg); } }
+@media (hover: hover) and (pointer: fine) {
+  .folder-load-cancel:not(:disabled):hover { background: var(--surface); border-color: var(--accent-border); }
+  .folder-load-cancel:hover .folder-loading-cross { opacity: 1; }
+}
+@media (hover: none), (pointer: coarse) { .folder-loading-cross { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .folder-loading-ring { animation: none; } .folder-loading-cross { transition: none; } }
 .loading-icon { color: var(--accent); }
 @media (hover: hover) and (pointer: fine) {
   .file-table tbody > tr:hover { background-color: color-mix(in srgb, var(--accent-soft) 60%, var(--surface)); }
@@ -875,7 +884,13 @@ input[type="checkbox"]:disabled::before { border-color: var(--disabled-text); }
 .search-field { margin-right: 3px; }
 .file-list { --stripe-offset: 33px; background: var(--surface); }
 .striped-rows .file-list { background-image: repeating-linear-gradient(to bottom, var(--surface) 0, var(--surface) 37px, var(--row-stripe) 37px, var(--row-stripe) 74px); background-position: 0 var(--stripe-offset); }
-.file-list > div[data-virtuoso-scroller] { scrollbar-gutter: stable; }
+.file-list > div[data-virtuoso-scroller], .file-list > .file-empty-scroller {
+  scrollbar-gutter: stable;
+  /* Keep the native track painted when no thumb is needed. A reserved gutter
+     with overflow:auto alone exposes the striped parent on short lists. */
+  overflow-y: scroll !important;
+}
+.file-empty-scroller { width: 100%; height: 100%; }
 .file-table { width: 100%; }
 .file-table th { border-right: 0; }
 .file-table tbody > tr[data-index] { background-color: var(--surface); }

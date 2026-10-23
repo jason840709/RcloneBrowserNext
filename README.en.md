@@ -58,6 +58,7 @@ Using the system's interface components keeps a separate browser engine out of t
 Dry Run and Tasks carry forward important features from the original app. Next places them alongside the folder panes and adds details for everyday use:
 
 - **Folder tabs:** each pane keeps its own tabs and navigation history, including back and forward with mouse side buttons.
+- **Cached browsing and cancellation:** each pane reuses a bounded session cache for remote folders. Refresh clears that pane at every depth; cancelling a listing preserves the last successful location.
 - **Previews and saved tasks:** inspect proposed actions with Dry Run; save a setup as a Task to run, preview, edit or delete later.
 - **Backup presets:** choose from six common combinations of local folders, NAS and cloud storage, then adjust comparison and exclusion rules as needed.
 - **Remember workspace:** restore both folders and transfer settings at the next launch, without starting a job automatically.
