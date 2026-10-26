@@ -25,7 +25,7 @@ Both scripts package only redistributable runtime dependencies, retain their lic
 
 ## Verification
 
-The [unified desktop workflow](../.github/workflows/macos.yml) builds all platforms. A separate clean Windows runner installs the exact built package, verifies filesystem and WebView2 behavior, and checks upgrades from both published 0.9.0 and Windows r1. The shared release job requires every platform and upgrade job to pass. Windows inherits the same version as Mac and Linux; there is no separate revision override. [Historical Windows repair evidence](WINDOWS_0.9.0_R1.md).
+The [unified desktop workflow](../.github/workflows/macos.yml) builds all platforms. A separate clean Windows runner installs the exact built package, verifies filesystem and WebView2 behavior, and checks upgrades from the six published baselines: 0.9.0, 0.9.0-r1, 0.9.2, 0.9.3, 0.9.4 and 0.9.5. The shared release job requires every platform and upgrade job to pass. Windows inherits the same version as Mac and Linux; there is no separate revision override. [Historical Windows repair evidence](WINDOWS_0.9.0_R1.md).
 
 Mac, Windows and Linux now use stable 0.9.6. The old Windows R1 prerelease remains available as historical material; new installations and upgrades should use the unified release. The stable update checker can discover 0.9.6 on all platforms.
 

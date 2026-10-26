@@ -185,7 +185,8 @@ import Darwin
 
         func attach() throws {
             let image = root.appendingPathComponent("recovery-fixture.dmg")
-            try run(["create", "-size", "64m", "-fs", format, "-volname", "RBN-RECOVERY-TEST",
+            // exFAT VolumeLabel permits at most 11 characters.
+            try run(["create", "-size", "64m", "-fs", format, "-volname", "RBN-TEST",
                      image.path], timeout: 90)
             attached = true
             try run(["attach", "-nobrowse", "-noautoopen", "-mountpoint", mount.path, "-plist", image.path],
