@@ -936,7 +936,9 @@ enum EnginePartialRecovery {
         var created: Descriptor?
         var output: BoundFile?
         var lastOutput: Snapshot?
-        var nonemptyIdentity: NodeIdentity?
+        var creationIdentity: NodeIdentity?
+        var initialEmptyIdentity: NodeIdentity?
+        var pinnedIdentity: NodeIdentity?
         var bytesWritten: Int64 = 0
 
         func record(_ event: String) throws {
@@ -953,21 +955,32 @@ enum EnginePartialRecovery {
             } catch { throw JournalStorageFailure(underlying: error) }
         }
 
-        func validateOutput() throws -> Snapshot {
+        func validateOutput(requireAllocatedIdentity: Bool = false) throws -> Snapshot {
             guard let output = output else { throw Failure("尚未建立新檔。") }
             let current = try output.validate()
-            guard current.links == 1, current.size == bytesWritten,
+            guard let creationIdentity = creationIdentity,
+                  current.node.device == creationIdentity.device,
+                  current.links == 1, current.size == bytesWritten,
                   current.node != expectedSource.node, current.node != expectedPartial.node,
                   current.flags & UInt32(UF_IMMUTABLE) == 0 else {
                 throw Failure("新檔的身分、大小或保護狀態異常，未確認修復完成。")
             }
-            if let nonemptyIdentity = nonemptyIdentity, current.node != nonemptyIdentity {
+            if let pinnedIdentity = pinnedIdentity, current.node != pinnedIdentity {
                 throw Failure("新檔配置內容後的檔案身分改變，未確認修復完成。")
             }
-            // FAT-family empty files may have a shared synthetic inode that
-            // changes at first allocation. We only write our exclusive held
-            // descriptor, and bind its stable nonempty identity afterwards.
-            if current.size > 0 { nonemptyIdentity = current.node }
+            // A FAT-family file can retain its initial empty-file identity
+            // even after a nonempty write+fsync. Do not pin that provisional
+            // ID. Once an allocated identity appears it may never change.
+            if pinnedIdentity == nil, let empty = initialEmptyIdentity,
+               current.size > 0, current.node != empty {
+                pinnedIdentity = current.node
+            }
+            if requireAllocatedIdentity {
+                guard pinnedIdentity == current.node,
+                      initialEmptyIdentity != current.node else {
+                    throw Failure("新檔完成資料、修改時間與同步後仍未取得穩定的配置身分，未確認修復完成。")
+                }
+            }
             return current
         }
 
@@ -989,7 +1002,20 @@ enum EnginePartialRecovery {
             guard raw >= 0 else { throw systemFailure("無法以不覆寫方式建立正式檔名") }
             let handle = Descriptor(raw)
             created = handle
-            output = try BoundFile(parent: partial.parent, leaf: finalLeaf, descriptor: handle)
+            let newFile = try BoundFile(parent: partial.parent, leaf: finalLeaf, descriptor: handle)
+            output = newFile
+            let initial = try newFile.validate()
+            creationIdentity = initial.node
+            var fileSystemInfo = statfs()
+            guard Darwin.fstatfs(raw, &fileSystemInfo) == 0 else { throw systemFailure("無法確認新檔的身分配置方式") }
+            let fileSystem = withUnsafeBytes(of: fileSystemInfo.f_fstypename) {
+                String(decoding: $0.prefix { $0 != 0 }, as: UTF8.self)
+            }
+            if initial.size == 0 && ["msdos", "exfat"].contains(fileSystem) {
+                initialEmptyIdentity = initial.node
+            } else {
+                pinnedIdentity = initial.node
+            }
             lastOutput = try validateOutput()
             try record("rebuild-created")
 
@@ -1030,7 +1056,7 @@ enum EnginePartialRecovery {
             let timeResult = times.withUnsafeBufferPointer { Darwin.futimens(raw, $0.baseAddress) }
             guard timeResult == 0 else { throw systemFailure("無法保留新檔修改時間") }
             guard Darwin.fsync(raw) == 0 else { throw systemFailure("新檔修改時間無法同步至磁碟") }
-            lastOutput = try validateOutput()
+            lastOutput = try validateOutput(requireAllocatedIdentity: true)
             guard let final = output, let finalState = lastOutput,
                   try modificationTimeMatches(finalState, expectedSource, descriptor: raw) else {
                 throw Failure("新檔未能保留來源修改時間，未確認修復完成。")
@@ -1038,7 +1064,8 @@ enum EnginePartialRecovery {
             let finalHash = try stableHash(final)
             let sourceHash = try stableHash(source)
             let partialHash = try stableHash(partial)
-            guard finalHash.digest == expectedHash, sourceHash.digest == expectedHash,
+            guard finalHash.snapshot == finalState,
+                  finalHash.digest == expectedHash, sourceHash.digest == expectedHash,
                   partialHash.digest == expectedHash else {
                 throw Failure("重建後完整 SHA-256 核對未通過，原暫存檔保留。")
             }

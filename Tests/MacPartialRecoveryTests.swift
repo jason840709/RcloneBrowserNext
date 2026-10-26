@@ -51,6 +51,11 @@ import Darwin
             return value
         }
     }
+    private static func nodeKey(_ snapshot: Any?) -> String? {
+        guard let snapshot = snapshot as? [String: Any], let node = snapshot["node"] as? [String: Any],
+              let device = node["device"] as? NSNumber, let inode = node["inode"] as? NSNumber else { return nil }
+        return device.stringValue + ":" + inode.stringValue
+    }
 
     private final class Fixture {
         let root: URL
@@ -469,6 +474,37 @@ import Darwin
             try require(try Data(contentsOf: fixture.final) == sentinel && flags(fixture.partial) == before,
                         "Exclusive collision changed final content or original partial flags")
             try fixture.assertPartialUnchanged()
+
+            let payload = Data(repeating: 87, count: 3 * 1024 * 1024)
+            let replaced = try Fixture(lockSource: true, contents: payload)
+            let sourceFlags = try flags(replaced.original)
+            let partialFlags = try flags(replaced.partial)
+            _ = try replaced.preview()
+            let displaced = replaced.destination.appendingPathComponent("owned-displaced-output")
+            var swapped = false
+            var swapError: String?
+            var replacementOptions = EnginePartialRecovery.TestOptions()
+            replacementOptions.forceUnsupportedRename = true
+            replacementOptions.afterDurableProgress = {
+                guard !swapped else { return }
+                swapped = true
+                do {
+                    try FileManager.default.moveItem(at: replaced.final, to: displaced)
+                    try sentinel.write(to: replaced.final)
+                } catch { swapError = String(describing: error) }
+            }
+            let changed = try replaced.apply(options: replacementOptions)
+            try require(swapped && swapError == nil, "Owned new-output replacement failed: \(swapError ?? "")")
+            try require(count(changed, "recovered") == 0 && count(changed, "failedNewOutputs") == 1,
+                        "Rebuild accepted a new final-name binding after progress")
+            try require(try Data(contentsOf: replaced.final) == sentinel &&
+                        Data(contentsOf: replaced.original) == payload && Data(contentsOf: replaced.partial) == payload &&
+                        flags(replaced.original) == sourceFlags && flags(replaced.partial) == partialFlags,
+                        "A replaced output caused overwriting or changed the source/partial")
+            let retainedBytes = try Data(contentsOf: displaced)
+            try require(retainedBytes.count >= 1024 * 1024 && retainedBytes == payload.prefix(retainedBytes.count),
+                        "Held output content was not retained")
+            print("PARTIAL_RECOVERY_NEW_OUTPUT_REPLACEMENT: {\"recovered\":0,\"competingFinalUnchanged\":true,\"ownedOutputRetained\":true,\"sourceAndPartialUnchanged\":true}")
         }
         test("A killed rebuild retains a durable incomplete-output journal and never reports recovery") {
             let payload = Data(repeating: 83, count: 3 * 1024 * 1024)
@@ -953,6 +989,35 @@ import Darwin
                         }
                         try require(count(rebuilt, "rebuilt") == 1,
                                     "Card exclusive-copy cleanup fixture did not rebuild: \(rebuilt)")
+                        let events = try journalEvents(fixture.receipt)
+                        let createdOutput = (events.first { $0["event"] as? String == "rebuild-created" }?["outcome"] as? [String: Any])?["newOutput"]
+                        let finalOutput = outcomes(rebuilt).first?["newOutput"]
+                        guard let initialIdentity = nodeKey(createdOutput), let finalIdentity = nodeKey(finalOutput) else {
+                            throw Failure(description: "Card rebuild omitted its created/final identity")
+                        }
+                        try require(initialIdentity != finalIdentity, "Card rebuild accepted an unresolved initial empty identity")
+                        var allocatedIdentity: String?
+                        var deferredProgress = false
+                        for event in events where event["event"] as? String == "rebuild-progress" {
+                            let progress = event["outcome"] as? [String: Any] ?? [:]
+                            guard let identity = nodeKey(progress["newOutput"]) else {
+                                throw Failure(description: "Card progress omitted its held output identity")
+                            }
+                            if let allocated = allocatedIdentity {
+                                try require(identity == allocated, "Card identity changed after its first allocated value")
+                            } else if identity == initialIdentity {
+                                deferredProgress = true
+                            } else { allocatedIdentity = identity }
+                        }
+                        if let allocated = allocatedIdentity {
+                            try require(finalIdentity == allocated, "Final card identity changed after allocation")
+                        }
+                        let identityEvidence: [String: Any] = ["fileSystem": fileSystem,
+                            "initialEmptyIdentity": initialIdentity, "finalIdentity": finalIdentity,
+                            "deferredNonemptyProgress": deferredProgress, "stableFinalIdentity": true]
+                        print("PARTIAL_RECOVERY_NEW_OUTPUT_IDENTITY: " +
+                              String(decoding: try JSONSerialization.data(withJSONObject: identityEvidence, options: [.sortedKeys]),
+                                     as: UTF8.self))
                         let result = try EnginePartialRecovery.cleanup(receipt: fixture.receipt,
                             result: fixture.output.appendingPathComponent("card-cleanup.json"))
                         verifiedCleanup = verifiedCleanup && count(result, "removed") == 1 && count(result, "failed") == 0

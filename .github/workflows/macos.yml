@@ -89,10 +89,12 @@ jobs:
         include:
           - runner: macos-15
             arch: arm64
+            timeout: 35
           - runner: macos-15-intel
             arch: x86_64
+            timeout: 45
     runs-on: ${{ matrix.runner }}
-    timeout-minutes: 35
+    timeout-minutes: ${{ matrix.timeout }}
     env:
       RBN_BUILD_ARCH: ${{ matrix.arch }}
     steps:

@@ -14,11 +14,24 @@ concurrency:
 
 jobs:
   mac-local-recovery:
-    name: Reproduce locked local copies and verify recovery
-    runs-on: macos-15
+    name: Local copy and recovery on ${{ matrix.label }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: macos-15
+            arch: arm64
+            label: macOS15-arm64
+          - runner: macos-15-intel
+            arch: x86_64
+            label: macOS15-x86_64
+          - runner: macos-26
+            arch: arm64
+            label: macOS26-arm64
+    runs-on: ${{ matrix.runner }}
     timeout-minutes: 20
     env:
-      RBN_BUILD_ARCH: arm64
+      RBN_BUILD_ARCH: ${{ matrix.arch }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -34,7 +47,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: RcloneBrowserNext-Mac-local-recovery-preflight
+          name: RcloneBrowserNext-Mac-local-recovery-preflight-${{ matrix.label }}
           path: .build-cache/logs/*.log
           if-no-files-found: error
           retention-days: 30

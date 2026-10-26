@@ -1,15 +1,15 @@
 {
   "version": "0.9.6",
   "file_count_excluding_manifest": 258,
-  "total_bytes_excluding_manifest": 8142802,
+  "total_bytes_excluding_manifest": 8149609,
   "files": {
     ".github/workflows/mac-local-recovery.yml": {
-      "bytes": 1189,
-      "sha256": "c3c23701a9ce575f4a2187a24cfc7f519a66cc79b53106f3fd87805ee2aef252"
+      "bytes": 1565,
+      "sha256": "3e74def984a287b37910ca2a87bc783206deacdbf7e71c82d5a3c317864c2c84"
     },
     ".github/workflows/macos.yml": {
-      "bytes": 21111,
-      "sha256": "c75ae82d357932a355d33c67c4fcb09691debe4a791c015e1572b756da02cffd"
+      "bytes": 21178,
+      "sha256": "494313972c6f69b7baa54bfc77de1baae07b7d527868a4dc06035d6bec0ab408"
     },
     ".gitignore": {
       "bytes": 278,
@@ -344,8 +344,8 @@
       "sha256": "1592d46f259e9acdb73671ea9b89c463979f33deb549df3a158a52ce23ac7638"
     },
     "Sources/Core/EnginePartialRecovery.swift": {
-      "bytes": 71689,
-      "sha256": "d27493c1f2e998c5595a4d8a85b843b0c3430a2fc170dc5913268011df025ded"
+      "bytes": 73151,
+      "sha256": "737f5381fda9ac695785e4f8a18f43994767b93b673d287d2314e38c72271108"
     },
     "Sources/Core/EnginePlatform.swift": {
       "bytes": 12434,
@@ -456,8 +456,8 @@
       "sha256": "1a03a9392477c18910490c9a032ad8557bbb1509eea60976c206e7b720af3637"
     },
     "Tests/MacPartialRecoveryTests.swift": {
-      "bytes": 65313,
-      "sha256": "532048f9e5e3d91a9ccdbeced95bdd084e258f568c64a2241be114c4103ac810"
+      "bytes": 70215,
+      "sha256": "a9c04b85e356b0b2aff592fb37e8a6bc1f41a9bead880857feac8b2182e77ef1"
     },
     "Tests/MacStartupTests.swift": {
       "bytes": 20729,
