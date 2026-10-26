@@ -261,8 +261,31 @@ import Darwin
         try output.synchronize()
         try errors.synchronize()
         let errorText = String(decoding: try Data(contentsOf: stderr), as: UTF8.self)
-        try require(process.terminationStatus == 0, "App CLI failed: \(errorText.prefix(2000))")
-        guard let result = try JSONSerialization.jsonObject(with: Data(contentsOf: stdout)) as? [String: Any] else {
+        let outputData = try Data(contentsOf: stdout)
+        let termination = process.terminationReason == .exit ? "exit" : "uncaughtSignal"
+        if process.terminationStatus != 0 {
+            var diagnosis: [String: Any] = ["label": label,
+                "subcommand": arguments.count > 1 ? arguments[1] : "",
+                "terminationStatus": process.terminationStatus, "terminationReason": termination,
+                "stdout": String(decoding: outputData, as: UTF8.self), "stderr": errorText]
+            if let value = try? JSONSerialization.jsonObject(with: outputData) { diagnosis["stdoutJSON"] = value }
+            for (name, document) in [("preview", fixture.plan), ("receipt", fixture.receipt)] {
+                if FileManager.default.fileExists(atPath: document.path) {
+                    do { diagnosis[name] = try JSONSerialization.jsonObject(with: Data(contentsOf: document)) }
+                    catch { diagnosis[name + "ReadError"] = String(describing: error) }
+                }
+            }
+            if FileManager.default.fileExists(atPath: fixture.receipt.path + ".journal.jsonl") {
+                do { diagnosis["journal"] = try journalEvents(fixture.receipt) }
+                catch { diagnosis["journalReadError"] = String(describing: error) }
+            }
+            print("PARTIAL_RECOVERY_APP_CLI_DIAGNOSTIC: " +
+                  String(decoding: try JSONSerialization.data(withJSONObject: diagnosis, options: [.sortedKeys]),
+                         as: UTF8.self))
+        }
+        try require(process.terminationStatus == 0,
+                    "App CLI failed for \(label) (\(termination), status \(process.terminationStatus)): \(errorText.prefix(2000))")
+        guard let result = try JSONSerialization.jsonObject(with: outputData) as? [String: Any] else {
             throw Failure(description: "App CLI did not return a JSON object")
         }
         return result

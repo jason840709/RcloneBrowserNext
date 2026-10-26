@@ -222,7 +222,7 @@ enum RBNPartialRecoveryCLI {
         guard arguments.first == "--repair-local-partials" else { return nil }
         do {
             guard arguments.count == 6, ["preview", "apply", "cleanup"].contains(arguments[1]) else {
-                throw EngineError("用法：--repair-local-partials preview --report <JSONL> --plan <新檔案>，apply --plan <計畫> --receipt <新檔案>，或 cleanup --receipt <已完成收據> --result <新檔案>。")
+                throw EngineError("用法：--repair-local-partials preview --report <JSONL> --plan <新檔案>，apply --plan <計畫> --receipt <新檔案>，或 cleanup --receipt <已完成收據> --result <新檔案>。CLI 的 apply／cleanup 會直接執行，不顯示確認視窗；執行前請先停止 App 傳輸及其他程式對來源、目的位置的寫入。")
             }
             var values: [String: URL] = [:]
             for index in stride(from: 2, to: arguments.count, by: 2) {
