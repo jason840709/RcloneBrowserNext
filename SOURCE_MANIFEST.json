@@ -1,7 +1,7 @@
 {
   "version": "0.9.6",
   "file_count_excluding_manifest": 258,
-  "total_bytes_excluding_manifest": 8158840,
+  "total_bytes_excluding_manifest": 8173281,
   "files": {
     ".github/workflows/mac-local-recovery.yml": {
       "bytes": 1565,
@@ -372,8 +372,8 @@
       "sha256": "e365f11e2a8e9f105ea1c8c519cdc02d6a47500a773cb7e102de6258dc58860d"
     },
     "Sources/Core/RcloneEngine.swift": {
-      "bytes": 104734,
-      "sha256": "270834b6e059d56c270000784d25c27c22ade01b85b964e4cea3e83d251f1cd5"
+      "bytes": 105496,
+      "sha256": "46e2412370363eacf7516cb94ab4f84ba68af7d8045f65cb7958c16636289f86"
     },
     "Sources/Core/RcloneTools.swift": {
       "bytes": 26905,
@@ -432,8 +432,8 @@
       "sha256": "6ef88a57f8d807d3886e8c240338484f98bf3988f5ac1da4252b3708da97d314"
     },
     "Tests/ListingTests.swift": {
-      "bytes": 28837,
-      "sha256": "144b539cf3e87b40c100321cbb37a4237dea5251d2f3fb681cd28d457004dc5f"
+      "bytes": 32254,
+      "sha256": "bad64f9a729a911ba420026e4cfc7534e2a0402b13315336ba780df19c6e4c79"
     },
     "Tests/MacCompletionTests.swift": {
       "bytes": 5237,
@@ -456,8 +456,8 @@
       "sha256": "1a03a9392477c18910490c9a032ad8557bbb1509eea60976c206e7b720af3637"
     },
     "Tests/MacPartialRecoveryTests.swift": {
-      "bytes": 79162,
-      "sha256": "1aa30dea0c3cdcd6751ce22c5fe0c42df276e717a074d1a06d2d95cd35b8aa6d"
+      "bytes": 89067,
+      "sha256": "d0266d57f574f0fbafc06813976aacee1695f522a80ba5b349e0ef18180f8c7d"
     },
     "Tests/MacStartupTests.swift": {
       "bytes": 20729,
@@ -912,8 +912,8 @@
       "sha256": "597a6dd8c2d09ef5814a4484bd24b7b5054d68112f0790f1094d2850c7b3bed8"
     },
     "docs/RELEASE_0.9.6.md": {
-      "bytes": 4797,
-      "sha256": "ef6020c47a83aca8183d529ac460ae9dc6bfc3612a9990eaefa4174eccb22f0c"
+      "bytes": 5154,
+      "sha256": "f0cdf545e32692023726daf61b45c4b51062d03f07cf29f2a2cc4d63f3418ee1"
     },
     "docs/RESEARCH_0.5.0.md": {
       "bytes": 10720,

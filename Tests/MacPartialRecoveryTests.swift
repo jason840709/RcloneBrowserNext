@@ -180,8 +180,16 @@ import Darwin
         let mount: URL
         let format: String
         let fileSystem: String
-        private var attached = false
+        private var cleanupNeeded = false
+        private var ownedDevices = Set<String>()
+        private var lastCommand: [String: Any] = [:]
         private var command = 0
+        private var image: URL { root.appendingPathComponent("recovery-fixture.dmg") }
+
+        private struct ImageRecord {
+            let path: String
+            let devices: Set<String>
+        }
 
         init(format: String, fileSystem: String) throws {
             self.format = format
@@ -193,46 +201,189 @@ import Darwin
                                                     attributes: [.posixPermissions: 0o700])
         }
 
-        private func run(_ arguments: [String], timeout: TimeInterval) throws {
+        @discardableResult
+        private func run(_ arguments: [String], timeout: TimeInterval) throws -> Data {
             command += 1
-            let log = root.appendingPathComponent("hdiutil-\(command).log")
-            try Data().write(to: log)
-            let output = try FileHandle(forWritingTo: log)
-            defer { try? output.close() }
+            let stdout = root.appendingPathComponent("hdiutil-\(command)-stdout.log")
+            let stderr = root.appendingPathComponent("hdiutil-\(command)-stderr.log")
             let process = Process()
             let done = DispatchSemaphore(value: 0)
-            process.executableURL = URL(fileURLWithPath: "/usr/bin/hdiutil")
-            process.arguments = arguments
-            process.standardInput = FileHandle.nullDevice
-            process.standardOutput = output
-            process.standardError = output
-            process.terminationHandler = { _ in done.signal() }
-            try process.run()
-            if done.wait(timeout: .now() + timeout) == .timedOut {
-                _ = Darwin.kill(process.processIdentifier, SIGKILL)
-                _ = done.wait(timeout: .now() + 3)
-                throw Failure(description: "Owned disk-image operation exceeded its deadline")
+            var started = false
+            var timedOut = false
+            func capture(_ failure: Error? = nil) {
+                var evidence: [String: Any] = ["arguments": arguments, "deadlineSeconds": timeout,
+                    "timedOut": timedOut, "started": started, "stillRunning": process.isRunning]
+                if started && !process.isRunning {
+                    evidence["terminationStatus"] = process.terminationStatus
+                    evidence["terminationReason"] = process.terminationReason == .exit ? "exit" : "uncaughtSignal"
+                } else {
+                    evidence["terminationStatus"] = NSNull()
+                    evidence["terminationReason"] = started ? "running" : "not-started"
+                }
+                for (key, url) in [("stdout", stdout), ("stderr", stderr)] {
+                    do { evidence[key] = String(decoding: try Data(contentsOf: url), as: UTF8.self) }
+                    catch { evidence[key + "ReadError"] = String(describing: error) }
+                }
+                if let failure = failure { evidence["error"] = String(describing: failure) }
+                lastCommand = evidence
             }
-            let text = String(decoding: try Data(contentsOf: log), as: UTF8.self)
-            try require(process.terminationStatus == 0, "Owned disk-image operation failed: \(text.prefix(3000))")
+            do {
+                try Data().write(to: stdout)
+                try Data().write(to: stderr)
+                let output = try FileHandle(forWritingTo: stdout)
+                defer { try? output.close() }
+                let errors = try FileHandle(forWritingTo: stderr)
+                defer { try? errors.close() }
+                process.executableURL = URL(fileURLWithPath: "/usr/bin/hdiutil")
+                process.arguments = arguments
+                process.standardInput = FileHandle.nullDevice
+                process.standardOutput = output
+                process.standardError = errors
+                process.terminationHandler = { _ in done.signal() }
+                try process.run()
+                started = true
+                timedOut = done.wait(timeout: .now() + timeout) == .timedOut
+                if timedOut && process.isRunning {
+                    _ = Darwin.kill(process.processIdentifier, SIGKILL)
+                    _ = done.wait(timeout: .now() + 3)
+                }
+                let data = try Data(contentsOf: stdout)
+                _ = try Data(contentsOf: stderr)
+                capture()
+                try require(!timedOut && !process.isRunning && process.terminationStatus == 0,
+                            "Owned disk-image command did not exit successfully")
+                return data
+            } catch {
+                capture(error)
+                let diagnostic = String(decoding: try JSONSerialization.data(withJSONObject: lastCommand,
+                    options: [.sortedKeys]), as: UTF8.self)
+                print("PARTIAL_RECOVERY_IMAGE_COMMAND: " + diagnostic)
+                throw Failure(description: "Owned disk-image operation failed: \(diagnostic)")
+            }
+        }
+
+        private func propertyList(_ data: Data, operation: String) throws -> [String: Any] {
+            do {
+                guard let value = try PropertyListSerialization.propertyList(from: data, options: [], format: nil)
+                    as? [String: Any] else { throw Failure(description: "Expected a plist dictionary") }
+                return value
+            } catch {
+                throw Failure(description: "Cannot parse hdiutil \(operation) plist: \(error); stdout: \(String(decoding: data, as: UTF8.self))")
+            }
+        }
+
+        private func devices(_ entities: [[String: Any]]) throws -> Set<String> {
+            let entries = entities.compactMap { $0["dev-entry"] as? String }
+            try require(!entries.isEmpty && entries.count == entities.count &&
+                        entries.allSatisfy { $0.range(of: #"^/dev/disk[0-9]+(?:s[0-9]+)*$"#, options: .regularExpression) != nil },
+                        "Cannot establish the owned image's exact device entries: \(entities)")
+            return Set(entries)
+        }
+
+        private func imageInfo() throws -> [ImageRecord] {
+            let value = try propertyList(run(["info", "-plist"], timeout: 20), operation: "info")
+            guard let images = value["images"] as? [[String: Any]] else {
+                throw Failure(description: "hdiutil info omitted a complete images array: \(value)")
+            }
+            return try images.map { row in
+                guard let path = row["image-path"] as? String, !path.isEmpty,
+                      let entities = row["system-entities"] as? [[String: Any]] else {
+                    throw Failure(description: "hdiutil info contains an unknown image record: \(row)")
+                }
+                let normalized = path.hasPrefix("/")
+                    ? URL(fileURLWithPath: path).standardizedFileURL.resolvingSymlinksInPath().path : path
+                return ImageRecord(path: normalized, devices: try devices(entities))
+            }
+        }
+
+        private func mountTableEvidence() throws -> [String: Any] {
+            let count = Darwin.getfsstat(nil, 0, MNT_NOWAIT)
+            try require(count >= 0 && count < 10_000, "Cannot size a complete mounted-filesystem snapshot")
+            let capacity = Int(count) + 16
+            let byteCount = capacity * MemoryLayout<statfs>.stride
+            try require(byteCount <= Int(Int32.max), "Mounted-filesystem snapshot is too large")
+            var entries = [statfs](repeating: statfs(), count: capacity)
+            let filled = entries.withUnsafeMutableBufferPointer {
+                Darwin.getfsstat($0.baseAddress, Int32(byteCount), MNT_NOWAIT)
+            }
+            try require(filled >= 0 && Int(filled) < capacity,
+                        "Mounted-filesystem snapshot failed or may be truncated")
+            var matches: [[String: String]] = []
+            for entry in entries.prefix(Int(filled)) {
+                let from = withUnsafeBytes(of: entry.f_mntfromname) { String(decoding: $0.prefix { $0 != 0 }, as: UTF8.self) }
+                let at = withUnsafeBytes(of: entry.f_mntonname) { String(decoding: $0.prefix { $0 != 0 }, as: UTF8.self) }
+                if ownedDevices.contains(from) || at == mount.path { matches.append(["device": from, "mountPoint": at]) }
+            }
+            return ["completeSnapshot": true, "mountCount": Int(filled), "ownedMatches": matches]
         }
 
         func attach() throws {
-            let image = root.appendingPathComponent("recovery-fixture.dmg")
+            // Failed creation/attachment can still leave a device. Cleanup
+            // must query this exact private image rather than trust an exit code.
+            cleanupNeeded = true
             // exFAT VolumeLabel permits at most 11 characters.
             try run(["create", "-size", "64m", "-fs", format, "-volname", "RBN-TEST",
                      image.path], timeout: 90)
-            attached = true
-            try run(["attach", "-nobrowse", "-noautoopen", "-mountpoint", mount.path, "-plist", image.path],
-                    timeout: 90)
+            let value = try propertyList(run(["attach", "-nobrowse", "-noautoopen", "-mountpoint", mount.path,
+                                              "-plist", image.path], timeout: 90), operation: "attach")
+            guard let entities = value["system-entities"] as? [[String: Any]] else {
+                throw Failure(description: "hdiutil attach omitted exact device entries: \(value)")
+            }
+            ownedDevices = try devices(entities)
+            try require(entities.filter { $0["mount-point"] as? String == mount.path }.count == 1,
+                        "hdiutil attach did not bind the owned image to its exact mountpoint: \(value)")
             try require(EngineLocalTimePrecision.mountedFileSystem(mount.path) == fileSystem,
                         "Mounted recovery image has an unexpected filesystem")
         }
 
         func close() throws {
-            guard attached else { return }
-            try run(["detach", mount.path], timeout: 45)
-            attached = false
+            guard cleanupNeeded else { return }
+            var evidence: [String: Any] = ["imagePath": image.path, "mountPoint": mount.path,
+                                          "verifiedDetached": false, "detachAttempted": false]
+            var detachError: String?
+            do {
+                let before = try imageInfo()
+                let matching = before.filter { $0.path == image.path }
+                try require(matching.count <= 1, "The owned image has ambiguous attachments")
+                if let current = matching.first {
+                    if ownedDevices.isEmpty { ownedDevices = current.devices }
+                    try require(current.devices == ownedDevices,
+                                "The owned image's device binding changed; no device was detached")
+                    try require(before.filter { $0.path != image.path }.allSatisfy { $0.devices.isDisjoint(with: ownedDevices) },
+                                "An owned device is also attributed to another image; no device was detached")
+                    let roots = ownedDevices.filter { $0.range(of: #"^/dev/disk[0-9]+$"#, options: .regularExpression) != nil }
+                    try require(roots.count == 1, "Cannot identify exactly one owned whole-image device")
+                    evidence["detachAttempted"] = true
+                    do { try run(["detach", roots.first!], timeout: 45) }
+                    catch { detachError = String(describing: error) }
+                    evidence["detachCommand"] = lastCommand
+                    if let detachError = detachError { evidence["detachError"] = detachError }
+                    try require(lastCommand["stillRunning"] as? Bool == false,
+                                "The detach process did not terminate; teardown state remains uncertain")
+                }
+                evidence["ownedDevices"] = ownedDevices.sorted()
+                let after = try imageInfo()
+                let imageAbsent = !after.contains { $0.path == image.path }
+                let devicesAbsent = after.allSatisfy { $0.devices.isDisjoint(with: ownedDevices) }
+                let mounts = try mountTableEvidence()
+                let mountAbsent = (mounts["ownedMatches"] as? [[String: String]])?.isEmpty == true
+                evidence["imageAbsent"] = imageAbsent
+                evidence["recordedDevicesAbsent"] = devicesAbsent
+                evidence["mountTable"] = mounts
+                try require(imageAbsent && devicesAbsent && mountAbsent,
+                            "The owned image is still attached or its mount state is unknown")
+                cleanupNeeded = false
+                evidence["verifiedDetached"] = true
+                print("PARTIAL_RECOVERY_IMAGE_TEARDOWN: " + String(decoding:
+                    try JSONSerialization.data(withJSONObject: evidence, options: [.sortedKeys]), as: UTF8.self))
+            } catch {
+                evidence["verificationError"] = String(describing: error)
+                if let detachError = detachError { evidence["detachError"] = detachError }
+                let diagnostic = String(decoding: try JSONSerialization.data(withJSONObject: evidence,
+                    options: [.sortedKeys]), as: UTF8.self)
+                print("PARTIAL_RECOVERY_IMAGE_TEARDOWN: " + diagnostic)
+                throw Failure(description: "Owned image teardown was not verified: \(diagnostic)")
+            }
         }
     }
 
@@ -637,12 +788,14 @@ import Darwin
                                 "Refused cleanup changed the retained ENOSPC partial")
                     print("PARTIAL_RECOVERY_ENOSPC: {\"actualErrno\":\(ENOSPC),\"payloadBytes\":\(payload.count),\"availableBytesAfterFill\":\(available),\"filledBytes\":\(filled),\"newOutputRetained\":true,\"partialRetained\":true,\"recovered\":0,\"cleanupRefused\":true}")
                 }
-                try image.close()
-            } catch {
+            } catch let primaryError {
                 do { try image.close() }
-                catch { throw Failure(description: "ENOSPC test failed and its owned image could not detach: \(error)") }
-                throw error
+                catch let cleanupError {
+                    throw Failure(description: "ENOSPC test failed: \(primaryError); owned image cleanup also failed: \(cleanupError)")
+                }
+                throw primaryError
             }
+            try image.close()
         }
         test("Receipt-bound cleanup removes only the verified retained partial") {
             let fixture = try Fixture(lockSource: true)
@@ -1166,12 +1319,14 @@ import Darwin
                         try require(count(try fixture.apply(), "recovered") == 0, "An ambiguous empty file was recovered")
                         try require(try flags(fixture.partial) == before, "Empty card file was unlocked")
                     }
-                    try image.close()
-                } catch {
+                } catch let primaryError {
                     do { try image.close() }
-                    catch { throw Failure(description: "Recovery image test failed and its owned image could not detach: \(error)") }
-                    throw error
+                    catch let cleanupError {
+                        throw Failure(description: "Recovery image test failed: \(primaryError); owned image cleanup also failed: \(cleanupError)")
+                    }
+                    throw primaryError
                 }
+                try image.close()
                 var result: [String: Any] = ["fileSystem": fileSystem, "format": format,
                     "verifiedRecovery": verifiedRecovery,
                     "atomicRename": method == "atomic-rename" ? "supported" : "unsupported",

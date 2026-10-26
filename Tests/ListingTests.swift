@@ -41,6 +41,32 @@ private func processAlive(_ pid: Int32) -> Bool {
     #endif
 }
 
+/// Failure-only observations distinguish an exited process from an OS query
+/// failure. They never substitute for the assertions or extend their deadlines.
+private func processEvidence(_ pid: Int32) -> [String: Any] {
+    #if os(Windows)
+    guard let handle = OpenProcess(DWORD(PROCESS_QUERY_LIMITED_INFORMATION), false, DWORD(bitPattern: pid)) else {
+        let failure = GetLastError()
+        return ["pid": pid, "alive": NSNull(), "query": "OpenProcess", "queryError": failure]
+    }
+    defer { CloseHandle(handle) }
+    var code: DWORD = 0
+    guard GetExitCodeProcess(handle, &code) else {
+        let failure = GetLastError()
+        return ["pid": pid, "alive": NSNull(), "query": "GetExitCodeProcess", "queryError": failure]
+    }
+    return ["pid": pid, "alive": code == DWORD(259), "exitCode": code, "queryError": NSNull()]
+    #else
+    let result = kill(pid, 0), failure = result == 0 ? 0 : errno
+    let alive: Any
+    if result == 0 || failure == EPERM { alive = true }
+    else if failure == ESRCH { alive = false }
+    else { alive = NSNull() }
+    return ["pid": pid, "alive": alive,
+            "signalZeroResult": result, "queryError": failure]
+    #endif
+}
+
 private final class ListingResult {
     private let lock = NSLock()
     private let done = DispatchGroup()
@@ -57,6 +83,7 @@ private final class ListingResult {
         guard done.wait(timeout: .now() + seconds) == .success else { throw EngineError("Listing worker did not unwind") }
         return try lock.holding { try result!.get() }
     }
+    var hasFinished: Bool { lock.holding { result != nil } }
 }
 
 /// The same test executable acts as a controlled rclone-shaped child. No shell,
@@ -239,7 +266,38 @@ private final class ListingSuite {
                 childPIDs = try events(area).filter { $0["command"] as? String == "lsjson" }.compactMap { ($0["pid"] as? NSNumber)?.int32Value }
                 return childPIDs.count == 2
             }
-            let start = Date(); _ = try cancel(engine, a)
+            var requestIDs = ["left": a, "right": b]
+            var launcherPIDs = ["left": leftPID, "right": rightPID]
+            var workers = ["left": left, "right": right]
+            func cancelWithEvidence(_ id: String, stage: String) throws -> [String: Any] {
+                let started = Date()
+                do { return try cancel(engine, id) }
+                catch {
+                    let originalError = error
+                    var evidence: [String: Any] = ["stage": stage, "requestId": id,
+                        "elapsedSeconds": Date().timeIntervalSince(started),
+                        "originalError": String(describing: originalError), "fixtureArea": area.path,
+                        "actualChildren": childPIDs.map(processEvidence)]
+                    evidence["requests"] = requestIDs.keys.sorted().map { name -> [String: Any] in
+                        let requestID = requestIDs[name]!
+                        var row: [String: Any] = ["name": name, "requestId": requestID,
+                            "workerFinished": workers[name]!.hasFinished,
+                            "launcher": processEvidence(launcherPIDs[name]!)]
+                        row["registryRunningPID"] = engine.listingProcessIdentifier(requestID).map { $0 as Any } ?? NSNull()
+                        return row
+                    }
+                    do { evidence["fixtureEvents"] = try events(area) }
+                    catch { evidence["fixtureEventsReadError"] = String(describing: error) }
+                    do {
+                        print("LISTING_CANCEL_FAILURE " + String(decoding: try EngineJSON.data(evidence), as: UTF8.self))
+                    } catch {
+                        print("LISTING_CANCEL_FAILURE stage=\(stage), original=\(originalError), diagnosticEncodingError=\(error), evidence=\(evidence)")
+                    }
+                    fflush(stdout)
+                    throw originalError
+                }
+            }
+            let start = Date(); _ = try cancelWithEvidence(a, stage: "cancel-left-with-right-active")
             try require(!processAlive(leftPID), "Cancel acknowledged while its child was still alive")
             try require(processAlive(rightPID), "Cancel killed the other pane")
             // On Windows Process refers to the protected launcher. The fixture
@@ -248,7 +306,8 @@ private final class ListingSuite {
             try require(childPIDs.filter(processAlive).count == 1, "Cancellation did not stop exactly one actual listing child")
             _ = try status(left, "cancelled")
             let newerID = UUID().uuidString, newer = list(engine, "wait-shared", id: newerID), newerPID = try pid(engine, newerID)
-            try require(try cancel(engine, a)["cancelled"] as? Bool == false, "Completed cancellation changed state")
+            requestIDs["newer"] = newerID; launcherPIDs["newer"] = newerPID; workers["newer"] = newer
+            try require(try cancelWithEvidence(a, stage: "repeat-completed-cancel-with-newer-active")["cancelled"] as? Bool == false, "Completed cancellation changed state")
             try require(processAlive(newerPID) && processAlive(rightPID), "Late cancellation affected a newer request")
             try release(area, "wait-shared")
             _ = try status(right, "completed"); _ = try status(newer, "completed")

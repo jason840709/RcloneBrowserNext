@@ -374,9 +374,6 @@ final class RcloneEngine {
         process.executableURL = URL(fileURLWithPath: executable)
         process.arguments = configuredArguments(arguments)
         process.environment = childEnvironment()
-        process.standardInput = FileHandle.nullDevice
-        let outputPipe = Pipe(), errorPipe = Pipe()
-        process.standardOutput = outputPipe; process.standardError = errorPipe
         let token = UUID(), buffers = EngineProcessOutput(maximum: maximum)
         defer {
             stateLock.holding {
@@ -387,19 +384,36 @@ final class RcloneEngine {
                 if activeJob?.child === process { activeJob?.child = nil }
                 if listing?.child === process { listing?.child = nil }
             }
-            try? outputPipe.fileHandleForReading.close(); try? errorPipe.fileHandleForReading.close()
         }
-        try stateLock.holding {
+        let (outputPipe, errorPipe) = try stateLock.holding { () throws -> (Pipe, Pipe) in
             guard !closing, !maintenance else { throw EngineError(closing ? "程式正在關閉。" : "rclone 正在更新。") }
             guard activeJob?.cancel != true else { throw EngineError("已取消。") }
             if let failure = activeJob?.failure { throw EngineError(failure) }
             try checkListing(listing)
+            // Swift 6.1.2 Windows Pipe creates inheritable handles. Keep their
+            // creation inside this engine's spawn transaction: another child
+            // must not inherit a pending listing's writer and delay its EOF.
+            let outputPipe = Pipe(), errorPipe = Pipe()
+            process.standardInput = FileHandle.nullDevice
+            process.standardOutput = outputPipe; process.standardError = errorPipe
             captureChildren[token] = process; activeJob?.child = process; listing?.child = process
             // Cancellation cannot acknowledge an unstarted child and then race
             // with Process.run. The spawn and its final cancellation check form
-            // one short transaction; pipe draining/waiting happens outside it.
+            // one short transaction. Process.run closes the parent's child-facing
+            // pipe writers before this lock is released; draining/waiting remains
+            // outside the lock so listings and transfers still run concurrently.
             do { try EnginePlatform.prepare(process); try process.run() }
-            catch { throw EngineError("無法啟動 rclone：\(error.localizedDescription)") }
+            catch {
+                for pipe in [outputPipe, errorPipe] {
+                    try? pipe.fileHandleForReading.close()
+                    try? pipe.fileHandleForWriting.close()
+                }
+                throw EngineError("無法啟動 rclone：\(error.localizedDescription)")
+            }
+            return (outputPipe, errorPipe)
+        }
+        defer {
+            try? outputPipe.fileHandleForReading.close(); try? errorPipe.fileHandleForReading.close()
         }
         let remaining = listing?.deadline.map { max(0, $0.timeIntervalSinceNow) }
         let effectiveTimeout = remaining.map { min(timeout ?? $0, $0) } ?? timeout
