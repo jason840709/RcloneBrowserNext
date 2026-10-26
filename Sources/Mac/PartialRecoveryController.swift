@@ -57,9 +57,9 @@ final class RBNPartialRecoveryController {
         let alert = NSAlert()
         alert.messageText = local("可修復 \(ready) 個暫存檔", "\(ready) temporary files are ready to recover", "\(ready) 個の一時ファイルを復元できます")
         alert.informativeText = local(
-            "來源：\(source)\n目的：\(destination)\n\n內容完全一致：\(ready)\n正式檔名已存在：\(existing)\n內容不一致：\(mismatch)\n無法核對：\(blocked)\n\n修復會解除已核對暫存檔的鎖定，並還原正式檔名。來源檔案保持原樣；已存在或無法核對的項目會略過。",
-            "Source: \(source)\nDestination: \(destination)\n\nIdentical contents: \(ready)\nFinal name already exists: \(existing)\nDifferent contents: \(mismatch)\nCould not verify: \(blocked)\n\nRecovery unlocks only verified temporary files and restores their final names. Source files stay unchanged; existing or unverified items are skipped.",
-            "元：\(source)\n先：\(destination)\n\n内容一致：\(ready)\n正式名が存在：\(existing)\n内容不一致：\(mismatch)\n照合できない項目：\(blocked)\n\n照合済みの一時ファイルだけをロック解除し、正式名に戻します。元のファイルは変更せず、既存または未確認の項目はスキップします。")
+            "來源：\(source)\n目的：\(destination)\n\n內容完全一致：\(ready)\n正式檔名已存在：\(existing)\n內容不一致：\(mismatch)\n無法核對：\(blocked)\n\n修復會解除已核對暫存檔的鎖定，並還原正式檔名。來源檔案保持原樣；已存在或無法核對的項目會略過。修復期間請暫停其他程式對這兩個位置的寫入。",
+            "Source: \(source)\nDestination: \(destination)\n\nIdentical contents: \(ready)\nFinal name already exists: \(existing)\nDifferent contents: \(mismatch)\nCould not verify: \(blocked)\n\nRecovery unlocks only verified temporary files and restores their final names. Source files stay unchanged; existing or unverified items are skipped. Pause writes to these locations from other apps during recovery.",
+            "元：\(source)\n先：\(destination)\n\n内容一致：\(ready)\n正式名が存在：\(existing)\n内容不一致：\(mismatch)\n照合できない項目：\(blocked)\n\n照合済みの一時ファイルだけをロック解除し、正式名に戻します。元のファイルは変更せず、既存または未確認の項目はスキップします。復元中は、ほかのアプリから両方の場所への書き込みを停止してください。")
         if ready > 0 { alert.addButton(withTitle: local("修復 \(ready) 個檔案", "Recover \(ready) files", "\(ready) 個を復元")) }
         alert.addButton(withTitle: local("關閉", "Close", "閉じる"))
         alert.addButton(withTitle: local("查看核對報告", "Show verification report", "照合レポートを表示"))

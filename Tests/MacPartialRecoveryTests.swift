@@ -186,7 +186,7 @@ import Darwin
         func attach() throws {
             let image = root.appendingPathComponent("recovery-fixture.dmg")
             try run(["create", "-size", "64m", "-fs", format, "-volname", "RBN-RECOVERY-TEST",
-                     "-format", "UDRW", image.path], timeout: 90)
+                     image.path], timeout: 90)
             attached = true
             try run(["attach", "-nobrowse", "-noautoopen", "-mountpoint", mount.path, "-plist", image.path],
                     timeout: 90)

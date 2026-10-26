@@ -196,7 +196,7 @@ private final class LocalCopyDiskImage {
 
     func attach() throws {
         let image = directory.appendingPathComponent("fixture.dmg")
-        let created = try fixture.run("/usr/bin/hdiutil", ["create", "-size", "64m", "-fs", format, "-volname", "RBN-TEST", "-format", "UDRW", image.path], timeout: 90)
+        let created = try fixture.run("/usr/bin/hdiutil", ["create", "-size", "64m", "-fs", format, "-volname", "RBN-TEST", image.path], timeout: 90)
         try require(created.status == 0, "\(format) fixture creation failed:\n\(created.text)")
         // Mark before running attach so cleanup still targets this private
         // mountpoint if hdiutil reports an error after mounting the image.
@@ -208,10 +208,17 @@ private final class LocalCopyDiskImage {
 
     func close() throws {
         guard attached else { return }
-        try fixture.unlockOwnedTree(mount)
-        let result = try fixture.run("/usr/bin/hdiutil", ["detach", mount.path], timeout: 45)
-        try require(result.status == 0, "could not detach owned test image:\n\(result.text)")
-        attached = false
+        var failures: [String] = []
+        do { try fixture.unlockOwnedTree(mount) }
+        catch { failures.append("owned fixture unlock failed: \(error)") }
+        // A failed unlock must not prevent detaching the test-owned image.
+        // Keep both diagnostics if the detach itself also fails.
+        do {
+            let result = try fixture.run("/usr/bin/hdiutil", ["detach", mount.path], timeout: 45)
+            if result.status == 0 { attached = false }
+            else { failures.append("could not detach owned test image:\n\(result.text)") }
+        } catch { failures.append("owned image detach failed: \(error)") }
+        try require(failures.isEmpty, failures.joined(separator: "\n"))
     }
 }
 

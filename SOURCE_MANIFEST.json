@@ -1,7 +1,7 @@
 {
   "version": "0.9.6",
   "file_count_excluding_manifest": 258,
-  "total_bytes_excluding_manifest": 8072652,
+  "total_bytes_excluding_manifest": 8073295,
   "files": {
     ".github/workflows/mac-local-recovery.yml": {
       "bytes": 1189,
@@ -400,8 +400,8 @@
       "sha256": "920657ea949fc60e726b6e5c9d121854498a887578ed7220025a13c74d819e16"
     },
     "Sources/Mac/PartialRecoveryController.swift": {
-      "bytes": 11396,
-      "sha256": "d1807398ff858c95f9eadc307d2f6ed98c971d90e77eb3497477e6dbbedc6d1a"
+      "bytes": 11626,
+      "sha256": "bade9ac41b649e133f937fba4adedb961e93970e8438b21e6fee33076d28a5d6"
     },
     "Sources/Mac/RcloneWebView.swift": {
       "bytes": 12026,
@@ -448,16 +448,16 @@
       "sha256": "d1ccab064a059a87a0bfd49aeb6c9f508bb95b0809a29e1482820b09623e564c"
     },
     "Tests/MacLocalCopyTests.swift": {
-      "bytes": 20257,
-      "sha256": "8127710214f38007cafc6a82f3659c3d985e482cf473cb45c3e31572e3ae01b9"
+      "bytes": 20689,
+      "sha256": "a03008988811348003b3961e38ecb0147f670c4784892ca2cde682016631097e"
     },
     "Tests/MacNavigationIntegrationTests.swift": {
       "bytes": 30800,
       "sha256": "1a03a9392477c18910490c9a032ad8557bbb1509eea60976c206e7b720af3637"
     },
     "Tests/MacPartialRecoveryTests.swift": {
-      "bytes": 38059,
-      "sha256": "cbb1291fcca9b578db652196f54a217623d6f144165a127b1ac9fec1c1f77e2a"
+      "bytes": 38040,
+      "sha256": "e5082208d88334d8a0d0dbadd8706d8c945c3b8288d1ff237108a5ba63f1d2f9"
     },
     "Tests/MacStartupTests.swift": {
       "bytes": 20729,
