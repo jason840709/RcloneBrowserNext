@@ -527,14 +527,29 @@ import Darwin
         }
         test("Real ExFAT ENOSPC preserves original partial and reports a failed new output") {
             let image = try CardImage(format: "ExFAT", fileSystem: "exfat")
+            let payload = Data(repeating: 83, count: 8 * 1024 * 1024)
             do {
                 try image.attach()
                 do {
-                    let fixture = try Fixture(lockSource: true, destinationParent: image.mount, partialExtraFlags: 0)
+                    let fixture = try Fixture(lockSource: true, destinationParent: image.mount,
+                                              partialExtraFlags: 0, contents: payload)
                     let sourceFlags = try flags(fixture.original)
                     let partialFlags = try flags(fixture.partial)
                     _ = try fixture.preview()
                     let filled = try fillOwnedImage(image)
+                    // ENOSPC while extending the filler does not prove a
+                    // second tiny file cannot fit. Query after filler close,
+                    // then require a payload larger than the remaining space.
+                    let mountFD = Darwin.open(image.mount.path, O_RDONLY | O_DIRECTORY | O_NOFOLLOW | O_CLOEXEC)
+                    guard mountFD >= 0 else { throw Failure(description: "Cannot inspect owned ExFAT free space") }
+                    defer { Darwin.close(mountFD) }
+                    var space = statfs()
+                    try require(Darwin.fstatfs(mountFD, &space) == 0 && space.f_bsize > 0,
+                                "Cannot measure owned ExFAT free space after filler close")
+                    let available = UInt64(space.f_bavail) * UInt64(space.f_bsize)
+                    print("PARTIAL_RECOVERY_ENOSPC_SETUP: {\"payloadBytes\":\(payload.count),\"availableBytesAfterFill\":\(available),\"filledBytes\":\(filled)}")
+                    try require(available < UInt64(payload.count),
+                                "ENOSPC fixture has \(available) bytes available for a \(payload.count)-byte payload")
                     var options = EnginePartialRecovery.TestOptions()
                     options.forceUnsupportedRename = true
                     let result = try fixture.apply(options: options)
@@ -544,7 +559,7 @@ import Darwin
                                 item["status"] as? String == "failed-new-output" &&
                                 (item["errorCode"] as? NSNumber)?.int32Value == ENOSPC && item["newOutput"] != nil,
                                 "Full ExFAT did not return a retained ENOSPC output: \(result)")
-                    try require(try Data(contentsOf: fixture.original) == bytes && Data(contentsOf: fixture.partial) == bytes &&
+                    try require(try Data(contentsOf: fixture.original) == payload && Data(contentsOf: fixture.partial) == payload &&
                                 flags(fixture.original) == sourceFlags && flags(fixture.partial) == partialFlags,
                                 "ENOSPC changed original contents or flags")
                     try require(FileManager.default.fileExists(atPath: fixture.final.path), "Failed new output was silently deleted")
@@ -555,8 +570,9 @@ import Darwin
                         result: fixture.output.appendingPathComponent("failed-output-cleanup.json"))
                     try require(count(cleanup, "removed") == 0 && count(cleanup, "skipped") == 1,
                                 "Cleanup accepted an unverified new output")
-                    try fixture.assertPartialUnchanged()
-                    print("PARTIAL_RECOVERY_ENOSPC: {\"actualErrno\":\(ENOSPC),\"filledBytes\":\(filled),\"newOutputRetained\":true,\"partialRetained\":true,\"recovered\":0,\"cleanupRefused\":true}")
+                    try require(try Data(contentsOf: fixture.partial) == payload && flags(fixture.partial) == partialFlags,
+                                "Refused cleanup changed the retained ENOSPC partial")
+                    print("PARTIAL_RECOVERY_ENOSPC: {\"actualErrno\":\(ENOSPC),\"payloadBytes\":\(payload.count),\"availableBytesAfterFill\":\(available),\"filledBytes\":\(filled),\"newOutputRetained\":true,\"partialRetained\":true,\"recovered\":0,\"cleanupRefused\":true}")
                 }
                 try image.close()
             } catch {
