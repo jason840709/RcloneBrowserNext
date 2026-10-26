@@ -636,6 +636,8 @@ import Darwin
                     "finalCollisionProtected": true, "emptyFilesBlocked": true]
                 print("PARTIAL_RECOVERY_FILESYSTEM: " +
                       String(decoding: try JSONSerialization.data(withJSONObject: result, options: [.sortedKeys]), as: UTF8.self))
+                try require(supported,
+                            "\(format) must support verified in-place recovery on this CI macOS; safe refusal is not a passing recovery result")
             }
         }
         print("RESULT \(passed) passed, \(failed) failed")
