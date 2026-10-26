@@ -938,11 +938,21 @@ import Darwin
                         // confirmed cleanup even if this OS can rename FAT.
                         let fixture = try Fixture(lockSource: true, destinationParent: image.mount, partialExtraFlags: 0)
                         let sourceFlags = try flags(fixture.original)
-                        _ = try fixture.preview()
+                        let preview = try fixture.preview()
                         var options = EnginePartialRecovery.TestOptions()
                         options.forceUnsupportedRename = true
-                        try require(count(try fixture.apply(options: options), "rebuilt") == 1,
-                                    "Card exclusive-copy cleanup fixture did not rebuild")
+                        let rebuilt = try fixture.apply(options: options)
+                        if fileSystem == "msdos" && count(rebuilt, "rebuilt") != 1 {
+                            var diagnosis: [String: Any] = ["fileSystem": fileSystem, "format": format,
+                                                          "preview": preview, "receipt": rebuilt]
+                            do { diagnosis["journal"] = try journalEvents(fixture.receipt) }
+                            catch { diagnosis["journalReadError"] = String(describing: error) }
+                            print("PARTIAL_RECOVERY_FORCED_REBUILD_DIAGNOSTIC: " +
+                                  String(decoding: try JSONSerialization.data(withJSONObject: diagnosis, options: [.sortedKeys]),
+                                         as: UTF8.self))
+                        }
+                        try require(count(rebuilt, "rebuilt") == 1,
+                                    "Card exclusive-copy cleanup fixture did not rebuild: \(rebuilt)")
                         let result = try EnginePartialRecovery.cleanup(receipt: fixture.receipt,
                             result: fixture.output.appendingPathComponent("card-cleanup.json"))
                         verifiedCleanup = verifiedCleanup && count(result, "removed") == 1 && count(result, "failed") == 0
