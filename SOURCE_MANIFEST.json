@@ -1,7 +1,7 @@
 {
   "version": "0.9.6",
   "file_count_excluding_manifest": 258,
-  "total_bytes_excluding_manifest": 8173281,
+  "total_bytes_excluding_manifest": 8173300,
   "files": {
     ".github/workflows/mac-local-recovery.yml": {
       "bytes": 1565,
@@ -456,8 +456,8 @@
       "sha256": "1a03a9392477c18910490c9a032ad8557bbb1509eea60976c206e7b720af3637"
     },
     "Tests/MacPartialRecoveryTests.swift": {
-      "bytes": 89067,
-      "sha256": "d0266d57f574f0fbafc06813976aacee1695f522a80ba5b349e0ef18180f8c7d"
+      "bytes": 89086,
+      "sha256": "657a4cb4d853526b8da69c4856c45fc97c18b84059124f546bec399bdfa2e423"
     },
     "Tests/MacStartupTests.swift": {
       "bytes": 20729,

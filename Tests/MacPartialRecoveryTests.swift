@@ -302,7 +302,7 @@ import Darwin
             let capacity = Int(count) + 16
             let byteCount = capacity * MemoryLayout<statfs>.stride
             try require(byteCount <= Int(Int32.max), "Mounted-filesystem snapshot is too large")
-            var entries = [statfs](repeating: statfs(), count: capacity)
+            var entries = Array<Darwin.statfs>(repeating: Darwin.statfs(), count: capacity)
             let filled = entries.withUnsafeMutableBufferPointer {
                 Darwin.getfsstat($0.baseAddress, Int32(byteCount), MNT_NOWAIT)
             }
