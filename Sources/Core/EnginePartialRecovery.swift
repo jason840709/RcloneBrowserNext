@@ -955,7 +955,7 @@ enum EnginePartialRecovery {
             } catch { throw JournalStorageFailure(underlying: error) }
         }
 
-        func validateOutput(requireAllocatedIdentity: Bool = false) throws -> Snapshot {
+        func validateOutput(finalizeIdentity: Bool = false) throws -> Snapshot {
             guard let output = output else { throw Failure("尚未建立新檔。") }
             let current = try output.validate()
             guard let creationIdentity = creationIdentity,
@@ -968,17 +968,19 @@ enum EnginePartialRecovery {
             if let pinnedIdentity = pinnedIdentity, current.node != pinnedIdentity {
                 throw Failure("新檔配置內容後的檔案身分改變，未確認修復完成。")
             }
-            // A FAT-family file can retain its initial empty-file identity
-            // even after a nonempty write+fsync. Do not pin that provisional
-            // ID. Once an allocated identity appears it may never change.
+            // FAT-family drivers can retain the creation ID or report a
+            // different ID only after content and metadata have been flushed.
+            // Pin the first changed ID immediately. If it never changes, pin
+            // the current name/held-FD binding after all our writes complete;
+            // equality with the creation ID is not evidence of an empty file.
             if pinnedIdentity == nil, let empty = initialEmptyIdentity,
                current.size > 0, current.node != empty {
                 pinnedIdentity = current.node
             }
-            if requireAllocatedIdentity {
-                guard pinnedIdentity == current.node,
-                      initialEmptyIdentity != current.node else {
-                    throw Failure("新檔完成資料、修改時間與同步後仍未取得穩定的配置身分，未確認修復完成。")
+            if finalizeIdentity {
+                if pinnedIdentity == nil { pinnedIdentity = current.node }
+                guard pinnedIdentity == current.node else {
+                    throw Failure("新檔完成資料、修改時間與同步後的身分不一致，未確認修復完成。")
                 }
             }
             return current
@@ -1056,7 +1058,7 @@ enum EnginePartialRecovery {
             let timeResult = times.withUnsafeBufferPointer { Darwin.futimens(raw, $0.baseAddress) }
             guard timeResult == 0 else { throw systemFailure("無法保留新檔修改時間") }
             guard Darwin.fsync(raw) == 0 else { throw systemFailure("新檔修改時間無法同步至磁碟") }
-            lastOutput = try validateOutput(requireAllocatedIdentity: true)
+            lastOutput = try validateOutput(finalizeIdentity: true)
             guard let final = output, let finalState = lastOutput,
                   try modificationTimeMatches(finalState, expectedSource, descriptor: raw) else {
                 throw Failure("新檔未能保留來源修改時間，未確認修復完成。")

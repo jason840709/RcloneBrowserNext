@@ -56,6 +56,10 @@ import Darwin
               let device = node["device"] as? NSNumber, let inode = node["inode"] as? NSNumber else { return nil }
         return device.stringValue + ":" + inode.stringValue
     }
+    private static func statEvidence(_ value: stat) -> [String: Any] {
+        ["identity": String(Int64(value.st_dev)) + ":" + String(UInt64(value.st_ino)),
+         "size": Int64(value.st_size), "links": UInt64(value.st_nlink), "flags": value.st_flags]
+    }
 
     private final class Fixture {
         let root: URL
@@ -1018,26 +1022,33 @@ import Darwin
                         guard let initialIdentity = nodeKey(createdOutput), let finalIdentity = nodeKey(finalOutput) else {
                             throw Failure(description: "Card rebuild omitted its created/final identity")
                         }
-                        try require(initialIdentity != finalIdentity, "Card rebuild accepted an unresolved initial empty identity")
-                        var allocatedIdentity: String?
-                        var deferredProgress = false
+                        var namedFinal = stat()
+                        try require(Darwin.lstat(fixture.final.path, &namedFinal) == 0 &&
+                                    (statEvidence(namedFinal)["identity"] as? String) == finalIdentity &&
+                                    namedFinal.st_size == off_t(bytes.count),
+                                    "Completed card receipt is not bound to the actual final file")
+                        var firstChangedIdentity: String?
+                        var progressUsedInitialIdentity = false
                         for event in events where event["event"] as? String == "rebuild-progress" {
                             let progress = event["outcome"] as? [String: Any] ?? [:]
                             guard let identity = nodeKey(progress["newOutput"]) else {
                                 throw Failure(description: "Card progress omitted its held output identity")
                             }
-                            if let allocated = allocatedIdentity {
-                                try require(identity == allocated, "Card identity changed after its first allocated value")
+                            if let pinned = firstChangedIdentity {
+                                try require(identity == pinned, "Card identity changed after its first changed value was pinned")
                             } else if identity == initialIdentity {
-                                deferredProgress = true
-                            } else { allocatedIdentity = identity }
+                                progressUsedInitialIdentity = true
+                            } else { firstChangedIdentity = identity }
                         }
-                        if let allocated = allocatedIdentity {
-                            try require(finalIdentity == allocated, "Final card identity changed after allocation")
+                        if let pinned = firstChangedIdentity {
+                            try require(finalIdentity == pinned, "Final card identity changed after it was pinned")
                         }
                         let identityEvidence: [String: Any] = ["fileSystem": fileSystem,
                             "initialEmptyIdentity": initialIdentity, "finalIdentity": finalIdentity,
-                            "deferredNonemptyProgress": deferredProgress, "stableFinalIdentity": true]
+                            "identityChanged": initialIdentity != finalIdentity,
+                            "nonemptyProgressUsedInitialIdentity": progressUsedInitialIdentity,
+                            "deferredNonemptyProgress": progressUsedInitialIdentity && initialIdentity != finalIdentity,
+                            "stableFinalIdentity": true]
                         print("PARTIAL_RECOVERY_NEW_OUTPUT_IDENTITY: " +
                               String(decoding: try JSONSerialization.data(withJSONObject: identityEvidence, options: [.sortedKeys]),
                                      as: UTF8.self))
@@ -1049,6 +1060,85 @@ import Darwin
                         try require(try Data(contentsOf: fixture.original) == bytes && Data(contentsOf: fixture.final) == bytes &&
                                     flags(fixture.original) == sourceFlags,
                                     "Card cleanup changed source or final contents")
+                    }
+                    do {
+                        // Replace the name after a real write on each card FS,
+                        // including drivers whose new-output ID is still the
+                        // creation ID. Both objects are owned test fixtures.
+                        let fixture = try Fixture(lockSource: true, destinationParent: image.mount, partialExtraFlags: 0)
+                        let sourceFlags = try flags(fixture.original)
+                        let partialFlags = try flags(fixture.partial)
+                        let expectedHash = try RBNSHA256.hex(bytes)
+                        let sentinel = Data(repeating: 90, count: bytes.count)
+                        let displaced = fixture.destination.appendingPathComponent("owned-displaced-output")
+                        _ = try fixture.preview()
+                        var swapped = false
+                        var swapError: String?
+                        var evidence: [String: Any] = ["fileSystem": fileSystem]
+                        var options = EnginePartialRecovery.TestOptions()
+                        options.forceUnsupportedRename = true
+                        options.afterDurableProgress = {
+                            guard !swapped else { return }
+                            swapped = true
+                            do {
+                                let events = try journalEvents(fixture.receipt)
+                                let created = (events.first { $0["event"] as? String == "rebuild-created" }?["outcome"] as? [String: Any])?["newOutput"]
+                                guard let initial = nodeKey(created) else { throw Failure(description: "Missing created card identity") }
+                                evidence["initialEmptyIdentity"] = initial
+                                let held = Darwin.open(fixture.final.path, O_RDONLY | O_NOFOLLOW | O_CLOEXEC)
+                                try require(held >= 0, "Cannot hold the owned card output")
+                                defer { Darwin.close(held) }
+                                var before = stat()
+                                try require(Darwin.fstat(held, &before) == 0, "Cannot stat the owned card output")
+                                evidence["heldBeforeReplacement"] = statEvidence(before)
+                                try FileManager.default.moveItem(at: fixture.final, to: displaced)
+                                let competing = Darwin.open(fixture.final.path,
+                                    O_WRONLY | O_CREAT | O_EXCL | O_NOFOLLOW | O_CLOEXEC, mode_t(0o600))
+                                try require(competing >= 0, "Cannot exclusively create the competing card name")
+                                defer { Darwin.close(competing) }
+                                try sentinel.withUnsafeBytes { buffer in
+                                    var offset = 0
+                                    while offset < buffer.count {
+                                        let written = Darwin.write(competing, buffer.baseAddress!.advanced(by: offset), buffer.count - offset)
+                                        if written < 0 && errno == EINTR { continue }
+                                        try require(written > 0, "Cannot write the owned card sentinel")
+                                        offset += written
+                                    }
+                                }
+                                try require(Darwin.fsync(competing) == 0, "Cannot flush the owned card sentinel")
+                                var heldAfter = stat()
+                                var namedAfter = stat()
+                                try require(Darwin.fstat(held, &heldAfter) == 0 &&
+                                            Darwin.lstat(fixture.final.path, &namedAfter) == 0,
+                                            "Cannot inspect both owned card replacement objects")
+                                evidence["heldAfterReplacement"] = statEvidence(heldAfter)
+                                evidence["namedAfterReplacement"] = statEvidence(namedAfter)
+                            } catch { swapError = String(describing: error) }
+                        }
+                        let changed = try fixture.apply(options: options)
+                        try require(swapped && swapError == nil, "Owned card replacement failed: \(swapError ?? "")")
+                        try require(count(changed, "recovered") == 0 && count(changed, "failedNewOutputs") == 1,
+                                    "Card rebuild accepted a replaced output name: \(changed); \(evidence)")
+                        let cleanup = try EnginePartialRecovery.cleanup(receipt: fixture.receipt,
+                            result: fixture.output.appendingPathComponent("replaced-card-cleanup.json"))
+                        let cleanupRefused = count(cleanup, "removed") == 0 && count(cleanup, "skipped") == 1 &&
+                            count(cleanup, "failed") == 0
+                        let sentinelUnchanged = try Data(contentsOf: fixture.final) == sentinel
+                        let ownedOutputRetained = try RBNSHA256.hex(Data(contentsOf: displaced)) == expectedHash
+                        let originalsUnchanged = try RBNSHA256.hex(Data(contentsOf: fixture.original)) == expectedHash &&
+                            RBNSHA256.hex(Data(contentsOf: fixture.partial)) == expectedHash &&
+                            flags(fixture.original) == sourceFlags && flags(fixture.partial) == partialFlags
+                        evidence["recovered"] = count(changed, "recovered")
+                        evidence["failedNewOutputs"] = count(changed, "failedNewOutputs")
+                        evidence["competingFinalUnchanged"] = sentinelUnchanged
+                        evidence["ownedOutputRetained"] = ownedOutputRetained
+                        evidence["sourceAndPartialUnchanged"] = originalsUnchanged
+                        evidence["cleanupRefused"] = cleanupRefused
+                        print("PARTIAL_RECOVERY_CARD_OUTPUT_REPLACEMENT: " +
+                              String(decoding: try JSONSerialization.data(withJSONObject: evidence, options: [.sortedKeys]),
+                                     as: UTF8.self))
+                        try require(sentinelUnchanged && ownedOutputRetained && originalsUnchanged && cleanupRefused,
+                                    "Card replacement changed an original object or allowed cleanup: \(evidence)")
                     }
                     do {
                         let fixture = try Fixture(destinationParent: image.mount, partialExtraFlags: 0)
