@@ -59,7 +59,7 @@ export interface JobReportSummary {
 export interface JobReportItem {
   sequence: number; time: string; status: string; action: string; path?: string;
   message: string; size?: number; objectType?: string; evidence?: string; configuration?: Record<string, unknown>;
-  issue?: 'size-mismatch'|'source-growing'|'source-changed'|'cleanup-failed'|'deletion-deferred'|'symlink-ignored'|'special-ignored';
+  issue?: 'size-mismatch'|'source-growing'|'source-changed'|'cleanup-failed'|'deletion-deferred'|'symlink-ignored'|'special-ignored'|'partial-rename-denied';
   sourceSize?: number; destinationSize?: number; relatedPath?: string; attempt?: number; attemptLimit?: number;
 }
 export interface JobReportPage {available: boolean; items: JobReportItem[]; nextCursor: number|null; summary?: JobReportSummary}

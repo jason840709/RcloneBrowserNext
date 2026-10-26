@@ -146,10 +146,11 @@ final class EngineTransferReport {
     /// Export the validated request with the engine version and the exact
     /// modify-window argument used for this run. Credentials, config contents
     /// and the process environment are outside this snapshot.
-    func recordConfiguration(_ request: EngineTransferRequest, engineVersion: String?, effectiveModifyWindow: String?) throws {
+    func recordConfiguration(_ request: EngineTransferRequest, engineVersion: String?, effectiveModifyWindow: String?, effectiveLocalCopyPolicy: String? = nil) throws {
         var metadata: [String: Any] = ["kind": "complete", "schemaVersion": 1,
                                        "request": request.json, "engineVersion": engineVersion as Any? ?? NSNull(),
                                        "effectiveModifyWindow": effectiveModifyWindow as Any? ?? NSNull()]
+        if let policy = effectiveLocalCopyPolicy { metadata["effectiveLocalCopyPolicy"] = policy }
         var records: [[String: Any]] = []
         if try EngineJSON.data(metadata).count <= Self.maximumRecordBytes / 2 { records = [metadata] }
         else {
@@ -226,6 +227,10 @@ final class EngineTransferReport {
         else if message == "not deleting directories as there were IO errors" || message == "not deleting files as there were IO errors" {
             issue = "deletion-deferred"
         } else if isError && message.contains("can't copy - source file is being updated") { issue = "source-changed" }
+        else if isError, action == "rename", objectType == "*local.Object",
+                [": operation not permitted", ": permission denied", ": access is denied."].contains(where: { message.lowercased().hasSuffix($0) }) {
+            issue = "partial-rename-denied"
+        }
 
         var record: [String: Any] = [
             "time": raw["time"] as? String ?? EngineJSON.now(), "status": status,
@@ -234,6 +239,8 @@ final class EngineTransferReport {
         if let object = object { record["object"] = object }
         if let path = path { record["path"] = path }
         if let objectType = objectType { record["objectType"] = objectType }
+        if issue == "partial-rename-denied", let path = path,
+           let related = Self.localOriginalPath(path, objectType: objectType) { record["relatedPath"] = related }
         if let size = Self.validCounter(raw["size"]) { record["size"] = size }
         try lock.holding {
             counts["lastAttempt"] = max(counts["lastAttempt"]!, 1)

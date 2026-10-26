@@ -216,6 +216,29 @@ for (const language of ['zh-TW', 'en', 'ja'] as const) test(`${language}: symbol
   expect(await calls(page, 'startTransfer')).toHaveLength(0);
 });
 
+for (const language of ['zh-TW', 'en', 'ja'] as const) test(`${language}: denied partial rename explains the unfinished file and preserves the raw error`, async ({page}) => {
+  const tx = translator(language), errors = await open(page, {job: true, settings: {language}});
+  await page.evaluate(() => {
+    const w = window as any, fixture = w.__fixture;
+    fixture.reports['fixture-job'] = [{sequence: 1, time: '2026-10-26T12:00:00Z', status: 'error', action: 'rename', evidence: 'json-log', path: 'Books/sample.txt.1234abcd.partial', relatedPath: 'Books/sample.txt', issue: 'partial-rename-denied', message: 'partial file rename failed: rename /destination/Books/sample.txt.1234abcd.partial /destination/Books/sample.txt: operation not permitted'}];
+    const job = structuredClone(fixture.job);
+    job.status = 'failed'; job.error = 'partial file rename failed: operation not permitted'; job.report = fixture.summarizeReport(job.id);
+    fixture.bootstrap.jobs = [job]; w.__rbnEvent({type: 'jobUpdate', data: job});
+  });
+  await page.locator('.main-nav button').nth(1).click();
+  await page.getByTestId('job-fixture-job').locator('.job-details > summary').click();
+  await page.locator('.report-tabs button').last().click();
+  const row = page.locator('.report-entry');
+  await expect(row).toHaveCount(1);
+  await expect(row.locator('.report-entry-content > p').first()).toHaveText(tx('reportPartialRenameDenied'));
+  await expect(row.locator('.report-file-path')).toHaveText('Books/sample.txt.1234abcd.partial');
+  await expect(row.locator('.report-related-path')).toContainText('Books/sample.txt');
+  await row.locator('details summary').click();
+  await expect(row.locator('details p')).toContainText('operation not permitted');
+  expect(await calls(page, 'startTransfer')).toHaveLength(0);
+  expect(errors).toEqual([]);
+});
+
 async function reportFixture(page: Page, language: Language = 'zh-TW', complete = true) {
   const errors = await open(page, {job: true, settings: {language}});
   await page.evaluate(({complete}) => {

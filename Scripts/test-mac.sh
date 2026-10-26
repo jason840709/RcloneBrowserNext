@@ -43,6 +43,12 @@ for RBN_TEST_SUITE in "${RBN_TEST_SUITES[@]}"; do
 done
 fi
 
+# These run on both build architectures and the current-macOS native job.
+# An ordinary local run without an rclone fixture keeps its existing behavior.
+if [[ -n "$RBN_TEST_ENGINE" ]]; then
+  /bin/bash "$RBN_SCRIPT_ROOT/test-local-recovery-mac.sh" "$RBN_TEST_ENGINE"
+fi
+
 # Native zoom, startup pixels and navigation need the actual macOS WebKit
 # engine. Run every native suite so one failure does not hide the others.
 RBN_NATIVE_FAILURES=0

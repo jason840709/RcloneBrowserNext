@@ -1,0 +1,40 @@
+name: Mac local copy and recovery preflight
+
+on:
+  push:
+    branches: ['work/0.9.6']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: local-recovery-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  mac-local-recovery:
+    name: Reproduce locked local copies and verify recovery
+    runs-on: macos-15
+    timeout-minutes: 20
+    env:
+      RBN_BUILD_ARCH: arm64
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Download the pinned rclone fixture
+        run: /bin/bash Scripts/ci-rclone.sh
+      - name: Build the actual Mac application
+        run: /bin/bash Scripts/build-mac.sh --no-launch
+      - name: Exercise locked files, card formats and verified recovery
+        run: /bin/bash Scripts/test-local-recovery-mac.sh "$GITHUB_WORKSPACE/.build-cache/ci-engine/rclone"
+      - name: Retain complete focused verification logs
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: RcloneBrowserNext-Mac-local-recovery-preflight
+          path: .build-cache/logs/*.log
+          if-no-files-found: error
+          retention-days: 30

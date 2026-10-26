@@ -21,6 +21,7 @@ enum RBNNativeStrings {
         }
     }
     private static let entries: [Entry] = [
+        Entry("macOS 本機傳輸使用一般複製，避免繼承來源鎖定旗標；暫存檔驗證與完成後重新命名仍會保留。", "macOS local transfers use streaming copies to avoid inheriting source lock flags. Temporary-file verification and final renaming remain enabled.", "macOS のローカル転送では元のロック属性を引き継がない通常のコピーを使用します。一時ファイルの検証と完了時の名前変更は引き続き行われます。"),
         Entry("目錄讀取已取消。", "Folder loading was cancelled.", "フォルダの読み込みをキャンセルしました。"),
         Entry("目錄讀取尚未停止，請稍後再試。", "Folder loading has not stopped yet. Try again shortly.", "フォルダの読み込みはまだ停止していません。少し待ってから再試行してください。"),
         Entry("目錄讀取逾時設定不正確。", "The folder loading timeout is invalid.", "フォルダの読み込みタイムアウト設定が正しくありません。"),

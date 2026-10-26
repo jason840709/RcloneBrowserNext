@@ -88,7 +88,7 @@ function comparisonName(options:TransferOptions,t:Translate){
 
 function reportMessage(item:JobReportItem,t:Translate,options:TransferOptions){
   if(item.action==='configuration')return t('reportConfigurationHint');
-  const issueLabels={'source-growing':'reportSourceGrowing','source-changed':'reportSourceChanged','size-mismatch':'reportSizeMismatch','cleanup-failed':'reportCleanupFailed','deletion-deferred':'reportDeletionDeferred','symlink-ignored':'reportSymlinkIgnored','special-ignored':'reportSpecialIgnored'} as const;
+  const issueLabels={'source-growing':'reportSourceGrowing','source-changed':'reportSourceChanged','size-mismatch':'reportSizeMismatch','cleanup-failed':'reportCleanupFailed','deletion-deferred':'reportDeletionDeferred','symlink-ignored':'reportSymlinkIgnored','special-ignored':'reportSpecialIgnored','partial-rename-denied':'reportPartialRenameDenied'} as const;
   if(item.issue && item.issue in issueLabels)return t(issueLabels[item.issue]);
   if(item.evidence!=='comparison')return item.message;
   switch(item.action){

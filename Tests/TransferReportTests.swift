@@ -157,6 +157,19 @@ private func reportExpect(_ value: @autoclosure () throws -> Bool, _ message: St
                 try reportExpect(skipped.count == 2 && count(report, "errorEvents") == 0, "ignored entries missing or mislabeled errors")
                 try reportExpect(skipped.map { $0["issue"] as? String } == ["symlink-ignored", "special-ignored"], "skip reason missing")
             }
+            test("Denied local partial renames retain the original error and do not claim completed copies") {
+                let (report, id) = try fresh()
+                let message = "partial file rename failed: rename /destination/book.txt.1234abcd.partial /destination/book.txt: operation not permitted"
+                try report.consume(["level": "error", "object": "book.txt.1234abcd.partial", "objectType": "*local.Object", "msg": message], dryRun: false)
+                try report.consume(["level": "error", "object": "other.txt.1234abcd.partial", "objectType": "*local.Object", "msg": "partial file rename failed: no space left on device"], dryRun: false)
+                try report.consume(["level": "error", "object": "cloud.txt.1234abcd.partial", "objectType": "*drive.Object", "msg": message], dryRun: false)
+                try report.flush()
+                let errors = try rows(id, "errors")
+                try reportExpect(errors.count == 3 && errors[0]["issue"] as? String == "partial-rename-denied", "local rename denial was not identified")
+                try reportExpect(errors[0]["message"] as? String == message && errors[0]["path"] as? String == "book.txt.1234abcd.partial" && errors[0]["relatedPath"] as? String == "book.txt", "rename evidence was changed or lost")
+                try reportExpect(errors[1]["issue"] == nil && errors[2]["issue"] == nil, "unrelated failures were diagnosed as local permission errors")
+                try reportExpect(count(report, "successEvents") == 0 && count(report, "copiedBytes") == 0, "rename failure reported completed data")
+            }
             test("Cleanup failures are visible even when rclone logs them at info level") {
                 let (report, id) = try fresh()
                 try report.consume(["level": "info", "object": "unfinished.partial", "msg": "Removing failed copy"], dryRun: false)

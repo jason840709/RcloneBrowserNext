@@ -313,6 +313,45 @@ private final class CoreTestSuite {
             #endif
         }
 
+        test("Darwin local-copy policy owns only clone selection and preserves request, filtering and staging semantics") {
+            let from = try folder("local-copy-policy/source"), to = try folder("local-copy-policy/destination")
+            for mode in ["copy", "sync", "move"] {
+                for metadata in [false, true] {
+                    for override in [[], ["--local-no-clone"], ["--local-no-clone=true"], ["--local-no-clone=false"]] {
+                        let value = try EngineTransferRequest(request(from, to, mode: mode, dryRun: true,
+                            options: ["preserveMetadata": metadata, "localHashPolicy": "default", "modifyWindow": "2s",
+                                      "extraArgs": override + ["--buffer-size=1M"]]))
+                        let before = try EngineJSON.data(value.json)
+                        let original = value.arguments(filterPath: "/test/selection.filter")
+                        let changed = EngineLocalCopyPolicy.arguments(for: value, filterPath: "/test/selection.filter", platform: "darwin")
+                        let cloneFlags = changed.filter { $0 == "--local-no-clone" || $0.hasPrefix("--local-no-clone=") }
+                        try expect(cloneFlags == ["--local-no-clone"], "clone policy was duplicated or overridden")
+                        let withoutClone: ([String]) -> [String] = { $0.filter { $0 != "--local-no-clone" && !$0.hasPrefix("--local-no-clone=") } }
+                        try expect(withoutClone(changed) == withoutClone(original), "policy changed another argument or its ordering")
+                        try expect(Array(changed.suffix(3)) == ["--", from.path, to.path], "policy changed endpoint boundaries")
+                        try expect(changed.contains("--metadata") == metadata && changed.contains("--dry-run") && changed.contains("--filter-from=/test/selection.filter"), "metadata, dry-run or filter options changed")
+                        try expect(!changed.contains("--inplace") && !changed.contains { $0.hasPrefix("--partial-suffix") || $0 == "--ignore-checksum" }, "policy bypassed transfer safeguards")
+                        try expect(try EngineJSON.data(value.json) == before, "effective policy mutated saved request options")
+                    }
+                }
+            }
+        }
+
+        test("local-copy policy leaves other platforms and any remote endpoint byte-for-byte unchanged") {
+            let from = try folder("copy-policy-scope/source"), to = try folder("copy-policy-scope/destination")
+            let endpointsToTest: [(String?, String?)] = [(nil, nil), ("source", nil), (nil, "target"), ("source", "target")]
+            for endpoints in endpointsToTest {
+                let value = try EngineTransferRequest(request(from, to,
+                    options: ["extraArgs": ["--local-no-clone=false", "--buffer-size=2M"]],
+                    sourceRemote: endpoints.0, destinationRemote: endpoints.1))
+                for platform in ["darwin", "linux", "win32"] {
+                    if platform == "darwin" && endpoints.0 == nil && endpoints.1 == nil { continue }
+                    try expect(!EngineLocalCopyPolicy.applies(to: value, platform: platform), "policy selected another platform or remote")
+                    try expect(EngineLocalCopyPolicy.arguments(for: value, platform: platform) == value.arguments(), "unrelated command changed")
+                }
+            }
+        }
+
         test("system language resolves Chinese variants and Japanese consistently with bootstrap") {
             for language in ["zh", "zh-TW", "zh-Hant-TW", "zh-Hans-CN", "zh_CN", "ZH_hk"] {
                 try expect(RBNLanguageResolver.resolve("system", preferredLanguages: [language]) == "zh-TW", "Chinese system language \(language)")
@@ -759,7 +798,7 @@ private final class CoreTestSuite {
             try expect(EngineJSON.number(file["percentage"]) == 50 && file["eta"] is NSNull, "per-file progress")
         }
 
-        test("native-copy JSON with zero rclone speed produces rolling throughput and ETA without disabling acceleration") {
+        test("native-copy JSON with zero rclone speed retains rolling throughput independently of local-copy policy") {
             var progress = EngineProgressWindow(); progress.start(at: 1000)
             // rclone's BytesNoNetwork path reports logical bytes even when its
             // global network-speed estimate stays zero (including macOS copyfile).
@@ -767,8 +806,8 @@ private final class CoreTestSuite {
             let result = progress.update(raw, previous: EngineStatistics.empty, at: 1030)
             try expect(EngineJSON.number(result["speed"]) == 50_000_000 && EngineJSON.number(result["eta"]) == 38, "native-copy counters did not produce the expected logical rate/ETA")
             try expect(result["speedKind"] as? String == "rolling" && result["etaSource"] as? String == "bytes" && EngineJSON.number(result["speedWindowSeconds"]) == 30, "metric explanation metadata is missing")
-            let args = try EngineTransferRequest(request(try folder("native-metrics/source"), try folder("native-metrics/target"))).arguments()
-            try expect(!args.contains("--local-no-clone") && args.contains("--stats=1s"), "metrics changed the native copy path or added polling")
+            let args = EngineLocalCopyPolicy.arguments(for: try EngineTransferRequest(request(try folder("native-metrics/source"), try folder("native-metrics/target"))))
+            try expect(args.contains("--local-no-clone") == (EnginePlatform.identifier == "darwin") && args.contains("--stats=1s"), "metrics changed the platform copy policy or added polling")
             let nas = try EngineTransferRequest(request(try folder("native-metrics/source"), try folder("native-metrics/target"), mode: "sync",
                                                        options: ["transfers": 1, "checkers": 10, "extraArgs": ["--multi-thread-streams=0"]])).arguments()
             for flag in ["--transfers=1", "--checkers=10", "--local-hashes=none", "--delete-during", "--max-delete=-1", "--multi-thread-streams=0"] {
@@ -1430,7 +1469,8 @@ private final class CoreTestSuite {
             try expect(EngineJSON.number((updated["stats"] as! [String: Any])["transfers"]) == 1, "same-size changed content with a newer timestamp was skipped")
             try expect(try Data(contentsOf: to.appendingPathComponent("sample.bin")) == changed, "newer same-size contents were not copied")
             let command = updated["command"] as? String ?? ""
-            try expect(command.contains("--local-hashes=none") && command.contains("--modify-window=10ms") && !command.contains("--size-only") && !command.contains("--ignore-times") && !command.contains("--local-no-clone"), "repeat-sync fix disabled comparison or native acceleration")
+            try expect(command.contains("--local-hashes=none") && command.contains("--modify-window=10ms") && !command.contains("--size-only") && !command.contains("--ignore-times"), "repeat-sync fix disabled comparison")
+            try expect(command.contains("--local-no-clone") == (EnginePlatform.identifier == "darwin"), "repeat-sync changed the local-copy platform policy")
             let final = try completed(engine, request(from, to, mode: "sync", options: ["modifyWindow": "10ms"]))
             try expect(EngineJSON.number((final["stats"] as! [String: Any])["bytes"]) == 0, "updated file did not become a zero-byte repeat")
             print("REPEAT_SYNC_EVIDENCE: " + String(decoding: try EngineJSON.data(["unchangedBytes": repeatStats["bytes"]!, "quantizedBytes": quantizedStats["bytes"]!,
@@ -1592,13 +1632,13 @@ private final class CoreTestSuite {
             let completedBytes = Data(repeating: 0x41, count: 1024), originalBytes = Data("previous complete version".utf8)
             try file(from, "a-completed.bin", completedBytes)
             try file(from, "b-inflight.bin", Data(repeating: 0x42, count: 8 * 1024 * 1024))
-            // Exercise rclone's streaming partial-upload cleanup deterministically
-            // on APFS as well. This fixture-only option does not change default
-            // app commands or turn off production APFS/server-side acceleration.
+            // Exercise rclone's streaming partial-upload cleanup on every test
+            // platform. Darwin direct local transfers now always use this safe
+            // path; other platforms still need the fixture's explicit flag.
             let options: [String: Any] = ["bandwidth": "256K", "transfers": 1, "checkers": 1, "comparison": "size",
                                           "extraArgs": ["--local-no-clone", "--multi-thread-streams=0", "--order-by=name,ascending"]]
-            let ordinary = try EngineTransferRequest(request(from, try folder("cancel-files/ordinary"))).arguments(filterPath: nil)
-            try expect(!ordinary.contains { $0.hasPrefix("--local-no-clone") || $0.hasPrefix("--inplace") }, "cancellation disabled production acceleration or enabled in-place overwrites")
+            let ordinary = EngineLocalCopyPolicy.arguments(for: try EngineTransferRequest(request(from, try folder("cancel-files/ordinary"))))
+            try expect(ordinary.contains("--local-no-clone") == (EnginePlatform.identifier == "darwin") && !ordinary.contains { $0.hasPrefix("--inplace") }, "cancellation changed platform copy policy or enabled in-place overwrites")
             try rejects("in-place overwrites accepted as an extra option") { _ = try EngineTransferOptions(["extraArgs": ["--inplace"]]) }
             try rejects("custom partial naming accepted as an extra option") { _ = try EngineTransferOptions(["extraArgs": ["--partial-suffix=.unsafe"]]) }
             for hasPrevious in [false, true] {

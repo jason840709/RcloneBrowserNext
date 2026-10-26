@@ -37,6 +37,9 @@ final class BrowserAppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegat
     private var nativeConnectionChanging = false
     private var auxiliaryOperations = 0
     private var operationStarts = 0
+    private var repairingPartials = false
+    private var recoveryConflictingOperations = 0
+    private var partialRecoveryController: RBNPartialRecoveryController?
     private var terminalTimer: DispatchSourceTimer?
     private var startupCheckScheduled = false
     private var startupCheckPerformed = false
@@ -173,6 +176,8 @@ final class BrowserAppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegat
         settings.target = self; appMenu.addItem(settings)
         let accounts = NSMenuItem(title: local("帳號設定…", "Account setup…", "アカウント設定…"), action: #selector(configureFromMenu), keyEquivalent: "")
         accounts.target = self; appMenu.addItem(accounts)
+        let recovery = NSMenuItem(title: local("修復未完成的本機複製…", "Recover unfinished local copies…", "未完了のローカルコピーを復元…"), action: #selector(recoverPartialCopies), keyEquivalent: "")
+        recovery.target = self; appMenu.addItem(recovery)
         let languageItem = NSMenuItem(title: local("語言", "Language", "言語"), action: nil, keyEquivalent: "")
         let languages = NSMenu(title: languageItem.title)
         for (title, code) in [(local("預設（跟隨系統）", "Default (System)", "デフォルト（システム）"), "system"), ("繁體中文", "zh-TW"), ("English", "en"), ("日本語", "ja")] {
@@ -230,6 +235,31 @@ final class BrowserAppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegat
         NSApp.mainMenu = menuBar
         NSApp.windowsMenu = windowMenu
         NSApp.helpMenu = helpMenu
+    }
+
+    @objc private func recoverPartialCopies() {
+        let reserved = activityLock.holding { () -> Bool in
+            guard !repairingPartials, !terminationValue, !updateInstalling, !nativeConnectionChanging,
+                  !configuringRemotes, operationStarts == 0, auxiliaryOperations == 0, recoveryConflictingOperations == 0,
+                  !engine.hasActiveJobs, !toolsManager.hasActiveSessions else { return false }
+            repairingPartials = true; auxiliaryOperations += 1
+            return true
+        }
+        guard reserved else {
+            presentMessage(local("請先停止傳輸再修復", "Stop transfers before recovery", "転送を停止してから復元してください"),
+                           detail: local("請等傳輸、掛載、播放及目前操作結束，再核對暫存檔。", "Wait for transfers, mounts, streams and the current operation to finish before verifying temporary files.", "転送、マウント、再生、進行中の操作が完了してから一時ファイルを照合してください。"))
+            return
+        }
+        let folder = stateDirectory.appendingPathComponent("Recovery").appendingPathComponent(UUID().uuidString)
+        let controller = RBNPartialRecoveryController(window: window, directory: folder,
+            localize: { [weak self] zh, en, ja in self?.local(zh, en, ja) ?? zh },
+            finished: { [weak self] in
+                guard let self = self else { return }
+                self.activityLock.holding { self.repairingPartials = false; self.auxiliaryOperations -= 1 }
+                self.partialRecoveryController = nil
+            })
+        partialRecoveryController = controller
+        controller.start()
     }
 
     @objc private func showAbout() {
@@ -584,6 +614,16 @@ final class BrowserAppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegat
 
     private func handle(method: String, arguments: [Any]) throws -> Any {
         guard !terminationStarted else { throw EngineError(local("程式正在關閉。", "The app is closing.", "アプリを終了しています。")) }
+        let conflictsWithRecovery = !["bootstrap", "list", "cancelList", "listJobs", "getJobReport", "listToolSessions", "copyText"].contains(method)
+        if conflictsWithRecovery {
+            try activityLock.holding {
+                guard !repairingPartials else {
+                    throw EngineError(local("請先完成暫存檔核對或修復。", "Finish temporary-file verification or recovery first.", "一時ファイルの照合または復元を先に完了してください。"))
+                }
+                recoveryConflictingOperations += 1
+            }
+        }
+        defer { if conflictsWithRecovery { activityLock.holding { recoveryConflictingOperations -= 1 } } }
         func argument(_ index: Int) -> Any? { arguments.indices.contains(index) ? arguments[index] : nil }
         switch method {
         case "chooseFolder":
@@ -777,7 +817,7 @@ final class BrowserAppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegat
 
     private func withToolsContext<T>(_ operation: (RcloneTools.Context) throws -> T) throws -> T {
         let reserved = activityLock.holding { () -> Bool in
-            guard !terminationValue, !nativeConnectionChanging, !updateInstalling else { return false }
+            guard !terminationValue, !nativeConnectionChanging, !updateInstalling, !repairingPartials else { return false }
             auxiliaryOperations += 1
             return true
         }
@@ -791,7 +831,7 @@ final class BrowserAppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegat
 
     private func withOperationStartup<T>(_ operation: () throws -> T) throws -> T {
         let reserved = activityLock.holding { () -> Bool in
-            guard !updateInstalling, !nativeConnectionChanging, !terminationValue else { return false }
+            guard !updateInstalling, !nativeConnectionChanging, !terminationValue, !repairingPartials else { return false }
             operationStarts += 1; return true
         }
         guard reserved else { throw EngineError(local("請等設定、更新或結束確認完成，再開始工作。", "Finish settings, updates or the quit confirmation before starting a job.", "設定、更新、終了の確認を完了してから処理を開始してください。")) }
@@ -933,7 +973,7 @@ final class BrowserAppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegat
 
     private func configureRemotes() throws {
         let acquired = activityLock.holding { () -> Bool in
-            if configuringRemotes || updateInstalling || nativeConnectionChanging || terminationValue { return false }
+            if configuringRemotes || updateInstalling || nativeConnectionChanging || terminationValue || repairingPartials { return false }
             configuringRemotes = true
             return true
         }
@@ -1206,6 +1246,7 @@ final class BrowserAppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegat
 @main
 struct RcloneBrowserNextMain {
     static func main() {
+        if let status = RBNPartialRecoveryCLI.runIfRequested(Array(CommandLine.arguments.dropFirst())) { exit(status) }
         let application = NSApplication.shared
         let delegate = BrowserAppDelegate()
         application.delegate = delegate

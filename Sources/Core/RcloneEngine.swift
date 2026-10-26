@@ -879,7 +879,7 @@ final class RcloneEngine {
     private func preview(_ request: EngineTransferRequest) throws -> [String: Any] {
         var warnings: [String] = []
         let complex = !request.selection.isEmpty && !request.options.includes.isEmpty
-        var arguments = request.arguments(filterPath: complex ? "<精確選取清單>" : nil)
+        var arguments = EngineLocalCopyPolicy.arguments(for: request, filterPath: complex ? "<精確選取清單>" : nil)
         if !complex, let index = arguments.firstIndex(of: "--") { arguments.insert(contentsOf: request.selectionFilterRules.map { "--filter=\($0)" }, at: index) }
         if let index = arguments.firstIndex(of: "--") { arguments.insert("--combined=-", at: index) }
         if request.mode == "sync" {
@@ -893,6 +893,7 @@ final class RcloneEngine {
         if request.mode == "sync", request.options.text("deleteMode") == "before" { warnings.append("目的地多餘檔案會在傳輸開始前刪除，後續傳輸失敗不會還原這些刪除。") }
         if request.options.text("comparison") == "none" { warnings.append("本次會重新傳送所有範圍內的檔案，即使目的地已有相同內容。") }
         if let precision = EngineLocalTimePrecision.detect(for: request) { warnings.append(precision.message) }
+        if EngineLocalCopyPolicy.applies(to: request) { warnings.append(EngineLocalCopyPolicy.message) }
         if request.options.text("localHashPolicy") == "none", request.source.remote == nil || request.destination.remote == nil {
             switch request.options.text("comparison") {
             case "default": warnings.append("本機比對使用檔案大小與修改時間，不讀取內容計算雜湊。")
@@ -1008,7 +1009,7 @@ final class RcloneEngine {
             }
             filter = try writeFilter(job, running: running)
             if stateLock.holding({ running.cancel }) { throw EngineError("已取消。") }
-            var args = job.request.arguments(filterPath: filter?.path)
+            var args = EngineLocalCopyPolicy.arguments(for: job.request, filterPath: filter?.path)
             // Rclone recreates a named --combined file on each high-level
             // retry. Its stdout stream instead lets us append every attempt to
             // our own report without losing early comparisons or parsing JSON
@@ -1017,9 +1018,13 @@ final class RcloneEngine {
             let command = Self.displayCommand(try resolvedRclonePath(), configuredArguments(args))
             stateLock.holding { job.command = command }
             let window = args.first { $0.hasPrefix("--modify-window=") }.map { String($0.dropFirst("--modify-window=".count)) }
-            try reporter.recordConfiguration(job.request, engineVersion: stateLock.holding { environment["version"] as? String }, effectiveModifyWindow: window)
+            try reporter.recordConfiguration(job.request, engineVersion: stateLock.holding { environment["version"] as? String }, effectiveModifyWindow: window,
+                                             effectiveLocalCopyPolicy: EngineLocalCopyPolicy.applies(to: job.request) ? EngineLocalCopyPolicy.identifier : nil)
             if let precision = EngineLocalTimePrecision.detect(for: job.request) {
                 try appLog(job, running: running, level: "info", message: precision.message)
+            }
+            if EngineLocalCopyPolicy.applies(to: job.request) {
+                try appLog(job, running: running, level: "info", message: EngineLocalCopyPolicy.message)
             }
             try appLog(job, running: running, level: "info", message: job.request.dryRun ? "開始預演。" : "開始傳輸。")
             stateLock.holding { job.progress.start() }
