@@ -6,12 +6,40 @@ import Darwin
 
 /// A report-scoped, content-verified recovery for local rclone partial files.
 /// Reports and plans are data. Neither can supply commands, extra target paths,
-/// or permission changes. No operation writes to the source or deletes a file.
+/// or permission changes. Preview/apply never write to the source or delete
+/// a file. Separately confirmed cleanup can remove only a receipt-bound,
+/// retained partial after verifying source and rebuilt final again.
 enum EnginePartialRecovery {
     private struct Failure: LocalizedError {
         let message: String
+        let code: Int32?
         var errorDescription: String? { message }
-        init(_ message: String) { self.message = message }
+        init(_ message: String, code: Int32? = nil) { self.message = message; self.code = code }
+    }
+
+    private struct UnsupportedExclusiveRename: LocalizedError {
+        let code: Int32
+        var errorDescription: String? {
+            "此磁碟不支援原子且不覆寫的改名（errno \(code): \(String(cString: strerror(code)))）。"
+        }
+    }
+
+    /// A journal failure must stop the entire run, including failures that
+    /// occur after a new output has been created. Never continue after a torn
+    /// append or failed fsync.
+    private struct JournalStorageFailure: LocalizedError {
+        let underlying: Error
+        var errorDescription: String? {
+            "修復日誌無法繼續保存，已停止。若已建立新檔，該檔尚未確認完成，請查看最後一筆日誌；原暫存檔保留。\(underlying.localizedDescription)"
+        }
+    }
+
+    /// Test-only injection is a Swift call, never a report/plan/environment or
+    /// application CLI option. Production always supplies nil.
+    struct TestOptions {
+        var forceUnsupportedRename = false
+        var beforeExclusiveCreate: (() throws -> Void)?
+        var afterDurableProgress: (() -> Void)?
     }
 
     private final class Descriptor {
@@ -142,6 +170,13 @@ enum EnginePartialRecovery {
             _ = try validate()
         }
 
+        init(parent: DirectoryChain, leaf: String, descriptor: Descriptor) throws {
+            self.parent = parent
+            self.leaf = leaf
+            self.descriptor = descriptor
+            _ = try validate()
+        }
+
         func validate(expected: Snapshot? = nil) throws -> Snapshot {
             try parent.validate()
             var opened = stat()
@@ -207,11 +242,29 @@ enum EnginePartialRecovery {
         let excluded: [Excluded]
         let counts: [String: Int]
     }
-    private struct Outcome: Codable {
+    private struct Outcome: Codable, Equatable {
         let candidate: Candidate
         let status: String
         let message: String
         let clearedUserImmutable: Bool?
+        let method: String?
+        let partialRetained: Bool?
+        let renameErrno: Int32?
+        let errorCode: Int32?
+        let newOutput: Snapshot?
+        let bytesWritten: Int64?
+        let retainedPartial: Snapshot?
+
+        init(candidate: Candidate, status: String, message: String, clearedUserImmutable: Bool?,
+             method: String? = nil, partialRetained: Bool? = nil, renameErrno: Int32? = nil,
+             errorCode: Int32? = nil, newOutput: Snapshot? = nil, bytesWritten: Int64? = nil,
+             retainedPartial: Snapshot? = nil) {
+            self.candidate = candidate; self.status = status; self.message = message
+            self.clearedUserImmutable = clearedUserImmutable; self.method = method
+            self.partialRetained = partialRetained; self.renameErrno = renameErrno
+            self.errorCode = errorCode; self.newOutput = newOutput; self.bytesWritten = bytesWritten
+            self.retainedPartial = retainedPartial
+        }
     }
     private struct Receipt: Codable {
         let schemaVersion: Int
@@ -235,6 +288,23 @@ enum EnginePartialRecovery {
         let candidate: Candidate?
         let outcome: Outcome?
         let counts: [String: Int]?
+    }
+    private struct CleanupReceipt: Codable {
+        let schemaVersion: Int
+        let kind: String
+        let startedAt: String
+        var finishedAt: String?
+        let recoveryReceiptPath: String
+        let recoveryReceiptSHA256: String
+        let journalPath: String
+        let planPath: String
+        let planSHA256: String
+        let reportPath: String
+        let reportSHA256: String
+        let sourceRoot: String
+        let destinationRoot: String
+        var items: [Outcome]
+        var counts: [String: Int]
     }
 
     /// Preview only reads card files. Its output must be a new file outside
@@ -307,6 +377,16 @@ enum EnginePartialRecovery {
     /// Reparse the original report and recheck every planned identity and hash
     /// before changing one of its verified partials. A plan cannot add targets.
     static func apply(plan planURL: URL, receipt receiptURL: URL) throws -> [String: Any] {
+        try apply(plan: planURL, receipt: receiptURL, testOptions: nil)
+    }
+
+    static func testApply(plan planURL: URL, receipt receiptURL: URL,
+                          options: TestOptions) throws -> [String: Any] {
+        try apply(plan: planURL, receipt: receiptURL, testOptions: options)
+    }
+
+    private static func apply(plan planURL: URL, receipt receiptURL: URL,
+                              testOptions: TestOptions?) throws -> [String: Any] {
         let planData = try readDocument(planURL, maximum: 32 * 1024 * 1024)
         let plan = try JSONDecoder().decode(Plan.self, from: planData)
         guard plan.schemaVersion == 1, plan.kind == "local-partial-recovery-plan" else {
@@ -343,7 +423,8 @@ enum EnginePartialRecovery {
                               sourceRoot: report.sourceRoot, destinationRoot: report.destinationRoot,
                               excluded: report.excluded, items: [],
                               counts: ["total": plan.items.count + report.excluded.count,
-                                       "recovered": 0, "skipped": report.excluded.count, "failed": 0])
+                                       "recovered": 0, "skipped": report.excluded.count, "failed": 0,
+                                       "renamed": 0, "rebuilt": 0, "retainedPartials": 0, "failedNewOutputs": 0])
         // Confirm that durable receipt storage works before touching a card.
         try output.write(receipt)
         try journal.append(receipt)
@@ -394,18 +475,45 @@ enum EnginePartialRecovery {
                         }
                         _ = try source.validate(expected: expectedSource)
                         _ = try partial.validate(expected: expectedPartial)
-                        let unlocked = try commit(partial: partial, expected: expectedPartial,
-                                                  finalLeaf: original.last!)
-                        outcome = Outcome(candidate: item.candidate, status: "recovered",
-                                          message: "已核對完整內容並恢復正式檔名。", clearedUserImmutable: unlocked)
+                        do {
+                            let unlocked = try commit(partial: partial, expected: expectedPartial,
+                                                      finalLeaf: original.last!,
+                                                      forceUnsupported: testOptions?.forceUnsupportedRename == true)
+                            outcome = Outcome(candidate: item.candidate, status: "recovered",
+                                              message: "已核對完整內容並以原子改名恢復正式檔名。",
+                                              clearedUserImmutable: unlocked, method: "atomic-rename",
+                                              partialRetained: false)
+                        } catch let unavailable as UnsupportedExclusiveRename {
+                            // An unsupported syscall is eligible for rebuilding
+                            // only after the old name and all original flags
+                            // have been verified through the still-held file.
+                            let restored = try partial.validate()
+                            guard restored.sameContentState(as: expectedPartial),
+                                  restored.flags == expectedPartial.flags else {
+                                throw Failure("改名未受支援，但無法確認原暫存檔與旗標已還原；不建立新檔。")
+                            }
+                            outcome = try rebuild(candidate: item.candidate, source: source,
+                                                  expectedSource: expectedSource, partial: partial,
+                                                  expectedPartial: restored, expectedHash: expectedHash,
+                                                  finalLeaf: original.last!, renameErrno: unavailable.code,
+                                                  journal: journal, testOptions: testOptions)
+                        }
                     }
+                } catch let storage as JournalStorageFailure {
+                    throw storage
                 } catch {
                     outcome = Outcome(candidate: item.candidate, status: "failed",
-                                      message: error.localizedDescription, clearedUserImmutable: nil)
+                                      message: error.localizedDescription, clearedUserImmutable: nil,
+                                      errorCode: (error as? Failure)?.code)
                 }
             }
             receipt.items.append(outcome)
-            receipt.counts[outcome.status, default: 0] += 1
+            receipt.counts[outcome.status == "failed-new-output" ? "failed" : outcome.status, default: 0] += 1
+            if outcome.status == "recovered" {
+                receipt.counts[outcome.method == "atomic-rename" ? "renamed" : "rebuilt", default: 0] += 1
+            }
+            if outcome.partialRetained == true { receipt.counts["retainedPartials", default: 0] += 1 }
+            if outcome.status == "failed-new-output" { receipt.counts["failedNewOutputs", default: 0] += 1 }
             try journal.append(JournalEvent(event: "outcome", time: now(),
                                             candidate: item.candidate, outcome: outcome, counts: nil))
         }
@@ -414,6 +522,195 @@ enum EnginePartialRecovery {
                                         candidate: nil, outcome: nil, counts: receipt.counts))
         try output.write(receipt)
         return try object(receipt)
+    }
+
+    /// This is a separate, explicitly confirmed operation. It never scans a
+    /// directory or infers ownership from a suffix. Only completed rebuild
+    /// outcomes, bound to their original plan/report and journal, can remove
+    /// a partial after all three complete file contents are checked again.
+    static func cleanup(receipt receiptURL: URL, result resultURL: URL) throws -> [String: Any] {
+        let receiptData = try readDocument(receiptURL, maximum: 32 * 1024 * 1024)
+        let receipt = try JSONDecoder().decode(Receipt.self, from: receiptData)
+        guard receipt.schemaVersion == 1, receipt.kind == "local-partial-recovery-receipt",
+              receipt.finishedAt != nil else { throw Failure("只接受完整完成的修復收據；中斷作業不能授權清理。") }
+        let planData = try readDocument(URL(fileURLWithPath: receipt.planPath), maximum: 32 * 1024 * 1024)
+        guard digest(planData) == receipt.planSHA256 else { throw Failure("修復計畫已改變，不清理暫存檔。") }
+        let plan = try JSONDecoder().decode(Plan.self, from: planData)
+        let report = try parseReport(URL(fileURLWithPath: plan.reportPath))
+        guard plan.schemaVersion == 1, plan.kind == "local-partial-recovery-plan",
+              report.sha256 == plan.reportSHA256, report.sha256 == receipt.reportSHA256,
+              report.path == receipt.reportPath, report.sourceRoot == plan.sourceRoot,
+              report.destinationRoot == plan.destinationRoot,
+              report.sourceRoot == receipt.sourceRoot, report.destinationRoot == receipt.destinationRoot else {
+            throw Failure("收據、計畫與原始報表不一致，不清理暫存檔。")
+        }
+        let allowed = Dictionary(uniqueKeysWithValues: report.candidates.map { ($0.id, $0) })
+        var planned: [String: Item] = [:]
+        for item in plan.items {
+            guard allowed[item.candidate.id] == item.candidate, planned[item.candidate.id] == nil,
+                  ["ready", "existing", "mismatch", "blocked"].contains(item.status) else {
+                throw Failure("計畫含有未列入原始報表的項目，不清理暫存檔。")
+            }
+            planned[item.candidate.id] = item
+        }
+        var seen = Set<String>()
+        for item in receipt.items {
+            guard planned[item.candidate.id]?.candidate == item.candidate,
+                  seen.insert(item.candidate.id).inserted else {
+                throw Failure("收據插入了重複或未列入計畫的項目，不清理暫存檔。")
+            }
+        }
+        try verifyRecoveryJournal(receipt)
+        let roots = try openRoots(report)
+        guard roots.source.identity == plan.sourceRootIdentity,
+              roots.destination.identity == plan.destinationRootIdentity else {
+            throw Failure("來源或目的根目錄已改變，不清理暫存檔。")
+        }
+        let output = try ExclusiveOutput(resultURL, outside: report, roots: roots)
+        let journalURL = URL(fileURLWithPath: try documentPath(resultURL) + ".journal.jsonl")
+        let journal = try ExclusiveOutput(journalURL, outside: report, roots: roots, appendOnly: true)
+        var result = CleanupReceipt(schemaVersion: 1, kind: "local-partial-cleanup-receipt",
+                                    startedAt: now(), finishedAt: nil,
+                                    recoveryReceiptPath: try documentPath(receiptURL),
+                                    recoveryReceiptSHA256: digest(receiptData), journalPath: journalURL.path,
+                                    planPath: receipt.planPath, planSHA256: receipt.planSHA256,
+                                    reportPath: report.path, reportSHA256: report.sha256,
+                                    sourceRoot: report.sourceRoot, destinationRoot: report.destinationRoot,
+                                    items: [], counts: ["total": receipt.items.count, "removed": 0, "skipped": 0, "failed": 0])
+        try output.write(result)
+        try journal.append(result)
+        for recovered in receipt.items {
+            let outcome: Outcome
+            if recovered.status != "recovered" || recovered.method != "verified-exclusive-copy" ||
+                recovered.partialRetained != true {
+                outcome = Outcome(candidate: recovered.candidate, status: "skipped",
+                                  message: "此項目不是完整驗證且保留暫存檔的重建結果，不清理。",
+                                  clearedUserImmutable: false, method: "verified-partial-cleanup")
+            } else {
+                try journal.append(JournalEvent(event: "cleanup-intent", time: now(),
+                                                candidate: recovered.candidate, outcome: nil, counts: nil))
+                do {
+                    guard let item = planned[recovered.candidate.id], item.status == "ready",
+                          let expectedSource = item.source, let originalPartial = item.temporary,
+                          let expectedPartial = recovered.retainedPartial, let expectedFinal = recovered.newOutput,
+                          let sourceParentIdentity = item.sourceParent,
+                          let destinationParentIdentity = item.destinationParent,
+                          let hash = item.sha256, validHash(hash),
+                          expectedPartial.sameContentState(as: originalPartial),
+                          expectedPartial.flags == originalPartial.flags,
+                          expectedFinal.size == originalPartial.size,
+                          recovered.bytesWritten == originalPartial.size else {
+                        throw Failure("收據缺少可驗證的新檔或原暫存檔身分，不清理。")
+                    }
+                    let original = try relativeComponents(item.candidate.relativePath)
+                    let temporary = try relativeComponents(item.candidate.temporaryRelativePath)
+                    let sourceParent = try roots.source.appending(Array(original.dropLast()))
+                    let destinationParent = try roots.destination.appending(Array(temporary.dropLast()))
+                    guard sourceParent.identity == sourceParentIdentity,
+                          destinationParent.identity == destinationParentIdentity else {
+                        throw Failure("清理目錄已改變，原暫存檔保留。")
+                    }
+                    let source = try BoundFile(parent: sourceParent, leaf: original.last!)
+                    let partial = try BoundFile(parent: destinationParent, leaf: temporary.last!)
+                    let final = try BoundFile(parent: destinationParent, leaf: original.last!)
+                    _ = try source.validate(expected: expectedSource)
+                    _ = try partial.validate(expected: expectedPartial)
+                    _ = try final.validate(expected: expectedFinal)
+                    try validatePair(expectedSource, expectedPartial)
+                    guard expectedFinal.links == 1, expectedFinal.node != expectedPartial.node,
+                          expectedFinal.node != expectedSource.node else {
+                        throw Failure("正式檔與其他檔案連結或身分重疊，不清理。")
+                    }
+                    guard try stableHash(source).digest == hash,
+                          try stableHash(partial).digest == hash,
+                          try stableHash(final).digest == hash else {
+                        throw Failure("來源、暫存檔或正式檔的完整 SHA-256 不符，原暫存檔保留。")
+                    }
+                    _ = try source.validate(expected: expectedSource)
+                    _ = try partial.validate(expected: expectedPartial)
+                    _ = try final.validate(expected: expectedFinal)
+                    let cleared = try removeVerifiedPartial(partial, expected: expectedPartial,
+                                                            source: source, expectedSource: expectedSource,
+                                                            final: final, expectedFinal: expectedFinal)
+                    outcome = Outcome(candidate: recovered.candidate, status: "removed",
+                                      message: "已重新核對來源與本次重建正式檔的完整內容，並清理這一個原暫存檔。",
+                                      clearedUserImmutable: cleared, method: "verified-partial-cleanup",
+                                      partialRetained: false)
+                } catch {
+                    outcome = Outcome(candidate: recovered.candidate, status: "failed",
+                                      message: error.localizedDescription, clearedUserImmutable: nil,
+                                      method: "verified-partial-cleanup", errorCode: (error as? Failure)?.code)
+                }
+            }
+            result.items.append(outcome)
+            result.counts[outcome.status, default: 0] += 1
+            try journal.append(JournalEvent(event: "outcome", time: now(), candidate: recovered.candidate,
+                                            outcome: outcome, counts: nil))
+        }
+        result.finishedAt = now()
+        try journal.append(JournalEvent(event: "finished", time: now(), candidate: nil,
+                                        outcome: nil, counts: result.counts))
+        try output.write(result)
+        return try object(result)
+    }
+
+    private static func verifyRecoveryJournal(_ receipt: Receipt) throws {
+        let data = try readDocument(URL(fileURLWithPath: receipt.journalPath), maximum: 64 * 1024 * 1024)
+        let lines = data.split(separator: 10, omittingEmptySubsequences: true)
+        guard let first = lines.first, lines.count <= 200_000 else { throw Failure("原修復日誌不完整。") }
+        let initial = try JSONDecoder().decode(Receipt.self, from: Data(first))
+        guard initial.schemaVersion == receipt.schemaVersion, initial.kind == receipt.kind,
+              initial.startedAt == receipt.startedAt, initial.finishedAt == nil, initial.items.isEmpty,
+              initial.planPath == receipt.planPath, initial.planSHA256 == receipt.planSHA256,
+              initial.reportPath == receipt.reportPath, initial.reportSHA256 == receipt.reportSHA256,
+              initial.sourceRoot == receipt.sourceRoot, initial.destinationRoot == receipt.destinationRoot,
+              initial.journalPath == receipt.journalPath else { throw Failure("收據與原修復日誌不一致。") }
+        var completed: [String: Outcome] = [:]
+        var last: JournalEvent?
+        for line in lines.dropFirst() {
+            let event = try JSONDecoder().decode(JournalEvent.self, from: Data(line))
+            if event.event == "outcome" {
+                guard let item = event.outcome, event.candidate == item.candidate,
+                      completed[item.candidate.id] == nil else { throw Failure("修復日誌含有重複或不完整結果。") }
+                completed[item.candidate.id] = item
+            }
+            last = event
+        }
+        guard last?.event == "finished", last?.counts == receipt.counts,
+              completed.count == receipt.items.count,
+              receipt.items.allSatisfy({ completed[$0.candidate.id] == $0 }) else {
+            throw Failure("收據內容與已完成的原修復日誌不一致，不清理暫存檔。")
+        }
+    }
+
+    private static func removeVerifiedPartial(_ partial: BoundFile, expected: Snapshot,
+                                               source: BoundFile, expectedSource: Snapshot,
+                                               final: BoundFile, expectedFinal: Snapshot) throws -> Bool {
+        let immutable = UInt32(UF_IMMUTABLE)
+        let cleared = expected.flags & immutable != 0
+        if cleared && Darwin.fchflags(partial.descriptor.raw, expected.flags & ~immutable) != 0 {
+            throw systemFailure("無法解除這一個已驗證暫存檔的鎖定，未清理")
+        }
+        do {
+            let unlocked = try partial.validate()
+            guard unlocked.sameContentState(as: expected), unlocked.flags == expected.flags & ~immutable else {
+                throw Failure("暫存檔在解除鎖定期間改變，未清理。")
+            }
+            _ = try source.validate(expected: expectedSource)
+            _ = try final.validate(expected: expectedFinal)
+            // Darwin has no inode-conditional unlink. As with rename, the UI
+            // requires other writers to stop; held parent/file descriptors
+            // and immediate binding checks prevent following substitutions.
+            guard Darwin.unlinkat(partial.parent.fd, partial.leaf, 0) == 0 else {
+                throw systemFailure("清理指定暫存檔失敗")
+            }
+        } catch {
+            if cleared && Darwin.fchflags(partial.descriptor.raw, expected.flags) != 0 {
+                throw Failure("\(error.localizedDescription)；原暫存檔鎖定還原失敗，請檢查此檔案。")
+            }
+            throw error
+        }
+        return cleared
     }
 
     private static func parseReport(_ url: URL) throws -> Report {
@@ -572,7 +869,8 @@ enum EnginePartialRecovery {
 
     /// This is an atomic no-replace rename. On failure, flags are restored
     /// through the still-open descriptor, never by reopening a possibly replaced name.
-    private static func commit(partial: BoundFile, expected: Snapshot, finalLeaf: String) throws -> Bool {
+    private static func commit(partial: BoundFile, expected: Snapshot, finalLeaf: String,
+                               forceUnsupported: Bool = false) throws -> Bool {
         _ = try partial.validate(expected: expected)
         guard expected.links == 1 else { throw Failure("暫存檔已變成硬連結，未改名。") }
         let immutable = UInt32(UF_IMMUTABLE)
@@ -589,15 +887,21 @@ enum EnginePartialRecovery {
                   unlocked.flags == expected.flags & ~immutable else {
                 throw Failure("暫存檔在解除鎖定期間改變，未改名。")
             }
-            // RENAME_EXCL is required. There is deliberately no fallback to
-            // rename(), FileManager.moveItem, shell mv, or deletion.
-            let status = Darwin.renameatx_np(partial.parent.fd, partial.leaf,
+            // There is never a fallback to rename(), FileManager.moveItem,
+            // shell mv, or deletion. Unsupported filesystems may instead use
+            // an explicitly reported, exclusive new copy after flag rollback.
+            let status: Int32
+            if forceUnsupported { errno = ENOTSUP; status = -1 }
+            else {
+                status = Darwin.renameatx_np(partial.parent.fd, partial.leaf,
                                             partial.parent.fd, finalLeaf, UInt32(RENAME_EXCL))
+            }
             if status != 0 {
-                if errno == ENOTSUP || errno == EINVAL || errno == ENOSYS {
-                    throw Failure("此磁碟不支援原子且不覆寫的改名；保留暫存檔，不使用覆寫方式繼續。")
+                let failureCode = errno
+                if failureCode == ENOTSUP || failureCode == ENOSYS {
+                    throw UnsupportedExclusiveRename(code: failureCode)
                 }
-                throw systemFailure("正式檔名已存在或無法原子改名")
+                throw systemFailure("正式檔名已存在或無法原子改名", code: failureCode)
             }
             renamed = true
             var committed = stat()
@@ -619,6 +923,171 @@ enum EnginePartialRecovery {
             throw error
         }
         return cleared
+    }
+
+    /// A distinct recovery method for a filesystem without exclusive rename.
+    /// The only writable descriptor comes from O_CREAT|O_EXCL. A partial
+    /// output is never deleted or silently treated as recovered. Its durable
+    /// journal remains conservative until the final recovered outcome exists.
+    private static func rebuild(candidate: Candidate, source: BoundFile, expectedSource: Snapshot,
+                                partial: BoundFile, expectedPartial: Snapshot, expectedHash: String,
+                                finalLeaf: String, renameErrno: Int32, journal: ExclusiveOutput,
+                                testOptions: TestOptions?) throws -> Outcome {
+        var created: Descriptor?
+        var output: BoundFile?
+        var lastOutput: Snapshot?
+        var nonemptyIdentity: NodeIdentity?
+        var bytesWritten: Int64 = 0
+
+        func record(_ event: String) throws {
+            let pending = Outcome(candidate: candidate,
+                                  status: created == nil ? "pending-rebuild" : "failed-new-output",
+                                  message: "新檔尚未確認完成；只有後續 recovered outcome 才表示完整修復。原暫存檔保留。",
+                                  clearedUserImmutable: false, method: "verified-exclusive-copy",
+                                  partialRetained: true, renameErrno: renameErrno,
+                                  newOutput: lastOutput, bytesWritten: bytesWritten,
+                                  retainedPartial: expectedPartial)
+            do {
+                try journal.append(JournalEvent(event: event, time: now(), candidate: candidate,
+                                                outcome: pending, counts: nil))
+            } catch { throw JournalStorageFailure(underlying: error) }
+        }
+
+        func validateOutput() throws -> Snapshot {
+            guard let output = output else { throw Failure("尚未建立新檔。") }
+            let current = try output.validate()
+            guard current.links == 1, current.size == bytesWritten,
+                  current.node != expectedSource.node, current.node != expectedPartial.node,
+                  current.flags & UInt32(UF_IMMUTABLE) == 0 else {
+                throw Failure("新檔的身分、大小或保護狀態異常，未確認修復完成。")
+            }
+            if let nonemptyIdentity = nonemptyIdentity, current.node != nonemptyIdentity {
+                throw Failure("新檔配置內容後的檔案身分改變，未確認修復完成。")
+            }
+            // FAT-family empty files may have a shared synthetic inode that
+            // changes at first allocation. We only write our exclusive held
+            // descriptor, and bind its stable nonempty identity afterwards.
+            if current.size > 0 { nonemptyIdentity = current.node }
+            return current
+        }
+
+        do {
+            _ = try source.validate(expected: expectedSource)
+            _ = try partial.validate(expected: expectedPartial)
+            guard try stableHash(source).digest == expectedHash,
+                  try stableHash(partial).digest == expectedHash else {
+                throw Failure("開始重建前內容已改變，未建立新檔。")
+            }
+            _ = try source.validate(expected: expectedSource)
+            _ = try partial.validate(expected: expectedPartial)
+            try record("rebuild-intent")
+            try testOptions?.beforeExclusiveCreate?()
+            try partial.parent.validate()
+            let raw = Darwin.openat(partial.parent.fd, finalLeaf,
+                                    O_RDWR | O_CREAT | O_EXCL | O_NOFOLLOW | O_CLOEXEC,
+                                    mode_t(0o600))
+            guard raw >= 0 else { throw systemFailure("無法以不覆寫方式建立正式檔名") }
+            let handle = Descriptor(raw)
+            created = handle
+            output = try BoundFile(parent: partial.parent, leaf: finalLeaf, descriptor: handle)
+            lastOutput = try validateOutput()
+            try record("rebuild-created")
+
+            var hash = SHA256()
+            var buffer = [UInt8](repeating: 0, count: 1024 * 1024)
+            while bytesWritten < expectedPartial.size {
+                let wanted = Int(min(Int64(buffer.count), expectedPartial.size - bytesWritten))
+                let readCount = buffer.withUnsafeMutableBytes {
+                    Darwin.pread(partial.descriptor.raw, $0.baseAddress, wanted, off_t(bytesWritten))
+                }
+                if readCount < 0 && errno == EINTR { continue }
+                guard readCount > 0 else { throw systemFailure("重建時無法讀取原暫存檔") }
+                var consumed = 0
+                while consumed < readCount {
+                    let written = buffer.withUnsafeBytes {
+                        Darwin.pwrite(raw, $0.baseAddress!.advanced(by: consumed), readCount - consumed,
+                                      off_t(bytesWritten))
+                    }
+                    if written < 0 && errno == EINTR { continue }
+                    guard written > 0 else { throw systemFailure("新檔寫入失敗；原暫存檔保留") }
+                    consumed += written
+                    bytesWritten += Int64(written)
+                }
+                hash.update(data: Data(buffer.prefix(readCount)))
+                guard Darwin.fsync(raw) == 0 else { throw systemFailure("新檔內容無法同步至磁碟") }
+                lastOutput = try validateOutput()
+                _ = try source.validate(expected: expectedSource)
+                _ = try partial.validate(expected: expectedPartial)
+                try record("rebuild-progress")
+                testOptions?.afterDurableProgress?()
+            }
+            let copiedHash = hash.finalize().map { String(format: "%02x", $0) }.joined()
+            guard copiedHash == expectedHash else { throw Failure("重建串流的 SHA-256 不符，原暫存檔保留。") }
+
+            let times = [timespec(tv_sec: 0, tv_nsec: Int(UTIME_OMIT)),
+                         timespec(tv_sec: Int(expectedSource.modifiedSeconds),
+                                  tv_nsec: Int(expectedSource.modifiedNanoseconds))]
+            let timeResult = times.withUnsafeBufferPointer { Darwin.futimens(raw, $0.baseAddress) }
+            guard timeResult == 0 else { throw systemFailure("無法保留新檔修改時間") }
+            guard Darwin.fsync(raw) == 0 else { throw systemFailure("新檔修改時間無法同步至磁碟") }
+            lastOutput = try validateOutput()
+            guard let final = output, let finalState = lastOutput,
+                  try modificationTimeMatches(finalState, expectedSource, descriptor: raw) else {
+                throw Failure("新檔未能保留來源修改時間，未確認修復完成。")
+            }
+            let finalHash = try stableHash(final)
+            let sourceHash = try stableHash(source)
+            let partialHash = try stableHash(partial)
+            guard finalHash.digest == expectedHash, sourceHash.digest == expectedHash,
+                  partialHash.digest == expectedHash else {
+                throw Failure("重建後完整 SHA-256 核對未通過，原暫存檔保留。")
+            }
+            _ = try source.validate(expected: expectedSource)
+            _ = try partial.validate(expected: expectedPartial)
+            lastOutput = try final.validate(expected: finalHash.snapshot)
+            return Outcome(candidate: candidate, status: "recovered",
+                           message: "已建立並完整核對正式檔名的新副本；原有 .partial 及其鎖定保留，未使用原子改名。",
+                           clearedUserImmutable: false, method: "verified-exclusive-copy",
+                           partialRetained: true, renameErrno: renameErrno,
+                           newOutput: lastOutput, bytesWritten: bytesWritten,
+                           retainedPartial: expectedPartial)
+        } catch let storage as JournalStorageFailure {
+            throw storage
+        } catch {
+            // Even a zero-length or interrupted output is retained. We never
+            // reopen a path for writing, truncate an existing file, or unlink.
+            if let created = created {
+                var value = stat()
+                if Darwin.fstat(created.raw, &value) == 0 { lastOutput = Snapshot(value) }
+            }
+            let retained: Bool? = (try? partial.validate(expected: expectedPartial)) != nil ? true : nil
+            let code = (error as? Failure)?.code
+            let status = created != nil ? "failed-new-output" : code == EEXIST ? "skipped" : "failed"
+            let message = created != nil
+                ? "新正式檔名已建立但尚未確認完成，不能視為修復成功；保留此新檔與原 .partial，請依收據檢查。\(error.localizedDescription)"
+                : "未完成新副本建立，原 .partial 保留。\(error.localizedDescription)"
+            return Outcome(candidate: candidate, status: status, message: message,
+                           clearedUserImmutable: false, method: "verified-exclusive-copy",
+                           partialRetained: retained, renameErrno: renameErrno, errorCode: code,
+                           newOutput: lastOutput, bytesWritten: bytesWritten,
+                           retainedPartial: retained == true ? expectedPartial : nil)
+        }
+    }
+
+    private static func modificationTimeMatches(_ actual: Snapshot, _ original: Snapshot,
+                                                 descriptor: Int32) throws -> Bool {
+        var info = statfs()
+        guard Darwin.fstatfs(descriptor, &info) == 0 else { throw systemFailure("無法核對新檔時間精度") }
+        let fileSystem = withUnsafeBytes(of: info.f_fstypename) {
+            String(decoding: $0.prefix { $0 != 0 }, as: UTF8.self)
+        }
+        if let precision = EngineLocalTimePrecision.precision(for: fileSystem) {
+            let difference = Double(actual.modifiedSeconds - original.modifiedSeconds) +
+                Double(actual.modifiedNanoseconds - original.modifiedNanoseconds) / 1_000_000_000
+            return abs(difference) <= precision.seconds
+        }
+        return actual.modifiedSeconds == original.modifiedSeconds &&
+            actual.modifiedNanoseconds == original.modifiedNanoseconds
     }
 
     /// Tests exercise the same commit path, including an already-existing
@@ -786,8 +1255,8 @@ enum EnginePartialRecovery {
         try JSONSerialization.jsonObject(with: JSONEncoder().encode(value)) as! [String: Any]
     }
     private static func now() -> String { ISO8601DateFormatter().string(from: Date()) }
-    private static func systemFailure(_ operation: String) -> Failure {
-        Failure("\(operation)：\(String(cString: strerror(errno)))")
+    private static func systemFailure(_ operation: String, code: Int32 = errno) -> Failure {
+        Failure("\(operation)：errno \(code)（\(String(cString: strerror(code)))）", code: code)
     }
 }
 #endif

@@ -12,6 +12,16 @@ private func require(_ condition: @autoclosure () throws -> Bool, _ message: Str
     if try !condition() { throw EngineError(message) }
 }
 
+private func fixtureStep<T>(_ stage: String, at path: URL, _ action: () throws -> T) throws -> T {
+    do { return try action() }
+    catch {
+        throw NSError(domain: "RcloneBrowserNext.ListingFixture", code: 1, userInfo: [
+            NSLocalizedDescriptionKey: "Fixture stage=\(stage), path=\(path.path), underlying=\(error)",
+            NSFilePathErrorKey: path.path, NSUnderlyingErrorKey: error, "stage": stage,
+        ])
+    }
+}
+
 private func waitUntil(_ description: String, seconds: TimeInterval = 8, _ condition: () throws -> Bool) throws {
     let deadline = Date().addingTimeInterval(seconds)
     while try !condition() {
@@ -65,9 +75,26 @@ private func fixtureChild(_ command: String) throws {
         _ = signal(SIGTERM, SIG_IGN)
     }
     #endif
-    let event = area.appendingPathComponent("events/\(command)-\(ProcessInfo.processInfo.processIdentifier).json")
-    try EngineJSON.data(["command": command, "endpoint": endpoint, "pid": ProcessInfo.processInfo.processIdentifier,
-                         "arguments": arguments]).write(to: event, options: .atomic)
+    let eventDirectory = area.appendingPathComponent("events", isDirectory: true)
+    let event = eventDirectory.appendingPathComponent("\(command)-\(ProcessInfo.processInfo.processIdentifier).json")
+    let pending = eventDirectory.appendingPathComponent("\(command)-\(UUID().uuidString).pending")
+    let bytes = try fixtureStep("event-encode", at: event) {
+        try EngineJSON.data(["command": command, "endpoint": endpoint, "pid": ProcessInfo.processInfo.processIdentifier,
+                             "arguments": arguments])
+    }
+    // Publish only a fully closed file from this same directory. Final event
+    // files remain immutable until the entire fixture area is removed.
+    let handle = try fixtureStep("event-create", at: pending) { try EnginePlatform.createExclusiveFile(pending) }
+    do {
+        try fixtureStep("event-write", at: pending) { try handle.write(contentsOf: bytes) }
+        try fixtureStep("event-close", at: pending) { try handle.close() }
+    } catch {
+        try? handle.close()
+        throw error
+    }
+    try fixtureStep("event-publish-from-\(pending.lastPathComponent)", at: event) {
+        try FileManager.default.moveItem(at: pending, to: event)
+    }
     func waitForGate(_ gate: String) throws {
         try waitUntil("fixture gate \(gate)", seconds: 20) { FileManager.default.fileExists(atPath: area.appendingPathComponent(gate).path) }
     }
@@ -145,10 +172,24 @@ private final class ListingSuite {
         if expected == "cancelled" { try require((value["entries"] as? [[String: Any]])?.isEmpty == true, "Cancelled listing returned rows") }
         return value
     }
-    func release(_ area: URL, _ name: String) throws { try Data().write(to: area.appendingPathComponent("release-" + name)) }
+    func release(_ area: URL, _ name: String) throws {
+        let gate = area.appendingPathComponent("release-" + name)
+        try fixtureStep("release-gate", at: gate) { try Data().write(to: gate) }
+    }
     func events(_ area: URL) throws -> [[String: Any]] {
-        try fm.contentsOfDirectory(at: area.appendingPathComponent("events"), includingPropertiesForKeys: nil).filter { $0.pathExtension == "json" }.map {
-            try EngineJSON.object(Data(contentsOf: $0)) as! [String: Any]
+        let directory = area.appendingPathComponent("events", isDirectory: true)
+        // Read names only: an in-progress .pending file may disappear when its
+        // writer publishes it, so URL enumeration must not stat that entry.
+        let names = try fixtureStep("event-enumeration", at: directory) { try fm.contentsOfDirectory(atPath: directory.path) }
+        return try names.filter {
+            $0.range(of: #"^(version|lsjson|listremotes)-[1-9][0-9]*\.json$"#, options: .regularExpression) != nil
+        }.sorted().map { name in
+            let event = directory.appendingPathComponent(name)
+            let bytes = try fixtureStep("event-read", at: event) { try Data(contentsOf: event) }
+            return try fixtureStep("event-decode", at: event) {
+                guard let value = try EngineJSON.object(bytes) as? [String: Any] else { throw EngineError("Fixture event is not a JSON object") }
+                return value
+            }
         }
     }
 
@@ -186,7 +227,10 @@ private final class ListingSuite {
         }
 
         test("cancel reaps only its child while same-folder other pane and newer request continue") {
-            let (engine, area) = try makeEngine("pane-scope"); defer { engine.shutdown() }
+            let (engine, area) = try fixtureStep("pane-scope-setup", at: root.appendingPathComponent("pane-scope")) {
+                try makeEngine("pane-scope")
+            }
+            defer { engine.shutdown() }
             let a = UUID().uuidString, b = UUID().uuidString
             let left = list(engine, "wait-shared", id: a), right = list(engine, "wait-shared", id: b)
             let leftPID = try pid(engine, a), rightPID = try pid(engine, b)

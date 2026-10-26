@@ -34,6 +34,23 @@ import Darwin
             throw Failure(description: "Cannot set fixture flags: \(String(cString: strerror(errno)))")
         }
     }
+    private static func modificationTime(_ url: URL) throws -> Double {
+        var value = stat()
+        guard Darwin.lstat(url.path, &value) == 0 else { throw Failure(description: "Cannot stat fixture time") }
+        return Double(value.st_mtimespec.tv_sec) + Double(value.st_mtimespec.tv_nsec) / 1_000_000_000
+    }
+    private static func outcomes(_ result: [String: Any]) -> [[String: Any]] {
+        result["items"] as? [[String: Any]] ?? []
+    }
+    private static func journalEvents(_ receipt: URL) throws -> [[String: Any]] {
+        let text = try String(contentsOfFile: receipt.path + ".journal.jsonl", encoding: .utf8)
+        return try text.split(separator: "\n").map {
+            guard let value = try JSONSerialization.jsonObject(with: Data($0.utf8)) as? [String: Any] else {
+                throw Failure(description: "Journal event is not an object")
+            }
+            return value
+        }
+    }
 
     private final class Fixture {
         let root: URL
@@ -50,7 +67,8 @@ import Darwin
         let temporary = "books/book.txt.1234abcd.partial"
 
         init(mode: String = "sync", lockSource: Bool = false,
-             destinationParent: URL? = nil, partialExtraFlags: UInt32 = UInt32(UF_NODUMP)) throws {
+             destinationParent: URL? = nil, partialExtraFlags: UInt32 = UInt32(UF_NODUMP),
+             contents: Data? = nil, modificationDate: Date? = nil) throws {
             // macOS /var is a symlink. Fixture roots use its resolved physical
             // path; the product itself deliberately does not resolve symlinks.
             root = (fixtureBase ?? FileManager.default.temporaryDirectory).resolvingSymlinksInPath()
@@ -69,8 +87,12 @@ import Darwin
             for folder in [original.deletingLastPathComponent(), partial.deletingLastPathComponent(), output] {
                 try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
             }
-            try bytes.write(to: original)
-            try bytes.write(to: partial)
+            try (contents ?? bytes).write(to: original)
+            try (contents ?? bytes).write(to: partial)
+            if let modificationDate = modificationDate {
+                try FileManager.default.setAttributes([.modificationDate: modificationDate], ofItemAtPath: original.path)
+                try FileManager.default.setAttributes([.modificationDate: modificationDate], ofItemAtPath: partial.path)
+            }
             try setFlags(partial, UInt32(UF_IMMUTABLE) | partialExtraFlags)
             if lockSource { try setFlags(original, UInt32(UF_IMMUTABLE)) }
             try writeRows(rows(mode: mode))
@@ -132,6 +154,9 @@ import Darwin
         }
         func apply() throws -> [String: Any] {
             try EnginePartialRecovery.apply(plan: plan, receipt: receipt)
+        }
+        func apply(options: EnginePartialRecovery.TestOptions) throws -> [String: Any] {
+            try EnginePartialRecovery.testApply(plan: plan, receipt: receipt, options: options)
         }
         func assertPartialUnchanged() throws {
             try require(FileManager.default.fileExists(atPath: partial.path), "Partial disappeared")
@@ -238,8 +263,45 @@ import Darwin
         return result
     }
 
+    /// Fill only a freshly created, disposable image. The last one-byte write
+    /// must return real ENOSPC; this is not a simulated write failure.
+    private static func fillOwnedImage(_ image: CardImage) throws -> Int64 {
+        let file = image.mount.appendingPathComponent("owned-space-fixture")
+        let fd = Darwin.open(file.path, O_WRONLY | O_CREAT | O_EXCL | O_CLOEXEC, mode_t(0o600))
+        guard fd >= 0 else { throw Failure(description: "Cannot create owned space fixture") }
+        defer { Darwin.close(fd) }
+        let bytes = [UInt8](repeating: 37, count: 64 * 1024)
+        let deadline = Date().addingTimeInterval(45)
+        var total: Int64 = 0
+        for amount in [64 * 1024, 1024, 1] {
+            while true {
+                try require(Date() < deadline && total < 128 * 1024 * 1024, "Owned image did not reach ENOSPC")
+                let written = bytes.withUnsafeBytes { Darwin.write(fd, $0.baseAddress, amount) }
+                if written < 0 && errno == EINTR { continue }
+                if written < 0 && errno == ENOSPC { break }
+                try require(written > 0, "Owned filler failed for a reason other than ENOSPC")
+                total += Int64(written)
+            }
+        }
+        let flushed = Darwin.fsync(fd)
+        try require(flushed == 0 || errno == ENOSPC, "Owned filler could not flush")
+        return total
+    }
+
     static func main() {
         let arguments = CommandLine.arguments
+        if arguments.count == 4 && arguments[1] == "--test-interrupted-rebuild" {
+            var options = EnginePartialRecovery.TestOptions()
+            options.forceUnsupportedRename = true
+            // Parent waits for the fsynced progress record and then sends
+            // SIGKILL. No production CLI exposes this test-only Swift hook.
+            options.afterDurableProgress = { _ = Darwin.raise(SIGSTOP) }
+            do {
+                _ = try EnginePartialRecovery.testApply(plan: URL(fileURLWithPath: arguments[2]),
+                                                       receipt: URL(fileURLWithPath: arguments[3]), options: options)
+            } catch { print("Unexpected interruption child failure: \(error)") }
+            Darwin.exit(2)
+        }
         if arguments.count >= 3, arguments[2].hasPrefix("/") {
             fixtureBase = URL(fileURLWithPath: arguments[2], isDirectory: true)
         }
@@ -358,6 +420,230 @@ import Darwin
             try require(try flags(fixture.partial) == before, "Failed rename did not restore flags")
             try require(try Data(contentsOf: fixture.final) == sentinel, "Atomic rename overwrote a file")
             try fixture.assertPartialUnchanged()
+        }
+        test("Unsupported exclusive rename rebuilds verified content while retaining partial flags and modification time") {
+            let fixture = try Fixture(lockSource: true,
+                                      modificationDate: Date(timeIntervalSince1970: 1_700_000_000.125))
+            let sourceFlags = try flags(fixture.original)
+            let partialFlags = try flags(fixture.partial)
+            let sourceTime = try modificationTime(fixture.original)
+            _ = try fixture.preview()
+            var options = EnginePartialRecovery.TestOptions()
+            options.forceUnsupportedRename = true
+            let result = try fixture.apply(options: options)
+            try require(count(result, "recovered") == 1 && count(result, "rebuilt") == 1 &&
+                        count(result, "renamed") == 0 && count(result, "retainedPartials") == 1,
+                        "Exclusive rebuild counts differ: \(result)")
+            let item = outcomes(result).first ?? [:]
+            try require(item["method"] as? String == "verified-exclusive-copy" &&
+                        item["partialRetained"] as? Bool == true &&
+                        (item["renameErrno"] as? NSNumber)?.int32Value == ENOTSUP,
+                        "Rebuild hid its non-atomic method or precise errno")
+            try require(try Data(contentsOf: fixture.final) == bytes &&
+                        Data(contentsOf: fixture.partial) == bytes && Data(contentsOf: fixture.original) == bytes,
+                        "Rebuild content differs")
+            try require(try flags(fixture.original) == sourceFlags && flags(fixture.partial) == partialFlags,
+                        "Rebuild changed source or retained partial flags")
+            try require(try flags(fixture.final) & UInt32(UF_IMMUTABLE) == 0, "New final inherited immutable flags")
+            try require(try modificationTime(fixture.final) == sourceTime, "Rebuild did not preserve APFS modification time")
+            let events = try journalEvents(fixture.receipt)
+            let names = events.compactMap { $0["event"] as? String }
+            try require(names == ["intent", "rebuild-intent", "rebuild-created", "rebuild-progress", "outcome", "finished"],
+                        "Rebuild did not persist intent, identity, progress and outcome")
+            try require((events.first { $0["event"] as? String == "rebuild-created" }?["outcome"] as? [String: Any])?["status"] as? String == "failed-new-output",
+                        "An unverified new output was prematurely marked recovered")
+        }
+        test("Exclusive rebuild collision never opens or overwrites an existing final") {
+            let fixture = try Fixture(lockSource: true)
+            _ = try fixture.preview()
+            let sentinel = Data("Created between validation and exclusive open".utf8)
+            let before = try flags(fixture.partial)
+            var options = EnginePartialRecovery.TestOptions()
+            options.forceUnsupportedRename = true
+            options.beforeExclusiveCreate = { try sentinel.write(to: fixture.final) }
+            let result = try fixture.apply(options: options)
+            let item = outcomes(result).first ?? [:]
+            try require(count(result, "recovered") == 0 && count(result, "skipped") == 1 &&
+                        (item["errorCode"] as? NSNumber)?.int32Value == EEXIST && item["newOutput"] == nil,
+                        "O_EXCL did not reject the competing final: \(result)")
+            try require(try Data(contentsOf: fixture.final) == sentinel && flags(fixture.partial) == before,
+                        "Exclusive collision changed final content or original partial flags")
+            try fixture.assertPartialUnchanged()
+        }
+        test("A killed rebuild retains a durable incomplete-output journal and never reports recovery") {
+            let payload = Data(repeating: 83, count: 3 * 1024 * 1024)
+            let fixture = try Fixture(lockSource: true, contents: payload)
+            let sourceFlags = try flags(fixture.original)
+            let partialFlags = try flags(fixture.partial)
+            _ = try fixture.preview()
+            let child = Process()
+            let finished = DispatchSemaphore(value: 0)
+            let childLog = fixture.output.appendingPathComponent("interruption-child.log")
+            try Data().write(to: childLog)
+            let childOutput = try FileHandle(forWritingTo: childLog)
+            defer { try? childOutput.close() }
+            child.executableURL = URL(fileURLWithPath: arguments[0])
+            child.arguments = ["--test-interrupted-rebuild", fixture.plan.path, fixture.receipt.path]
+            child.standardInput = FileHandle.nullDevice
+            child.standardOutput = childOutput
+            child.standardError = childOutput
+            child.terminationHandler = { _ in finished.signal() }
+            try child.run()
+            var progressSeen = false
+            let deadline = Date().addingTimeInterval(20)
+            while child.isRunning && Date() < deadline {
+                if let events = try? journalEvents(fixture.receipt),
+                   events.contains(where: { $0["event"] as? String == "rebuild-progress" }) {
+                    progressSeen = true
+                    break
+                }
+                Thread.sleep(forTimeInterval: 0.02)
+            }
+            if child.isRunning { _ = Darwin.kill(child.processIdentifier, SIGKILL) }
+            let exited = finished.wait(timeout: .now() + 3) == .success
+            let childText = String(decoding: try Data(contentsOf: childLog), as: UTF8.self)
+            try require(progressSeen && exited && child.terminationReason == .uncaughtSignal,
+                        "Interruption child did not reach a durable progress checkpoint and stop: \(childText.prefix(2000))")
+            let receipt = try JSONSerialization.jsonObject(with: Data(contentsOf: fixture.receipt)) as! [String: Any]
+            try require(count(receipt, "recovered") == 0 && receipt["finishedAt"] == nil,
+                        "Interrupted operation claimed a completed recovery")
+            let events = try journalEvents(fixture.receipt)
+            let pending = events.last?["outcome"] as? [String: Any] ?? [:]
+            try require(events.last?["event"] as? String == "rebuild-progress" &&
+                        pending["status"] as? String == "failed-new-output" && pending["newOutput"] != nil &&
+                        (pending["bytesWritten"] as? NSNumber)?.intValue == 1024 * 1024,
+                        "Interrupted output has no durable identity and progress")
+            let newBytes = try Data(contentsOf: fixture.final)
+            try require(newBytes == payload.prefix(newBytes.count) && newBytes.count == 1024 * 1024,
+                        "Interrupted final was not retained as a known incomplete output")
+            try require(try Data(contentsOf: fixture.original) == payload && Data(contentsOf: fixture.partial) == payload &&
+                        flags(fixture.original) == sourceFlags && flags(fixture.partial) == partialFlags,
+                        "Interrupted rebuild changed original data or flags")
+            try rejects {
+                _ = try EnginePartialRecovery.cleanup(receipt: fixture.receipt,
+                    result: fixture.output.appendingPathComponent("interrupted-cleanup.json"))
+            }
+            print("PARTIAL_RECOVERY_INTERRUPTION: {\"newOutputIncomplete\":true,\"partialRetained\":true,\"recovered\":0,\"durableProgress\":true}")
+        }
+        test("Real ExFAT ENOSPC preserves original partial and reports a failed new output") {
+            let image = try CardImage(format: "ExFAT", fileSystem: "exfat")
+            do {
+                try image.attach()
+                do {
+                    let fixture = try Fixture(lockSource: true, destinationParent: image.mount, partialExtraFlags: 0)
+                    let sourceFlags = try flags(fixture.original)
+                    let partialFlags = try flags(fixture.partial)
+                    _ = try fixture.preview()
+                    let filled = try fillOwnedImage(image)
+                    var options = EnginePartialRecovery.TestOptions()
+                    options.forceUnsupportedRename = true
+                    let result = try fixture.apply(options: options)
+                    let item = outcomes(result).first ?? [:]
+                    try require(count(result, "recovered") == 0 && count(result, "failed") == 1 &&
+                                count(result, "failedNewOutputs") == 1 &&
+                                item["status"] as? String == "failed-new-output" &&
+                                (item["errorCode"] as? NSNumber)?.int32Value == ENOSPC && item["newOutput"] != nil,
+                                "Full ExFAT did not return a retained ENOSPC output: \(result)")
+                    try require(try Data(contentsOf: fixture.original) == bytes && Data(contentsOf: fixture.partial) == bytes &&
+                                flags(fixture.original) == sourceFlags && flags(fixture.partial) == partialFlags,
+                                "ENOSPC changed original contents or flags")
+                    try require(FileManager.default.fileExists(atPath: fixture.final.path), "Failed new output was silently deleted")
+                    let events = try journalEvents(fixture.receipt)
+                    let finalOutcome = events.first { $0["event"] as? String == "outcome" }?["outcome"] as? [String: Any]
+                    try require(finalOutcome?["status"] as? String == "failed-new-output", "ENOSPC receipt omitted the incomplete new output")
+                    let cleanup = try EnginePartialRecovery.cleanup(receipt: fixture.receipt,
+                        result: fixture.output.appendingPathComponent("failed-output-cleanup.json"))
+                    try require(count(cleanup, "removed") == 0 && count(cleanup, "skipped") == 1,
+                                "Cleanup accepted an unverified new output")
+                    try fixture.assertPartialUnchanged()
+                    print("PARTIAL_RECOVERY_ENOSPC: {\"actualErrno\":\(ENOSPC),\"filledBytes\":\(filled),\"newOutputRetained\":true,\"partialRetained\":true,\"recovered\":0,\"cleanupRefused\":true}")
+                }
+                try image.close()
+            } catch {
+                do { try image.close() }
+                catch { throw Failure(description: "ENOSPC test failed and its owned image could not detach: \(error)") }
+                throw error
+            }
+        }
+        test("Receipt-bound cleanup removes only the verified retained partial") {
+            let fixture = try Fixture(lockSource: true)
+            let sourceFlags = try flags(fixture.original)
+            let unrelated = fixture.destination.appendingPathComponent("unlisted.txt.87654321.partial")
+            try bytes.write(to: unrelated)
+            try setFlags(unrelated, UInt32(UF_IMMUTABLE))
+            _ = try fixture.preview()
+            var options = EnginePartialRecovery.TestOptions()
+            options.forceUnsupportedRename = true
+            let rebuilt = try fixture.apply(options: options)
+            try require(count(rebuilt, "rebuilt") == 1, "Cleanup fixture did not rebuild")
+            let finalFlags = try flags(fixture.final)
+            let finalTime = try modificationTime(fixture.final)
+            let result = try EnginePartialRecovery.cleanup(receipt: fixture.receipt,
+                result: fixture.output.appendingPathComponent("cleanup.json"))
+            try require(count(result, "removed") == 1 && count(result, "failed") == 0,
+                        "Receipt-bound cleanup failed: \(result)")
+            try require(!FileManager.default.fileExists(atPath: fixture.partial.path), "Verified partial was not removed")
+            try require(try Data(contentsOf: fixture.final) == bytes && Data(contentsOf: fixture.original) == bytes &&
+                        flags(fixture.original) == sourceFlags && flags(fixture.final) == finalFlags &&
+                        modificationTime(fixture.final) == finalTime,
+                        "Cleanup changed source or reconstructed final")
+            try require(try Data(contentsOf: unrelated) == bytes && flags(unrelated) & UInt32(UF_IMMUTABLE) != 0,
+                        "Cleanup touched an unlisted partial")
+            let events = try journalEvents(fixture.output.appendingPathComponent("cleanup.json"))
+            try require(events.compactMap { $0["event"] as? String } == ["cleanup-intent", "outcome", "finished"],
+                        "Cleanup did not persist intent and result")
+        }
+        test("Cleanup refuses changes to the source, retained partial or reconstructed final") {
+            for changed in ["source", "partial", "final"] {
+                let fixture = try Fixture(lockSource: true)
+                _ = try fixture.preview()
+                var options = EnginePartialRecovery.TestOptions()
+                options.forceUnsupportedRename = true
+                try require(count(try fixture.apply(options: options), "rebuilt") == 1, "Change fixture did not rebuild")
+                let target = changed == "source" ? fixture.original : changed == "partial" ? fixture.partial : fixture.final
+                let previousFlags = try flags(target)
+                try setFlags(target, previousFlags & ~UInt32(UF_IMMUTABLE))
+                try Data(repeating: 71, count: bytes.count).write(to: target)
+                try setFlags(target, previousFlags)
+                let before = try Data(contentsOf: fixture.partial)
+                let partialFlags = try flags(fixture.partial)
+                let result = try EnginePartialRecovery.cleanup(receipt: fixture.receipt,
+                    result: fixture.output.appendingPathComponent("changed-cleanup.json"))
+                try require(count(result, "removed") == 0 && count(result, "failed") == 1,
+                            "Cleanup accepted a changed \(changed)")
+                try require(try Data(contentsOf: fixture.partial) == before && flags(fixture.partial) == partialFlags,
+                            "Failed cleanup changed the retained partial")
+            }
+        }
+        test("Cleanup rejects out-of-scope receipts and forged reconstructed-file identities") {
+            for change in ["candidate", "identity"] {
+                let fixture = try Fixture(lockSource: true)
+                _ = try fixture.preview()
+                var options = EnginePartialRecovery.TestOptions()
+                options.forceUnsupportedRename = true
+                _ = try fixture.apply(options: options)
+                var receipt = try JSONSerialization.jsonObject(with: Data(contentsOf: fixture.receipt)) as! [String: Any]
+                var items = receipt["items"] as! [[String: Any]]
+                if change == "candidate" {
+                    var candidate = items[0]["candidate"] as! [String: Any]
+                    candidate["temporaryRelativePath"] = "outside.txt.87654321.partial"
+                    items[0]["candidate"] = candidate
+                } else {
+                    var file = items[0]["newOutput"] as! [String: Any]
+                    var node = file["node"] as! [String: Any]
+                    node["inode"] = 123456789
+                    file["node"] = node
+                    items[0]["newOutput"] = file
+                }
+                receipt["items"] = items
+                try JSONSerialization.data(withJSONObject: receipt).write(to: fixture.receipt)
+                try rejects {
+                    _ = try EnginePartialRecovery.cleanup(receipt: fixture.receipt,
+                        result: fixture.output.appendingPathComponent("forged-cleanup.json"))
+                }
+                try fixture.assertPartialUnchanged()
+                try require(try Data(contentsOf: fixture.final) == bytes, "Forged receipt changed final data")
+            }
         }
         test("A hard-linked partial is blocked") {
             let fixture = try Fixture()
@@ -559,44 +845,96 @@ import Darwin
         }
         for (format, fileSystem) in [("MS-DOS FAT32", "msdos"), ("ExFAT", "exfat")] {
             test("\(format) real-image recovery verifies content and safely handles filesystem rename capability") {
+                try require(arguments.count >= 4 && arguments[3].hasPrefix("/"), "Real card CLI test needs the built App executable")
+                let executable = URL(fileURLWithPath: arguments[3])
                 let image = try CardImage(format: format, fileSystem: fileSystem)
-                var supported = false
+                var verifiedRecovery = false
+                var method = ""
+                var renameFailure: Int32?
+                var verifiedCleanup = false
                 var verifiedHash = ""
                 do {
                     try image.attach()
                     do {
                         let fixture = try Fixture(lockSource: true, destinationParent: image.mount,
-                                                  partialExtraFlags: 0)
+                                                  partialExtraFlags: 0,
+                                                  modificationDate: Date(timeIntervalSince1970: 1_700_000_000.125))
                         let sourceFlags = try flags(fixture.original)
                         let partialFlags = try flags(fixture.partial)
-                        let preview = try fixture.preview()
+                        let sourceTime = try modificationTime(fixture.original)
+                        let preview = try appCLI(executable,
+                            arguments: ["--repair-local-partials", "preview", "--report", fixture.report.path,
+                                        "--plan", fixture.plan.path], fixture: fixture, label: "card-preview")
                         try require(count(preview, "ready") == 1, "Card partial did not pass full preview")
                         verifiedHash = try RBNSHA256.hex(Data(contentsOf: fixture.original))
                         let previewItems = preview["items"] as! [[String: Any]]
                         try require(previewItems[0]["sha256"] as? String == verifiedHash, "Card SHA-256 was not verified")
                         try require(try flags(fixture.partial) == partialFlags, "Card preview changed flags")
-                        let result = try fixture.apply()
-                        supported = count(result, "recovered") == 1
-                        if supported {
-                            try require(try RBNSHA256.hex(Data(contentsOf: fixture.final)) == verifiedHash,
-                                        "Recovered card bytes changed")
+                        let result = try appCLI(executable,
+                            arguments: ["--repair-local-partials", "apply", "--plan", fixture.plan.path,
+                                        "--receipt", fixture.receipt.path], fixture: fixture, label: "card-apply")
+                        verifiedRecovery = count(result, "recovered") == 1 && count(result, "failed") == 0
+                        try require(verifiedRecovery, "Card recovery did not produce a verified final: \(result)")
+                        let item = outcomes(result).first ?? [:]
+                        method = item["method"] as? String ?? ""
+                        renameFailure = (item["renameErrno"] as? NSNumber)?.int32Value
+                        try require(try RBNSHA256.hex(Data(contentsOf: fixture.final)) == verifiedHash,
+                                    "Recovered card bytes changed")
+                        if method == "atomic-rename" {
+                            try require(count(result, "renamed") == 1 && count(result, "rebuilt") == 0,
+                                        "Atomic result was classified as a rebuild")
                             try require(try flags(fixture.final) == partialFlags & ~UInt32(UF_IMMUTABLE),
                                         "Recovered card flags differ")
                             try require(!FileManager.default.fileExists(atPath: fixture.partial.path), "Card partial name remains")
                         } else {
-                            let outcomes = result["items"] as? [[String: Any]] ?? []
-                            try require(count(result, "failed") == 1 &&
-                                        (outcomes.first?["message"] as? String ?? "").contains("不支援原子且不覆寫"),
-                                        "Card recovery failed for an unexpected reason: \(result)")
-                            try require(try flags(fixture.partial) == partialFlags, "Unsupported rename did not restore flags")
+                            try require(method == "verified-exclusive-copy" && count(result, "rebuilt") == 1 &&
+                                        count(result, "renamed") == 0 && count(result, "retainedPartials") == 1 &&
+                                        (renameFailure == ENOTSUP || renameFailure == ENOSYS),
+                                        "Rebuild did not preserve its precise method and errno: \(result)")
+                            try require(try flags(fixture.partial) == partialFlags, "Rebuild did not retain partial flags")
                             try require(try RBNSHA256.hex(Data(contentsOf: fixture.partial)) == verifiedHash,
-                                        "Unsupported rename changed card contents")
-                            try require(!FileManager.default.fileExists(atPath: fixture.final.path),
-                                        "Unsupported rename created a final file")
+                                        "Rebuild changed retained card contents")
+                            try require(try flags(fixture.final) & UInt32(UF_IMMUTABLE) == 0,
+                                        "Rebuilt final inherited immutable protection")
                         }
+                        let finalTime = try modificationTime(fixture.final)
+                        try require(abs(finalTime - sourceTime) <= (fileSystem == "msdos" ? 2 : 0.01),
+                                    "Recovered card modification time would cause avoidable recopying")
                         try require(try flags(fixture.original) == sourceFlags &&
                                     RBNSHA256.hex(Data(contentsOf: fixture.original)) == verifiedHash,
                                     "Card recovery changed source protection or content")
+                        let cleanup = try appCLI(executable,
+                            arguments: ["--repair-local-partials", "cleanup", "--receipt", fixture.receipt.path,
+                                        "--result", fixture.output.appendingPathComponent("app-card-cleanup.json").path],
+                            fixture: fixture, label: "card-cleanup")
+                        verifiedCleanup = count(cleanup, "failed") == 0 &&
+                            count(cleanup, "removed") == (method == "verified-exclusive-copy" ? 1 : 0) &&
+                            count(cleanup, "skipped") == (method == "atomic-rename" ? 1 : 0)
+                        try require(verifiedCleanup && !FileManager.default.fileExists(atPath: fixture.partial.path),
+                                    "Built App CLI did not complete receipt-bound card cleanup: \(cleanup)")
+                        try require(try RBNSHA256.hex(Data(contentsOf: fixture.original)) == verifiedHash &&
+                                    RBNSHA256.hex(Data(contentsOf: fixture.final)) == verifiedHash &&
+                                    flags(fixture.original) == sourceFlags,
+                                    "Built App CLI cleanup changed source or final contents")
+                    }
+                    do {
+                        // Exercise exclusive rebuilding and separately
+                        // confirmed cleanup even if this OS can rename FAT.
+                        let fixture = try Fixture(lockSource: true, destinationParent: image.mount, partialExtraFlags: 0)
+                        let sourceFlags = try flags(fixture.original)
+                        _ = try fixture.preview()
+                        var options = EnginePartialRecovery.TestOptions()
+                        options.forceUnsupportedRename = true
+                        try require(count(try fixture.apply(options: options), "rebuilt") == 1,
+                                    "Card exclusive-copy cleanup fixture did not rebuild")
+                        let result = try EnginePartialRecovery.cleanup(receipt: fixture.receipt,
+                            result: fixture.output.appendingPathComponent("card-cleanup.json"))
+                        verifiedCleanup = verifiedCleanup && count(result, "removed") == 1 && count(result, "failed") == 0
+                        try require(verifiedCleanup && !FileManager.default.fileExists(atPath: fixture.partial.path),
+                                    "Card receipt-bound cleanup failed: \(result)")
+                        try require(try Data(contentsOf: fixture.original) == bytes && Data(contentsOf: fixture.final) == bytes &&
+                                    flags(fixture.original) == sourceFlags,
+                                    "Card cleanup changed source or final contents")
                     }
                     do {
                         let fixture = try Fixture(destinationParent: image.mount, partialExtraFlags: 0)
@@ -630,14 +968,17 @@ import Darwin
                     catch { throw Failure(description: "Recovery image test failed and its owned image could not detach: \(error)") }
                     throw error
                 }
-                let result: [String: Any] = ["fileSystem": fileSystem, "format": format,
-                    "atomicRecovery": supported ? "supported" : "unsupported-safe-refusal",
+                var result: [String: Any] = ["fileSystem": fileSystem, "format": format,
+                    "verifiedRecovery": verifiedRecovery,
+                    "atomicRename": method == "atomic-rename" ? "supported" : "unsupported",
+                    "method": method, "verifiedCleanup": verifiedCleanup, "builtAppCLI": true,
                     "sha256": verifiedHash, "sourceUnchanged": true,
-                    "finalCollisionProtected": true, "emptyFilesBlocked": true]
+                    "modificationTimePreserved": true, "finalCollisionProtected": true, "emptyFilesBlocked": true]
+                result["renameErrno"] = renameFailure.map { $0 as Any } ?? NSNull()
                 print("PARTIAL_RECOVERY_FILESYSTEM: " +
                       String(decoding: try JSONSerialization.data(withJSONObject: result, options: [.sortedKeys]), as: UTF8.self))
-                try require(supported,
-                            "\(format) must support verified in-place recovery on this CI macOS; safe refusal is not a passing recovery result")
+                try require(verifiedRecovery && verifiedCleanup,
+                            "\(format) must complete verified recovery and receipt-bound cleanup; safe refusal is not a passing result")
             }
         }
         print("RESULT \(passed) passed, \(failed) failed")
