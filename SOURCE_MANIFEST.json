@@ -1,7 +1,7 @@
 {
   "version": "0.10.2",
   "file_count_excluding_manifest": 281,
-  "total_bytes_excluding_manifest": 9219549,
+  "total_bytes_excluding_manifest": 9220060,
   "files": {
     ".github/workflows/mac-local-recovery.yml": {
       "bytes": 1565,
@@ -172,8 +172,8 @@
       "sha256": "401a52547c510b5c231c69f9077b192e2759d282e68f74d13339922f9d9e8552"
     },
     "Resources/Web/app.js": {
-      "bytes": 789643,
-      "sha256": "ae538c786664ebf084427ec547edf27bbe06a4de097506f3efe71f01653710d6"
+      "bytes": 789645,
+      "sha256": "d401be6b6aed4e05d72775792e8e7711b1491d4fe3111db61dd6b51df0060f4b"
     },
     "Resources/Web/appearance-bootstrap.js": {
       "bytes": 499,
@@ -552,8 +552,8 @@
       "sha256": "817f2b272cff411d985610ca255ca1d8b94edc81b711756a86759208d5794415"
     },
     "WebSource/renderer/Jobs.tsx": {
-      "bytes": 19585,
-      "sha256": "d370e32e106c64769de7b9675b35f44415b023ac4aa581daf5cdb3a957121e1d"
+      "bytes": 19597,
+      "sha256": "e8beec643422d4e21c473364a74334df0afea85f3a9981dc44f6d0632422398c"
     },
     "WebSource/renderer/LocationPicker.tsx": {
       "bytes": 14398,
@@ -836,8 +836,8 @@
       "sha256": "82a4e00b946da5f7ef7a7edf4ec6fd212bfe1723df822b90074f98ae5468de09"
     },
     "WebSource/tests/revision07.spec.ts": {
-      "bytes": 23616,
-      "sha256": "941a339b62b239db10ed2c1e0b3f299ffb18d79b9febf7279b425fa0f2361e2d"
+      "bytes": 24113,
+      "sha256": "0cb1d311d524394703411fbb89784ed1f5983308f65ea2f4d0e244b28133f180"
     },
     "WebSource/tests/revision08.spec.ts": {
       "bytes": 16558,
