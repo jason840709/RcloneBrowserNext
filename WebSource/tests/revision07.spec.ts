@@ -272,12 +272,17 @@ for (const language of ['zh-TW', 'en', 'ja'] as const) test(`${language}: report
   await page.setViewportSize({width: 1060, height: 680});
   const tx = translator(language), errors = await reportFixture(page, language);
   const job = page.getByTestId('job-fixture-job');
-  await expect(job.locator(':scope > .notice.error')).toHaveText(tx('sourceGrowingJob'));
+  // 0.10.2: a failed job is one red line; its explanation and rclone's text fold under it.
+  const alert = job.locator('.job-alert');
+  await expect(alert).toHaveClass(/action/);
+  await expect(alert.locator('.alert-title')).toHaveText(tx('failedJobTitle'));
+  await alert.locator(':scope > summary').click();
+  await expect(alert.locator('.job-alert-body > p').first()).toHaveText(tx('sourceGrowingJob'));
+  await alert.locator('.job-alert-body details summary').click();
+  await expect(alert.locator('pre')).toContainText('sizes differ src 209715200 vs dst 314572800');
   await expect(job.locator('.job-metrics .metric-label').first()).toContainText(tx('processedBytes'));
   await job.locator('.job-details > summary').click();
   await expect(job.locator('.job-byte-summary dd')).toHaveText(['300 MiB314,572,800 B', '700 MiB734,004,224 B', '3 / 3']);
-  await job.locator('.job-original-error summary').click();
-  await expect(job.locator('.job-original-error pre')).toContainText('sizes differ src 209715200 vs dst 314572800');
   await expect(page.locator('.report-entry')).toHaveCount(10);
   const configuration = page.locator('.report-entry').first();
   await expect(configuration.locator('.report-action')).toHaveText(tx('reportConfigurationDetails'));
@@ -309,7 +314,10 @@ test('an incomplete copy-byte total is omitted and source-growth history cannot 
     w.__rbnEvent({type: 'jobUpdate', data: job});
   });
   const job = page.getByTestId('job-fixture-job');
-  await expect(job.locator(':scope > .notice.error')).toHaveText('Destination unavailable: Permission denied');
+  const alert = job.locator('.job-alert');
+  await expect(alert.locator('.alert-title')).toHaveText(`${t('failedJobTitle')} · ${t('errPermissionTitle')}`);
+  await alert.locator(':scope > summary').click();
+  await expect(alert.locator('pre')).toHaveText('Destination unavailable: Permission denied');
   await job.locator('.job-details > summary').click();
   await expect(job.locator('.job-byte-summary')).not.toContainText(t('copiedBytes'));
   await expect(job.locator('.job-byte-summary')).toContainText(t('failedCopyBytes'));

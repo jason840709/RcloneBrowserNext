@@ -38,7 +38,7 @@ function JobRow({ job, t, language, entering = false, onError, onNotice, onRetry
   const alert: {severity: 'caution' | 'action' | 'urgent'; title: string} | null = !failureMessage ? null : active && !sizeError
     ? {severity: plain && plain.severity !== 'caution' ? plain.severity : stats.retryError === false ? 'action' : 'caution',
        title: plain?.title ?? t(stats.retryError === false ? 'runningErrorTitle' : 'transientErrorTitle')}
-    : {severity: plain?.severity === 'urgent' ? 'urgent' : 'action', title: plain ? `${t('failedJobTitle')} · ${plain.title}` : failureMessage.length <= 90 ? failureMessage : t('failedJobTitle')};
+    : {severity: plain?.severity === 'urgent' ? 'urgent' : 'action', title: plain ? `${t('failedJobTitle')} · ${plain.title}` : sizeError || failureMessage.length > 90 ? t('failedJobTitle') : failureMessage};
   // Only an urgent problem (nothing more can transfer) unfolds by itself, once.
   const urgent = alert?.severity === 'urgent';
   // A job that finished successfully repaired its own errors on retry: it looks
