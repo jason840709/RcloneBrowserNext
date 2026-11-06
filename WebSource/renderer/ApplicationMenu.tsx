@@ -1,11 +1,11 @@
 import { useEffect, useRef } from 'react';
-import { CaretDown, GearSix, TerminalWindow, Question, Check, ArrowClockwise, Info } from '@phosphor-icons/react';
+import { CaretDown, Cloud, GearSix, TerminalWindow, Question, Check, ArrowClockwise, Info } from '@phosphor-icons/react';
 import type { Language, Theme } from '../shared/types';
 import type { Translate } from './i18n';
 import { themeIcon } from './appearance';
 
-export default function ApplicationMenu({t, language, theme, platform, onSettings, onHelp, onConfigure, onLanguage, onAbout, onEngineUpdate, onAppUpdate}: {
-  t: Translate; language: Language; theme: Theme; platform: string; onSettings(): void; onHelp(): void; onConfigure(): void; onLanguage(language: Language): void; onAbout(): void; onEngineUpdate(): void; onAppUpdate(): void;
+export default function ApplicationMenu({t, language, theme, platform, onSettings, onHelp, onConfigure, onTerminal, onLanguage, onAbout, onEngineUpdate, onAppUpdate}: {
+  t: Translate; language: Language; theme: Theme; platform: string; onSettings(): void; onHelp(): void; onConfigure(): void; onTerminal(): void; onLanguage(language: Language): void; onAbout(): void; onEngineUpdate(): void; onAppUpdate(): void;
 }) {
   const root = useRef<HTMLDetailsElement>(null);
   const trigger = useRef<HTMLElement>(null);
@@ -27,21 +27,22 @@ export default function ApplicationMenu({t, language, theme, platform, onSetting
       items[index]?.focus();
     }
   }}>
-    <summary ref={trigger} className="brand" aria-label={t('appMenu')} aria-haspopup="menu"><img className="app-mark" src={themeIcon(theme)} alt=""/><span>Rclone Browser <strong>Next</strong></span><CaretDown size={13}/></summary>
+    <summary ref={trigger} className="brand" aria-label={t('appMenu')} aria-haspopup="menu"><img className="app-mark" src={themeIcon(theme)} alt=""/><span>Rclone Browser Next</span><CaretDown size={11} weight="bold"/></summary>
     <div className="application-menu-content" role="menu" aria-label={t('appMenu')}>
-      <button type="button" role="menuitem" onClick={() => select(onAbout)}><Info size={18}/>{t('aboutApp')}</button>
+      <button type="button" role="menuitem" onClick={() => select(onAbout)}><Info size={16}/>{t('aboutApp')}</button>
       <div className="menu-separator" role="separator"/>
-      <button type="button" role="menuitem" onClick={() => select(onConfigure)}><TerminalWindow size={18}/>{t('configLabel')}</button>
-      <button type="button" role="menuitem" onClick={() => select(onSettings)}><GearSix size={18}/>{t('settings')}<kbd>{platform === 'darwin' ? '⌘ ,' : 'Ctrl ,'}</kbd></button>
+      <button type="button" role="menuitem" onClick={() => select(onConfigure)}><Cloud size={16}/>{t('configLabel')}</button>
+      <button type="button" role="menuitem" onClick={() => select(onTerminal)}><TerminalWindow size={16}/>{t('terminalConfig')}</button>
+      <button type="button" role="menuitem" onClick={() => select(onSettings)}><GearSix size={16}/>{t('settings')}<kbd>{platform === 'darwin' ? '⌘ ,' : 'Ctrl ,'}</kbd></button>
       <div className="menu-separator" role="separator"/>
       <div className="menu-section-title">{t('language')}</div>
       <button type="button" role="menuitemradio" aria-checked={language === 'system'} onClick={() => select(() => onLanguage('system'))}><span className="menu-check">{language === 'system' && <Check size={16}/>}</span>{t('systemLanguage')}</button>
       {([{value: 'zh-TW', label: '繁體中文'}, {value: 'en', label: 'English'}, {value: 'ja', label: '日本語'}] as const).map(item => <button type="button" key={item.value} role="menuitemradio" aria-checked={language === item.value} onClick={() => select(() => onLanguage(item.value))}><span className="menu-check">{language === item.value && <Check size={16}/>}</span>{item.label}</button>)}
       <div className="menu-separator" role="separator"/>
-      <button type="button" role="menuitem" onClick={() => select(onEngineUpdate)}><ArrowClockwise size={18}/>{t('checkEngineUpdates')}</button>
-      <button type="button" role="menuitem" onClick={() => select(onAppUpdate)}><ArrowClockwise size={18}/>{t('checkAppUpdates')}</button>
+      <button type="button" role="menuitem" onClick={() => select(onEngineUpdate)}><ArrowClockwise size={16}/>{t('checkEngineUpdates')}</button>
+      <button type="button" role="menuitem" onClick={() => select(onAppUpdate)}><ArrowClockwise size={16}/>{t('checkAppUpdates')}</button>
       <div className="menu-separator" role="separator"/>
-      <button type="button" role="menuitem" onClick={() => select(onHelp)}><Question size={18}/>{t('help')}</button>
+      <button type="button" role="menuitem" onClick={() => select(onHelp)}><Question size={16}/>{t('help')}</button>
     </div>
   </details>;
 }

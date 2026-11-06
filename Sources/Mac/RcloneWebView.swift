@@ -4,25 +4,45 @@ import Foundation
 @preconcurrency import WebKit
 
 enum RBNInterfaceScale {
-    static func zoom(_ displayedScale: Int) -> CGFloat { CGFloat(displayedScale - 10) / 100 }
+    /// 100% is one CSS pixel per point, the same scale as Finder and System Settings.
+    static func zoom(_ displayedScale: Int) -> CGFloat { CGFloat(displayedScale) / 100 }
 }
 
 /// Use the same canvas as the bundled CSS before WebKit has a document to draw.
+/// A theme is "<accent>-<mode>"; mode "auto" follows the system appearance.
 struct RBNWebAppearance {
     let theme: String
+    let isDark: Bool
 
-    init(theme: String?) {
+    init(theme: String?, systemIsDark: Bool = RBNWebAppearance.systemIsDark) {
+        let resolved: String
         switch theme {
-        case "dark": self.theme = "blue-dark"
-        case "light": self.theme = "blue-light"
-        case "purple-light", "purple-dark", "blue-light", "blue-dark", "green-light", "green-dark": self.theme = theme!
-        default: self.theme = "purple-dark"
+        case "dark": resolved = "blue-dark"
+        case "light": resolved = "blue-light"
+        case let value? where RBNWebAppearance.isTheme(value): resolved = value
+        default: resolved = "purple-auto"
         }
+        self.theme = resolved
+        isDark = resolved.hasSuffix("-dark") || (resolved.hasSuffix("-auto") && systemIsDark)
     }
 
-    var isDark: Bool { theme.hasSuffix("-dark") }
+    static func isTheme(_ value: String) -> Bool {
+        let parts = value.split(separator: "-", omittingEmptySubsequences: false).map(String.init)
+        return parts.count == 2 && ["purple", "blue", "green"].contains(parts[0]) && ["dark", "light", "auto"].contains(parts[1])
+    }
+
+    /// The system-wide choice, independent of any appearance this app forces.
+    static var systemIsDark: Bool {
+        UserDefaults.standard.string(forKey: "AppleInterfaceStyle")?.caseInsensitiveCompare("Dark") == .orderedSame
+    }
+
+    var followsSystem: Bool { theme.hasSuffix("-auto") }
+    var family: String { String(theme.prefix { $0 != "-" }) }
+    /// Identity for change detection: an auto theme repaints when the system flips.
+    var key: String { "\(theme)|\(isDark)" }
+    /// The window and canvas color (--window in styles/tokens.css).
     var backgroundColor: NSColor {
-        let component: CGFloat = isDark ? 28.0 / 255 : 241.0 / 255
+        let component: CGFloat = isDark ? 37.0 / 255 : 237.0 / 255
         return NSColor(srgbRed: component, green: component, blue: component, alpha: 1)
     }
     var documentStartScript: String {
@@ -55,6 +75,7 @@ final class RcloneWebView: WKWebView {
     private var historyEventMonitor: Any?
     private var appearanceScript: WKUserScript?
     private var appliedTheme: String?
+    var hostScript: String?
     private var pressedHistoryEvents = [Int: Int]()
     private struct HistoryEventID: Equatable {
         let type: NSEvent.EventType
@@ -80,8 +101,8 @@ final class RcloneWebView: WKWebView {
     }
 
     func applyAppearance(_ appearance: RBNWebAppearance) {
-        guard appliedTheme != appearance.theme else { return }
-        appliedTheme = appearance.theme
+        guard appliedTheme != appearance.key else { return }
+        appliedTheme = appearance.key
         underPageBackgroundColor = appearance.backgroundColor
         wantsLayer = true
         layer?.backgroundColor = appearance.backgroundColor.cgColor
@@ -89,7 +110,7 @@ final class RcloneWebView: WKWebView {
         let retained = controller.userScripts.filter { $0 !== appearanceScript }
         controller.removeAllUserScripts()
         retained.forEach { controller.addUserScript($0) }
-        let script = WKUserScript(source: appearance.documentStartScript,
+        let script = WKUserScript(source: (hostScript ?? "") + appearance.documentStartScript,
                                   injectionTime: .atDocumentStart, forMainFrameOnly: true)
         appearanceScript = script
         controller.addUserScript(script)

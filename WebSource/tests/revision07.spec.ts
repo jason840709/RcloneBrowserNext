@@ -1,7 +1,7 @@
 import {expect, test, type Page, type Locator} from '@playwright/test';
 import {fileURLToPath, pathToFileURL} from 'node:url';
 import path from 'node:path';
-import {installHostFixture, selectPlace} from './native-fixture';
+import {installHostFixture, openSettings, selectPlace} from './native-fixture';
 import {translator} from '../renderer/i18n';
 import {childEndpoint, endpointEqual, endpointName, parentEndpoint} from '../renderer/utils';
 import {interfaceScaleZoom} from '../renderer/appearance';
@@ -79,25 +79,25 @@ test('location search supports keyboard choice, Escape, Tab and outside dismissa
   await search.dispatchEvent('keydown', {key: 'Enter', keyCode: 229, bubbles: true});
   await expect(page.locator('.location-popup')).toBeVisible();
   await search.press('Enter');
-  await expect(trigger).toHaveAttribute('title', `${t('left')} ${t('location')}: cloud-60 · drive`);
+  await expect(trigger).toHaveAttribute('title', `${t('left')} ${t('location')}: cloud-60`);
   await trigger.press('Home');
   await expect(search).toHaveAttribute('aria-activedescendant', /option-0$/);
   await search.fill('does-not-exist');
   await expect(page.locator('.location-no-results')).toHaveText(t('noMatches'));
   await search.press('Enter'); await expect(search).toBeFocused();
   await search.fill('cloud-'); await search.press('Alt+End'); await search.press('ArrowUp'); await search.press('Enter');
-  await expect(trigger).toHaveAttribute('title', `${t('left')} ${t('location')}: cloud-59 · drive`);
+  await expect(trigger).toHaveAttribute('title', `${t('left')} ${t('location')}: cloud-59`);
   await trigger.click(); await search.press('Escape'); await expect(trigger).toBeFocused();
   await trigger.click(); await search.press('Tab');
   await expect(page.locator('.location-popup')).toHaveCount(0);
   await expect(trigger).not.toBeFocused();
-  await trigger.click(); await page.locator('.pane-heading').last().click();
+  await trigger.click(); await page.getByTestId('right-pane').locator('.role-tag').click();
   await expect(page.locator('.location-popup')).toHaveCount(0);
   await trigger.click(); await page.getByLabel(`${t('left')} ${t('path')}`, {exact: true}).focus();
   await expect(page.locator('.location-popup')).toHaveCount(0);
   await trigger.click();
   await page.evaluate(() => window.dispatchEvent(new CustomEvent('rbn:navigate-history', {detail: {direction: 'back', eventTime: Date.now()}})));
-  await expect(trigger).toHaveAttribute('title', `${t('left')} ${t('location')}: cloud-60 · drive`);
+  await expect(trigger).toHaveAttribute('title', `${t('left')} ${t('location')}: cloud-60`);
   await expect(page.locator('.location-popup')).toHaveCount(0);
   expect(errors).toEqual([]);
 });
@@ -135,8 +135,7 @@ for (const language of ['zh-TW', 'en', 'ja'] as const) test(`${language}: task a
   expect(await page.locator('.location-popup').evaluate(element => element.parentElement?.tagName)).toBe('DIALOG');
   await page.keyboard.press('Escape');
   await expect(task).toBeVisible(); await task.getByRole('button', {name: tx('cancel'), exact: true}).click();
-  await page.locator('.workspace-title > .icon-button').click();
-  const settings = page.locator('.settings-dialog');
+  const settings = await openSettings(page);
   const startupTrigger = settings.locator('.startup-location-editors .location-trigger').last();
   await startupTrigger.scrollIntoViewIfNeeded();
   await selectPlace(startupTrigger, 'cloud-60'); await startupTrigger.click();
@@ -183,8 +182,7 @@ for (const platform of ['darwin', 'windows', 'linux']) test(`${platform}: only s
 test('a Windows custom executable saves its drive-qualified parent installation folder', async ({page}) => {
   await open(page, {platform: 'windows'});
   await page.evaluate(() => { (window as any).__fixture.chosenExecutable = 'C:\\Tools\\rclone\\rclone.exe'; });
-  await page.locator('.workspace-title > .icon-button').click();
-  const dialog = page.locator('.settings-dialog');
+  const dialog = await openSettings(page);
   await dialog.locator('.location-advanced summary').click();
   await dialog.getByRole('button', {name: t('chooseExecutable'), exact: true}).click();
   await expect.poll(async () => (await calls(page, 'saveSettings')).length).toBe(1);
@@ -196,11 +194,13 @@ for (const language of ['zh-TW', 'en', 'ja'] as const) test(`${language}: symbol
   await open(page, {settings: {language}});
   await page.locator('.options-button').click();
   const options = page.locator('.options-dialog');
-  await expect(options.getByTestId('transfer-symlinks')).toHaveValue('skip');
-  await options.getByTestId('transfer-symlinks').selectOption('preserve');
-  await options.getByRole('button', {name: `${tx('symlinkMode')} — ${tx('infoLabel')}`, exact: true}).click();
-  await expect(page.getByRole('tooltip')).toHaveText(tx('symlinkHint'));
-  await page.keyboard.press('Escape');
+  await options.getByRole('button', {name: tx('advancedTab'), exact: true}).click();
+  const symlinks = options.getByTestId('transfer-symlinks');
+  await expect(symlinks).toHaveValue('skip');
+  await symlinks.selectOption('preserve');
+  // Option help is native label help (title) instead of an ⓘ tooltip.
+  await expect(options.getByLabel(tx('symlinkMode'), {exact: true})).toHaveAttribute('data-testid', 'transfer-symlinks');
+  await expect(options.locator(`label[for="${await symlinks.getAttribute('id')}"]`)).toHaveAttribute('title', tx('symlinkHint'));
   await options.getByRole('button', {name: tx('saveDefaults'), exact: true}).click();
   await expect.poll(async () => (await calls(page, 'saveSettings')).length).toBeGreaterThan(0);
   await options.getByRole('button', {name: tx('apply'), exact: true}).click();
@@ -211,7 +211,7 @@ for (const language of ['zh-TW', 'en', 'ja'] as const) test(`${language}: symbol
   expect((await calls(page, 'saveTask'))[0].args[1].options.symlinkMode).toBe('preserve');
   await page.locator('.main-nav button').last().click();
   await page.getByRole('button', {name: tx('editTask'), exact: true}).click();
-  await task.getByRole('button', {name: tx('modeAndComparison'), exact: true}).click();
+  await task.getByRole('button', {name: tx('advancedTab'), exact: true}).click();
   await expect(task.getByTestId('transfer-symlinks')).toHaveValue('preserve');
   expect(await calls(page, 'startTransfer')).toHaveLength(0);
 });

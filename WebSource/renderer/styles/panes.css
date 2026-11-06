@@ -1,0 +1,260 @@
+/* ===== File pane ===== */
+/* The size container is the header only: containing the whole pane (and so the
+   virtualised scroller) made WebKit misreport the list viewport at non-100%
+   zoom, and the list pulled the scroll position back near its end. */
+.browser-pane { position: relative; display: flex; flex-direction: column; min-width: 0; min-height: 0; overflow: hidden; background: var(--pane); }
+.pane-header { container: pane / inline-size; flex: 0 0 auto; background: var(--pane-header); border-bottom: 0.5px solid var(--separator); }
+
+/* Tab strip (only when a pane has two or more tabs). */
+.pane-tabs-row { display: flex; align-items: center; gap: var(--sp-2); height: 30px; padding: 0 var(--sp-2); border-bottom: 0.5px solid var(--separator); animation: fade-in var(--d-fade) var(--ease-out); }
+.pane-tabs { flex: 1 1 auto; min-width: 0; display: flex; align-items: center; gap: 2px; overflow-x: auto; scrollbar-width: none; }
+.pane-tabs::-webkit-scrollbar { display: none; }
+.pane-tab {
+  position: relative; display: flex; align-items: center; flex: 0 1 auto; min-width: 0; max-width: 180px; height: 22px; border-radius: 999px;
+  transition: background-color var(--d-hover) var(--ease-out);
+  animation: tab-in var(--d-pop) var(--ease-out);
+}
+@keyframes tab-in { from { opacity: 0; transform: scale(0.94); } }
+.pane-tab:hover { background: var(--fill); }
+.pane-tab.active { background: var(--fill-strong); }
+.pane-tab > button[role="tab"] {
+  min-height: 0; height: 100%; min-width: 0; padding: 0 8px; gap: 5px; justify-content: flex-start;
+  background: transparent; border: none; box-shadow: none; font-size: var(--fs-callout); color: var(--secondary);
+}
+.pane-tab > button[role="tab"]:active:not(:disabled) { transform: none; background: transparent; }
+.pane-tab.active > button[role="tab"] { color: var(--label); font-weight: 500; }
+.pane-tab > button[role="tab"] > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pane-tab > button[role="tab"] svg { color: var(--folder); width: 13px; height: 13px; }
+.pane-tab .tab-close {
+  width: 16px; height: 16px; min-height: 16px; padding: 0; margin-right: 3px; border-radius: 999px;
+  background: transparent; border: none; box-shadow: none; color: var(--tertiary); opacity: 0;
+  transition: opacity var(--d-hover) var(--ease-out), background-color var(--d-hover) var(--ease-out);
+}
+.pane-tab .tab-close svg { width: 9px; height: 9px; }
+.pane-tab:hover .tab-close, .pane-tab.active .tab-close, .pane-tab .tab-close:focus-visible { opacity: 1; }
+.pane-tab .tab-close:hover { background: var(--fill-strong); color: var(--label); }
+.new-tab-button.icon-button { width: 22px; height: 22px; min-height: 22px; }
+
+/* Search: a sunken field that opens up when focused in narrow panes. */
+.search-field {
+  position: relative; display: flex; align-items: center; flex: 0 1 150px; min-width: 56px; height: var(--field-h); padding: 0 6px 0 8px; gap: 5px;
+  background: var(--field); border: 0.5px solid var(--field-border); border-radius: var(--r-field); box-shadow: var(--field-shadow); color: var(--tertiary);
+  transition: border-color var(--d-fade) var(--ease-out), box-shadow var(--d-fade) var(--ease-out), background-color var(--d-fade) var(--ease-out), flex-basis var(--d-glide) var(--ease-glide);
+}
+.search-field > svg { width: 13px; height: 13px; }
+.search-field:focus-within { border-color: var(--accent); box-shadow: var(--field-shadow), 0 0 0 3px var(--accent-ring); color: var(--accent-text); }
+.search-field input {
+  flex: 1; min-width: 0; min-height: 0; height: 100%; padding: 0; border: none; background: transparent; box-shadow: none !important;
+  font-size: var(--fs-body);
+}
+.search-field button {
+  width: 14px; height: 14px; min-height: 14px; padding: 0; border-radius: 50%; border: none; box-shadow: none;
+  background: var(--tertiary); color: var(--pane); animation: fade-in var(--d-fade) var(--ease-out);
+}
+.search-field button svg { width: 8px; height: 8px; }
+
+/* One row: role, history, address bar, search, refresh, new folder, more. */
+.path-toolbar { display: flex; align-items: center; gap: 4px; height: 38px; padding: 0 var(--sp-2) 0 var(--sp-3); }
+.path-toolbar > .role-tag { flex: 0 0 auto; margin-right: 4px; min-width: 2.2em; }
+.nav-buttons { display: flex; align-items: center; gap: 0; }
+.nav-buttons .icon-button, .path-toolbar > .icon-button, .path-toolbar .pane-more-menu > summary { width: 26px; height: 26px; min-height: 26px; }
+
+/* Address bar: location pop-up + path in one sunken rounded rectangle. */
+.address-bar {
+  flex: 1 1 auto; min-width: 72px; display: flex; align-items: center; height: var(--field-h); padding: 0 2px;
+  background: var(--field); border: 0.5px solid var(--field-border); border-radius: var(--r-field); box-shadow: var(--field-shadow);
+  transition: border-color var(--d-fade) var(--ease-out), box-shadow var(--d-fade) var(--ease-out);
+}
+.address-bar:focus-within { border-color: var(--accent); box-shadow: var(--field-shadow), 0 0 0 3px var(--accent-ring); }
+.address-bar[data-dirty] { border-color: var(--orange-fill); }
+.address-bar[data-disabled] { opacity: 0.6; }
+.address-bar .location-select { flex: 0 1 auto; min-width: 0; max-width: 55%; display: flex; }
+.address-bar .location-trigger { max-width: 100%; }
+.address-bar .location-trigger {
+  height: calc(var(--field-h) - 4px); min-height: 0; padding: 0 6px 0 6px; gap: 5px; border-radius: 4px;
+  background: transparent; box-shadow: none; font-size: var(--fs-body); font-weight: 500;
+}
+.address-bar .location-trigger::after { width: 7px; margin-left: 2px; }
+@media (hover: hover) { .address-bar .location-trigger:hover:not(:disabled) { background: var(--fill-strong); } }
+.address-bar .location-trigger:active:not(:disabled) { background: var(--fill-pressed); transform: none; }
+.address-bar .location-trigger > svg:first-child { color: var(--folder); width: 15px; height: 15px; }
+/* The hairline between the two halves. */
+.address-bar .location-select::after { content: ""; align-self: center; width: 1px; height: 14px; margin: 0 4px 0 2px; background: var(--separator-strong); }
+.location-select { flex: 0 1 auto; min-width: 0; }
+.location-trigger { height: var(--control-h); min-height: var(--control-h); max-width: 100%; font-size: var(--fs-body); font-weight: 500; }
+.location-trigger > svg:first-child { color: var(--folder); width: 16px; height: 16px; }
+.location-trigger-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.path-form { flex: 1 1 0; min-width: 32px; display: flex; align-items: center; height: 100%; padding: 0 2px 0 2px; }
+.path-endpoint-name { display: none; flex: 0 1 auto; max-width: 40%; color: var(--secondary); font-size: var(--fs-body); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding-right: 1px; }
+.path-form input, .address-bar > input {
+  flex: 1; min-width: 0; height: 100%; min-height: 0; padding: 0 2px; border: none; background: transparent; box-shadow: none !important;
+  font-size: var(--fs-body); text-overflow: ellipsis;
+}
+.path-go {
+  width: 18px; height: 18px; min-height: 18px; padding: 0; border-radius: 999px; border: none; box-shadow: none; background: transparent; color: var(--tertiary);
+  opacity: 0; transform: scale(0.8); transition: opacity var(--d-fade) var(--ease-out), transform var(--d-fade) var(--ease-out);
+}
+.address-bar:focus-within .path-go, .address-bar[data-dirty] .path-go { opacity: 1; transform: none; color: var(--accent-text); }
+.address-bar .address-browse { width: 22px; height: 20px; min-height: 20px; border-radius: 4px; color: var(--secondary); }
+.address-bar .address-browse svg { width: 15px; height: 15px; }
+
+.browser-pane > .notice { margin: 6px var(--sp-2) 0; font-size: var(--fs-callout); padding: 6px 9px; flex-shrink: 0; animation: fade-up var(--d-pop) var(--ease-out); }
+.browser-pane > .notice.error { max-height: min(108px, 25%); overflow: auto; }
+
+/* ===== File list (Finder metrics: 13 pt text, 16 pt icons, 22 pt rows) ===== */
+.file-list { position: relative; flex: 1 1 auto; min-height: 0; overflow: hidden; background: var(--pane); }
+/* Stripes continue below short lists (static), and inside the table they scroll with it, filling virtualised spacer rows during fast flings. */
+.striped-rows :is(.file-list, .file-table) { background-image: repeating-linear-gradient(to bottom, var(--pane) 0, var(--pane) var(--row-h), var(--row-alt) var(--row-h), var(--row-alt) calc(var(--row-h) * 2)); background-position: 0 24px; }
+.file-list > div[data-virtuoso-scroller], .file-list > .file-empty-scroller { overflow-y: scroll !important; scrollbar-gutter: stable; }
+.file-empty-scroller { width: 100%; height: 100%; }
+.file-table { table-layout: fixed; border-spacing: 0; border-collapse: separate; font-size: var(--fs-body); }
+.file-table thead { z-index: 2; }
+.file-table th {
+  position: relative; height: 24px; padding: 0 8px 0 6px; text-align: left; white-space: nowrap;
+  background: var(--pane);
+  border-bottom: 0.5px solid var(--separator); color: var(--secondary); font-size: var(--fs-label); font-weight: 500;
+}
+.file-table th.numeric { text-align: right; }
+.file-table th.check-cell { padding: 0; }
+.file-table .sort-button {
+  display: inline-flex; align-items: center; gap: 4px; min-height: 20px; height: 20px; padding: 0; max-width: 100%;
+  background: transparent; border: none; box-shadow: none; border-radius: 0; font-size: var(--fs-label); font-weight: 500; color: inherit;
+}
+.file-table .sort-button svg { width: 10px; height: 10px; transition: transform var(--d-pop) var(--ease-out); }
+.file-table th[aria-sort="descending"] .sort-button svg { transform: rotate(180deg); }
+.file-table .sort-button:active:not(:disabled) { transform: none; background: transparent; color: var(--label); }
+.file-table th[aria-sort="ascending"] .sort-button, .file-table th[aria-sort="descending"] .sort-button { color: var(--label); font-weight: 600; }
+.file-table .numeric .sort-button { justify-content: flex-end; }
+.file-table td { height: var(--row-h); padding: 0 8px 0 6px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.file-table td.numeric { text-align: right; color: var(--secondary); }
+.file-table .muted { color: var(--secondary); }
+.file-table .date-cell { color: var(--secondary); }
+/* Checkbox column: only the source pane has one. Changing the transfer
+   direction animates --check-w (32 pt <-> 0): on the side losing its boxes
+   they shrink and fade first, then the column closes and the names slide left;
+   on the other side the column opens, the names make room, then the boxes
+   grow in. The name cell gains a little padding as the column closes, so the
+   destination list starts at Finder's margin rather than at the edge. */
+@property --check-w { syntax: '<length>'; inherits: true; initial-value: 32px; }
+.browser-pane { --check-w: 32px; transition: --check-w var(--d-glide) var(--ease-glide) 60ms; }
+.browser-pane.destination-pane { --check-w: 0px; transition-delay: 90ms; }
+.file-table .check-cell { padding: 0; overflow: hidden; text-overflow: clip; font-size: 0; line-height: 0; }
+.file-table .check-cell input {
+  width: 14px; height: 14px; margin: 0 0 0 10px; vertical-align: middle;
+  transition: opacity var(--d-fade) var(--ease-out) 200ms, transform var(--d-pop) var(--ease-glide) 200ms;
+}
+.destination-pane .file-table .check-cell input { opacity: 0; transform: scale(0.4); pointer-events: none; transition-delay: 0ms; transition-duration: 120ms; }
+.file-table :is(td, th):nth-child(2) { padding-left: calc(6px + (32px - var(--check-w)) * 0.19); }
+.file-table .row-fill { padding: 0; }
+.file-table tbody > tr { outline: none; }
+.file-table tbody > tr[data-index] { background-color: var(--pane); transition: background-color 60ms linear; }
+.striped-rows .file-table tbody > tr[data-row-parity="1"] { background-color: var(--row-alt); }
+.file-table tbody > tr[data-selected] { background-color: var(--unemphasized-selection) !important; }
+.pane-active .file-table tbody > tr[data-selected] { background-color: var(--selection) !important; }
+.file-table tbody > tr:focus-visible { box-shadow: inset 0 0 0 2px var(--accent-ring); }
+.file-table tbody > tr:focus-visible > td { background: transparent; }
+.file-table tbody > tr[aria-disabled="true"] { color: var(--tertiary); }
+.file-name { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.file-name > svg { width: var(--icon); height: var(--icon); }
+.file-name > span:first-of-type { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.folder-icon { color: var(--folder); }
+.file-icon { color: var(--tertiary); }
+.link-marker { color: var(--tertiary); font-size: var(--fs-caption); }
+
+.column-resizer {
+  position: absolute; right: -5px; top: 0; z-index: 3; width: 10px; height: 100%; min-height: 0; padding: 0;
+  border: 0; border-radius: 0; background: transparent; box-shadow: none; cursor: col-resize; touch-action: none; transform: none !important; transition: none;
+}
+.column-resizer::after { content: ""; position: absolute; left: 4.5px; top: 6px; width: 1px; height: 12px; background: var(--separator-strong); transition: background-color var(--d-fade) var(--ease-out); }
+.column-resizer:hover::after, .column-resizer:active::after { background: var(--accent); }
+.column-resizer:active:not(:disabled) { background: transparent; }
+.column-resizer-last { right: 0; }
+.column-resizer-last::after { left: 8px; }
+
+/* Loading keeps the previous rows visible beneath a calm spinner; quick loads (under 120 ms) show nothing. */
+.file-list[aria-busy="true"] > div[data-virtuoso-scroller] { opacity: 0.55; transition: opacity var(--d-pop) var(--ease-out) 120ms; }
+.file-list > div[data-virtuoso-scroller] { transition: opacity var(--d-fade) var(--ease-out); }
+.folder-loading-overlay { position: absolute; inset: 0; z-index: 4; display: grid; place-items: center; pointer-events: none; animation: overlay-in var(--d-pop) var(--ease-out) 120ms both; }
+@keyframes overlay-in { from { opacity: 0; transform: scale(0.94); } }
+.folder-load-cancel {
+  position: relative; width: 36px; height: 36px; min-height: 36px; padding: 0; border-radius: 50%;
+  background: var(--menu); border: 0.5px solid var(--menu-border); box-shadow: var(--menu-shadow); color: var(--secondary); pointer-events: auto;
+  -webkit-backdrop-filter: blur(18px); backdrop-filter: blur(18px);
+}
+.folder-loading-ring { position: absolute; inset: 8px; border: 2px solid var(--fill-strong); border-top-color: var(--accent); border-radius: 50%; animation: spin 800ms linear infinite; }
+.folder-loading-cross { position: relative; opacity: 0; transition: opacity var(--d-hover) var(--ease-out); }
+.folder-load-cancel:hover .folder-loading-cross, .folder-load-cancel:focus-visible .folder-loading-cross { opacity: 1; }
+.folder-load-cancel:disabled .folder-loading-cross { opacity: 0.5; }
+.folder-loading-label {
+  position: absolute; top: calc(50% + 24px); left: 50%; transform: translateX(-50%); width: max-content; max-width: min(252px, calc(100% - 28px));
+  padding: 2px 8px; border-radius: 6px; background: var(--pane); color: var(--secondary); font-size: var(--fs-callout);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+@media (hover: none), (pointer: coarse) { .folder-loading-cross { opacity: 1; } }
+.file-list .empty-state { height: 100%; }
+.file-list .empty-state p { max-height: 156px; overflow: auto; }
+
+/* ===== Footer ===== */
+.pane-footer {
+  flex: 0 0 auto; display: flex; align-items: center; justify-content: space-between; gap: var(--sp-2); height: 26px; padding: 0 6px 0 var(--sp-3);
+  background: var(--pane-header); border-top: 0.5px solid var(--separator); font-size: var(--fs-caption); color: var(--secondary);
+}
+.selection-summary { display: flex; align-items: center; gap: 6px; min-width: 0; white-space: nowrap; }
+.selection-chip.text-button { display: inline-flex; align-items: center; gap: 4px; margin: 0; padding: 0 4px; color: var(--accent-text); font-size: var(--fs-caption); font-weight: 500; animation: fade-in var(--d-fade) var(--ease-out); }
+.pane-file-actions { display: flex; align-items: center; gap: 1px; }
+.pane-file-actions .icon-button { width: 24px; height: 22px; min-height: 22px; }
+.pane-file-actions .icon-button svg { width: 14px; height: 14px; }
+
+/* ===== Location popup ===== */
+.location-popup { display: flex; flex-direction: column; overflow: hidden; padding: 6px 0 5px; }
+.location-search {
+  display: flex; align-items: center; gap: 6px; flex: 0 0 auto; margin: 0 6px 5px; padding: 0 8px; height: var(--field-h); color: var(--tertiary);
+  background: var(--field); border: 0.5px solid var(--field-border); border-radius: var(--r-field); box-shadow: var(--field-shadow);
+  transition: border-color var(--d-fade) var(--ease-out), box-shadow var(--d-fade) var(--ease-out);
+}
+.location-search > svg { width: 14px; height: 14px; }
+.location-search:focus-within { border-color: var(--accent); box-shadow: var(--field-shadow), 0 0 0 3px var(--accent-ring); }
+.location-search input { flex: 1; min-width: 0; min-height: 0; height: 100%; padding: 0; border: 0; background: transparent; box-shadow: none !important; font-size: var(--fs-body); }
+.location-options { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 0 5px; }
+.location-group + .location-group { margin-top: 4px; padding-top: 4px; border-top: 0.5px solid var(--separator); }
+.location-group-label { padding: 5px 8px 3px; color: var(--secondary); font-size: var(--fs-label); font-weight: 600; }
+.location-option { display: flex; align-items: center; gap: 7px; min-height: 24px; padding: 2px 8px 2px 4px; border-radius: 6px; font-size: var(--fs-body); color: var(--label); }
+.location-option-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.location-option-detail { flex: 0 0 auto; font-size: var(--fs-callout); color: var(--tertiary); }
+.location-option[data-active="true"] .location-option-detail { color: var(--accent-ink); opacity: 0.75; }
+.location-option svg { color: var(--folder); width: 16px; height: 16px; }
+.location-option .location-check svg { color: var(--accent-text); width: 12px; height: 12px; }
+.location-option[data-active="true"] { background: var(--accent); color: var(--accent-ink); }
+.location-option[data-active="true"] svg, .location-option[data-active="true"] .location-check svg { color: var(--accent-ink); }
+.location-option[aria-disabled="true"] { color: var(--tertiary); }
+.location-check { width: 14px; display: inline-flex; justify-content: center; }
+.location-no-results { padding: 9px 11px; color: var(--secondary); font-size: var(--fs-body); }
+
+/* Location editors inside forms: a label, then one address bar. */
+.endpoint-editor { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.endpoint-label { font-size: var(--fs-body); font-weight: 500; color: var(--label); }
+.endpoint-address { flex: 0 0 auto; width: 100%; }
+.endpoint-address .location-select { max-width: 50%; }
+
+/* Narrow panes (minimum window, larger interface sizes): search folds to a
+   magnifier that opens when focused, the location name shortens, and the role
+   tag goes last, so the ⋯ menu always stays inside the pane. */
+@container pane (max-width: 620px) {
+  /* Folded: looks and behaves like an icon button. Opens while focused or holding a query. */
+  .search-field { flex: 0 0 26px; min-width: 26px; height: 26px; padding: 0; justify-content: center; border-color: transparent; background: transparent; box-shadow: none; border-radius: 999px; color: var(--secondary); }
+  .search-field:hover { background: var(--fill-strong); color: var(--label); }
+  .search-field > svg { width: 15px; height: 15px; }
+  .search-field input { width: 0; flex: 0 0 0; }
+  .search-field:is(:focus-within, :has(input:not(:placeholder-shown))) {
+    flex-basis: 132px; height: var(--field-h); padding: 0 6px 0 8px; justify-content: flex-start; border-radius: var(--r-field);
+    background: var(--field); border-color: var(--field-border); box-shadow: var(--field-shadow);
+  }
+  .search-field:focus-within { border-color: var(--accent); box-shadow: var(--field-shadow), 0 0 0 3px var(--accent-ring); }
+  .search-field:is(:focus-within, :has(input:not(:placeholder-shown))) > svg { width: 13px; height: 13px; }
+  .search-field:is(:focus-within, :has(input:not(:placeholder-shown))) input { width: auto; flex: 1; }
+}
+@container pane (max-width: 500px) {
+  .path-toolbar { gap: 2px; padding: 0 6px 0 var(--sp-2); }
+  .nav-buttons .icon-button, .path-toolbar > .icon-button, .path-toolbar .pane-more-menu > summary { width: 24px; }
+}
+@container pane (max-width: 400px) { .path-toolbar > .role-tag { display: none; } .nav-buttons .icon-button:nth-child(2) { display: none; } }

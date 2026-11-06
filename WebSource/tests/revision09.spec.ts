@@ -50,60 +50,66 @@ async function chooseMode(page: Page, mode: TransferMode, language: 'zh-TW'|'en'
 }
 
 for (const language of ['zh-TW', 'en', 'ja'] as const) {
-  test(`${language}: compact toolbar keeps settings and account together; theme columns pair light above dark`, async ({page}, info) => {
+  test(`${language}: compact toolbar centres navigation and keeps account, save actions and settings on one row; appearance choices form single rows`, async ({page}, info) => {
     // Match the CSS viewport of the minimum 1060 × 680 native window at the
     // largest standard pageZoom. Native startup geometry is tested in AppKit.
     const zoom = interfaceScaleZoom(125), tx = translator(language);
     await page.setViewportSize({width: Math.floor(1060 / zoom), height: Math.floor(680 / zoom)});
     await open(page, {language, interfaceScale: 125});
-    const heading = page.locator('.workspace-heading');
-    const preferences = heading.getByRole('button', {name: tx('settings'), exact: true});
-    const account = heading.getByRole('button', {name: tx('configLabel'), exact: true});
-    const workspace = heading.getByRole('button', {name: tx('rememberWorkspace'), exact: true});
-    const task = heading.getByRole('button', {name: tx('saveTask'), exact: true});
-    const hint = heading.getByRole('button', {name: new RegExp(`^${tx('workspaceTaskDifference')} — `)});
-    await expect(heading.getByRole('heading', {name: tx('files'), exact: true})).toHaveCount(0);
-    for (const button of [preferences, account, workspace, task, hint]) await reachable(button);
-    const [settingsBox, accountBox, workspaceBox, taskBox, hintBox, divider] = await Promise.all([
-      bounds(preferences), bounds(account), bounds(workspace), bounds(task), bounds(hint), bounds(heading.locator('.workspace-save-divider')),
-    ]);
-    expect(settingsBox.x + settingsBox.width).toBeLessThanOrEqual(accountBox.x + 1);
-    expect(Math.abs(settingsBox.y + settingsBox.height / 2 - accountBox.y - accountBox.height / 2)).toBeLessThanOrEqual(1);
-    expect(workspaceBox.x + workspaceBox.width).toBeLessThanOrEqual(divider.x + 1);
-    expect(divider.x + divider.width).toBeLessThanOrEqual(taskBox.x + 1);
-    expect(taskBox.x + taskBox.width).toBeLessThanOrEqual(hintBox.x + 1);
-    expect(Math.abs(workspaceBox.y + workspaceBox.height / 2 - taskBox.y - taskBox.height / 2)).toBeLessThanOrEqual(1);
-    expect(divider.width).toBeLessThanOrEqual(1.5);
-    expect(divider.height).toBeGreaterThan(8);
-    await hint.hover();
-    const tooltip = page.getByRole('tooltip');
-    await expect(tooltip).toHaveText(tx('workspaceTaskDifferenceHint'));
-    const tooltipBox = await bounds(tooltip), viewport = page.viewportSize()!;
-    expect(tooltipBox.x).toBeGreaterThanOrEqual(0);
-    expect(tooltipBox.x + tooltipBox.width).toBeLessThanOrEqual(viewport.width + 1);
-    expect(tooltipBox.y + tooltipBox.height).toBeLessThanOrEqual(viewport.height + 1);
-    await page.mouse.move(0, 0);
-    await page.keyboard.press('Escape');
-    await expect(tooltip).toHaveCount(0);
+    const toolbar = page.locator('.app-toolbar');
+    const brand = toolbar.locator('.application-menu summary');
+    const nav = toolbar.getByRole('navigation', {name: tx('mainNavigation'), exact: true});
+    const tabs = nav.getByRole('button');
+    const account = toolbar.getByRole('button', {name: tx('configLabel'), exact: true});
+    const group = toolbar.getByRole('group', {name: tx('workspaceTaskDifference'), exact: true});
+    const workspace = group.getByRole('button', {name: tx('rememberWorkspace'), exact: true});
+    const task = group.getByRole('button', {name: tx('saveTask'), exact: true});
+    const preferences = toolbar.getByRole('button', {name: tx('settings'), exact: true});
+    await expect(toolbar.getByRole('heading')).toHaveCount(0);
+    await expect(tabs).toHaveText([tx('files'), tx('jobs'), tx('tasks')]);
+    await expect(tabs.first()).toHaveAttribute('aria-current', 'page');
+    for (const control of [brand, ...await tabs.all(), account, workspace, task, preferences]) {
+      await expect(control).toBeVisible();
+      expect(await control.evaluate(element => {
+        const r = element.getBoundingClientRect(), hit = document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2);
+        return {inside: r.left >= 0 && r.top >= 0 && r.right <= innerWidth + 1 && r.bottom <= innerHeight + 1, hit: hit === element || element.contains(hit)};
+      }), `${control}`).toEqual({inside: true, hit: true});
+    }
+    const [bar, brandBox, navBox, accountBox, workspaceBox, taskBox, settingsBox] = await Promise.all([toolbar, brand, nav, account, workspace, task, preferences].map(bounds));
+    const ordered = [brandBox, navBox, accountBox, workspaceBox, taskBox, settingsBox], names = ['brand', 'navigation', 'account', 'workspace', 'task', 'settings'];
+    for (let index = 1; index < ordered.length; index++) expect(ordered[index - 1].x + ordered[index - 1].width, `${names[index - 1]} ends before ${names[index]}`).toBeLessThanOrEqual(ordered[index].x + 1);
+    for (const box of ordered) expect(Math.abs(box.y + box.height / 2 - bar.y - bar.height / 2)).toBeLessThanOrEqual(1);
+    expect(Math.abs(navBox.x + navBox.width / 2 - bar.x - bar.width / 2)).toBeLessThanOrEqual(1);
+    // The workspace/task distinction is native help on the save group instead of an ⓘ button.
+    await expect(group).toHaveAttribute('title', tx('workspaceTaskDifferenceHint'));
+    await expect(toolbar.locator('.info-tooltip-trigger')).toHaveCount(0);
+    // Save actions belong to the Files page only; account and settings stay.
+    await tabs.last().click();
+    await expect(group).toHaveCount(0);
+    await reachable(account); await reachable(preferences);
+    await tabs.first().click();
+    await expect(group).toBeVisible();
 
     await preferences.click();
     const dialog = page.locator('.settings-dialog');
-    await dialog.getByRole('button', {name: tx('appearance'), exact: true}).click();
-    await expect(dialog.locator('.theme-option')).toHaveCount(6);
-    const light = [], dark = [];
-    for (const family of ['purple', 'green', 'blue']) {
-      light.push(await bounds(dialog.locator(`.swatch-${family}-light`)));
-      dark.push(await bounds(dialog.locator(`.swatch-${family}-dark`)));
+    await dialog.locator('.preferences-tabs').getByRole('button', {name: tx('appearance'), exact: true}).click();
+    const modes = dialog.getByRole('radiogroup', {name: tx('appearanceMode'), exact: true}).getByRole('radio');
+    const accents = dialog.getByRole('radiogroup', {name: tx('accentColor'), exact: true}).getByRole('radio');
+    await expect(modes).toHaveText([tx('appearanceAuto'), tx('appearanceLight'), tx('appearanceDark')]);
+    await expect(accents).toHaveCount(3);
+    for (const [index, key] of (['accentPurple', 'accentGreen', 'accentBlue'] as const).entries()) await expect(accents.nth(index)).toHaveAttribute('aria-label', tx(key));
+    for (const radios of [modes, accents]) {
+      const boxes: {x: number; y: number; width: number; height: number}[] = [];
+      for (const radio of await radios.all()) { await reachable(radio); boxes.push(await bounds(radio)); }
+      for (let index = 1; index < boxes.length; index++) {
+        expect(Math.abs(boxes[index].y + boxes[index].height / 2 - boxes[0].y - boxes[0].height / 2)).toBeLessThanOrEqual(1);
+        expect(boxes[index - 1].x + boxes[index - 1].width).toBeLessThan(boxes[index].x);
+      }
     }
-    for (let index = 0; index < 3; index++) {
-      expect(Math.abs(light[index].y - light[0].y)).toBeLessThanOrEqual(1);
-      expect(Math.abs(dark[index].y - dark[0].y)).toBeLessThanOrEqual(1);
-      expect(Math.abs(light[index].x - dark[index].x)).toBeLessThanOrEqual(1);
-      expect(light[index].y + light[index].height).toBeLessThan(dark[index].y);
-      if (index > 0) expect(light[index - 1].x + light[index - 1].width).toBeLessThan(light[index].x);
-    }
-    await dialog.locator('.swatch-green-light').click();
-    await expect(dialog.locator('.swatch-green-light')).toHaveAttribute('aria-pressed', 'true');
+    await accents.nth(1).click();
+    await modes.nth(1).click();
+    await expect(accents.nth(1)).toHaveAttribute('aria-checked', 'true');
+    await expect(modes.nth(1)).toHaveAttribute('aria-checked', 'true');
     await expect(page.locator('html')).toHaveAttribute('data-theme', 'green-light');
     await expect.poll(async () => (await saved(page)).theme).toBe('green-light');
     await page.screenshot({path: info.outputPath(`appearance-${language}-125.png`), animations: 'disabled'});
@@ -119,7 +125,7 @@ test('adjacent save actions preserve distinct workspace and named-task snapshots
   await page.getByRole('button', {name: t('rightToLeft'), exact: true}).click();
   await chooseMode(page, 'sync');
   await page.getByTestId('right-pane').getByRole('checkbox', {name: `${t('selected')} Documents`, exact: true}).check();
-  const heading = page.locator('.workspace-heading');
+  const heading = page.locator('.app-toolbar .workspace-save-actions');
   await heading.getByRole('button', {name: t('rememberWorkspace'), exact: true}).click();
   await expect.poll(async () => (await saved(page)).savedWorkspace).not.toBeNull();
   const workspaceSettings = await saved(page), workspace = workspaceSettings.savedWorkspace!;
@@ -157,34 +163,28 @@ test('adjacent save actions preserve distinct workspace and named-task snapshots
   } finally { await restarted.close(); }
 });
 
+// The operation description paragraph was removed: explanations are the rail's operation help
+// and the options form's label help, and the picker names the chosen operation.
+const detailKey = {copy: 'copyDetail', sync: 'syncDetail', move: 'moveDetail'} as const;
 for (const language of ['zh-TW', 'en', 'ja'] as const) {
-  test(`${language}: copy, sync and move explanations use the full column and a neutral text color`, async ({page}) => {
+  test(`${language}: copy, sync and move explanations follow the chosen operation in help and in the options form`, async ({page}) => {
     const tx = translator(language);
     await open(page, {language});
-    for (const theme of ['purple-light', 'purple-dark']) {
-      await page.evaluate(theme => { document.documentElement.dataset.theme = theme; }, theme);
-      for (const mode of ['copy', 'sync', 'move'] as const) {
-        await chooseMode(page, mode, language);
-        const hint = page.locator('.operation-hint');
-        await expect(hint).toHaveText(tx(mode === 'copy' ? 'copyHint' : mode === 'sync' ? 'syncHint' : 'moveHint'));
-        const [hintBox, pickerBox] = await Promise.all([bounds(hint), bounds(page.getByTestId('operation-picker'))]);
-        expect(Math.abs(hintBox.x - pickerBox.x)).toBeLessThanOrEqual(1);
-        expect(Math.abs(hintBox.width - pickerBox.width)).toBeLessThanOrEqual(1);
-        const style = await hint.evaluate(element => {
-          const computed = getComputedStyle(element), reference = document.createElement('span');
-          reference.style.color = 'var(--muted)'; element.append(reference);
-          const neutralColor = getComputedStyle(reference).color; reference.remove();
-          return {color: computed.color, neutralColor, align: computed.textAlign, wrap: computed.getPropertyValue('text-wrap'), overflowing: element.scrollWidth > element.clientWidth + 1};
-        });
-        expect(style.color).toBe(style.neutralColor);
-        expect(['start', 'left']).toContain(style.align);
-        expect(style.wrap).not.toContain('balance');
-        expect(style.overflowing).toBe(false);
-        await expect(hint).not.toHaveClass(/\bcaution\b/);
-      }
+    const help = page.locator('.transfer-controls .rail-group .info-tooltip-trigger');
+    await expect(help).toHaveCount(1);
+    for (const mode of ['copy', 'sync', 'move'] as const) {
+      await chooseMode(page, mode, language);
+      await expect(page.getByTestId('operation-picker')).toHaveText(tx(mode));
+      await expect(help).toHaveAccessibleDescription(tx(detailKey[mode]));
+      await expect(page.locator('.operation-hint')).toHaveCount(0);
+      await page.locator('.options-button').click();
+      const dialog = page.locator('.options-dialog'), select = dialog.getByTestId('transfer-mode');
+      await expect(select).toHaveValue(mode);
+      await expect(dialog.locator(`label[for="${await select.getAttribute('id')}"]`)).toHaveAttribute('title', tx(detailKey[mode]));
+      await expect(dialog.locator('.options-mode-hint')).toHaveCount(0);
+      await dialog.getByRole('button', {name: tx('cancel'), exact: true}).click();
+      await expect(dialog).toHaveCount(0);
     }
-    await page.locator('.options-button').click();
-    await expect(page.locator('.options-mode-hint')).not.toHaveClass(/\bcaution\b/);
     expect(await calls(page, 'startTransfer')).toHaveLength(0);
   });
 }
@@ -203,7 +203,6 @@ test('a configured speed limit remains visible in a compact window; unlimited re
   for (const bandwidth of ['off', '0', '', '12M']) {
     await page.locator('.options-button').click();
     const dialog = page.locator('.options-dialog');
-    await dialog.getByRole('button', {name: t('transferPerformance'), exact: true}).click();
     await expect(dialog.getByLabel(t('transfers'), {exact: true})).toHaveValue('7');
     await expect(dialog.getByLabel(t('checkers'), {exact: true})).toHaveValue('10');
     await dialog.getByLabel(t('bandwidth'), {exact: true}).fill(bandwidth);

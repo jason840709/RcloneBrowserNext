@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Copy, TreeStructure, HardDrives, Stop, Play, ArrowClockwise } from '@phosphor-icons/react';
 import type { Endpoint, Language, MountOptions, Selection, ToolSession } from '../shared/types';
 import type { Translate } from './i18n';
-import { Checkbox, Dialog, Field, Notice } from './components';
+import { Checkbox, Dialog, Field, Notice, FloatingNotice } from './components';
 import { endpointText, errorMessage, formatDate } from './utils';
 
 export type ToolAction = 'tree' | 'exportCSV' | 'exportTXT' | 'link' | 'mount' | 'stream';
@@ -42,7 +42,7 @@ export function ToolDialog({target,t,onClose,onSession}: {target: ToolTarget; t:
   const title=t(target.action==='tree'?'directoryTree':target.action==='link'?'publicLink':'mountRemote');
   return <Dialog title={title} t={t} onClose={onClose} className={target.action==='tree'?'tree-dialog':'small-dialog'}><div className="dialog-body">
     <p className="tool-location">{endpointText(target.endpoint)}{target.item?` / ${target.item.name}`:''}</p>
-    {error&&<Notice kind="error">{error}</Notice>}{notice&&<Notice kind="success">{notice}</Notice>}
+    {error&&<Notice kind="error">{error}</Notice>}<FloatingNotice message={notice} onClose={() => setNotice('')}/>
     {target.action==='tree'&&<><div className="tree-controls"><Field label={t('maxDepth')}><select value={depth} disabled={busy} onChange={event=>{const next=Number(event.target.value);setDepth(next);void loadTree(next);}}>{[1,2,3,4,5,8].map(value=><option key={value} value={value}>{value}</option>)}</select></Field><button type="button" disabled={busy} onClick={()=>void loadTree(depth)}><ArrowClockwise size={16}/>{t('refresh')}</button></div>{truncated&&<Notice kind="warning">{t('treeTruncated')}</Notice>}</>}
     {(target.action==='tree'||target.action==='link')&&(busy?<p role="status">{t('processing')}</p>:<pre className="tool-output" tabIndex={0}>{text}</pre>)}
     {target.action==='mount'&&<><p className="section-hint">{t('mountHint')}</p><div className="checkbox-stack"><Checkbox checked={mount.readOnly} onChange={readOnly=>setMount(old=>({...old,readOnly}))}>{t('readOnlyMount')}</Checkbox></div><Field label={t('mountCache')}><select value={mount.cacheMode} onChange={event=>setMount(old=>({...old,cacheMode:event.target.value as MountOptions['cacheMode']}))}><option value="off">{t('cacheOff')}</option><option value="minimal">{t('cacheMinimal')}</option><option value="writes">{t('cacheWrites')}</option><option value="full">{t('cacheFull')}</option></select></Field></>}

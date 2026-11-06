@@ -235,7 +235,7 @@ import Foundation
                     "Could not double-click \(side.rawValue)/\(name) in the production file table")
     }
     private static func activate(_ side: Side, in view: RcloneWebView) throws {
-        _ = try evaluate("document.activeElement?.blur();\(pane(side)).querySelector('.pane-heading').dispatchEvent(new PointerEvent('pointerdown',{bubbles:true}));true", in: view)
+        _ = try evaluate("document.activeElement?.blur();\(pane(side)).querySelector('.pane-header').dispatchEvent(new PointerEvent('pointerdown',{bubbles:true}));true", in: view)
         try waitForScript("\(pane(side)).classList.contains('pane-active')", in: view)
     }
     private static func swipe(_ side: Side, forward: Bool = false, time: TimeInterval? = nil, in view: RcloneWebView) throws -> SwipeEvent {

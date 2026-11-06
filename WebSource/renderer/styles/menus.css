@@ -1,0 +1,18 @@
+/* Operation menu: presets with a description line, then the three basic modes. */
+.operation-menu { position: fixed; width: 270px; max-height: calc(100vh - 21.5px); overflow-y: auto; }
+.operation-menu .preset-menu-row { position: relative; display: flex; align-items: stretch; }
+.operation-menu .preset-menu-row > button[role="menuitemradio"] { min-height: 36px; padding: 4.5px 9px 4.5px 7px; align-items: center; }
+.operation-menu .preset-menu-row > button[role="menuitemradio"] > span { display: flex; flex-direction: column; gap: 1px; min-width: 0; flex: 1; white-space: normal; }
+.operation-menu .preset-menu-row strong { font-weight: 500; font-size: var(--fs-body); }
+.operation-menu .preset-menu-row small { color: var(--secondary); font-size: var(--fs-callout); line-height: 1.35; }
+.operation-menu .preset-menu-row > button[role="menuitemradio"] > svg:last-child { color: inherit; }
+.operation-menu .preset-hide {
+  position: absolute; right: 5.5px; top: 5.5px; z-index: 1; width: 16px; height: 16px; min-height: 16px; padding: 0; border-radius: 50%;
+  background: var(--fill-strong); border: none; box-shadow: none; color: var(--secondary); opacity: 0; transition: opacity var(--t-hover);
+}
+.operation-menu .preset-menu-row:hover .preset-hide, .operation-menu .preset-hide:focus-visible { opacity: 1; }
+.operation-menu .preset-menu-row:hover > button[role="menuitemradio"] > svg:last-child { opacity: 0; }
+.operation-menu .preset-hide:hover { background: var(--red-fill); color: #FFFFFF; }
+.operation-menu .preset-hide svg { width: 9px; height: 9px; }
+.operation-menu-mode { padding-left: 3.5px !important; }
+.operation-menu-note { padding: 6px 10px 4px; font-size: var(--fs-callout); color: var(--secondary); line-height: 1.4; }

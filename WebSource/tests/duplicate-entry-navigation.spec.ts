@@ -97,7 +97,7 @@ test('same-name rows keep their individual metadata through sorting and filterin
   await expect(pane(page).locator('.file-list')).toHaveAttribute('aria-busy', 'false');
   await expect(names(page)).toHaveText(rootNames);
   const rootReads = await listCalls(page, '');
-  const search = pane(page).getByRole('textbox', { name: `${t('right')} ${t('search')}`, exact: true });
+  const search = pane(page).getByRole('searchbox', { name: `${t('right')} ${t('search')}`, exact: true });
   await search.fill(duplicateName);
   await expect(names(page)).toHaveText([duplicateName, duplicateName]);
   const sizes = pane(page).locator('tbody tr[data-index] td.numeric');

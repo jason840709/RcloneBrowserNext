@@ -1,6 +1,8 @@
 export type ResolvedLanguage = 'zh-TW' | 'en' | 'ja';
 export type Language = ResolvedLanguage | 'system';
-export type Theme = 'purple-dark' | 'purple-light' | 'blue-dark' | 'blue-light' | 'green-dark' | 'green-light';
+export type ThemeAccent = 'purple' | 'blue' | 'green';
+export type ThemeMode = 'light' | 'dark' | 'auto';
+export type Theme = `${ThemeAccent}-${ThemeMode}`;
 export type InterfaceScale = 80 | 90 | 100 | 110 | 120 | 125 | 135;
 export interface Endpoint { remote: string | null; path: string }
 export interface RemoteInfo { name: string; type: string; group?: 'cloud' | 'network' | 'other' }
@@ -33,7 +35,7 @@ export interface TransferRequest {
 export interface TransferFile { name: string; size: number; bytes: number; percentage: number; speed: number; speedAvg: number; eta: number | null }
 export interface TransferStats {
   bytes: number; totalBytes: number; speed: number; eta: number | null; transfers: number; totalTransfers: number;
-  speedKind?: 'rolling' | 'overall'; speedWindowSeconds?: number; averageSpeed?: number; filesPerSecond?: number; etaSource?: 'bytes' | 'files' | null;
+  speedKind?: 'rolling' | 'overall'; speedState?: 'measuring' | 'live' | 'hidden'; speedWindowSeconds?: number; averageSpeed?: number; filesPerSecond?: number; etaSource?: 'bytes' | 'files' | null;
   checks: number; totalChecks: number; listed?: number; errors: number; deletes: number; elapsedTime: number; transferring: TransferFile[];
 }
 export type JobStatus = 'queued' | 'running' | 'cancelling' | 'completed' | 'failed' | 'cancelled' | 'interrupted';
@@ -67,7 +69,10 @@ export interface ClearJobsRequest {ids: string[]; mode: 'finished' | 'stop-and-c
 export interface ClearJobsResult {removedIds: string[]; retainedIds: string[]; stoppedIds: string[]; forcedStopIds: string[]}
 export interface SavedTask { validationError?: string; id: string; name: string; request: TransferRequest; createdAt: string; updatedAt: string }
 export interface PaneColumnWidths { name: number; size: number; modified: number }
-export type MenuAction = {action: 'settings' | 'help' | 'configureRemotes' | 'about' | 'checkAppUpdates' | 'checkForUpdates'} | {action: 'language'; language: Language};
+export type AppPage = 'files' | 'jobs' | 'tasks';
+export type MenuAction = {action: 'settings' | 'help' | 'configureRemotes' | 'configureTerminal' | 'about' | 'checkAppUpdates' | 'checkForUpdates' | 'rememberWorkspace' | 'saveTask' | 'dismissModal'} | {action: 'language'; language: Language} | {action: 'page'; page: AppPage};
+/** State the Mac host mirrors in its native toolbar. */
+export interface ChromeState { page: AppPage; activeJobs: number; ready: boolean; canRememberWorkspace: boolean; canSaveTask: boolean; modalOpen: boolean }
 export interface SavedWorkspace { left: Endpoint; right: Endpoint; direction: 'lr' | 'rl'; mode: TransferMode; options: TransferOptions }
 export interface NetworkOptions { bindMode: 'auto' | 'ipv4' | 'ipv6' | 'address'; bindAddress: string; connectTimeout: string; ioTimeout: string; tpsLimit: number; tpsBurst: number; userAgent: string; disableHTTP2: boolean }
 export interface Settings {
@@ -145,6 +150,8 @@ export interface AppAPI {
   onUpdateStatus(callback: (status: UpdateStatus) => void): () => void;
   onConfigurationChanged(callback: () => void): () => void;
   onMenuAction(callback: (action: MenuAction) => void): () => void;
+  /** Present only when the Mac host draws the window toolbar natively. */
+  setChrome?(state: ChromeState): Promise<void>;
 }
 export const DEFAULT_OPTIONS: TransferOptions = {
   transfers: 4, checkers: 8, bandwidth: '', comparison: 'default', skipExisting: false, updateOnly: false,

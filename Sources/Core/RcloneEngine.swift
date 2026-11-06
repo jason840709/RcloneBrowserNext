@@ -25,6 +25,8 @@ final class RcloneEngine {
     private var settings: [String: Any]
     private var environment: [String: Any]
     private var jobs: [String: EngineJob] = [:]
+    /// Per-job throughput meters (guarded by stateLock), see EngineThroughput.swift.
+    private var throughputs: [String: EngineThroughput] = [:]
     private var jobOrder: [String] = []
     private var tasks: [String: EngineTask] = [:]
     private var active: [String: EngineActiveJob] = [:]
@@ -115,7 +117,7 @@ final class RcloneEngine {
     }
 
     static func defaultSettings(directory: URL) -> [String: Any] {
-        ["rclonePath": "", "rcloneDirectory": directory.path, "configPath": "", "language": "system", "theme": "purple-dark", "interfaceScale": 100,
+        ["rclonePath": "", "rcloneDirectory": directory.path, "configPath": "", "language": "system", "theme": "purple-auto", "interfaceScale": 100,
          "autoCheckUpdates": true, "skippedRcloneVersion": "", "settingsRevision": 0, "settingsSchemaVersion": 7,
          "paneColumnWidths": [String: Any](), "defaultTransferOptions": EngineTransferOptions.defaults,
          "hiddenBuiltinPresets": [String](),
@@ -1041,7 +1043,7 @@ final class RcloneEngine {
                 try appLog(job, running: running, level: "info", message: EngineLocalCopyPolicy.message)
             }
             try appLog(job, running: running, level: "info", message: job.request.dryRun ? "開始預演。" : "開始傳輸。")
-            stateLock.holding { job.progress.start() }
+            stateLock.holding { var meter = EngineThroughput(); meter.start(); throughputs[job.id] = meter }
             let result = try runProcess(args, timeout: nil, activeJob: running,
                                         lines: { [self] line in consumeLine(line, job: job, running: running) },
                                         stdoutLines: { [self] line, terminated in consumeComparisonLine(line, terminated: terminated, report: reporter, job: job, running: running) }, checked: false)
@@ -1084,7 +1086,7 @@ final class RcloneEngine {
             job.status = finalStatus
             job.endedAt = EngineJSON.now()
             if running.cancel { job.cancellation?.processExited = true }
-            job.stats = job.progress.finish(job.stats, completed: job.status == "completed")
+            job.stats = (throughputs.removeValue(forKey: job.id) ?? EngineThroughput()).finish(job.stats, completed: job.status == "completed")
         }
         do {
             let (message, level): (String, String) = stateLock.holding {
@@ -1127,7 +1129,9 @@ final class RcloneEngine {
         }
         stateLock.holding {
             if let stats = raw["stats"] as? [String: Any] {
-                job.stats = job.progress.update(stats, previous: job.stats)
+                var meter = throughputs[job.id] ?? EngineThroughput()
+                job.stats = meter.update(stats, previous: job.stats)
+                throughputs[job.id] = meter
                 if let error = stats["lastError"] as? String, !error.isEmpty { job.error = String(error.prefix(16000)) }
             } else {
                 let message = String((raw["msg"] as? String ?? raw["error"] as? String ?? "rclone 記錄").prefix(16000))
@@ -1398,8 +1402,11 @@ final class RcloneEngine {
         }
         let language = try EngineJSON.text(merged["language"], "語言")
         var theme = try EngineJSON.text(merged["theme"], "外觀")
-        theme = ["dark": "blue-dark", "light": "blue-light", "system": "purple-dark"][theme] ?? theme
-        guard ["system", "zh-TW", "en", "ja"].contains(language), ["purple-dark", "purple-light", "blue-dark", "blue-light", "green-dark", "green-light"].contains(theme) else {
+        // Appearance is "<accent>-<mode>"; "auto" follows the system light/dark setting.
+        theme = ["dark": "blue-dark", "light": "blue-light", "system": "purple-auto"][theme] ?? theme
+        let themeParts = theme.split(separator: "-", omittingEmptySubsequences: false)
+        guard ["system", "zh-TW", "en", "ja"].contains(language), themeParts.count == 2,
+              ["purple", "blue", "green"].contains(String(themeParts[0])), ["dark", "light", "auto"].contains(String(themeParts[1])) else {
             throw EngineError("語言或外觀設定不正確。")
         }
         output["language"] = language; output["theme"] = theme

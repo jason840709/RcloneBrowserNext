@@ -1,6 +1,7 @@
 import type { Page, Locator } from '@playwright/test';
-import type { Bootstrap, FileEntry, Job, Settings, RemoteInfo } from '../shared/types.ts';
+import type { Bootstrap, FileEntry, Job, Language, Settings, RemoteInfo } from '../shared/types.ts';
 import { DEFAULT_OPTIONS } from '../shared/types.ts';
+import { translator } from '../renderer/i18n.ts';
 
 export const unusualName = '<img src=x onerror="window.__unsafe=1"> & "照片".txt';
 export const chosenFolder = '/Users/test/Rclone Engine & Scripts';
@@ -198,4 +199,34 @@ export async function selectPlace(trigger: Locator, value: string) {
   await trigger.click();
   const option = trigger.page().locator(`.location-popup [role="option"][data-value=${JSON.stringify(value)}]`);
   await option.click();
+}
+
+const escapeRegExp = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+/** The pane's `⋯` menu item whose name starts with `label` (items may carry a shortcut or an ellipsis). */
+export async function paneMenuItem(pane: Locator, label: string) {
+  await pane.locator('.pane-more-menu summary').click();
+  return pane.locator('.pane-more-content').getByRole('menuitem', {name: new RegExp(`^${escapeRegExp(label)}`)});
+}
+
+/** "New location tab" lives in the pane's `⋯` menu (and ⌘T); the tab strip only appears with two or more tabs. */
+export async function newTab(pane: Locator, language: Language = 'zh-TW') {
+  await (await paneMenuItem(pane, translator(language)('newTab'))).click();
+}
+
+/** "Choose local folder…" also moved into the pane's `⋯` menu. */
+export async function chooseLocalFolder(pane: Locator, language: Language = 'zh-TW') {
+  await (await paneMenuItem(pane, translator(language)('chooseFolder'))).click();
+}
+
+/** The toolbar's settings button (gear icon on the right of the web toolbar). */
+export async function openSettings(page: Page) {
+  await page.locator('.app-toolbar .settings-button').click();
+  return page.locator('dialog.settings-dialog');
+}
+
+/** Terminal configuration moved from a toolbar link into the application menu. */
+export async function openTerminalConfig(page: Page, language: Language = 'zh-TW') {
+  await page.locator('.application-menu summary').click();
+  await page.locator('.application-menu').getByRole('menuitem', {name: translator(language)('terminalConfig'), exact: true}).click();
 }

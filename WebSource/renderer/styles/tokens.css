@@ -1,0 +1,267 @@
+/*
+ * Design tokens — the only place sizes, colours and motion values are defined.
+ * The full rules (which token to use where) are in docs/DESIGN_SYSTEM.md.
+ *
+ * Scale: at the default 100% interface size one CSS pixel is one macOS point
+ * (WebKit pageZoom 1.0), so every value below is in points, like Finder:
+ * 13 pt list text, 16 pt list icons, 11 pt column headers.
+ */
+:root {
+  --font-text: -apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang TC", "Hiragino Sans", "Noto Sans CJK TC", "Microsoft JhengHei", system-ui, sans-serif;
+  --font-mono: ui-monospace, "SF Mono", "SFMono-Regular", Menlo, Consolas, monospace;
+
+  /* Type ramp (macOS text styles). Weight and colour are part of each role. */
+  --fs-display: 17px;   /* page titles, 700 */
+  --fs-title: 15px;     /* sheet titles, 600 */
+  --fs-heading: 13px;   /* section headings, 600, label colour */
+  --fs-body: 13px;      /* list rows, controls, form values, 400 */
+  --fs-callout: 12px;   /* supporting text under a control, metrics, 400, secondary */
+  --fs-label: 11px;     /* small group labels and column headers, 600/500, secondary */
+  --fs-caption: 11px;   /* status bar, timestamps, 400, secondary */
+  --fs-mini: 10px;      /* badges only */
+  --fs-mono: 12px;
+  /* Older names kept as aliases while components migrate. */
+  --fs-title3: var(--fs-title);
+  --fs-title2: var(--fs-display);
+  --fs-title1: 22px;
+  --lh-body: 1.38;
+
+  /* Control metrics. */
+  --control-h: 26px;
+  --control-h-small: 22px;
+  --control-h-large: 30px;
+  --field-h: 24px;
+  --row-h: 22px;
+  --icon: 16px;          /* list and toolbar icons */
+  --icon-small: 14px;    /* icons inside text-sized buttons */
+
+  /* Shape: pressable things are capsules; things you type into are rounded
+     rectangles; containers get larger, concentric radii. */
+  --r-control: 999px;
+  --r-field: 6px;
+  --r-group: 10px;
+  --r-card: 10px;
+  --r-menu: 10px;
+  --r-sheet: 16px;
+
+  /* Spacing (4-pt grid). */
+  --sp-1: 4px; --sp-2: 8px; --sp-3: 12px; --sp-4: 16px; --sp-5: 20px; --sp-6: 24px; --sp-8: 32px;
+
+  /* Motion: one system for the whole app (native chrome uses the same values).
+     Enter with ease-out or glide, exit at about two thirds of the time, never
+     overshoot, animate transform and opacity (and colour), never block input. */
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-glide: cubic-bezier(0.32, 0.72, 0, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --spring: var(--ease-glide);
+  --ease-in: var(--ease-out);
+  --d-press: 100ms;
+  --d-hover: 120ms;
+  --d-fade: 160ms;
+  --d-pop: 200ms;
+  --d-expand: 240ms;
+  --d-glide: 280ms;
+  --d-page: 300ms;
+  --d-sheet-in: 260ms;
+  --d-sheet-out: 180ms;
+  --d-scrim-in: 220ms;
+  --d-scrim-out: 160ms;
+  --d-tooltip-delay: 400ms;
+  /* Older names. */
+  --t-press: var(--d-press); --t-hover: var(--d-hover); --t-fast: var(--d-fade);
+  --t-sheet-in: var(--d-sheet-in); --t-sheet-out: var(--d-sheet-out); --t-popover-in: var(--d-pop);
+}
+
+/* ---------- Light appearance ---------- */
+:root, :root[data-theme$="-light"] {
+  color-scheme: light;
+  --window: #EDEDED;
+  --window-top: #F2F2F2;
+  --pane: #FCFCFC;
+  --pane-header: #F6F6F6;
+  --rail: #F4F4F4;
+  --row-alt: #F3F3F3;
+  --sheet: #F5F5F5;
+  --group: #FFFFFF;
+  --group-border: rgba(0, 0, 0, 0.07);
+  --label: #1D1D1D;
+  --secondary: #5C5C5C;
+  --tertiary: #6E6E6E;
+  --quaternary: #C2C2C2;
+  --separator: rgba(0, 0, 0, 0.09);
+  --separator-strong: rgba(0, 0, 0, 0.16);
+  --grid: rgba(0, 0, 0, 0.05);
+  --fill: rgba(0, 0, 0, 0.045);
+  --fill-strong: rgba(0, 0, 0, 0.08);
+  --fill-pressed: rgba(0, 0, 0, 0.12);
+  --control: #FFFFFF;
+  --control-hover: #FFFFFF;
+  --control-pressed: #EBEBEB;
+  --control-border: rgba(0, 0, 0, 0.08);
+  --control-shadow: 0 0.5px 1.5px rgba(0, 0, 0, 0.16), 0 0 0 0.5px rgba(0, 0, 0, 0.10), inset 0 0.5px 0 rgba(255, 255, 255, 0.9);
+  --field: #FFFFFF;
+  --field-border: rgba(0, 0, 0, 0.15);
+  --field-shadow: inset 0 0.5px 1px rgba(0, 0, 0, 0.07);
+  --segment-track: rgba(0, 0, 0, 0.06);
+  --segment-track-border: rgba(0, 0, 0, 0.03);
+  --segment-thumb: #FFFFFF;
+  --segment-shadow: 0 1px 2px rgba(0, 0, 0, 0.14), 0 0 0 0.5px rgba(0, 0, 0, 0.06);
+  --unemphasized-selection: #E4E4E4;
+  --menu: rgba(248, 248, 248, 0.88);
+  --menu-solid: #F7F7F7;
+  --menu-border: rgba(0, 0, 0, 0.11);
+  --menu-shadow: 0 10px 28px rgba(0, 0, 0, 0.14), 0 2px 6px rgba(0, 0, 0, 0.06);
+  --tooltip: rgba(252, 252, 252, 0.97);
+  --sheet-shadow: 0 20px 54px rgba(0, 0, 0, 0.20), 0 3px 10px rgba(0, 0, 0, 0.08), 0 0 0 0.5px rgba(0, 0, 0, 0.06);
+  --scrim: rgba(0, 0, 0, 0.14);
+  --green: #3D7051;  --green-fill: #5E8F6E; --green-tint: rgba(94, 143, 110, 0.14);
+  --red: #964942;    --red-fill: #A35A52;   --red-tint: rgba(181, 87, 79, 0.11);
+  --orange: #87602A; --orange-fill: #B68A45; --orange-tint: rgba(182, 138, 69, 0.15);
+  --blue-info: #4F6A86;
+  --scrollbar: rgba(0, 0, 0, 0.24);
+  --selection-mix: 20%;
+}
+
+/* ---------- Dark appearance ---------- */
+:root[data-theme$="-dark"] {
+    color-scheme: dark;
+    --window: #252525;
+    --window-top: #2A2A2A;
+    --pane: #1D1D1D;
+    --pane-header: #222222;
+    --rail: #212121;
+    --row-alt: #222222;
+    --sheet: #2A2A2A;
+    --group: rgba(255, 255, 255, 0.045);
+    --group-border: rgba(255, 255, 255, 0.06);
+    --label: #EDEDED;
+    --secondary: #A8A8A8;
+    --tertiary: #8A8A8A;
+    --quaternary: #4E4E4E;
+    --separator: rgba(255, 255, 255, 0.09);
+    --separator-strong: rgba(255, 255, 255, 0.16);
+    --grid: rgba(255, 255, 255, 0.05);
+    --fill: rgba(255, 255, 255, 0.06);
+    --fill-strong: rgba(255, 255, 255, 0.10);
+    --fill-pressed: rgba(255, 255, 255, 0.15);
+    --control: rgba(255, 255, 255, 0.10);
+    --control-hover: rgba(255, 255, 255, 0.145);
+    --control-pressed: rgba(255, 255, 255, 0.18);
+    --control-border: rgba(255, 255, 255, 0.09);
+    --control-shadow: 0 1px 1.5px rgba(0, 0, 0, 0.30), 0 0 0 0.5px rgba(255, 255, 255, 0.07), inset 0 0.5px 0 rgba(255, 255, 255, 0.12);
+    --field: rgba(0, 0, 0, 0.24);
+    --field-border: rgba(255, 255, 255, 0.11);
+    --field-shadow: inset 0 1px 1.5px rgba(0, 0, 0, 0.22);
+    --segment-track: rgba(0, 0, 0, 0.22);
+    --segment-track-border: rgba(255, 255, 255, 0.06);
+    --segment-thumb: rgba(255, 255, 255, 0.15);
+    --segment-shadow: 0 1px 2px rgba(0, 0, 0, 0.38), inset 0 0.5px 0 rgba(255, 255, 255, 0.13);
+    --unemphasized-selection: #343434;
+    --menu: rgba(44, 44, 44, 0.86);
+    --menu-solid: #2D2D2D;
+    --menu-border: rgba(255, 255, 255, 0.11);
+    --menu-shadow: 0 12px 30px rgba(0, 0, 0, 0.46), 0 2px 6px rgba(0, 0, 0, 0.26);
+    --tooltip: rgba(48, 48, 48, 0.97);
+    --sheet-shadow: 0 22px 58px rgba(0, 0, 0, 0.52), 0 0 0 0.5px rgba(255, 255, 255, 0.10);
+    --scrim: rgba(0, 0, 0, 0.32);
+    --green: #93BFA1;  --green-fill: #6F9A7D; --green-tint: rgba(111, 154, 125, 0.18);
+    --red: #D79D96;    --red-fill: #A35A52;   --red-tint: rgba(191, 110, 101, 0.18);
+    --orange: #D8B57E; --orange-fill: #B8945A; --orange-tint: rgba(184, 148, 90, 0.18);
+    --blue-info: #9FB4CC;
+    --scrollbar: rgba(255, 255, 255, 0.26);
+    --selection-mix: 34%;
+}
+@media (prefers-color-scheme: dark) {
+  :root[data-theme$="-auto"] {
+    color-scheme: dark;
+    --window: #252525;
+    --window-top: #2A2A2A;
+    --pane: #1D1D1D;
+    --pane-header: #222222;
+    --rail: #212121;
+    --row-alt: #222222;
+    --sheet: #2A2A2A;
+    --group: rgba(255, 255, 255, 0.045);
+    --group-border: rgba(255, 255, 255, 0.06);
+    --label: #EDEDED;
+    --secondary: #A8A8A8;
+    --tertiary: #8A8A8A;
+    --quaternary: #4E4E4E;
+    --separator: rgba(255, 255, 255, 0.09);
+    --separator-strong: rgba(255, 255, 255, 0.16);
+    --grid: rgba(255, 255, 255, 0.05);
+    --fill: rgba(255, 255, 255, 0.06);
+    --fill-strong: rgba(255, 255, 255, 0.10);
+    --fill-pressed: rgba(255, 255, 255, 0.15);
+    --control: rgba(255, 255, 255, 0.10);
+    --control-hover: rgba(255, 255, 255, 0.145);
+    --control-pressed: rgba(255, 255, 255, 0.18);
+    --control-border: rgba(255, 255, 255, 0.09);
+    --control-shadow: 0 1px 1.5px rgba(0, 0, 0, 0.30), 0 0 0 0.5px rgba(255, 255, 255, 0.07), inset 0 0.5px 0 rgba(255, 255, 255, 0.12);
+    --field: rgba(0, 0, 0, 0.24);
+    --field-border: rgba(255, 255, 255, 0.11);
+    --field-shadow: inset 0 1px 1.5px rgba(0, 0, 0, 0.22);
+    --segment-track: rgba(0, 0, 0, 0.22);
+    --segment-track-border: rgba(255, 255, 255, 0.06);
+    --segment-thumb: rgba(255, 255, 255, 0.15);
+    --segment-shadow: 0 1px 2px rgba(0, 0, 0, 0.38), inset 0 0.5px 0 rgba(255, 255, 255, 0.13);
+    --unemphasized-selection: #343434;
+    --menu: rgba(44, 44, 44, 0.86);
+    --menu-solid: #2D2D2D;
+    --menu-border: rgba(255, 255, 255, 0.11);
+    --menu-shadow: 0 12px 30px rgba(0, 0, 0, 0.46), 0 2px 6px rgba(0, 0, 0, 0.26);
+    --tooltip: rgba(48, 48, 48, 0.97);
+    --sheet-shadow: 0 22px 58px rgba(0, 0, 0, 0.52), 0 0 0 0.5px rgba(255, 255, 255, 0.10);
+    --scrim: rgba(0, 0, 0, 0.32);
+    --green: #93BFA1;  --green-fill: #6F9A7D; --green-tint: rgba(111, 154, 125, 0.18);
+    --red: #D79D96;    --red-fill: #A35A52;   --red-tint: rgba(191, 110, 101, 0.18);
+    --orange: #D8B57E; --orange-fill: #B8945A; --orange-tint: rgba(184, 148, 90, 0.18);
+    --blue-info: #9FB4CC;
+    --scrollbar: rgba(255, 255, 255, 0.26);
+    --selection-mix: 34%;
+  }
+}
+
+/*
+ * Accent families: low-chroma plum, sage and slate, taken from the app icon.
+ * Where the accent appears (and nowhere else):
+ *   --accent       filled: primary button, checkboxes and radios, progress, count badge, menu highlight
+ *   --accent-text  ink: folder-adjacent icons in pickers, links, the selected tab/segment icon,
+ *                  the source role tag, focus rings, section icons in Settings tabs
+ *   --folder       folder icons in lists and pickers
+ *   --selection    selected rows in the active pane (accent mixed into the pane colour)
+ * Everything else stays neutral.
+ */
+:root[data-theme^="purple-"] { --accent: #6D5C81; --accent-pressed: #5F4E73; --accent-text: #5E4E72; --folder: #8F80A3; }
+:root[data-theme^="green-"] { --accent: #496F58; --accent-pressed: #3B604A; --accent-text: #3C604A; --folder: #6F917C; }
+:root[data-theme^="blue-"] { --accent: #4C6788; --accent-pressed: #3E5879; --accent-text: #3F5878; --folder: #718AA9; }
+:root[data-theme="purple-dark"] { --accent: #7A6A90; --accent-pressed: #6B5B80; --accent-text: #C9BCDA; --folder: #A496B6; }
+:root[data-theme="green-dark"] { --accent: #567C64; --accent-pressed: #4A6F58; --accent-text: #AECBB8; --folder: #8AA794; }
+:root[data-theme="blue-dark"] { --accent: #5A7496; --accent-pressed: #4D6788; --accent-text: #B0C4DD; --folder: #8DA2BC; }
+@media (prefers-color-scheme: dark) {
+  :root[data-theme="purple-auto"] { --accent: #7A6A90; --accent-pressed: #6B5B80; --accent-text: #C9BCDA; --folder: #A496B6; }
+  :root[data-theme="green-auto"] { --accent: #567C64; --accent-pressed: #4A6F58; --accent-text: #AECBB8; --folder: #8AA794; }
+  :root[data-theme="blue-auto"] { --accent: #5A7496; --accent-pressed: #4D6788; --accent-text: #B0C4DD; --folder: #8DA2BC; }
+}
+:root {
+  --accent-ink: #FFFFFF;
+  --selection: color-mix(in srgb, var(--accent) var(--selection-mix), var(--pane));
+  --accent-tint: color-mix(in srgb, var(--accent) 16%, transparent);
+  --accent-soft: color-mix(in srgb, var(--accent) 26%, transparent);
+  --accent-ring: color-mix(in srgb, var(--accent) 48%, transparent);
+}
+
+/* Accessibility: Increase Contrast and Reduce Transparency. */
+@media (prefers-contrast: more) {
+  :root {
+    --separator: rgba(127, 127, 127, 0.55);
+    --separator-strong: rgba(127, 127, 127, 0.75);
+    --control-border: rgba(127, 127, 127, 0.7);
+    --field-border: rgba(127, 127, 127, 0.75);
+    --secondary: var(--label);
+    --menu-border: rgba(127, 127, 127, 0.8);
+  }
+}
+@media (prefers-reduced-transparency: reduce) {
+  :root { --menu: var(--menu-solid); --tooltip: var(--menu-solid); }
+}

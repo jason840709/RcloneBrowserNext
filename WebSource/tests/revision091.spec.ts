@@ -28,32 +28,33 @@ async function update(page: Page, status: Job['status'], known = false, dry = fa
 const row = (page: Page) => page.getByTestId('job-fixture-job');
 
 for (const theme of ['purple-light','purple-dark','green-light','green-dark','blue-light','blue-dark'] as Theme[]) {
-  test(`0.9.1 ${theme}: unknown progress visibly moves and remains inside its track`, async ({page}, info) => {
+  test(`0.9.1 ${theme}: unknown progress visibly sweeps through its clipping track`, async ({page}, info) => {
     await page.emulateMedia({reducedMotion: 'no-preference'});
     await open(page, 'darwin', theme); await update(page, 'running');
     const track = row(page).getByRole('progressbar'), marker = track.locator('.progress-indicator');
     await expect(marker).toBeVisible(); await expect(track).not.toHaveAttribute('aria-valuenow');
     await expect(track).toHaveAttribute('aria-valuetext', t('scanning'));
     const samples = await marker.evaluate(async element => {
-      const result = [];
+      const result: {transform: string; background: string}[] = [];
       for (let index=0; index<5; index++) {
-        const r=element.getBoundingClientRect(), p=element.parentElement!.getBoundingClientRect();
-        result.push({x:r.x, right:r.right, left:p.x, end:p.right, transform:getComputedStyle(element).transform,
-          background:getComputedStyle(element.parentElement!).backgroundImage});
+        result.push({transform:getComputedStyle(element).transform, background:getComputedStyle(element.parentElement!).backgroundImage});
         await new Promise(resolve => setTimeout(resolve, 180));
       }
       return result;
     });
     expect(new Set(samples.map(s => s.transform)).size).toBeGreaterThan(1);
-    for (const s of samples) { expect(s.x).toBeGreaterThanOrEqual(s.left-1); expect(s.right).toBeLessThanOrEqual(s.end+1); expect(s.background).toBe('none'); }
-    // Step the animation to both ends to verify a real round trip, independent of scheduling jitter.
+    for (const s of samples) expect(s.background).toBe('none');
+    // Redesign: a one-way sweep that the rounded track clips (overflow hidden), instead of a bounce
+    // that stayed inside the track. Step the animation to verify it travels across the whole track.
     expect(await marker.evaluate(element => {
-      const animation = element.getAnimations()[0]; animation.pause();
-      animation.currentTime=0; const a=element.getBoundingClientRect().x;
-      animation.currentTime=1600; const b=element.getBoundingClientRect().x;
-      animation.currentTime=3200; const c=element.getBoundingClientRect().x;
-      return b>a+10 && Math.abs(c-a)<1;
-    })).toBe(true);
+      const track = element.parentElement!, box = track.getBoundingClientRect(), animation = element.getAnimations()[0];
+      const timing = animation.effect!.getComputedTiming(), duration = Number(timing.duration);
+      animation.pause();
+      animation.currentTime = 0; const start = element.getBoundingClientRect();
+      animation.currentTime = duration / 2; const middle = element.getBoundingClientRect();
+      animation.currentTime = duration - 1; const end = element.getBoundingClientRect();
+      return {clipped: getComputedStyle(track).overflow === 'hidden', infinite: timing.iterations === Infinity, startsBefore: start.right <= box.left + 1, crosses: middle.right > box.left && middle.left < box.right, endsAfter: end.left >= box.right - 2};
+    })).toEqual({clipped: true, infinite: true, startsBefore: true, crosses: true, endsAfter: true});
     await row(page).screenshot({path: info.outputPath(`progress-${theme}.png`)});
   });
 }
@@ -91,7 +92,7 @@ test('0.9.1 preview scanning animates, completed preview stops', async ({page}) 
 for (const platform of ['darwin','win32','linux']) {
   test(`0.9.1 ${platform}: Dock preference is Mac-only and independent of banner permission`, async ({page}) => {
     await open(page,platform); await page.locator('.main-nav button').first().click();
-    await page.locator('.workspace-heading').getByRole('button',{name:t('settings'),exact:true}).click();
+    await page.locator('.app-toolbar').getByRole('button',{name:t('settings'),exact:true}).click();
     await page.locator('.preferences-tabs').getByRole('button',{name:t('appearance'),exact:true}).click();
     const toggle=page.getByRole('checkbox',{name:t('bounceDockOnCompletion'),exact:true});
     if(platform==='darwin') {

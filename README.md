@@ -21,6 +21,10 @@
 
 **Mac 是主要開發平台**，另提供 Windows x64 與 Linux amd64 相容版；三平台使用同一個正式版本。[下載與更新說明](https://github.com/jason840709/RcloneBrowserNext/releases/latest) · [相容版安裝](docs/BUILD_COMPATIBILITY.md)
 
+[0.10.1 修正說明](docs/RELEASE_0.10.1.md)：修正捲到底會往上彈、設定提示不會消失等問題。
+
+[0.10.0 改版說明](docs/RELEASE_0.10.0.md)：傳輸速度改用最近 10 秒計算；介面重新設計，改用原生 macOS 工具列、自動淺色／深色外觀與低飽和配色。
+
 [0.9.6 修正說明](docs/RELEASE_0.9.6.md)：修正 Mac 本機複製留下鎖定暫存檔，新增逐檔核對後的修復工具。
 
 ## 這是什麼？

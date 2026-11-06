@@ -19,7 +19,7 @@ async function open(page: Page) {
       await expect(pane(page, side).locator('.file-list')).toHaveAttribute('aria-busy', 'false');
     }
   }
-  await pane(page, 'left').locator('.pane-side').click();
+  await pane(page, 'left').locator('.role-tag').click();
 }
 async function native(page: Page, direction: 'back'|'forward', side: 'left'|'right', phase: 'swipe'|'command') {
   await pane(page, side).evaluate((element, {direction, phase}) => {

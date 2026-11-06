@@ -1,6 +1,7 @@
 import { useEffect, useId, useLayoutEffect, useRef, useState, type KeyboardEvent } from 'react';
 import { createPortal } from 'react-dom';
-import { CaretDown, Check, Cloud, FolderOpen, HardDrives, MagnifyingGlass } from '@phosphor-icons/react';
+import { CaretDown, Check, Cloud, Desktop, DownloadSimple, FileText, FilmStrip, Folder, FolderOpen, HardDrive, HardDrives, House, Image, MagnifyingGlass, MusicNotes } from '@phosphor-icons/react';
+import type { ReactNode } from 'react';
 import type { Endpoint, LocalLocation, RemoteInfo } from '../shared/types';
 import type { Translate } from './i18n';
 import { Field, IconButton } from './components';
@@ -11,7 +12,25 @@ export function localLocationName(location: LocalLocation, t: Translate): string
   return location.id === 'volumes' ? t('volumesFolder') : location.kind === 'volume' ? location.name : t(labels[location.kind]);
 }
 
-type PlaceOption = {value: string; name: string; endpoint: Endpoint; disabled?: boolean};
+type PlaceKind = LocalLocation['kind'] | 'nas' | 'cloud' | 'folder';
+type PlaceOption = {value: string; name: string; detail?: string; endpoint: Endpoint; disabled?: boolean; kind: PlaceKind};
+
+// Finder-style glyphs: each place by what it is, not one drive icon for everything.
+function PlaceIcon({kind, size}: {kind: PlaceKind; size: number}): ReactNode {
+  switch (kind) {
+    case 'home': return <House size={size}/>;
+    case 'desktop': return <Desktop size={size}/>;
+    case 'documents': return <FileText size={size}/>;
+    case 'downloads': return <DownloadSimple size={size}/>;
+    case 'pictures': return <Image size={size}/>;
+    case 'music': return <MusicNotes size={size}/>;
+    case 'movies': return <FilmStrip size={size}/>;
+    case 'volume': return <HardDrive size={size}/>;
+    case 'volumes': case 'nas': return <HardDrives size={size}/>;
+    case 'cloud': return <Cloud size={size}/>;
+    default: return <Folder size={size}/>;
+  }
+}
 
 export function LocationPicker({ endpoint, locations, remotes, label, disabled = false, remoteAvailable = true, t, onChange, remotePath, compact = false }: {
   endpoint: Endpoint; locations: LocalLocation[]; remotes: RemoteInfo[]; label: string; disabled?: boolean; remoteAvailable?: boolean; t: Translate;
@@ -25,19 +44,22 @@ export function LocationPicker({ endpoint, locations, remotes, label, disabled =
   const container = trigger.current?.closest('dialog') || document.body;
   const current = !endpoint.remote && locations.find(location => endpointEqual(endpoint, {remote: null, path: location.path}));
   const value = endpoint.remote || (current ? `@local:${current.id}` : '');
-  const place = (location: LocalLocation): PlaceOption => ({value: `@local:${location.id}`, name: localLocationName(location, t), endpoint: {remote: null, path: location.path}});
-  const remote = (item: RemoteInfo): PlaceOption => ({value: item.name, name: `${item.name} · ${item.type}`, endpoint: {remote: item.name, path: remotePath?.(item.name) || ''}, disabled: !remoteAvailable});
+  const place = (location: LocalLocation): PlaceOption => ({value: `@local:${location.id}`, name: localLocationName(location, t), endpoint: {remote: null, path: location.path}, kind: location.group === 'network' ? 'nas' : location.kind});
+  const remoteGroup = (item: RemoteInfo) => item.group || (['smb','sftp','ftp'].includes(item.type) ? 'network' : 'other');
+  const remote = (item: RemoteInfo): PlaceOption => ({value: item.name, name: item.name, detail: item.type, kind: remoteGroup(item) === 'network' ? 'nas' : 'cloud', endpoint: {remote: item.name, path: remotePath?.(item.name) || ''}, disabled: !remoteAvailable});
   const groups = [
-    {label: t('localPlaces'), items: [...(!current && !endpoint.remote ? [{value: '', name: t('currentLocalFolder'), endpoint}] : []), ...locations.filter(location => location.group !== 'network').map(place)]},
+    {label: t('localPlaces'), items: [...(!current && !endpoint.remote ? [{value: '', name: t('currentLocalFolder'), endpoint, kind: 'folder' as const}] : []), ...locations.filter(location => location.group !== 'network').map(place)]},
     ...(['network', 'cloud', 'other'] as const).map(group => ({label: t(group === 'network' ? 'networkPlaces' : group === 'cloud' ? 'cloudPlaces' : 'otherPlaces'), items: [
       ...(group === 'network' ? locations.filter(location => location.group === 'network').map(place) : []),
-      ...remotes.filter(item => (item.group || (['smb','sftp','ftp'].includes(item.type) ? 'network' : 'other')) === group).map(remote),
-      ...(group === 'other' && endpoint.remote && !remotes.some(item => item.name === endpoint.remote) ? [{value: endpoint.remote, name: endpoint.remote, endpoint, disabled: !remoteAvailable}] : []),
+      ...remotes.filter(item => remoteGroup(item) === group).map(remote),
+      ...(group === 'other' && endpoint.remote && !remotes.some(item => item.name === endpoint.remote) ? [{value: endpoint.remote, name: endpoint.remote, endpoint, disabled: !remoteAvailable, kind: 'cloud' as const}] : []),
     ]})),
   ];
   const options = groups.flatMap(group => group.items);
-  const selectedName = options.find(option => option.value === value)?.name || endpoint.remote || t('currentLocalFolder');
-  const filtered = groups.map(group => ({...group, items: group.items.filter(option => `${option.name} ${option.endpoint.path}`.toLocaleLowerCase().includes(query.trim().toLocaleLowerCase()))})).filter(group => group.items.length);
+  // An arbitrary local folder shows its own name, like Finder's path menu.
+  const folderName = endpoint.path.replace(/[\\/]+$/, '').split(/[\\/]/).at(-1) || '';
+  const selectedName = (value ? options.find(option => option.value === value)?.name : '') || endpoint.remote || folderName || t('currentLocalFolder');
+  const filtered = groups.map(group => ({...group, items: group.items.filter(option => `${option.name} ${option.detail || ''} ${option.endpoint.path}`.toLocaleLowerCase().includes(query.trim().toLocaleLowerCase()))})).filter(group => group.items.length);
   const available = filtered.flatMap(group => group.items).filter(option => !option.disabled);
   const activeIndex = available.findIndex(option => option.value === active);
   const activeId = activeIndex < 0 ? undefined : `${id}-option-${options.findIndex(option => option.value === active)}`;
@@ -105,11 +127,11 @@ export function LocationPicker({ endpoint, locations, remotes, label, disabled =
   return <div className={`location-select ${compact ? 'location-select-compact' : ''}`}>
     <button ref={trigger} type="button" className="location-trigger" aria-label={label} title={`${label}: ${selectedName}`} aria-haspopup="listbox" aria-expanded={open} aria-controls={open ? listId : undefined} disabled={disabled} onClick={() => open ? close() : show()} onKeyDown={event => {
       if (['ArrowDown','ArrowUp','Home','End'].includes(event.key)) { event.preventDefault(); event.stopPropagation(); show(event.key === 'Home' ? 'first' : event.key === 'End' ? 'last' : undefined); }
-    }}>{endpoint.remote ? <Cloud size={18}/> : <HardDrives size={18}/>}<span className="location-trigger-label">{selectedName}</span><CaretDown size={12} className="select-caret"/></button>
+    }}><PlaceIcon kind={(value ? options.find(option => option.value === value)?.kind : undefined) || (endpoint.remote ? 'cloud' : 'folder')} size={16}/><span className="location-trigger-label">{selectedName}</span><CaretDown size={12} className="select-caret"/></button>
     {open && createPortal(<div ref={popup} className="location-popup" style={{position: container === document.body ? 'fixed' : 'absolute', ...position}} onPointerDown={event => event.stopPropagation()}>
       <div className="location-search"><MagnifyingGlass size={16}/><input ref={search} role="combobox" aria-label={`${label} ${t('searchLocations')}`} aria-controls={listId} aria-expanded="true" aria-autocomplete="list" aria-activedescendant={activeId} value={query} placeholder={t('searchLocations')} spellCheck={false} onChange={event => {setQuery(event.target.value); const text = event.target.value.trim().toLocaleLowerCase(); setActive(options.find(option => !option.disabled && `${option.name} ${option.endpoint.path}`.toLocaleLowerCase().includes(text))?.value || '');}} onKeyDown={keyDown}/></div>
       <div ref={list} id={listId} role="listbox" aria-label={label} className="location-options">
-        {filtered.map((group, groupIndex) => <div role="group" aria-labelledby={`${id}-group-${groupIndex}`} key={group.label} className="location-group"><div id={`${id}-group-${groupIndex}`} className="location-group-label">{group.label}</div>{group.items.map(option => <div key={option.value} id={`${id}-option-${options.findIndex(item => item.value === option.value)}`} role="option" aria-selected={value === option.value} aria-disabled={option.disabled || undefined} data-value={option.value} data-active={active === option.value} className="location-option" title={option.name} onPointerMove={() => {if (!option.disabled) setActive(option.value);}} onPointerDown={event => event.preventDefault()} onClick={() => choose(option)}><span className="location-check">{value === option.value && <Check size={15} weight="bold"/>}</span>{option.endpoint.remote ? <Cloud size={16}/> : <HardDrives size={16}/>}<span>{option.name}</span></div>)}</div>)}
+        {filtered.map((group, groupIndex) => <div role="group" aria-labelledby={`${id}-group-${groupIndex}`} key={group.label} className="location-group"><div id={`${id}-group-${groupIndex}`} className="location-group-label">{group.label}</div>{group.items.map(option => <div key={option.value} id={`${id}-option-${options.findIndex(item => item.value === option.value)}`} role="option" aria-selected={value === option.value} aria-disabled={option.disabled || undefined} data-value={option.value} data-active={active === option.value} className="location-option" title={option.name} onPointerMove={() => {if (!option.disabled) setActive(option.value);}} onPointerDown={event => event.preventDefault()} onClick={() => choose(option)}><span className="location-check">{value === option.value && <Check size={13} weight="bold"/>}</span><PlaceIcon kind={option.kind} size={16}/><span className="location-option-name">{option.name}</span>{option.detail && <span className="location-option-detail">{option.detail}</span>}</div>)}</div>)}
         {!filtered.length && <p className="location-no-results" role="status">{t('noMatches')}</p>}
       </div>
     </div>, container)}
@@ -123,5 +145,6 @@ export function EndpointEditor({ value, label, locations, remotes, home, t, disa
   useEffect(() => setPath(value.path), [value.path, value.remote]);
   const commit = () => { const next = {...value, path: value.remote && path === '/' ? '' : path}; if (!endpointEqual(value, next)) onChange(next); };
   const choose = async () => { try { const selected = await window.rclone.chooseFolder(value.remote ? home : path || home); if (selected) onChange({remote: null, path: selected}); } catch (error) { onError(errorMessage(error)); } };
-  return <div className="endpoint-editor"><Field label={label}><LocationPicker endpoint={value} locations={locations} remotes={remotes} label={`${label} ${t('location')}`} disabled={disabled} t={t} onChange={onChange}/></Field><div className="endpoint-path-row"><input aria-label={`${label} ${t('path')}`} value={path} placeholder={value.remote ? '/' : home} required={!value.remote} disabled={disabled} spellCheck={false} onChange={event => setPath(event.target.value)} onBlur={commit} onKeyDown={event => { if (event.key === 'Enter') { event.preventDefault(); commit(); } if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); setPath(value.path); } }}/><IconButton title={`${label} ${t('chooseFolder')}`} onClick={() => void choose()} disabled={disabled}><FolderOpen size={18}/></IconButton></div></div>;
+  // One address bar: where (location pop-up), which folder (path), and a browse button, all in one sunken field.
+  return <div className="endpoint-editor"><span className="endpoint-label">{label}</span><div className="address-bar endpoint-address" data-disabled={disabled || undefined}><LocationPicker compact endpoint={value} locations={locations} remotes={remotes} label={`${label} ${t('location')}`} disabled={disabled} t={t} onChange={onChange}/><input className="address-path" aria-label={`${label} ${t('path')}`} value={path} placeholder={value.remote ? '/' : home} required={!value.remote} disabled={disabled} spellCheck={false} onChange={event => setPath(event.target.value)} onBlur={commit} onKeyDown={event => { if (event.key === 'Enter') { event.preventDefault(); commit(); } if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); setPath(value.path); } }}/><IconButton className="address-browse" title={`${label} ${t('chooseFolder')}`} onClick={() => void choose()} disabled={disabled}><FolderOpen size={16}/></IconButton></div></div>;
 }

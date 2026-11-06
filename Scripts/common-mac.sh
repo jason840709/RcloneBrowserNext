@@ -7,7 +7,7 @@ RBN_CACHE_ROOT="$RBN_PROJECT_ROOT/.build-cache"
 RBN_APP_PATH="$RBN_PROJECT_ROOT/Rclone Browser Next.app"
 RBN_BUNDLE_ID="org.rclone.browser.next.lite"
 RBN_EXECUTABLE="RcloneBrowserNext"
-RBN_VERSION="0.9.6"
+RBN_VERSION="0.10.1"
 RBN_MINIMUM_MACOS="13.0"
 
 rbn_fail() {
@@ -39,7 +39,15 @@ rbn_prepare_local_environment() {
     rbn_check_local_directory "$candidate"
     /bin/mkdir -p "$candidate"
   done
-  export TMPDIR="$RBN_CACHE_ROOT/tmp/"
+  # swiftc crashes (SIGTRAP) when its temporary files live on some third-party
+  # NTFS drivers; RBN_TMPDIR lets such checkouts point temporary files at a
+  # local folder. Everything else (module caches, logs, outputs) stays here.
+  if [[ -n "${RBN_TMPDIR:-}" ]]; then
+    [[ "$RBN_TMPDIR" == /* && -d "$RBN_TMPDIR" && ! -L "$RBN_TMPDIR" ]] || rbn_fail "RBN_TMPDIR 必須是已存在的資料夾完整路徑：$RBN_TMPDIR" 5
+    export TMPDIR="${RBN_TMPDIR%/}/"
+  else
+    export TMPDIR="$RBN_CACHE_ROOT/tmp/"
+  fi
   export SWIFT_MODULECACHE_PATH="$RBN_CACHE_ROOT/modules/swift"
   export CLANG_MODULE_CACHE_PATH="$RBN_CACHE_ROOT/modules/clang"
   # xcrun also accepts this environment setting for child tool invocations.

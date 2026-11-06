@@ -2,16 +2,17 @@ import {expect, test, type Page, type Locator} from '@playwright/test';
 import {fileURLToPath, pathToFileURL} from 'node:url';
 import path from 'node:path';
 import {readFileSync} from 'node:fs';
-import {installHostFixture} from './native-fixture';
+import {installHostFixture, openSettings, paneMenuItem} from './native-fixture';
 import {translator} from '../renderer/i18n';
 import {INTERFACE_SCALES, interfaceScaleZoom} from '../renderer/appearance';
-import type {InterfaceScale, Job, Language, Settings, Theme} from '../shared/types';
+import type {InterfaceScale, Job, Language, Settings, Theme, ThemeAccent, ThemeMode} from '../shared/types';
 
 const t = translator('zh-TW');
 const directory = path.dirname(fileURLToPath(import.meta.url));
 const url = pathToFileURL(path.resolve(directory, '../../Resources/Web/index.html')).href;
 const activeStatuses = ['running', 'queued', 'cancelling'];
-const themes: Theme[] = ['purple-dark','purple-light','blue-dark','blue-light','green-dark','green-light'];
+const accentLabel = {purple: 'accentPurple', green: 'accentGreen', blue: 'accentBlue'} as const;
+const modeLabel = {auto: 'appearanceAuto', light: 'appearanceLight', dark: 'appearanceDark'} as const;
 
 async function open(page: Page, options: Parameters<typeof installHostFixture>[1] = {}) {
   const errors: string[] = [];
@@ -23,8 +24,7 @@ async function open(page: Page, options: Parameters<typeof installHostFixture>[1
   return errors;
 }
 async function settings(page: Page, language: Language = 'zh-TW') {
-  await page.locator('.workspace-title > .icon-button').click();
-  const dialog=page.locator('.settings-dialog');
+  const dialog=await openSettings(page);
   await dialog.getByRole('button',{name:translator(language)('appearance'),exact:true}).click();
   return dialog;
 }
@@ -81,7 +81,7 @@ for(const language of ['zh-TW','en','ja'] as const) test(`${language}: five inte
     await expect.poll(async()=>(await saved(page)).interfaceScale).toBe(scale);
     await expect.poll(()=>page.viewportSize()).toEqual({width:Math.floor(1060/interfaceScaleZoom(scale)),height:Math.floor(680/interfaceScaleZoom(scale))});
     await reachable(dialog.locator('.dialog-footer button').last());
-    expect(await page.evaluate(()=>({zoom:getComputedStyle(document.documentElement).zoom,font:getComputedStyle(document.documentElement).fontSize,overflow:document.documentElement.scrollWidth>innerWidth,transform:getComputedStyle(document.querySelector('.app-shell')!).transform}))).toEqual({zoom:'1',font:'14px',overflow:false,transform:'none'});
+    expect(await page.evaluate(()=>{const root=getComputedStyle(document.documentElement);return {zoom:root.zoom,font:root.fontSize===root.getPropertyValue('--fs-body').trim(),overflow:document.documentElement.scrollWidth>innerWidth,transform:getComputedStyle(document.querySelector('.app-shell')!).transform};})).toEqual({zoom:'1',font:true,overflow:false,transform:'none'});
   }
   await page.screenshot({path:info.outputPath(`scale-${language}-125.png`),animations:'disabled'});
   expect((await calls(page,'saveSettings')).map(call=>call.args[0])).toEqual(INTERFACE_SCALES.map(interfaceScale=>({interfaceScale})));
@@ -100,36 +100,44 @@ test('scale keyboard selection and rapid edits survive save rejection without ap
   expect((await calls(page,'saveSettings')).map(call=>call.args[0])).toEqual([{interfaceScale:110},{interfaceScale:125},{interfaceScale:80},{interfaceScale:100}]);
 });
 
-for(const language of ['zh-TW','en','ja'] as const) test(`${language}: all six themes change the brand icon, Next text and native setting together`, async ({page}) => {
-  const errors=await open(page,{settings:{language}}),dialog=await settings(page,language);
-  await expect(dialog.locator('.theme-option')).toHaveCount(6);
-  for(const theme of themes) {
-    await dialog.locator(`.swatch-${theme}`).click();await expect(page.locator('html')).toHaveAttribute('data-theme',theme);
-    const family=theme.split('-')[0],icon=family==='purple'?'favicon.svg':`favicon-${family}.svg`;
+for(const language of ['zh-TW','en','ja'] as const) test(`${language}: every accent and appearance mode changes the brand icon and native setting together`, async ({page}) => {
+  const errors=await open(page,{settings:{language}}),dialog=await settings(page,language),tx=translator(language);
+  await expect(dialog.locator('.appearance-mode')).toHaveCount(3);await expect(dialog.locator('.accent-swatch')).toHaveCount(3);
+  let current: Theme = 'purple-dark';
+  for(const accent of ['purple','green','blue'] as ThemeAccent[]) for(const mode of ['light','dark','auto'] as ThemeMode[]) {
+    const swatch=dialog.getByRole('radio',{name:tx(accentLabel[accent]),exact:true}),appearance=dialog.getByRole('radio',{name:tx(modeLabel[mode]),exact:true});
+    if(!current.startsWith(`${accent}-`)) await swatch.click();
+    if(!current.endsWith(`-${mode}`)) await appearance.click();
+    const theme=`${accent}-${mode}` as Theme;current=theme;
+    await expect(page.locator('html')).toHaveAttribute('data-theme',theme);await expect(swatch).toHaveAttribute('aria-checked','true');await expect(appearance).toHaveAttribute('aria-checked','true');
+    const icon=accent==='purple'?'favicon.svg':`favicon-${accent}.svg`;
     await expect(page.locator('.brand img')).toHaveAttribute('src',icon);await expect(page.locator('link[rel="icon"]')).toHaveAttribute('href',icon);
     await expect.poll(async()=>(await saved(page)).theme).toBe(theme);
-    const rendered=await page.evaluate(()=>{const root=getComputedStyle(document.documentElement),next=document.querySelector('.brand em')||document.querySelector('.brand b')||document.querySelector('.brand strong');const canvas=document.createElement('canvas').getContext('2d')!;const color=(v:string)=>{canvas.fillStyle=v;return canvas.fillStyle;};return{icon:(document.querySelector('.brand img') as HTMLImageElement).naturalWidth,accent:color(root.getPropertyValue('--accent')),next:next?color(getComputedStyle(next).color):null,neutral:['bg','toolbar','surface','surface-raised','row-stripe'].map(k=>color(root.getPropertyValue('--'+k)))};});
-    expect(rendered.icon).toBeGreaterThan(0);expect(rendered.next).toBe(rendered.accent);
-    for(const hex of rendered.neutral){const value=hex.slice(1);expect(value.slice(0,2)).toBe(value.slice(2,4));expect(value.slice(2,4)).toBe(value.slice(4,6));}
+    const rendered=await page.evaluate(()=>{const root=getComputedStyle(document.documentElement);const canvas=document.createElement('canvas').getContext('2d')!;const color=(v:string)=>{canvas.fillStyle=v;return canvas.fillStyle;};return{icon:(document.querySelector('.brand img') as HTMLImageElement).naturalWidth,neutral:['window','pane','rail'].map(k=>color(root.getPropertyValue('--'+k)))};});
+    expect(rendered.icon).toBeGreaterThan(0);
+    for(const hex of rendered.neutral){const value=hex.slice(1);expect(value).toMatch(/^[0-9a-f]{6}$/);expect(value.slice(0,2)).toBe(value.slice(2,4));expect(value.slice(2,4)).toBe(value.slice(4,6));}
   }
+  expect((await calls(page,'saveSettings')).every(call=>Object.keys(call.args[0]).join()==='theme')).toBe(true);
   expect(errors).toEqual([]);
 });
 
 test('a rejected color change restores the saved brand icon and accent',async({page})=>{
-  await open(page,{settings:{theme:'green-dark'}});const dialog=await settings(page);await page.evaluate(()=>{(window as any).__fixture.rejectSave=true;});await dialog.locator('.swatch-blue-light').click();
-  await expect(dialog.getByRole('alert')).toContainText('Settings rejected');await expect(page.locator('html')).toHaveAttribute('data-theme','green-dark');await expect(page.locator('.brand img')).toHaveAttribute('src','favicon-green.svg');
+  await open(page,{settings:{theme:'green-dark'}});const dialog=await settings(page);await page.evaluate(()=>{(window as any).__fixture.rejectSave=true;});await dialog.getByRole('radio',{name:t('accentBlue'),exact:true}).click();
+  await expect(dialog.getByRole('alert')).toContainText('Settings rejected');await expect(page.locator('html')).toHaveAttribute('data-theme','green-dark');await expect(page.locator('.brand img')).toHaveAttribute('src','favicon-green.svg');await expect(page.locator('link[rel="icon"]')).toHaveAttribute('href','favicon-green.svg');await expect(dialog.getByRole('radio',{name:t('accentGreen'),exact:true})).toHaveAttribute('aria-checked','true');await expect(dialog.getByRole('radio',{name:t('appearanceDark'),exact:true})).toHaveAttribute('aria-checked','true');
 });
 
 for(const language of ['zh-TW','en','ja'] as const) for(const theme of ['green-dark','green-light'] as const) test(`${language} ${theme}: 125 percent at the minimum native window keeps panes, settings, transfer and task actions reachable`, async ({page},info) => {
   await mockNativeZoom(page,125);const tx=translator(language),errors=await open(page,{job:true,settings:{theme,language,interfaceScale:125}});
-  for(const selector of ['.start-button','.dry-run-button','.options-button','.direction-picker button:first-child','.direction-picker button:last-child']) await reachable(page.locator(selector));
-  for(const side of ['left','right']) {const pane=page.getByTestId(`${side}-pane`);await reachable(pane.locator('.path-form input'));await reachable(pane.getByRole('button',{name:tx('newTab'),exact:true}));}
+  for(const control of [page.locator('.start-button'),page.locator('.dry-run-button'),page.locator('.options-button'),page.getByRole('button',{name:tx('leftToRight'),exact:true}),page.getByRole('button',{name:tx('rightToLeft'),exact:true})]) await reachable(control);
+  for(const side of ['left','right']) {const pane=page.getByTestId(`${side}-pane`);
+    expect(await pane.locator('.pane-more-menu summary').evaluate(element=>{const r=element.getBoundingClientRect(),p=element.closest('.browser-pane')!.getBoundingClientRect(),hit=document.elementFromPoint(r.x+r.width/2,r.y+r.height/2);return{insidePane:r.left>=p.left-1&&r.right<=p.right+1,hit:hit===element||element.contains(hit)};}),`${side} pane menu without scrolling`).toEqual({insidePane:true,hit:true});
+    await reachable(pane.locator('.path-form input'));await reachable(pane.locator('.pane-more-menu summary'));const item=await paneMenuItem(pane,tx('newTab'));await reachable(item);await page.keyboard.press('Escape');await expect(item).toBeHidden();}
   await page.locator('.options-button').click();const options=page.locator('.options-dialog');
-  for(const tab of ['modeAndComparison','transferPerformance','filtersTab'] as const){await options.getByRole('button',{name:tx(tab),exact:true}).click();await reachable(options.getByRole('button',{name:tx('apply'),exact:true}));await reachable(options.locator('.options-content input,.options-content select,.options-content textarea').last());expect(await options.evaluate(e=>e.scrollWidth<=e.clientWidth+1)).toBe(true);}
+  for(const tab of ['generalTab','filtersTab','advancedTab'] as const){await options.getByRole('button',{name:tx(tab),exact:true}).click();await reachable(options.getByRole('button',{name:tx('apply'),exact:true}));await reachable(options.locator('.options-content input,.options-content select,.options-content textarea').last());expect(await options.evaluate(e=>e.scrollWidth<=e.clientWidth+1)).toBe(true);}
   await options.getByRole('button',{name:tx('cancel'),exact:true}).click();
-  const preferences=await settings(page,language);await reachable(preferences.locator('.swatch-green-dark'));await reachable(preferences.locator('.swatch-green-light'));await reachable(preferences.getByRole('checkbox',{name:tx('notifyOnCompletion'),exact:true}));await reachable(preferences.locator('.dialog-footer button').last());await preferences.locator('.dialog-footer button').last().click();
+  const preferences=await settings(page,language);for(const control of [...await preferences.locator('.appearance-mode').all(),...await preferences.locator('.accent-swatch').all()]) await reachable(control);await reachable(preferences.getByRole('checkbox',{name:tx('notifyOnCompletion'),exact:true}));await reachable(preferences.locator('.dialog-footer button').last());await preferences.locator('.dialog-footer button').last().click();
   await page.getByRole('button',{name:tx('saveTask'),exact:true}).click();const editor=page.locator('.task-editor-dialog');await editor.getByLabel(tx('taskName'),{exact:true}).fill('Sample backup');
-  for(const tab of ['locationsTab','modeAndComparison','transferPerformance','filtersTab'] as const){await editor.getByRole('button',{name:tx(tab),exact:true}).click();await reachable(editor.getByRole('button',{name:tx('save'),exact:true}));await reachable(editor.getByRole('button',{name:tx('cancel'),exact:true}));expect(await editor.evaluate(e=>e.scrollWidth<=e.clientWidth+1)).toBe(true);}
+  for(const tab of ['locationsTab','generalTab','filtersTab','advancedTab'] as const){await editor.getByRole('button',{name:tx(tab),exact:true}).click();await reachable(editor.getByRole('button',{name:tx('save'),exact:true}));await reachable(editor.getByRole('button',{name:tx('cancel'),exact:true}));expect(await editor.evaluate(e=>e.scrollWidth<=e.clientWidth+1)).toBe(true);}
   await page.screenshot({path:info.outputPath('task-editor-125.png'),animations:'disabled'});await editor.getByRole('button',{name:tx('save'),exact:true}).click();await page.locator('.main-nav button').last().click();
   for(const key of ['runTask','dryRun','editTask','delete'] as const)await reachable(page.locator('.tasks-page').getByRole('button',{name:tx(key),exact:true}));
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);expect(errors).toEqual([]);
@@ -156,7 +164,7 @@ test('completed-only is disabled when there are no green completed records',asyn
 for(const filter of ['all','active'] as const)test(`${filter}: stop-and-clear retains stopping rows until exit, snapshots scope, and rejects late resurrecting events`,async({page},info)=>{
   await open(page);await seedJobs(page);const jobs=page.locator('.jobs-page');await jobs.getByRole('button',{name:t(filter),exact:true}).click();
   await page.evaluate(()=>{(window as any).__fixture.bulkStopDelay=1100;});await jobs.getByRole('button',{name:t('clearJobs'),exact:true}).click();const dialog=page.locator('.clear-jobs-dialog');await addJob(page,'new-running','running');
-  await dialog.getByRole('button',{name:t('stopAndClear'),exact:true}).click();await expect(dialog).toContainText(t('stoppingJobs'));await expect(jobs.getByTestId('job-sample-running')).toHaveClass(/job-cancelling/);await expect(jobs.getByTestId('job-sample-queued')).toHaveClass(/job-cancelling/);await expect(dialog.getByRole('button',{name:t('cancel'),exact:true})).toBeDisabled();await expect(dialog.getByRole('button',{name:t('close'),exact:true})).toBeDisabled();
+  await dialog.getByRole('button',{name:t('stopAndClear'),exact:true}).click();await expect(dialog).toContainText(t('stoppingJobs'));await expect(jobs.getByTestId('job-sample-running')).toHaveClass(/job-cancelling/);await expect(jobs.getByTestId('job-sample-queued')).toHaveClass(/job-cancelling/);await expect(dialog.getByRole('button',{name:t('cancel'),exact:true})).toBeDisabled();await expect(dialog.locator('.dialog-header .icon-button')).toBeHidden();await expect(dialog.locator('.dialog-header .icon-button')).toBeDisabled();
   await page.keyboard.press('Escape');await expect(dialog).toBeVisible();await page.screenshot({path:info.outputPath('stopping.png'),animations:'disabled'});await expect(dialog).toHaveCount(0);await jobs.getByRole('button',{name:t('all'),exact:true}).click();
   const expected=filter==='all'?['new-running']:['new-running','sample-cancelled','sample-completed','sample-failed','sample-interrupted'];expect(await jobIds(page)).toEqual(expected);
   const request=(await calls(page,'clearJobs')).at(-1).args[0];expect({...request,ids:[...request.ids].sort()}).toEqual({ids:filter==='all'?['sample-cancelled','sample-completed','sample-failed','sample-interrupted','sample-queued','sample-running']:['sample-queued','sample-running'],mode:'stop-and-clear'});expect(await calls(page,'clearJobs')).toHaveLength(1);

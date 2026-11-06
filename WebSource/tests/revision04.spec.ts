@@ -1,7 +1,7 @@
 import {expect, test, type Page} from '@playwright/test';
 import {fileURLToPath, pathToFileURL} from 'node:url';
 import path from 'node:path';
-import {installHostFixture, selectPlace} from './native-fixture';
+import {installHostFixture, openSettings, selectPlace} from './native-fixture';
 import {translator} from '../renderer/i18n';
 import {DEFAULT_OPTIONS, type Settings, type Theme, type TransferRequest} from '../shared/types';
 const t = translator('zh-TW');
@@ -14,7 +14,7 @@ async function open(page: Page, options: Parameters<typeof installHostFixture>[1
   return errors;
 }
 async function calls(page: Page, method: string): Promise<any[]> {return page.evaluate(method => (window as any).__fixture.calls.filter((item: any) => item.method === method), method);}
-async function settings(page: Page) { await page.locator('.workspace-title > .icon-button').click(); return page.locator('.settings-dialog'); }
+async function settings(page: Page) { return openSettings(page); }
 async function state(page: Page): Promise<Settings> {return page.evaluate(() => (window as any).__fixture.bootstrap.settings);}
 async function waitSaved(page: Page) {await expect(page.locator('.autosave-note')).not.toContainText(t('savingSettings'));}
 async function taskEditor(page: Page) {await page.getByRole('button', {name: t('saveTask'), exact: true}).click(); return page.locator('.task-editor-dialog');}
@@ -41,9 +41,9 @@ test('Remember restores locations, direction, mode and all options without selec
   await right.getByText('研究紀錄 01.pdf', {exact: true}).click();
   await page.locator('.options-button').click(); const d = page.locator('.options-dialog');
   await d.getByTestId('transfer-comparison').selectOption('nas');
-  await d.getByRole('checkbox', {name:t('skipExisting'),exact:true}).check();
-  await d.getByRole('button', {name:t('transferPerformance'),exact:true}).click();
+  await d.getByRole('checkbox', {name:t('skipExistingShort'),exact:true}).check();
   await d.getByLabel(t('bandwidth'), {exact: true}).fill('7M'); await d.getByLabel(t('transfers'), {exact:true}).fill('6');
+  await d.getByRole('button', {name:t('advancedTab'),exact:true}).click();
   await d.getByLabel(t('extraArgs'), {exact:true}).fill('--buffer-size=32M');
   await d.getByRole('button', {name:t('filtersTab'),exact:true}).click();
   await d.getByLabel(t('exclude'), {exact:true}).fill('*.tmp\n.DS_Store');
@@ -74,15 +74,16 @@ test('Tasks save and edit the complete request; Dry Run and Run execute the save
   const errors=await open(page);const d=await taskEditor(page);await d.getByLabel(t('taskName'),{exact:true}).fill('NAS nightly copy');
   await d.getByRole('button',{name:t('rightToLeft'),exact:true}).click();
   await selectPlace(d.locator('.endpoint-editor').first().locator('.location-trigger'),'@local:volumes');
-  await d.locator('.endpoint-editor').first().locator('.endpoint-path-row input').fill('/Volumes/Media Backup/Archive');await d.locator('.endpoint-editor').first().locator('.endpoint-path-row input').press('Enter');
+  await d.locator('.endpoint-editor').first().locator('.address-path').fill('/Volumes/Media Backup/Archive');await d.locator('.endpoint-editor').first().locator('.address-path').press('Enter');
   await selectPlace(d.locator('.endpoint-editor').last().locator('.location-trigger'),'lab-nas');
-  await d.locator('.endpoint-editor').last().locator('.endpoint-path-row input').fill('Source');await d.locator('.endpoint-editor').last().locator('.endpoint-path-row input').press('Enter');
+  await d.locator('.endpoint-editor').last().locator('.address-path').fill('Source');await d.locator('.endpoint-editor').last().locator('.address-path').press('Enter');
   await d.getByRole('button',{name:t('browseSelection'),exact:true}).click();
   await d.getByRole('checkbox',{name:'Documents',exact:true}).check();await d.getByRole('checkbox',{name:'研究紀錄 01.pdf',exact:true}).check();
-  await d.getByRole('button',{name:t('modeAndComparison'),exact:true}).click();await d.getByTestId('transfer-comparison').selectOption('nas');await d.getByRole('checkbox',{name:t('skipExisting'),exact:true}).check();
-  await d.getByRole('checkbox',{name:t('oneFileSystem'),exact:true}).check();await d.getByRole('checkbox',{name:t('preserveMetadata'),exact:true}).check();
-  await d.getByRole('button',{name:t('transferPerformance'),exact:true}).click();await d.getByLabel(t('transfers'),{exact:true}).fill('5');await d.getByLabel(t('bandwidth'),{exact:true}).fill('12M');await d.getByLabel(t('connectTimeout'),{exact:true}).fill('20s');await d.getByLabel(t('extraArgs'),{exact:true}).fill('--buffer-size=32M\n--multi-thread-streams=2');
-  await d.getByRole('button',{name:t('filtersTab'),exact:true}).click();await d.getByLabel(t('exclude'),{exact:true}).fill('*.tmp\n.DS_Store');await d.getByLabel(t('include'),{exact:true}).fill('*.pdf\nDocuments/**');await d.getByLabel(t('maxAge'),{exact:true}).fill('30d');await d.getByLabel(t('maxDepth'),{exact:true}).fill('6');
+  await d.getByRole('button',{name:t('generalTab'),exact:true}).click();await d.getByTestId('transfer-comparison').selectOption('nas');await d.getByRole('checkbox',{name:t('skipExistingShort'),exact:true}).check();
+  await d.getByLabel(t('transfers'),{exact:true}).fill('5');await d.getByLabel(t('bandwidth'),{exact:true}).fill('12M');
+  await d.getByRole('button',{name:t('advancedTab'),exact:true}).click();await d.getByRole('checkbox',{name:t('oneFileSystem'),exact:true}).check();await d.getByRole('checkbox',{name:t('preserveMetadata'),exact:true}).check();
+  await d.getByLabel(t('connectTimeout'),{exact:true}).fill('20s');await d.getByLabel(t('extraArgs'),{exact:true}).fill('--buffer-size=32M\n--multi-thread-streams=2');
+  await d.getByRole('button',{name:t('filtersTab'),exact:true}).click();await d.getByLabel(t('exclude'),{exact:true}).fill('*.tmp\n.DS_Store');await d.getByLabel(t('include'),{exact:true}).fill('*.pdf\nDocuments/**');await d.locator('input[id$="-maxAge"]').fill('30d');await d.getByLabel(t('maxDepth'),{exact:true}).fill('6');
   await d.getByRole('button',{name:t('save'),exact:true}).click();await expect(d).toHaveCount(0);
   const first=(await calls(page,'saveTask')).at(-1).args[1] as TransferRequest;
   expect(first).toMatchObject({source:{remote:'lab-nas',path:'Source'},destination:{remote:null,path:'/Volumes/Media Backup/Archive'},direction:'rl',mode:'copy',dryRun:false,selection:[{name:'Documents',isDir:true},{name:'研究紀錄 01.pdf',isDir:false}],options:{comparison:'default',localHashPolicy:'none',skipExisting:true,oneFileSystem:true,preserveMetadata:true,transfers:5,bandwidth:'12M',connectTimeout:'20s',extraArgs:['--buffer-size=32M','--multi-thread-streams=2'],exclude:['*.tmp','.DS_Store'],include:['*.pdf','Documents/**'],maxAge:'30d',maxDepth:6}});
@@ -96,7 +97,7 @@ test('Tasks save and edit the complete request; Dry Run and Run execute the save
 
 test('editing destination keeps saved selection; changing source clears it visibly before saving', async ({page}) => {
   await open(page);await page.getByTestId('left-pane').getByText('研究紀錄 01.pdf',{exact:true}).click();let d=await taskEditor(page);await d.getByRole('button',{name:t('save'),exact:true}).click();await page.locator('.main-nav button').last().click();await page.getByRole('button',{name:t('editTask'),exact:true}).click();
-  d=page.locator('.task-editor-dialog');await d.locator('.endpoint-editor').last().locator('.endpoint-path-row input').fill('ChangedTarget');await d.locator('.endpoint-editor').last().locator('.endpoint-path-row input').press('Enter');await expect(d.locator('.selected-task-items')).toContainText('研究紀錄 01.pdf');
+  d=page.locator('.task-editor-dialog');await d.locator('.endpoint-editor').last().locator('.address-path').fill('ChangedTarget');await d.locator('.endpoint-editor').last().locator('.address-path').press('Enter');await expect(d.locator('.selected-task-items')).toContainText('研究紀錄 01.pdf');
   await selectPlace(d.locator('.endpoint-editor').first().locator('.location-trigger'),'@local:downloads');await expect(d).toContainText(t('selectionChangedSource'));await expect(d.locator('.selected-task-items')).toHaveCount(0);await d.getByRole('button',{name:t('save'),exact:true}).click();expect((await calls(page,'saveTask')).at(-1).args[1].selection).toEqual([]);expect((await calls(page,'startTransfer')).length).toBe(0);
 });
 
@@ -109,23 +110,22 @@ test('rclone connection settings save partial patches, custom IP commits atomica
   await d.getByLabel(t('connectTimeout'),{exact:true}).fill('40s');await d.getByLabel(t('connectTimeout'),{exact:true}).press('Enter');await d.getByLabel(t('ioTimeout'),{exact:true}).fill('8m');await d.getByLabel(t('ioTimeout'),{exact:true}).press('Enter');await d.getByLabel(t('tpsLimit'),{exact:true}).fill('5');await d.getByLabel(t('tpsLimit'),{exact:true}).press('Enter');await d.getByRole('checkbox',{name:t('disableHTTP2'),exact:true}).check();await waitSaved(page);
   expect((await state(page)).networkOptions).toMatchObject({bindMode:'address',bindAddress:'192.0.2.10',connectTimeout:'40s',ioTimeout:'8m',tpsLimit:5,disableHTTP2:true});
   expect((await calls(page,'saveSettings')).slice(1).map(c=>c.args[0])).toEqual([{networkOptions:{connectTimeout:'40s'}},{networkOptions:{ioTimeout:'8m'}},{networkOptions:{tpsLimit:5}},{networkOptions:{disableHTTP2:true}}]);
-  await d.locator('.dialog-footer button').last().click();await page.locator('.options-button').click();const opts=page.locator('.options-dialog');await opts.getByRole('button',{name:t('transferPerformance'),exact:true}).click();await expect(opts.getByLabel(t('connectTimeout'),{exact:true})).toHaveValue('');await expect(opts.getByLabel(t('connectTimeout'),{exact:true})).toHaveAttribute('placeholder',t('inheritNetwork'));await opts.getByRole('button',{name:t('cancel'),exact:true}).click();expect(errors).toEqual([]);
+  await d.locator('.dialog-footer button').last().click();await page.locator('.options-button').click();const opts=page.locator('.options-dialog');await opts.getByRole('button',{name:t('advancedTab'),exact:true}).click();await expect(opts.getByLabel(t('connectTimeout'),{exact:true})).toHaveValue('');await expect(opts.getByLabel(t('connectTimeout'),{exact:true})).toHaveAttribute('placeholder',t('inheritNetwork'));await opts.getByRole('button',{name:t('cancel'),exact:true}).click();expect(errors).toEqual([]);
 });
 
-test('comparison tips work with hover, focus, click and Escape without dismissing the dialog', async ({page,browser}) => {
-  await page.setViewportSize({width:1060,height:680});await open(page);await page.locator('.options-button').click();const d=page.locator('.options-dialog');const info=d.getByRole('button',{name:`${t('comparison')} — ${t('infoLabel')}`,exact:true});
-  await info.hover();await expect(page.getByRole('tooltip')).toHaveText(t('comparisonNASHint'));await page.keyboard.press('Escape');await expect(page.getByRole('tooltip')).toHaveCount(0);await d.getByTestId('transfer-comparison').focus();await info.hover();await page.mouse.move(0,0);await expect(page.getByRole('tooltip')).toHaveCount(0);
-  await info.focus();await expect(page.getByRole('tooltip')).toBeVisible();await page.keyboard.press('Escape');await expect(page.getByRole('tooltip')).toHaveCount(0);await expect(d).toBeVisible();
-  await info.click();await page.mouse.move(0,0);await expect(page.getByRole('tooltip')).toBeVisible();const bounds=await page.getByRole('tooltip').boundingBox();expect(bounds!.x).toBeGreaterThanOrEqual(0);expect(bounds!.y).toBeGreaterThanOrEqual(0);expect(bounds!.x+bounds!.width).toBeLessThanOrEqual(1060);expect(bounds!.y+bounds!.height).toBeLessThanOrEqual(680);
-  await d.getByTestId('transfer-comparison').selectOption('size');await info.hover();await expect(page.getByRole('tooltip')).toHaveText(t('comparisonSizeHint'));await page.keyboard.press('Escape');await d.getByRole('button',{name:t('cancel'),exact:true}).click();
+// The ⓘ tooltip beside "comparison" was replaced by native label help (a title on the row label).
+test('comparison help follows the selected rule on its label and keeps the dialog open', async ({browser}) => {
   for (const language of ['zh-TW','en','ja'] as const) {
     const sample=await browser.newPage({viewport:{width:1060,height:680},reducedMotion:'reduce'});const tx=translator(language);
     const errors=await open(sample,{settings:{language,autoCheckUpdates:false}});await sample.locator('.options-button').click();const dialog=sample.locator('.options-dialog');
-    const trigger=dialog.getByRole('button',{name:`${tx('comparison')} — ${tx('infoLabel')}`,exact:true});
+    const select=dialog.getByTestId('transfer-comparison');await expect(dialog.getByLabel(tx('comparison'),{exact:true})).toHaveAttribute('data-testid','transfer-comparison');
+    const label=dialog.locator(`label[for="${await select.getAttribute('id')}"]`);await expect(label).toHaveText(tx('comparison'));
+    await expect(label).toHaveAttribute('title',tx('comparisonNASHint'));
     for (const [value,hint] of [['default','comparisonDefaultHint'],['checksum','comparisonChecksumHint'],['checksum-only','comparisonChecksumOnlyHint'],['size','comparisonSizeHint'],['modtime','comparisonModtimeHint'],['none','comparisonNoneHint'],['nas','comparisonNASHint']] as const) {
-      await dialog.getByTestId('transfer-comparison').selectOption(value);await trigger.click();const tip=sample.getByRole('tooltip');await expect(tip).toHaveText(tx(hint));const box=await tip.boundingBox();expect(box!.x).toBeGreaterThanOrEqual(0);expect(box!.y).toBeGreaterThanOrEqual(0);expect(box!.x+box!.width).toBeLessThanOrEqual(1060);expect(box!.y+box!.height).toBeLessThanOrEqual(680);await sample.keyboard.press('Escape');
+      await select.selectOption(value);await expect(label).toHaveAttribute('title',tx(hint));
     }
-    await expect(dialog.getByTestId('transfer-comparison').locator('option:checked')).toHaveText(tx('comparisonNAS'));expect(errors).toEqual([]);await sample.close();
+    await label.hover();await label.click();await expect(select).toBeFocused();await expect(dialog).toBeVisible();
+    await expect(select.locator('option:checked')).toHaveText(tx('comparisonNAS'));await dialog.getByRole('button',{name:tx('cancel'),exact:true}).click();await expect(dialog).toHaveCount(0);expect(errors).toEqual([]);await sample.close();
   }
 });
 
@@ -151,39 +151,41 @@ test('the application menu exposes native About, engine updates and distinct app
   }
 });
 
-for(const theme of ['purple-light','purple-dark','blue-light','blue-dark'] as Theme[]) {
+for(const theme of ['purple-light','purple-dark','blue-light','green-dark'] as Theme[]) {
   test(`${theme}: narrow columns leave one separator and full-width zebra pixels through empty space`, async ({page},testInfo) => {
     const errors=await open(page,{fileCount:1,cleanPreview:true,settings:{theme,autoCheckUpdates:false,paneColumnWidths:{left:{name:220,size:86,modified:164}}}});
-    const pane=page.getByTestId('left-pane');const handle=pane.getByTestId('left-resize-name');const box=await handle.boundingBox();await page.mouse.move(box!.x+6,box!.y+16);await page.mouse.down();await page.mouse.move(box!.x-130,box!.y+16);await page.mouse.up();await page.mouse.move(0,0);
+    const pane=page.getByTestId('left-pane');const handle=pane.getByTestId('left-resize-name');const box=await handle.boundingBox();await page.mouse.move(box!.x+6,box!.y+box!.height/2);await page.mouse.down();await page.mouse.move(box!.x-130,box!.y+box!.height/2);await page.mouse.up();await page.mouse.move(0,0);
     await expect.poll(async()=>(await state(page)).paneColumnWidths.left!.name).toBe(120);
     const geometry=await pane.evaluate(element=>{
       const pane=element as HTMLElement,table=pane.querySelector('table')!,fill=table.querySelector('tbody tr[data-index="0"] .row-fill')!,row0=table.querySelector('tbody tr[data-index="0"]')!,row1=table.querySelector('tbody tr[data-index="1"]')!;
-      const fr=fill.getBoundingClientRect(),r0=row0.getBoundingClientRect(),r1=row1.getBoundingClientRect(),pr=pane.getBoundingClientRect(),tab=pane.querySelector('.pane-tab')!.getBoundingClientRect(),root=getComputedStyle(document.documentElement),scroller=pane.querySelector('[data-virtuoso-scroller]')!;
-      return {fillerWidth:fr.width,headerBorder:getComputedStyle(table.querySelector('th:nth-child(2)')!).borderRightWidth,line:getComputedStyle(pane.querySelector('.column-resizer')!,'::after').width,hit:getComputedStyle(pane.querySelector('.column-resizer')!).width,scrollbar:getComputedStyle(scroller,'::-webkit-scrollbar').width,gaps:{left:tab.left-pr.left,top:tab.top-pr.top},tokens:Object.fromEntries(['bg','toolbar','surface','surface-raised','row-stripe','accent'].map(k=>[k,root.getPropertyValue('--'+k).trim()])),samples:[{x:fr.x+20,y:r0.y+18},{x:fr.x+20,y:r1.y+18},{x:pr.x+20,y:r0.y+3*37+18},{x:fr.x+20,y:r0.y+3*37+18},{x:fr.x+20,y:r0.y+4*37+18}]};
+      const fr=fill.getBoundingClientRect(),r0=row0.getBoundingClientRect(),r1=row1.getBoundingClientRect(),pr=pane.getBoundingClientRect(),h=r1.top-r0.top,root=getComputedStyle(document.documentElement);
+      return {rowHeight:h,fillerWidth:fr.width,headerBorder:getComputedStyle(table.querySelector('th:nth-child(2)')!).borderRightWidth,line:getComputedStyle(pane.querySelector('.column-resizer')!,'::after').width,hit:getComputedStyle(pane.querySelector('.column-resizer')!).width,stripeOffset:getComputedStyle(pane).getPropertyValue('--stripe-offset'),tokens:Object.fromEntries(['window','pane','rail'].map(k=>[k,root.getPropertyValue('--'+k).trim()])),samples:[{x:fr.x+20,y:r0.y+h/2},{x:fr.x+20,y:r1.y+h/2},{x:pr.x+20,y:r0.y+3*h+h/2},{x:fr.x+20,y:r0.y+3*h+h/2},{x:fr.x+20,y:r0.y+4*h+h/2}]};
     });
-    expect(geometry.fillerWidth).toBeGreaterThan(120);expect(geometry.headerBorder).toBe('0px');expect(geometry.line).toBe('1px');expect(parseFloat(geometry.hit)).toBeGreaterThanOrEqual(10);expect(parseFloat(geometry.scrollbar)).toBeGreaterThanOrEqual(14);expect(geometry.gaps.left).toBeGreaterThanOrEqual(8);expect(geometry.gaps.top).toBeGreaterThanOrEqual(8);
-    for(const key of ['bg','toolbar','surface','surface-raised','row-stripe']){const token=geometry.tokens[key].slice(1);const hex=token.length===3?[...token].map(c=>c+c).join(''):token;expect(hex.slice(0,2)).toBe(hex.slice(2,4));expect(hex.slice(2,4)).toBe(hex.slice(4,6));}
+    // 22 pt rows (fixedItemHeight, Finder metrics) with static CSS striping; no runtime stripe offset.
+    expect(geometry.rowHeight).toBe(22);expect(geometry.stripeOffset).toBe('');
+    expect(geometry.fillerWidth).toBeGreaterThan(120);expect(geometry.headerBorder).toBe('0px');expect(geometry.line).toBe('1px');expect(parseFloat(geometry.hit)).toBeGreaterThanOrEqual(10);
+    for(const key of ['window','pane','rail']){const token=geometry.tokens[key].slice(1);const hex=token.length===3?[...token].map(c=>c+c).join(''):token;expect(hex,key).toMatch(/^[0-9a-f]{6}$/i);expect(hex.slice(0,2)).toBe(hex.slice(2,4));expect(hex.slice(2,4)).toBe(hex.slice(4,6));}
     const shot=await page.screenshot({path:testInfo.outputPath(`zebra-${theme}.png`),animations:'disabled'});
     const pixels=await page.evaluate(async({png,points})=>{const image=new Image();image.src=`data:image/png;base64,${png}`;await image.decode();const canvas=document.createElement('canvas');canvas.width=image.width;canvas.height=image.height;const ctx=canvas.getContext('2d')!;ctx.drawImage(image,0,0);return points.map(p=>Array.from(ctx.getImageData(Math.floor(p.x),Math.floor(p.y),1,1).data).slice(0,3));},{png:shot.toString('base64'),points:geometry.samples});
-    const rgb=(value:string)=>{const hex=value.length===4?'#'+[...value.slice(1)].map(c=>c+c).join(''):value;return [1,3,5].map(i=>parseInt(hex.slice(i,i+2),16));};const normal=rgb(geometry.tokens.surface),stripe=rgb(geometry.tokens['row-stripe']);
+    const rgb=(value:string)=>{const hex=value.length===4?'#'+[...value.slice(1)].map(c=>c+c).join(''):value;return [1,3,5].map(i=>parseInt(hex.slice(i,i+2),16));};const normal=rgb(geometry.tokens.pane),stripe=pixels[1];
     expect(pixels).toEqual([normal,stripe,stripe,stripe,normal]);expect(normal).not.toEqual(stripe);expect(errors).toEqual([]);
   });
 }
 
 test('sync tasks round-trip deletion controls including unlimited maximum and never run during editing', async ({page}) => {
-  await open(page);const d=await taskEditor(page);await d.getByLabel(t('taskName'),{exact:true}).fill('Sync with explicit limits');await d.getByRole('button',{name:t('sync'),exact:true}).click();await d.getByRole('button',{name:t('modeAndComparison'),exact:true}).click();await d.getByLabel(t('deleteMode'),{exact:true}).selectOption('before');await d.getByRole('checkbox',{name:t('unlimitedJobs'),exact:true}).check();await d.getByRole('checkbox',{name:t('deleteExcluded'),exact:true}).check();await d.getByTestId('transfer-comparison').selectOption('size');await d.getByRole('button',{name:t('save'),exact:true}).click();
+  await open(page);const d=await taskEditor(page);await d.getByLabel(t('taskName'),{exact:true}).fill('Sync with explicit limits');await d.getByRole('button',{name:t('generalTab'),exact:true}).click();await d.getByTestId('transfer-mode').selectOption('sync');await d.getByLabel(t('deleteMode'),{exact:true}).selectOption('before');await d.getByRole('checkbox',{name:t('unlimitedJobs'),exact:true}).check();await d.getByRole('checkbox',{name:t('deleteExcluded'),exact:true}).check();await d.getByTestId('transfer-comparison').selectOption('size');await d.getByRole('button',{name:t('save'),exact:true}).click();
   const stored=(await calls(page,'saveTask')).at(-1).args[1];expect(stored).toMatchObject({mode:'sync',dryRun:false,selection:[],options:{deleteMode:'before',maxDelete:-1,deleteExcluded:true,comparison:'size'}});expect((await calls(page,'startTransfer')).length).toBe(0);
-  await page.locator('.main-nav button').last().click();await page.getByRole('button',{name:t('editTask'),exact:true}).click();await d.getByRole('button',{name:t('modeAndComparison'),exact:true}).click();await expect(d.getByRole('checkbox',{name:t('unlimitedJobs'),exact:true})).toBeChecked();await expect(d.getByLabel(t('deleteMode'),{exact:true})).toHaveValue('before');await d.getByRole('button',{name:t('save'),exact:true}).click();expect((await calls(page,'saveTask')).at(-1).args[1]).toEqual(stored);
+  await page.locator('.main-nav button').last().click();await page.getByRole('button',{name:t('editTask'),exact:true}).click();await d.getByRole('button',{name:t('generalTab'),exact:true}).click();await expect(d.getByTestId('transfer-mode')).toHaveValue('sync');await expect(d.getByRole('checkbox',{name:t('unlimitedJobs'),exact:true})).toBeChecked();await expect(d.getByLabel(t('deleteMode'),{exact:true})).toHaveValue('before');await d.getByRole('button',{name:t('save'),exact:true}).click();expect((await calls(page,'saveTask')).at(-1).args[1]).toEqual(stored);
 });
 
 for (const language of ['zh-TW','en','ja'] as const) {
   test(`${language}: full task editor and network controls fit a compact window and keep borders separated`, async ({page},testInfo) => {
     const tx=translator(language);await page.setViewportSize({width:1060,height:680});const errors=await open(page,{settings:{autoCheckUpdates:false,language,theme:'purple-dark'}});
     await page.getByRole('button',{name:tx('saveTask'),exact:true}).click();const d=page.locator('.task-editor-dialog');
-    for(const tab of ['locationsTab','modeAndComparison','transferPerformance','filtersTab'] as const){
+    for(const tab of ['locationsTab','generalTab','filtersTab','advancedTab'] as const){
       await d.getByRole('button',{name:tx(tab),exact:true}).click();
-      const layout=await d.evaluate(element=>{const dialog=element.getBoundingClientRect(),footer=element.querySelector('.dialog-footer')!.getBoundingClientRect(),header=element.querySelector('.dialog-header')!.getBoundingClientRect(),content=element.querySelector('.options-content')!.getBoundingClientRect(),tabs=Array.from(element.querySelectorAll('.options-tabs button')).map(e=>e.getBoundingClientRect());return {inside:dialog.x>=0&&dialog.y>=0&&dialog.right<=innerWidth&&dialog.bottom<=innerHeight,footerFits:element.querySelector('.dialog-footer')!.scrollWidth<=footer.width+1,headerBefore:header.bottom<content.top,contentBeforeFooter:content.bottom<=footer.top+1,tabGaps:tabs.slice(1).map((box,i)=>box.left-tabs[i].right)};});
-      expect(layout.inside).toBe(true);expect(layout.footerFits).toBe(true);expect(layout.headerBefore).toBe(true);expect(layout.contentBeforeFooter).toBe(true);expect(layout.tabGaps.every(gap=>gap>=8)).toBe(true);
+      const layout=await d.evaluate(element=>{const dialog=element.getBoundingClientRect(),footer=element.querySelector('.dialog-footer')!.getBoundingClientRect(),header=element.querySelector('.dialog-header')!.getBoundingClientRect(),content=element.querySelector('.options-content')!.getBoundingClientRect(),tabs=Array.from(element.querySelectorAll('.options-tabs button')).map(e=>e.getBoundingClientRect());return {inside:dialog.x>=0&&dialog.y>=0&&dialog.right<=innerWidth&&dialog.bottom<=innerHeight,footerFits:element.querySelector('.dialog-footer')!.scrollWidth<=footer.width+1,headerBefore:header.bottom<content.top,contentBeforeFooter:content.bottom<=footer.top+1,tabGaps:tabs.slice(1).map((box,i)=>box.left-tabs[i].right),tabsInside:tabs.every(box=>box.left>=dialog.left&&box.right<=dialog.right)};});
+      expect(layout.inside).toBe(true);expect(layout.footerFits).toBe(true);expect(layout.headerBefore).toBe(true);expect(layout.contentBeforeFooter).toBe(true);expect(layout.tabGaps.every(gap=>gap>=-0.5)).toBe(true);expect(layout.tabsInside).toBe(true);
       await page.screenshot({path:testInfo.outputPath(`task-${language}-${tab}.png`),animations:'disabled'});
     }
     await d.getByRole('button',{name:tx('cancel'),exact:true}).click();const pref=await settings(page);await pref.getByRole('button',{name:tx('network'),exact:true}).click();await pref.locator('.network-options-section').scrollIntoViewIfNeeded();await expect(pref.getByLabel(tx('tpsLimit'),{exact:true})).toBeVisible();await page.screenshot({path:testInfo.outputPath(`network-${language}.png`),animations:'disabled'});expect(errors).toEqual([]);

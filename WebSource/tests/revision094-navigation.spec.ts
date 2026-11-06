@@ -1,7 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import path from 'node:path';
-import { installHostFixture, selectPlace } from './native-fixture';
+import { installHostFixture, newTab, paneMenuItem, selectPlace } from './native-fixture';
 import { translator } from '../renderer/i18n';
 import { ListingCache, relatedEndpoints } from '../renderer/listingCache';
 import type { Endpoint, FileEntry, ResolvedLanguage, Theme } from '../shared/types';
@@ -26,6 +26,10 @@ async function go(page: Page, value: string, side: 'left' | 'right' = 'right', w
     await expect(input(page, side)).toHaveValue(value || '/');
     await expect(pane(page, side).locator('.file-list')).toHaveAttribute('aria-busy', 'false');
   }
+}
+// Wait until a pane's pending listing commits; typing a path before then is replaced when it lands.
+async function settle(page: Page, side: 'left' | 'right' = 'right') {
+  await expect(pane(page, side).locator('.file-list')).toHaveAttribute('aria-busy', 'false');
 }
 async function calls(page: Page, method = 'list') {
   return page.evaluate(method => (window as any).__fixture.calls.filter((call: any) => call.method === method), method);
@@ -115,7 +119,7 @@ test('loading keeps path, rows and history together; keyboard cancel waits for n
   await expect(pane(page).getByRole('button', { name: t('forward'), exact: true })).toBeEnabled();
   await button.focus();
   await expect(button.locator('.folder-loading-cross')).toHaveCSS('opacity', '1');
-  await expect(button.locator('.folder-loading-ring')).toHaveCSS('animation-name', 'none');
+  // The reduced-motion state of the ring is checked by its own test below.
   await button.press('Space');
   await waitHeld(page, 'cancelList');
   await expect(pane(page).getByRole('button', { name: t('cancellingFolder'), exact: true })).toBeDisabled();
@@ -233,8 +237,8 @@ test('explicit refresh clears every remote, layer and tab only in the initiating
   await selectPlace(pane(page, 'left').locator('.location-trigger'), 'research-drive');
   await expect(pane(page, 'left').locator('.file-list')).toHaveAttribute('aria-busy', 'false');
   for (const side of ['left', 'right'] as const) { await go(page, 'A', side); await go(page, 'B', side); }
-  await pane(page, 'left').getByRole('button', { name: t('newTab'), exact: true }).click();
-  await selectPlace(pane(page, 'left').locator('.location-trigger'), 'lab-nas');
+  await newTab(pane(page, 'left')); await settle(page, 'left');
+  await selectPlace(pane(page, 'left').locator('.location-trigger'), 'lab-nas'); await settle(page, 'left');
   await go(page, 'NAS', 'left');
   await pane(page, 'left').getByRole('tab').first().click();
   await expect(input(page, 'left')).toHaveValue('B');
@@ -304,7 +308,7 @@ test('a folder mutation invalidates related cached descendants without rereading
 
 test('terminal move invalidates source and destination caches once, including a pending destination', async ({ page }) => {
   await open(page);
-  await selectPlace(pane(page, 'left').locator('.location-trigger'), 'research-drive');
+  await selectPlace(pane(page, 'left').locator('.location-trigger'), 'research-drive'); await settle(page, 'left');
   await go(page, 'Source', 'left'); await go(page, 'Source/child', 'left');
   await go(page, 'Destination'); await go(page, 'Destination/child');
   await go(page, 'Source', 'left'); await go(page, 'Destination');
@@ -373,7 +377,7 @@ for (const scenario of ['pending invalidated folder', 'failed navigation target'
     await open(page);
     await listings(page, { 'research-drive:A': [file('Before.txt')], 'research-drive:B': [file('B.txt')] });
     await go(page, 'A');
-    await pane(page).getByRole('button', { name: t('newTab'), exact: true }).click();
+    await newTab(pane(page)); await settle(page);
     await go(page, 'B');
     await pane(page).getByRole('tab').first().click();
     await expect(input(page)).toHaveValue('A');
@@ -398,7 +402,9 @@ for (const scenario of ['pending invalidated folder', 'failed navigation target'
     }
     await pane(page).locator('.pane-tab').nth(1).locator('.tab-close').click();
     if (scenario === 'pending invalidated folder') await release(page, 'research-drive:B');
-    await expect(pane(page).getByRole('tab')).toHaveCount(1);
+    // One remaining tab: the tab strip is hidden again.
+    await expect(pane(page).getByRole('tab')).toHaveCount(0);
+    await expect(pane(page).locator('.pane-tabs-row')).toHaveCount(0);
     await expect(input(page)).toHaveValue('A');
     await expect(pane(page).locator('.file-name')).toHaveText([scenario === 'pending invalidated folder' ? 'After.txt' : 'Before.txt']);
     await expect(pane(page).locator('.file-list')).toHaveAttribute('aria-busy', 'false');
@@ -412,11 +418,11 @@ for (const scenario of ['pending invalidated folder', 'failed navigation target'
 
 test('configuration changes clear both caches and selections before listings return', async ({ page }) => {
   await open(page);
-  await selectPlace(pane(page, 'left').locator('.location-trigger'), 'research-drive');
+  await selectPlace(pane(page, 'left').locator('.location-trigger'), 'research-drive'); await settle(page, 'left');
   for (const side of ['left', 'right'] as const) { await go(page, 'A', side); await go(page, 'B', side); }
   await pane(page, 'left').getByRole('checkbox', { name: `${t('selected')} Documents`, exact: true }).check();
-  await pane(page, 'left').getByRole('button', { name: t('newTab'), exact: true }).click();
-  await pane(page, 'left').getByRole('tab').first().click();
+  await newTab(pane(page, 'left')); await settle(page, 'left');
+  await pane(page, 'left').getByRole('tab').first().click(); await settle(page, 'left');
   const before = (await calls(page)).length;
   await gate(page, 'research-drive:B');
   await page.evaluate(() => (window as any).__rbnEvent({ type: 'configurationChanged' }));
@@ -462,10 +468,15 @@ test('cancelling the first remote listing still allows Refresh to retry its inte
   await expect(pane(page, 'left').locator('.file-name').first()).toBeVisible();
   const button = pane(page).getByRole('button', { name: t('cancelLoadingFolder'), exact: true });
   await expect(button).toBeVisible();
-  await expect(pane(page).getByRole('button', { name: t('newTab'), exact: true })).toBeDisabled();
+  // A second tab cannot be opened while the first listing has not arrived. (The tab strip,
+  // and with it the single active tab, is hidden until a pane has two tabs.)
+  const item = await paneMenuItem(pane(page), t('newTab'));
+  await expect(item).toBeDisabled();
+  // Close by toggling the menu: Escape inside a loading pane would cancel the read itself.
+  await pane(page).locator('.pane-more-menu summary').click();
+  await expect(item).toBeHidden();
+  await expect(pane(page).getByRole('tab')).toHaveCount(0);
   const before = (await calls(page)).length;
-  await pane(page).getByRole('tab').click();
-  expect((await calls(page)).length).toBe(before);
   await button.click();
   await expect(pane(page).locator('.file-list')).toHaveAttribute('aria-busy', 'false');
   await pane(page).getByRole('button', { name: t('refresh'), exact: true }).click();
@@ -500,11 +511,26 @@ test('hover reveals cancel while the ring rotates; Escape in the unchanged path 
   await gate(page, 'research-drive:Slow');
   await go(page, 'Slow', 'right', false);
   const button = pane(page).getByRole('button', { name: t('cancelLoadingFolder'), exact: true });
-  await expect(button.locator('.folder-loading-ring')).toHaveCSS('animation-name', 'folder-reading');
+  await expect(button.locator('.folder-loading-ring')).not.toHaveCSS('animation-name', 'none');
   await expect(button.locator('.folder-loading-cross')).toHaveCSS('opacity', '0');
   await button.hover();
   await expect(button.locator('.folder-loading-cross')).toHaveCSS('opacity', '1');
   await input(page).focus(); await page.keyboard.press('Escape');
+  await expect(pane(page).locator('.folder-loading-overlay')).toHaveCount(0);
+  await release(page, 'research-drive:Slow');
+  await expect(input(page)).toHaveValue('/');
+});
+
+// macOS keeps progress indicators moving under Reduce Motion; a frozen ring would read as a hang.
+test('reduced motion keeps the folder-reading ring turning and cancel available', async ({ page }) => {
+  await open(page);
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await gate(page, 'research-drive:Slow');
+  await go(page, 'Slow', 'right', false);
+  const button = pane(page).getByRole('button', { name: t('cancelLoadingFolder'), exact: true });
+  await expect(button).toBeVisible();
+  await expect(button.locator('.folder-loading-ring')).not.toHaveCSS('animation-name', 'none');
+  await button.click();
   await expect(pane(page).locator('.folder-loading-overlay')).toHaveCount(0);
   await release(page, 'research-drive:Slow');
   await expect(input(page)).toHaveValue('/');
@@ -537,15 +563,15 @@ for (const [language, theme] of [['zh-TW', 'purple-dark'], ['en', 'blue-light'],
   });
 }
 
-test('the native scrollbar gutter stays uniform across empty, filtered, short and overflowing lists in all themes', async ({ page }, testInfo) => {
+// Redesign: overlay-style scrollbars on a transparent track, so the stable gutter continues the row
+// stripes instead of painting a separate uniform track. Gutter and table geometry must not shift.
+test('the scrollbar gutter stays stable and continues the row stripes across empty, filtered, short and overflowing lists in all themes', async ({ page }, testInfo) => {
   await open(page);
   await listings(page, { 'research-drive:Empty': [], 'research-drive:Short': [file('One.txt')], 'research-drive:Long': Array.from({ length: 80 }, (_, index) => file(`File-${String(index).padStart(2, '0')}.txt`)) });
   const scroller = pane(page).locator('.file-list > [data-virtuoso-scroller], .file-list > .file-empty-scroller');
   const geometry = () => scroller.evaluate(element => {
     const box = element.getBoundingClientRect(), table = element.querySelector('table')?.getBoundingClientRect();
-    const sample = document.createElement('span'); sample.style.color = 'var(--surface-subtle)'; element.append(sample);
-    const track = getComputedStyle(sample).color; sample.remove();
-    return { width: box.width, content: element.clientWidth, gutter: element.offsetWidth - element.clientWidth, height: element.clientHeight, scrollHeight: element.scrollHeight, tableLeft: table?.x, tableWidth: table?.width, track };
+    return { width: box.width, content: element.clientWidth, gutter: element.offsetWidth - element.clientWidth, height: element.clientHeight, scrollHeight: element.scrollHeight, tableLeft: table?.x, tableWidth: table?.width };
   });
   const samplePixels = async (dimensions: Awaited<ReturnType<typeof geometry>>) => {
     const png = await scroller.screenshot();
@@ -554,19 +580,24 @@ test('the native scrollbar gutter stays uniform across empty, filtered, short an
       const canvas = document.createElement('canvas'); canvas.width = image.width; canvas.height = image.height;
       const context = canvas.getContext('2d')!; context.drawImage(image, 0, 0);
       const rgb = (x: number, y: number) => { const [r, g, b] = context.getImageData(Math.floor(x), y, 1, 1).data; return `rgb(${r}, ${g}, ${b})`; };
-      return { track: [90, 127, 164, 201].filter(y => y < image.height - 20).map(y => rgb(image.width - gutter / 2, y)), rows: [rgb(content - 5, 90), rgb(content - 5, 127)] };
+      // Centres of rows 2-5 below the 24 pt header (22 pt rows).
+      const ys = [57, 79, 101, 123].filter(y => y < image.height - 20);
+      return { track: ys.map(y => rgb(image.width - gutter / 2, y)), rows: ys.map(y => rgb(content - 5, y)) };
     }, { png: png.toString('base64'), gutter: dimensions.gutter, content: dimensions.content });
   };
-  for (const theme of ['purple-dark', 'purple-light', 'blue-dark', 'blue-light', 'green-dark', 'green-light'] as Theme[]) {
+  const continuesStripes = (pixels: Awaited<ReturnType<typeof samplePixels>>, theme: string) => {
+    expect(pixels.track.length, theme).toBeGreaterThan(2);
+    expect(pixels.track, `${theme}: ${JSON.stringify(pixels)}`).toEqual(pixels.rows);
+    expect(pixels.rows[0], theme).not.toBe(pixels.rows[1]);
+    expect(pixels.rows[0], theme).toBe(pixels.rows[2]);
+  };
+  for (const theme of ['purple-dark', 'purple-light', 'purple-auto', 'blue-dark', 'blue-light', 'green-dark', 'green-light'] as Theme[]) {
     await page.evaluate(theme => { document.documentElement.dataset.theme = theme; }, theme);
     await go(page, 'Short');
     const short = await geometry();
     expect(short.gutter).toBeGreaterThan(0);
     expect(short.scrollHeight).toBe(short.height);
-    const pixels = await samplePixels(short);
-    expect(pixels.track.length).toBeGreaterThan(1);
-    expect(pixels.track.every(color => color === short.track), `${theme}: ${JSON.stringify(pixels)}`).toBe(true);
-    expect(pixels.rows[0]).not.toBe(pixels.rows[1]);
+    continuesStripes(await samplePixels(short), theme);
     if (theme === 'purple-dark') await pane(page).screenshot({ path: testInfo.outputPath('uniform-gutter-short.zh-TW.png') });
     await go(page, 'Long');
     const long = await geometry();
@@ -581,20 +612,20 @@ test('the native scrollbar gutter stays uniform across empty, filtered, short an
     expect(empty.gutter).toBe(short.gutter);
     expect(empty.content).toBe(short.content);
     expect(empty.scrollHeight).toBe(empty.height);
-    expect((await samplePixels(empty)).track.every(color => color === empty.track)).toBe(true);
+    continuesStripes(await samplePixels(empty), theme);
     await expect(pane(page).getByText(t('emptyFolder'), { exact: true })).toBeVisible();
     if (theme === 'purple-dark') await pane(page).screenshot({ path: testInfo.outputPath('uniform-gutter-empty.zh-TW.png') });
     await go(page, 'Short');
     expect((await geometry()).content).toBe(short.content);
-    await pane(page).getByRole('textbox', { name: `${t('right')} ${t('search')}`, exact: true }).fill('no-such-file');
+    await pane(page).getByRole('searchbox', { name: `${t('right')} ${t('search')}`, exact: true }).fill('no-such-file');
     await expect(pane(page).getByText(t('noMatches'), { exact: true })).toBeVisible();
     const filtered = await geometry();
     expect(filtered.gutter).toBe(short.gutter);
     expect(filtered.content).toBe(short.content);
     expect(filtered.scrollHeight).toBe(filtered.height);
-    expect((await samplePixels(filtered)).track.every(color => color === filtered.track)).toBe(true);
+    continuesStripes(await samplePixels(filtered), theme);
     if (theme === 'purple-dark') await pane(page).screenshot({ path: testInfo.outputPath('uniform-gutter-filtered.zh-TW.png') });
-    await pane(page).getByRole('textbox', { name: `${t('right')} ${t('search')}`, exact: true }).fill('');
+    await pane(page).getByRole('searchbox', { name: `${t('right')} ${t('search')}`, exact: true }).fill('');
     await expect(pane(page).locator('.file-name')).toHaveText(['One.txt']);
     expect((await geometry()).content).toBe(short.content);
   }

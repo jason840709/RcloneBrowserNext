@@ -249,13 +249,15 @@ fn interface_zoom(displayed_scale: u64) -> f64 {
 fn appearance_theme(settings: &Value) -> &str {
     match settings["theme"].as_str().unwrap_or("purple-dark") {
         "dark" => "blue-dark", "light" => "blue-light",
-        theme @ ("purple-dark" | "purple-light" | "blue-dark" | "blue-light" | "green-dark" | "green-light") => theme,
-        _ => "purple-dark",
+        theme @ ("purple-dark" | "purple-light" | "blue-dark" | "blue-light" | "green-dark" | "green-light"
+                 | "purple-auto" | "blue-auto" | "green-auto") => theme,
+        _ => "purple-auto",
     }
 }
 
 fn appearance_background(theme: &str) -> Color {
-    let component = if theme.ends_with("-light") { 241 } else { 28 };
+    // Matches --window in the web stylesheet; "auto" starts light until the page applies the system scheme.
+    let component = if theme.ends_with("-dark") { 37 } else { 237 };
     Color(component, component, component, 255)
 }
 

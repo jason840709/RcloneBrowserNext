@@ -12,6 +12,7 @@ declare global {
     webkit?: { messageHandlers?: { rclone?: { postMessage(message: { id: string; method: string; args: unknown[] }): void } } };
     __rbnReply?: (reply: Reply) => void;
     __rbnEvent?: (event: NativeEvent) => void;
+    __rbnHost?: { nativeChrome?: boolean };
   }
 }
 
@@ -112,6 +113,8 @@ export function installNativeBridge(): void {
     onUpdateStatus: callback => { updates.add(callback); return () => { updates.delete(callback); }; },
     onMenuAction: callback => { menuActions.add(callback); return () => { menuActions.delete(callback); }; },
     onConfigurationChanged: callback => { configurationChanges.add(callback); return () => { configurationChanges.delete(callback); }; },
+    // The Mac host announces a native toolbar before the page loads.
+    ...(window.__rbnHost?.nativeChrome ? {setChrome: state => call<void>('setChrome', state)} : {}),
   };
   window.rclone = Object.freeze(api);
 }

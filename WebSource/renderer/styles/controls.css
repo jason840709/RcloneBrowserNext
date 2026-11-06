@@ -1,0 +1,309 @@
+/*
+ * Controls. Hierarchy is carried by shape and depth, not by colour alone:
+ *   push buttons and pop-up buttons  capsule, raised (fill + shadow)
+ *   text fields and address bars     6 pt rounded rectangle, sunken (inset shadow)
+ *   segmented controls               sunken capsule track, one raised thumb that glides
+ *   icon buttons                     borderless; a circle of fill appears on hover
+ * Every state change uses the motion tokens in tokens.css.
+ */
+
+/* ===== Buttons ===== */
+button {
+  font: inherit; font-size: var(--fs-body); color: var(--label);
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  min-height: var(--control-h); padding: 0 12px; margin: 0;
+  background: var(--control); border: none; border-radius: var(--r-control);
+  box-shadow: var(--control-shadow);
+  white-space: nowrap; cursor: default; -webkit-user-select: none; user-select: none;
+  transition: background-color var(--d-hover) var(--ease-out), color var(--d-hover) var(--ease-out),
+    transform var(--d-fade) var(--ease-out), opacity var(--d-fade) var(--ease-out), box-shadow var(--d-hover) var(--ease-out);
+}
+/* Generic hover and press have zero specificity (:where), so any component
+   that draws its own background (swatches, tabs, segments, menu rows) keeps it. */
+@media (hover: hover) { button:where(:hover:not(:disabled):not(.primary):not(.text-button):not(.icon-button)) { background: var(--control-hover); } }
+/* Press answers on pointer-down; release eases back. */
+button:where(:active:not(:disabled)) { background: var(--control-pressed); transform: scale(0.97); transition-duration: 0ms, 0ms, var(--d-press), 0ms, 0ms; }
+button:disabled { opacity: 0.45; }
+button svg { color: inherit; }
+button.primary, button[type="submit"].primary {
+  background: var(--accent); color: var(--accent-ink); font-weight: 500;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.16), inset 0 0.5px 0 rgba(255, 255, 255, 0.22);
+}
+@media (hover: hover) { button.primary:hover:not(:disabled) { background: color-mix(in srgb, var(--accent) 90%, white); } }
+button.primary:active:not(:disabled) { background: var(--accent-pressed); }
+button.primary svg { color: var(--accent-ink); }
+button.danger { color: var(--red); }
+button.danger.primary, .clear-stop-choice.danger { background: var(--red-fill); color: #FFFFFF; }
+button.text-button, .text-button {
+  background: transparent; border: none; box-shadow: none; min-height: 0; padding: 2px 4px; margin: 0 -4px;
+  color: var(--accent-text); font-size: inherit; gap: 4px; border-radius: 5px;
+}
+@media (hover: hover) { button.text-button:hover:not(:disabled) { background: var(--accent-tint); } }
+button.text-button:active:not(:disabled) { background: var(--accent-soft); transform: none; }
+.dialog-footer > button.text-button { background: var(--control); box-shadow: var(--control-shadow); color: var(--label); min-height: var(--control-h); padding: 0 14px; margin: 0; border-radius: var(--r-control); }
+button.text-button:disabled { color: var(--tertiary); opacity: 1; }
+
+/* Borderless icon buttons (pane toolbars, rows). */
+.icon-button, button.icon-button {
+  width: var(--control-h); height: var(--control-h); min-height: var(--control-h); padding: 0; flex: 0 0 auto;
+  background: transparent; border: none; box-shadow: none; border-radius: 999px; color: var(--secondary);
+}
+.icon-button svg { width: var(--icon); height: var(--icon); }
+@media (hover: hover) { .icon-button:hover:not(:disabled) { background: var(--fill-strong); color: var(--label); } }
+.icon-button:active:not(:disabled) { background: var(--fill-pressed); transform: scale(0.92); }
+.icon-button:disabled { opacity: 0.35; }
+.icon-button[aria-pressed="true"] { color: var(--accent-text); background: var(--accent-tint); }
+
+/* ===== Text fields: sunken rounded rectangles ===== */
+input:not([type]), input[type="text"], input[type="search"], input[type="number"], input[type="password"], textarea {
+  font: inherit; font-size: var(--fs-body); color: var(--label);
+  width: 100%; min-height: var(--field-h); padding: 2px 8px;
+  background: var(--field); border: 0.5px solid var(--field-border); border-radius: var(--r-field);
+  box-shadow: var(--field-shadow);
+  transition: box-shadow var(--d-fade) var(--ease-out), border-color var(--d-fade) var(--ease-out), background-color var(--d-fade) var(--ease-out);
+}
+textarea { line-height: 1.45; padding: 6px 8px; resize: vertical; font-family: var(--font-mono); font-size: var(--fs-mono); }
+input::placeholder, textarea::placeholder { color: var(--tertiary); }
+input:focus-visible, textarea:focus-visible, input:focus, textarea:focus { border-color: var(--accent); box-shadow: var(--field-shadow), 0 0 0 3px var(--accent-ring); }
+input:disabled, textarea:disabled { color: var(--tertiary); background: var(--fill); box-shadow: none; }
+input[type="search"]::-webkit-search-cancel-button, input[type="search"]::-webkit-search-decoration { -webkit-appearance: none; appearance: none; }
+
+/* Pop-up buttons are buttons: raised capsules with the up/down chevrons. */
+select {
+  font: inherit; font-size: var(--fs-body); color: var(--label);
+  min-height: var(--control-h); max-width: 100%; padding: 0 26px 0 11px;
+  appearance: none; -webkit-appearance: none;
+  background: var(--control) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='12' viewBox='0 0 9 13'%3E%3Cpath d='M1.2 4.6 4.5 1.4l3.3 3.2M1.2 8.4l3.3 3.2 3.3-3.2' fill='none' stroke='%23888' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat right 10px center;
+  border: none; border-radius: var(--r-control); box-shadow: var(--control-shadow);
+  transition: background-color var(--d-hover) var(--ease-out);
+}
+@media (hover: hover) { select:hover:not(:disabled) { background-color: var(--control-hover); } }
+select:focus-visible { box-shadow: var(--control-shadow), 0 0 0 3px var(--accent-ring); }
+select:disabled { opacity: 0.45; }
+input[type="checkbox"], input[type="radio"] {
+  accent-color: var(--accent); width: 14px; height: 14px; margin: 0; flex: 0 0 auto;
+}
+input[type="checkbox"]:focus-visible, input[type="radio"]:focus-visible { box-shadow: 0 0 0 3px var(--accent-ring); border-radius: 4px; }
+
+.popup-button, .location-trigger, .operation-picker-trigger {
+  justify-content: flex-start; gap: 6px; padding: 0 10px 0 11px; min-width: 0; max-width: 100%;
+}
+.popup-button::after, .location-trigger::after, .operation-picker-trigger::after {
+  content: ""; width: 8px; height: 12px; margin-left: auto; flex: 0 0 auto; opacity: 0.75;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='12' viewBox='0 0 9 13'%3E%3Cpath d='M1.2 4.6 4.5 1.4l3.3 3.2M1.2 8.4l3.3 3.2 3.3-3.2' fill='none' stroke='%23888' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat center;
+}
+.location-trigger .select-caret, .operation-picker-trigger > svg:last-child { display: none; }
+
+/* ===== Segmented controls =====
+ * A sunken capsule track and a single raised thumb. The thumb is the track's
+ * ::before; segments.ts measures the selected segment and sets --thumb-x and
+ * --thumb-w, so the thumb glides between segments instead of jumping.
+ * Unselected segments have no fill at all, so two shapes never meet; a short
+ * hairline separates unselected neighbours and fades when the thumb arrives. */
+.segmented, .filter-tabs, .mode-picker, .options-tabs, .report-tabs, .account-mode-switch, .interface-scale-picker, .main-nav, .direction-picker {
+  position: relative; isolation: isolate; display: inline-flex; align-items: stretch; gap: 0;
+  padding: 2px; min-height: var(--control-h);
+  background: var(--segment-track); border-radius: 999px; box-shadow: inset 0 0 0 0.5px var(--segment-track-border);
+}
+:is(.segmented, .filter-tabs, .mode-picker, .options-tabs, .report-tabs, .account-mode-switch, .interface-scale-picker, .main-nav, .direction-picker)::before {
+  content: ""; position: absolute; z-index: -1; top: 2px; bottom: 2px; left: 0;
+  width: var(--thumb-w, 0px); transform: translateX(var(--thumb-x, 0px));
+  background: var(--segment-thumb); box-shadow: var(--segment-shadow); border-radius: 999px;
+  opacity: var(--thumb-opacity, 0);
+}
+:is(.segmented, .filter-tabs, .mode-picker, .options-tabs, .report-tabs, .account-mode-switch, .interface-scale-picker, .main-nav, .direction-picker)[data-thumb="ready"]::before {
+  transition: transform var(--d-glide) var(--ease-glide), width var(--d-glide) var(--ease-glide), opacity var(--d-fade) var(--ease-out);
+}
+:is(.segmented, .filter-tabs, .mode-picker, .options-tabs, .report-tabs, .main-nav, .direction-picker) > button,
+:is(.account-mode-switch, .interface-scale-picker) > label {
+  position: relative; flex: 1 1 0; display: flex; align-items: center; justify-content: center; gap: 6px;
+  min-height: calc(var(--control-h) - 4px); padding: 0 12px;
+  background: transparent; border: none; box-shadow: none; border-radius: 999px;
+  color: var(--secondary); font-size: var(--fs-body);
+  transition: color var(--d-glide) var(--ease-out), transform var(--d-fade) var(--ease-out);
+}
+:is(.segmented, .filter-tabs, .mode-picker, .options-tabs, .report-tabs, .main-nav, .direction-picker) > button:hover:not(:disabled),
+:is(.account-mode-switch, .interface-scale-picker) > label:hover { color: var(--label); background: transparent; }
+:is(.segmented, .filter-tabs, .mode-picker, .options-tabs, .report-tabs, .main-nav, .direction-picker) > :is(button, label) + :is(button, label)::after {
+  content: ""; position: absolute; left: 0; top: 30%; bottom: 30%; width: 1px; background: var(--separator);
+  transition: opacity var(--d-fade) var(--ease-out);
+}
+:is(.account-mode-switch, .interface-scale-picker) > label + label::after {
+  content: ""; position: absolute; left: 0; top: 30%; bottom: 30%; width: 1px; background: var(--separator);
+  transition: opacity var(--d-fade) var(--ease-out);
+}
+:is(.segmented, .filter-tabs, .mode-picker, .options-tabs, .report-tabs, .main-nav, .direction-picker, .account-mode-switch, .interface-scale-picker) > :is([aria-pressed="true"], .selected, .active, [aria-current="page"], [aria-checked="true"], :has(input:checked)) {
+  color: var(--label); font-weight: 500;
+}
+:is(.segmented, .filter-tabs, .mode-picker, .options-tabs, .report-tabs, .main-nav, .direction-picker, .account-mode-switch, .interface-scale-picker) > :is([aria-pressed="true"], .selected, .active, [aria-current="page"], [aria-checked="true"], :has(input:checked))::after,
+:is(.segmented, .filter-tabs, .mode-picker, .options-tabs, .report-tabs, .main-nav, .direction-picker, .account-mode-switch, .interface-scale-picker) > :is([aria-pressed="true"], .selected, .active, [aria-current="page"], [aria-checked="true"], :has(input:checked)) + *::after { opacity: 0; }
+:is(.segmented, .filter-tabs, .mode-picker, .options-tabs, .report-tabs, .main-nav, .direction-picker) > button svg { transition: color var(--d-glide) var(--ease-out); }
+:is(.segmented, .filter-tabs, .mode-picker, .options-tabs, .report-tabs, .main-nav, .direction-picker) > :is([aria-pressed="true"], .selected, .active, [aria-current="page"]) svg { color: var(--accent-text); }
+:is(.segmented, .filter-tabs, .mode-picker, .options-tabs, .report-tabs, .main-nav, .direction-picker) > button:active:not(:disabled) { transform: scale(0.96); background: transparent; }
+:is(.account-mode-switch, .interface-scale-picker) input { position: absolute; inset: 0; z-index: 1; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: default; }
+:is(.account-mode-switch, .interface-scale-picker) > label:has(input:focus-visible) { box-shadow: 0 0 0 3px var(--accent-ring); }
+
+/* ===== Badges and tags ===== */
+.count-badge {
+  display: inline-flex; align-items: center; justify-content: center; min-width: 16px; height: 16px; padding: 0 5px;
+  border-radius: 8px; background: var(--accent); color: var(--accent-ink); font-size: var(--fs-mini); font-weight: 600; line-height: 1;
+  font-variant-numeric: tabular-nums; animation: badge-in var(--d-pop) var(--ease-out);
+}
+@keyframes badge-in { from { transform: scale(0.6); opacity: 0; } }
+.role-tag, .dry-tag, .mode-tag {
+  display: inline-flex; align-items: center; height: 17px; padding: 0 7px; border-radius: 9px; flex: 0 0 auto;
+  font-size: var(--fs-label); font-weight: 600; white-space: nowrap;
+  color: var(--secondary); background: var(--fill-strong);
+}
+.role-tag { height: auto; padding: 0; border-radius: 0; background: none; font-size: var(--fs-label); font-weight: 600; color: var(--secondary); }
+.role-tag.source-tag { color: var(--accent-text); background: none; }
+.dry-tag { color: var(--blue-info); background: var(--fill); }
+.mode-tag.mode-sync { color: var(--orange); background: var(--orange-tint); }
+.mode-tag.mode-move { color: var(--red); background: var(--red-tint); }
+.mode-tag.mode-copy { color: var(--accent-text); background: var(--accent-tint); }
+
+/* ===== Help tags ===== */
+.info-tooltip-trigger {
+  width: 16px; height: 16px; min-height: 16px; padding: 0; margin: 0 0 0 2px; border-radius: 50%;
+  background: transparent; border: none; box-shadow: none; color: var(--tertiary);
+}
+.info-tooltip-trigger svg { width: 14px; height: 14px; }
+.info-tooltip-trigger:hover, .info-tooltip-trigger[aria-expanded="true"] { color: var(--accent-text); background: transparent; }
+.info-tooltip-trigger:active:not(:disabled) { transform: none; background: transparent; }
+.info-tooltip {
+  z-index: 1000; max-width: min(300px, calc(100vw - 24px)); padding: 7px 10px;
+  font-size: var(--fs-callout); line-height: 1.45; color: var(--label); white-space: pre-line; overflow-wrap: anywhere;
+  background: var(--tooltip); border: 0.5px solid var(--menu-border); border-radius: 8px; box-shadow: var(--menu-shadow);
+  -webkit-backdrop-filter: blur(24px) saturate(1.6); backdrop-filter: blur(24px) saturate(1.6);
+  animation: tooltip-in var(--d-fade) var(--ease-out);
+  pointer-events: auto; -webkit-user-select: text; user-select: text;
+}
+@keyframes tooltip-in { from { opacity: 0; transform: translateY(-3px); } }
+.info-tooltip[data-side="above"] { animation-name: tooltip-in-above; }
+@keyframes tooltip-in-above { from { opacity: 0; transform: translateY(3px); } }
+
+/* ===== Inline notices ===== */
+.notice {
+  display: flex; align-items: flex-start; gap: 8px; padding: 8px 11px; border-radius: 8px;
+  font-size: var(--fs-body); line-height: 1.45; color: var(--label);
+  background: var(--fill); border: 0.5px solid var(--separator);
+}
+.notice > svg { width: 16px; height: 16px; margin-top: 1px; color: var(--secondary); }
+.notice > div { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.notice > .icon-button { width: 20px; height: 20px; min-height: 20px; margin: -1px -4px -1px 0; }
+.notice > .icon-button svg { width: 12px; height: 12px; }
+.notice.info > svg { color: var(--blue-info); }
+.notice.success { background: var(--green-tint); border-color: transparent; }
+.notice.success > svg { color: var(--green); }
+.notice.warning { background: var(--orange-tint); border-color: transparent; }
+.notice.warning > svg { color: var(--orange); }
+.notice.error { background: var(--red-tint); border-color: transparent; }
+.notice.error > svg { color: var(--red); }
+.notice .text-button { margin-left: 4px; }
+.notice + .notice { margin-top: 6px; }
+
+/* Transient feedback floats above the content like a HUD; only its close button takes clicks. */
+.floating-notice {
+  position: fixed; left: 50%; bottom: 34px; z-index: 900; width: max-content; max-width: min(520px, calc(100vw - 40px));
+  transform: translate(-50%, 12px) scale(0.97); opacity: 0; pointer-events: none;
+  transition: opacity var(--d-fade) var(--ease-out), transform var(--d-fade) var(--ease-out);
+}
+.floating-notice[data-visible="true"] { opacity: 1; transform: translate(-50%, 0) scale(1); transition: opacity var(--d-sheet-in) var(--ease-out), transform var(--d-sheet-in) var(--ease-glide); }
+.floating-notice .notice {
+  padding: 8px 11px 8px 13px; border-radius: 12px; align-items: center;
+  background: var(--menu); border: 0.5px solid var(--menu-border); box-shadow: var(--menu-shadow);
+  -webkit-backdrop-filter: blur(30px) saturate(1.8); backdrop-filter: blur(30px) saturate(1.8);
+}
+.floating-notice .notice > svg { margin-top: 0; }
+.floating-notice[data-visible="true"] .notice > .icon-button { pointer-events: auto; }
+.floating-success .notice > svg { color: var(--green); }
+.floating-error .notice > svg { color: var(--red); }
+dialog .floating-notice { position: absolute; bottom: 58px; }
+
+/* ===== Empty and status states ===== */
+.empty-state { display: flex; align-items: center; justify-content: center; padding: 24px 18px; height: 100%; }
+.status-card { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 6px; max-width: 340px; animation: fade-up var(--d-sheet-in) var(--ease-out); }
+.status-card .empty-icon { color: var(--tertiary); margin-bottom: 4px; }
+.status-card .empty-icon svg { width: 40px; height: 40px; }
+.status-card h3 { font-size: var(--fs-title); font-weight: 600; color: var(--label); }
+.status-card p { color: var(--secondary); font-size: var(--fs-body); line-height: 1.5; overflow-wrap: anywhere; -webkit-user-select: text; user-select: text; }
+.status-card-error .empty-icon { color: var(--red); }
+.status-card-actions { margin-top: 8px; display: flex; gap: 8px; }
+.empty-state.compact .status-card .empty-icon svg { width: 30px; height: 30px; }
+.empty-state.compact h3 { font-size: var(--fs-heading); }
+@keyframes fade-up { from { opacity: 0; transform: translateY(6px); } }
+
+/* ===== Progress ===== */
+.progress-track, .progress-bar {
+  position: relative; height: 5px; flex: 1; min-width: 36px; border-radius: 3px; overflow: hidden;
+  background: var(--fill-strong); container-type: inline-size;
+}
+.progress-fill {
+  position: absolute; inset: 0; border-radius: inherit;
+  background: var(--accent); transition: transform 1000ms linear;
+}
+.progress-indicator {
+  position: absolute; top: 0; bottom: 0; left: 0; width: 34%; border-radius: inherit; background: var(--accent);
+  animation: progress-sweep 1.3s var(--ease-in-out) infinite;
+}
+@keyframes progress-sweep { from { transform: translateX(-100%); } to { transform: translateX(300%); } }
+/* rclone is working but not reporting bytes: a quiet shimmer instead of a frozen bar. */
+.progress-track.waiting::after {
+  content: ""; position: absolute; top: 0; bottom: 0; left: 0; width: 40%; border-radius: inherit;
+  background: linear-gradient(90deg, transparent, var(--accent-ring), transparent);
+  animation: progress-shimmer 1.8s var(--ease-in-out) infinite;
+}
+@keyframes progress-shimmer { from { transform: translateX(-100%); } to { transform: translateX(250%); } }
+
+/* ===== Menus and popovers =====
+ * Menus grow out of their trigger (transform-origin) and fade in; they close
+ * with a shorter fade (.menu-closing). Highlight follows the pointer at once. */
+.application-menu-content, .pane-more-content, .operation-menu, .location-popup {
+  z-index: 950; min-width: 200px; padding: 5px; color: var(--label);
+  background: var(--menu); border: 0.5px solid var(--menu-border); border-radius: var(--r-menu); box-shadow: var(--menu-shadow);
+  -webkit-backdrop-filter: blur(30px) saturate(1.2); backdrop-filter: blur(30px) saturate(1.2);
+  transform-origin: top left;
+  animation: menu-in var(--d-pop) var(--ease-out);
+}
+@keyframes menu-in { from { opacity: 0; transform: scale(0.96) translateY(-3px); } }
+.location-popup[data-side="above"], .operation-menu[data-side="above"] { transform-origin: bottom left; animation-name: menu-in-above; }
+@keyframes menu-in-above { from { opacity: 0; transform: scale(0.96) translateY(3px); } }
+.menu-closing { animation: menu-out 120ms var(--ease-out) forwards !important; pointer-events: none; }
+@keyframes menu-out { to { opacity: 0; transform: scale(0.98); } }
+:is(.application-menu-content, .pane-more-content, .operation-menu) > button,
+.operation-menu .preset-menu-row > button[role="menuitemradio"] {
+  width: 100%; min-height: 24px; padding: 2px 10px 2px 8px; justify-content: flex-start; gap: 8px;
+  background: transparent; border: none; box-shadow: none; border-radius: 6px;
+  font-size: var(--fs-body); color: var(--label); text-align: left; transition: none;
+}
+:is(.application-menu-content, .pane-more-content, .operation-menu) > button svg,
+.operation-menu .preset-menu-row > button svg { color: var(--secondary); width: 16px; height: 16px; }
+:is(.application-menu-content, .pane-more-content, .operation-menu) > button:is(:hover, :focus-visible):not(:disabled),
+.operation-menu .preset-menu-row > button:is(:hover, :focus-visible):not(:disabled) {
+  background: var(--accent); color: var(--accent-ink); box-shadow: none;
+}
+:is(.application-menu-content, .pane-more-content, .operation-menu) > button:is(:hover, :focus-visible):not(:disabled) svg,
+.operation-menu .preset-menu-row > button:is(:hover, :focus-visible):not(:disabled) :is(svg, small) { color: var(--accent-ink); }
+:is(.application-menu-content, .pane-more-content, .operation-menu) > button:active:not(:disabled) { transform: none; }
+:is(.application-menu-content, .pane-more-content, .operation-menu) > button:disabled { opacity: 1; color: var(--tertiary); }
+:is(.application-menu-content, .pane-more-content, .operation-menu) > button:disabled svg { color: var(--quaternary); }
+.menu-separator { height: 1px; margin: 5px 9px; background: var(--separator); }
+.menu-section-title { padding: 6px 10px 3px; font-size: var(--fs-label); font-weight: 600; color: var(--secondary); }
+.menu-check { width: 16px; display: inline-flex; justify-content: center; color: inherit; }
+.menu-check svg { color: var(--accent-text) !important; }
+:is(.application-menu-content, .pane-more-content, .operation-menu) > button:is(:hover, :focus-visible) .menu-check svg { color: var(--accent-ink) !important; }
+:is(.application-menu-content, .pane-more-content) kbd { margin-left: auto; background: none; border: none; color: var(--tertiary); padding: 0; }
+:is(.application-menu-content, .pane-more-content) > button:hover kbd { color: var(--accent-ink); opacity: 0.75; }
+
+/* Details-based menus anchor to their trigger. */
+details.application-menu, details.pane-more-menu { position: relative; }
+details.application-menu > summary, details.pane-more-menu > summary { list-style: none; }
+summary.icon-button { display: inline-flex; align-items: center; justify-content: center; cursor: default; }
+details.application-menu > summary::-webkit-details-marker, details.pane-more-menu > summary::-webkit-details-marker { display: none; }
+details.pane-more-menu[open] > summary { background: var(--fill-strong); color: var(--label); }
+.pane-more-content { position: absolute; right: 0; top: calc(100% + 5px); transform-origin: top right; min-width: 230px; }
+.application-menu-content { position: absolute; left: 0; top: calc(100% + 6px); min-width: 250px; }
+
+/* Number fields: type or use the arrow keys; the cramped WebKit spin arrows are hidden. */
+input[type="number"] { -moz-appearance: textfield; }
+input[type="number"]::-webkit-inner-spin-button, input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }

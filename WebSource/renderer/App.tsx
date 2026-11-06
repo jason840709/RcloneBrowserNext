@@ -1,7 +1,6 @@
 import { useHistoryNavigation } from './useHistoryNavigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ArrowLeft, ArrowRight, ArrowsLeftRight, FolderOpen, ListBullets, BookBookmark, GearSix, CaretDown, SlidersHorizontal,
-  FloppyDisk, TerminalWindow, Play, Eye, CheckCircle, WarningCircle, ArrowSquareOut, X, Cloud, HardDrives, ChartBar } from '@phosphor-icons/react';
+import { ArrowDown, ArrowLeft, ArrowRight, ArrowsLeftRight, ArrowsDownUp, Folder, BookmarkSimple, FolderOpen, ListBullets, BookBookmark, GearSix, CaretDown, SlidersHorizontal, TerminalWindow, Play, Eye, CheckCircle, WarningCircle, ArrowSquareOut, X, Cloud, HardDrives, ChartBar, PushPin } from '@phosphor-icons/react';
 import { DEFAULT_OPTIONS, type Bootstrap, type CommandPreview, type Endpoint, type Job, type SavedTask, type Settings, type SettingsPatch, type TransferMode, type TransferOptions, type TransferRequest, type UpdateStatus, type ToolSession, type AppUpdateResult, type ResolvedLanguage, type BuiltinPresetID } from '../shared/types';
 import OperationPicker from './OperationPicker';
 import { applyTheme, initialTheme, startupIcon, themeIcon } from './appearance';
@@ -56,6 +55,14 @@ export default function App() {
   const [toolSessions, setToolSessions] = useState<ToolSession[]>([]);
   const [toolTarget, setToolTarget] = useState<ToolTarget | null>(null);
   const [page, setPage] = useState<'files'|'jobs'|'tasks'>('files');
+  // Pages slide in from the side of the tab that was chosen (files, transfers, tasks from left to right).
+  // The first page appears without motion; later switches keep their direction until the next switch.
+  const pageMotion = useRef<{page: string; direction: 'none'|'forward'|'back'}>({page, direction: 'none'});
+  if (pageMotion.current.page !== page) {
+    const pageOrder = ['files', 'jobs', 'tasks'];
+    pageMotion.current = {page, direction: pageOrder.indexOf(page) > pageOrder.indexOf(pageMotion.current.page) ? 'forward' : 'back'};
+  }
+  const pageDirection = pageMotion.current.direction;
   const [activePane, setActivePane] = useState<'left'|'right'>('left');
   const [direction, setDirection] = useState<'lr'|'rl'>('lr');
   const [mode, setMode] = useState<TransferMode>('copy');
@@ -79,6 +86,8 @@ export default function App() {
   const systemLanguage = useRef<ResolvedLanguage>(resolveLanguage(navigator.languages?.[0] || navigator.language || 'en'));
   const [modalError, setModalError] = useState('');
   const [preview, setPreview] = useState<CommandPreview | null>(null);
+  const menuHandlers = useRef({rememberWorkspace: () => {}, saveTask: () => {}, configureTerminal: () => {}});
+  const nativeChrome = Boolean(window.rclone?.setChrome);
   const left = useBrowser();
   const right = useBrowser();
   const observedStatuses = useRef(new Map<string, Job['status']>());
@@ -242,6 +251,9 @@ export default function App() {
       else if (action.action === 'checkAppUpdates') void checkAppUpdates();
       else if (action.action === 'checkForUpdates') void checkEngineUpdates();
       else if (action.action === 'about') showAbout();
+      else if (action.action === 'page') setPage(action.page);
+      else if (action.action === 'dismissModal') { const open = [...document.querySelectorAll('dialog[open]')]; open[open.length - 1]?.dispatchEvent(new Event('rbn-dismiss')); }
+      else if (action.action === 'rememberWorkspace' || action.action === 'saveTask' || action.action === 'configureTerminal') menuHandlers.current[action.action]();
     });
     void loadBootstrap(true);
     return () => { unsubscribe(); unsubscribeUpdates(); unsubscribeConfiguration(); unsubscribeMenu(); };
@@ -426,33 +438,70 @@ export default function App() {
     } catch(reason) { showError(errorMessage(reason)); }
   };
   const external = async (url: string) => { try { await window.rclone.openExternal(url); } catch (reason) { showError(errorMessage(reason)); } };
+  const canRememberWorkspace = pendingSettings === 0 && !left.pathDirty && !right.pathDirty && !left.loading && !right.loading && left.hasListing && right.hasListing;
+  const canSaveTask = !source.missingSelection;
+  const startRemember = () => { if (canRememberWorkspace) void rememberWorkspace().catch(reason => showError(errorMessage(reason))); };
+  const startSaveTask = () => { if (canSaveTask) openSaveTask(); };
+  const startTerminal = () => { if (ready && pendingSettings === 0) void configureTerminal().catch(reason => showError(errorMessage(reason))); };
+  menuHandlers.current = {rememberWorkspace: startRemember, saveTask: startSaveTask, configureTerminal: startTerminal};
+  const modalOpen = useOpenDialog();
+  useEffect(() => {
+    if (!bootstrap) return;
+    void window.rclone.setChrome?.({page, activeJobs, ready, canRememberWorkspace: page === 'files' && canRememberWorkspace, canSaveTask: page === 'files' && canSaveTask, modalOpen}).catch(() => {});
+  }, [bootstrap, page, activeJobs, ready, canRememberWorkspace, canSaveTask, modalOpen]);
 
   if (!bridgeAvailable) return <main className="startup"><img className="app-mark large" src={startupIcon(settings.theme)} alt=""/><h1>Rclone Browser Next</h1><EmptyState icon={<TerminalWindow size={36}/>} title={t('desktopRequired')}>{t('desktopRequiredHint')}</EmptyState></main>;
   if (!bootstrap) return <main className="startup"><img className="app-mark large" src={startupIcon(settings.theme)} alt=""/><h1>Rclone Browser Next</h1>{startupError ? <EmptyState kind="error" icon={<WarningCircle size={32}/>} title={t('startupError')} action={<button type="button" onClick={() => { setStartupError(''); void loadBootstrap(true); }}>{t('reload')}</button>}>{startupError}</EmptyState> : <p className="loading-status" role="status">{t('loadingApp')}</p>}</main>;
 
-  return <div className={`app-shell platform-${bootstrap.environment.platform}`}>
-    <header className="app-toolbar">
-      <ApplicationMenu platform={bootstrap.environment.platform} t={t} language={settings.language} theme={settings.theme} onSettings={() => setModal('settings')} onHelp={() => setModal('help')} onConfigure={() => void configureAccounts().catch(reason => showError(errorMessage(reason)))} onLanguage={language => void saveSettings({language}).catch(reason => showError(errorMessage(reason)))} onAbout={showAbout} onEngineUpdate={() => void checkEngineUpdates()} onAppUpdate={() => void checkAppUpdates()}/>
-      <nav className="main-nav" aria-label={t('mainNavigation')}>{([{key: 'files', icon: <FolderOpen size={17}/>}, {key: 'jobs', icon: <ListBullets size={18}/>}, {key: 'tasks', icon: <BookBookmark size={17}/>} ] as const).map(item => <button type="button" key={item.key} className={page === item.key ? 'active' : ''} aria-current={page === item.key ? 'page' : undefined} onClick={() => setPage(item.key)}>{item.icon}{t(item.key)}{item.key === 'jobs' && activeJobs > 0 && <span className="count-badge">{activeJobs}</span>}</button>)}</nav>
-      <div className="app-toolbar-actions"/>
-    </header>
-    {!ready && <div className="engine-banner"><WarningCircle size={20}/><div><strong>{t('unavailable')}</strong><span>{t('unavailableHint')}</span></div><button type="button" onClick={() => setModal('settings')}>{t('openSettings')}</button></div>}
+  const pages = [{key: 'files', icon: <Folder size={16}/>}, {key: 'jobs', icon: <ArrowsDownUp size={16}/>}, {key: 'tasks', icon: <BookmarkSimple size={16}/>}] as const;
+  return <div className={`app-shell platform-${bootstrap.environment.platform} ${nativeChrome ? 'native-chrome' : 'web-chrome'}`}>
+    {!nativeChrome && <header className="app-toolbar">
+      <ApplicationMenu platform={bootstrap.environment.platform} t={t} language={settings.language} theme={settings.theme} onSettings={() => setModal('settings')} onHelp={() => setModal('help')} onConfigure={() => void configureAccounts().catch(reason => showError(errorMessage(reason)))} onTerminal={startTerminal} onLanguage={language => void saveSettings({language}).catch(reason => showError(errorMessage(reason)))} onAbout={showAbout} onEngineUpdate={() => void checkEngineUpdates()} onAppUpdate={() => void checkAppUpdates()}/>
+      <nav className="main-nav" aria-label={t('mainNavigation')}>{pages.map(item => <button type="button" key={item.key} className={page === item.key ? 'active' : ''} aria-current={page === item.key ? 'page' : undefined} onClick={() => setPage(item.key)}>{item.icon}<span>{t(item.key)}</span>{item.key === 'jobs' && activeJobs > 0 && <span className="count-badge">{activeJobs}</span>}</button>)}</nav>
+      <div className="app-toolbar-actions">
+        <button type="button" className="toolbar-button account-setup-button" onClick={() => void configureAccounts().catch(reason => showError(errorMessage(reason)))} disabled={!ready || pendingSettings > 0}><Cloud size={16}/>{t('configLabel')}</button>
+        {page === 'files' && <div className="workspace-save-actions" role="group" aria-label={t('workspaceTaskDifference')} title={t('workspaceTaskDifferenceHint')}>
+          <button type="button" className="toolbar-button" disabled={!canRememberWorkspace} onClick={startRemember}><PushPin size={16}/>{t('rememberWorkspace')}</button>
+          <button type="button" className="toolbar-button" onClick={startSaveTask} disabled={!canSaveTask}><BookmarkSimple size={16}/>{t('saveTask')}</button>
+        </div>}
+        <IconButton className="toolbar-icon settings-button" title={t('settings')} onClick={() => setModal('settings')}><GearSix size={18}/></IconButton>
+      </div>
+    </header>}
+    {!ready && <div className="engine-banner" role="status"><WarningCircle size={18} weight="fill"/><div><strong>{t('unavailable')}</strong><span>{t('unavailableHint')}</span></div><button type="button" onClick={() => setModal('settings')}>{t('openSettings')}</button></div>}
     <FloatingNotice message={error || notice} kind={error ? 'error' : 'success'} serial={noticeSerial} onClose={() => { setError(''); setNotice(''); }}/>
     <main className={`app-main page-${page}`}>
-      {page === 'files' && <div className="workspace"><div className="workspace-heading">
-        <div className="workspace-title"><IconButton title={t('settings')} onClick={() => setModal('settings')}><GearSix size={19}/></IconButton><button type="button" className="account-setup-button" onClick={() => void configureAccounts().catch(reason => showError(errorMessage(reason)))} disabled={!ready || pendingSettings > 0}><Cloud size={16}/>{t('configLabel')}</button><button type="button" className="text-button terminal-config-link" title={t('remoteSetupOpened')} onClick={() => void configureTerminal().catch(reason => showError(errorMessage(reason)))} disabled={!ready || pendingSettings > 0}>config</button></div>
-        {loadedTask && <div className="loaded-task"><BookBookmark size={14}/><span>{t('loadedTask')}：{loadedTask.name}</span><IconButton title={t('close')} onClick={() => setLoadedTask(null)}><X size={13}/></IconButton></div>}
-        <div className="workspace-save-actions" role="group" aria-label={t('workspaceTaskDifference')}>
-          <button type="button" disabled={pendingSettings > 0 || left.pathDirty || right.pathDirty || left.loading || right.loading || !left.hasListing || !right.hasListing} onClick={() => void rememberWorkspace().catch(reason => showError(errorMessage(reason)))}><FloppyDisk size={16}/>{t('rememberWorkspace')}</button>
-          <span className="workspace-save-divider" aria-hidden="true"/>
-          <button type="button" onClick={() => openSaveTask()} disabled={source.missingSelection}><FloppyDisk size={16}/>{t('saveTask')}</button>
-          <InfoTooltip label={t('workspaceTaskDifference')} text={t('workspaceTaskDifferenceHint')}/>
-        </div>
-      </div>
+      <div key={page} className="page-view" data-direction={pageDirection}>
+      {page === 'files' && <div className="workspace">
         <div className="browser-grid"><BrowserPane side="left" browser={left} remotes={bootstrap.remotes} locations={bootstrap.localLocations || []} home={bootstrap.home} platform={bootstrap.environment.platform} t={t} language={language} active={activePane === 'left'} isSource={direction === 'lr'} disabled={fileBusy} remoteAvailable={ready} onToolAction={action => void toolAction('left', action)} preferences={settings} columnWidths={settings.paneColumnWidths.left} onColumnWidths={widths => void saveSettings({paneColumnWidths: {left: widths}}).catch(reason => showError(errorMessage(reason)))} onActivate={() => setActivePane('left')} onFileAction={kind => void fileAction('left', kind)} onError={showError}/>
-          <aside className="transfer-controls" aria-label={t('options')}><div className="transfer-controls-top"><h2>{t('direction')}</h2><div className="direction-picker"><button type="button" aria-label={t('leftToRight')} className={direction === 'lr' ? 'selected' : ''} aria-pressed={direction === 'lr'} onClick={() => changeDirection('lr')}><span>{t('left')}</span><ArrowRight size={19}/><span>{t('right')}</span></button><button type="button" aria-label={t('rightToLeft')} className={direction === 'rl' ? 'selected' : ''} aria-pressed={direction === 'rl'} onClick={() => changeDirection('rl')}><span>{t('left')}</span><ArrowLeft size={19}/><span>{t('right')}</span></button></div><div className="field"><div className="field-label-row"><span className="field-label">{t('operation')}</span><InfoTooltip label={t('operation')} text={t(mode === 'sync' ? 'syncDetail' : mode === 'move' ? 'moveDetail' : 'copyDetail')}/></div><OperationPicker mode={mode} preset={activePreset} hidden={settings.hiddenBuiltinPresets || []} t={t} onPreset={applyPreset} onHide={hidePreset} onMode={next => { if (next === 'move' && options.updateOnly) showNotice(t('moveNewerHint')); setActivePreset(null); setMode(next); setOptions(old => ({...old, ...(next === 'sync' ? {noTraverse: false} : {deleteExcluded: false}), ...(next === 'move' ? {updateOnly: false} : {})})); }}/></div><p className="operation-hint">{t(mode === 'copy' ? 'copyHint' : mode === 'sync' ? 'syncHint' : 'moveHint')}</p>{activePreset && <p className="preset-active-summary">{t(presetSummary(activePreset))}</p>}</div>
-            <div className="transfer-route"><div><span>{t('source')}</span><strong title={endpointText(source.endpoint)}>{source.endpoint.remote ? <Cloud size={13}/> : <HardDrives size={13}/>}<span>{endpointName(source.endpoint)}</span></strong></div><ArrowDownIndicator/><div><span>{t('destination')}</span><strong title={endpointText(destination.endpoint)}>{destination.endpoint.remote ? <Cloud size={13}/> : <HardDrives size={13}/>}<span>{endpointName(destination.endpoint)}</span></strong></div><div className="scope-summary"><span>{source.selection.length > 0 ? `${t('selected')} ${source.selection.length} ${t('items')}` : t('wholeFolder')}</span>{source.selection.length > 0 && <InfoTooltip label={t('selectionScope')} text={t('selectedTransferHint')}/>}</div><button type="button" className="text-button swap-button" onClick={swap} disabled={left.loading || right.loading}><ArrowsLeftRight size={13}/>{t('swap')}</button></div>
-            <div className="transfer-controls-bottom"><button type="button" className="options-button" onClick={() => setModal('options')}><SlidersHorizontal size={17}/>{t('options')}</button>{bandwidthLimit && <p className="bandwidth-summary"><span>{t('bandwidth')}</span><strong>{bandwidthLimit}</strong></p>}{blocked && ready && <p className="transfer-block" role="status">{blocked}{mode === 'sync' && source.selection.length > 0 && <button type="button" className="text-button" onClick={() => source.setSelection([])}>{t('clearSelection')}</button>}</p>}<button type="button" className="dry-run-button" title={t('dryRunHint')} disabled={transferDisabled} onClick={() => run(true)}><Eye size={16}/>{t('dryRun')}</button><button type="button" className={`primary start-button ${mode !== 'copy' ? 'caution-primary' : ''}`} disabled={transferDisabled} onClick={() => run(false)}><Play size={15} weight="fill"/>{busy ? t('starting') : t(mode === 'copy' ? 'startCopy' : mode === 'sync' ? 'startSync' : 'startMove')}</button><button type="button" className="text-button command-button" disabled={!ready || busy} onClick={openPreview}><TerminalWindow size={12}/>{t('commandPreview')}</button></div>
+          <aside className="transfer-controls" aria-label={t('options')}>
+            {loadedTask && <div className="loaded-task" title={`${t('loadedTask')}：${loadedTask.name}`}><BookBookmark size={13}/><span>{loadedTask.name}</span><IconButton title={t('close')} onClick={() => setLoadedTask(null)}><X size={11}/></IconButton></div>}
+            <div className="rail-group">
+              <span className="rail-label">{t('direction')}</span>
+              <div className="direction-picker" data-direction={direction} role="group" aria-label={t('direction')}>
+                
+                <button type="button" aria-label={t('leftToRight')} title={t('leftToRight')} className={direction === 'lr' ? 'selected' : ''} aria-pressed={direction === 'lr'} onClick={() => changeDirection('lr')}><ArrowRight size={17} weight="bold"/></button>
+                <button type="button" aria-label={t('rightToLeft')} title={t('rightToLeft')} className={direction === 'rl' ? 'selected' : ''} aria-pressed={direction === 'rl'} onClick={() => changeDirection('rl')}><ArrowLeft size={17} weight="bold"/></button>
+              </div>
+            </div>
+            <div className="rail-group">
+              <div className="field-label-row"><span className="rail-label">{t('operation')}</span><InfoTooltip label={t('operation')} text={t(mode === 'sync' ? 'syncDetail' : mode === 'move' ? 'moveDetail' : 'copyDetail')}/></div>
+              <OperationPicker mode={mode} preset={activePreset} hidden={settings.hiddenBuiltinPresets || []} t={t} onPreset={applyPreset} onHide={hidePreset} onMode={next => { if (next === 'move' && options.updateOnly) showNotice(t('moveNewerHint')); setActivePreset(null); setMode(next); setOptions(old => ({...old, ...(next === 'sync' ? {noTraverse: false} : {deleteExcluded: false}), ...(next === 'move' ? {updateOnly: false} : {})})); }}/>
+            </div>
+            <div className="transfer-route">
+              <div className="route-end"><span>{t('source')}</span><strong title={endpointText(source.endpoint)}>{source.endpoint.remote ? <Cloud size={14}/> : <Folder size={14}/>}<span>{endpointName(source.endpoint)}</span></strong></div>
+              <span className="route-down" aria-hidden="true"><ArrowDown size={12} weight="bold"/></span>
+              <div className="route-end"><span>{t('destination')}</span><strong title={endpointText(destination.endpoint)}>{destination.endpoint.remote ? <Cloud size={14}/> : <Folder size={14}/>}<span>{endpointName(destination.endpoint)}</span></strong></div>
+              <div className="scope-summary"><span>{source.selection.length > 0 ? `${t('selected')} ${source.selection.length} ${t('items')}` : t('wholeFolder')}</span>{source.selection.length > 0 && <InfoTooltip label={t('selectionScope')} text={t('selectedTransferHint')}/>}</div>
+              <button type="button" className="text-button swap-button" onClick={swap} disabled={left.loading || right.loading}><ArrowsLeftRight size={13}/>{t('swap')}</button>
+            </div>
+            <div className="transfer-controls-bottom">
+              {bandwidthLimit && <p className="bandwidth-summary"><span>{t('bandwidth')}</span><strong>{bandwidthLimit}</strong></p>}
+              {blocked && ready && <p className="transfer-block" role="status">{blocked}{mode === 'sync' && source.selection.length > 0 && <button type="button" className="text-button" onClick={() => source.setSelection([])}>{t('clearSelection')}</button>}</p>}
+              <button type="button" className="options-button" onClick={() => setModal('options')}><SlidersHorizontal size={15}/>{t('options')}</button>
+              <button type="button" className="dry-run-button" title={t('dryRunHint')} disabled={transferDisabled} onClick={() => run(true)}><Eye size={15}/>{t('dryRun')}</button>
+              <button type="button" className={`primary start-button ${mode !== 'copy' ? 'caution-primary' : ''}`} disabled={transferDisabled} onClick={() => run(false)}><Play size={14}/>{busy ? t('starting') : t(mode === 'copy' ? 'startCopy' : mode === 'sync' ? 'startSync' : 'startMove')}</button>
+              <button type="button" className="text-button command-button" disabled={!ready || busy} onClick={openPreview}><TerminalWindow size={12}/>{t('commandPreview')}</button>
+            </div>
           </aside>
           <BrowserPane side="right" browser={right} remotes={bootstrap.remotes} locations={bootstrap.localLocations || []} home={bootstrap.home} platform={bootstrap.environment.platform} t={t} language={language} active={activePane === 'right'} isSource={direction === 'rl'} disabled={fileBusy} remoteAvailable={ready} onToolAction={action => void toolAction('right', action)} preferences={settings} columnWidths={settings.paneColumnWidths.right} onColumnWidths={widths => void saveSettings({paneColumnWidths: {right: widths}}).catch(reason => showError(errorMessage(reason)))} onActivate={() => setActivePane('right')} onFileAction={kind => void fileAction('right', kind)} onError={showError}/>
         </div>
@@ -460,8 +509,9 @@ export default function App() {
       </div>}
       {page === 'jobs' && <div className="jobs-page-layout"><Jobs jobs={jobs} t={t} language={language} onJobsCleared={removeClearedJobs} onError={showError} onNotice={showNotice} onRetry={upsertJob}/><ToolSessions sessions={toolSessions} t={t} language={language} onError={showError}/></div>}
       {page === 'tasks' && <Tasks tasks={tasks} t={t} language={language} available={ready && pendingSettings === 0} onEdit={editTask} onRun={runTask} onTasksChange={setTasks} onSaveCurrent={() => openSaveTask(true)} onError={showError} onNotice={showNotice}/>}
+      </div>
     </main>
-    <footer className="app-statusbar"><div><span className={`status-dot ${ready ? 'ready' : ''}`}/><span>{ready ? `rclone ${bootstrap.environment.version.replace(/^rclone\s+/i, '')}` : t('notReady')}</span></div><span className="statusbar-center" role={updateStatus?.message ? 'status' : undefined}>{updateStatus?.message || `${bootstrap.remotes.length} ${t('remoteCount')}`}</span><span className="statusbar-version">0.9.6</span></footer>
+    <footer className="app-statusbar"><div><span className={`status-dot ${ready ? 'ready' : ''}`}/><span>{ready ? `rclone ${bootstrap.environment.version.replace(/^rclone\s+/i, '')}` : t('notReady')}</span></div><span className="statusbar-center" role={updateStatus?.message ? 'status' : undefined}>{updateStatus?.message || t('remoteCount').replace('{count}', bootstrap.remotes.length.toLocaleString())}</span><span className="statusbar-version">0.10.1</span></footer>
 
     {toolTarget && <ToolDialog target={toolTarget} t={t} onClose={() => setToolTarget(null)} onSession={session => { upsertToolSession(session); setPage('jobs'); }}/> }
     {modal === 'accounts' && <AccountSetup language={language} t={t} onClose={() => setModal(null)} onSettings={saveSettings} onTerminal={configureTerminal} onSaved={async () => { setModal(null); await resetListingContext(); await loadBootstrap(); showNotice(language === 'en' ? 'Account settings saved.' : language === 'ja' ? 'アカウント設定を保存しました。' : '帳號設定已儲存。'); }}/>}
@@ -475,4 +525,15 @@ export default function App() {
   </div>;
 }
 
-function ArrowDownIndicator() { return <span className="route-down" aria-hidden="true"><ArrowRight size={14}/></span>; }
+/** True while any sheet is open, including ones owned by child components. */
+function useOpenDialog() {
+  const [open, setOpen] = useState(false);
+  useEffect(() => {
+    const update = () => setOpen(document.querySelector('dialog[open]') !== null);
+    const observer = new MutationObserver(update);
+    observer.observe(document.body, {subtree: true, childList: true, attributes: true, attributeFilter: ['open']});
+    update();
+    return () => observer.disconnect();
+  }, []);
+  return open;
+}

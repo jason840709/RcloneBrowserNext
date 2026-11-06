@@ -2,9 +2,11 @@ import React from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App';
 import { installNativeBridge } from './bridge';
-import './styles.css';
+import { installSegmentThumbs } from './segments';
+import './styles/index.css';
 
 installNativeBridge();
+installSegmentThumbs();
 
 document.addEventListener('keydown', () => { document.documentElement.dataset.input = 'keyboard'; }, { capture: true });
 document.addEventListener('pointerdown', () => { document.documentElement.dataset.input = 'pointer'; }, { capture: true });

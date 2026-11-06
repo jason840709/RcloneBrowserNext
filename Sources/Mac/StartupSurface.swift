@@ -135,8 +135,11 @@ final class RBNStartupSurface: NSView {
                 return
             }
             let configuration = WKSnapshotConfiguration()
-            configuration.rect = self.browserView.bounds
-            configuration.snapshotWidth = 128
+            // Sample only the top-left corner: with the native toolbar the
+            // panes start a few points below it, so a downscaled whole-view
+            // snapshot would blend the pane edge into the canvas pixel.
+            configuration.rect = CGRect(x: self.browserView.bounds.minX, y: self.browserView.bounds.minY, width: 4, height: 4)
+            configuration.snapshotWidth = 4
             configuration.afterScreenUpdates = true
             self.browserView.takeSnapshot(with: configuration) { [weak self] image, _ in
                 guard let self = self, self.generation == token else { return }
@@ -170,11 +173,15 @@ final class RBNStartupSurface: NSView {
     static func hasPaintedCanvas(_ image: NSImage, appearance: RBNWebAppearance) -> Bool {
         guard let cgImage = image.cgImage(forProposedRect: nil, context: nil, hints: nil),
               let color = NSBitmapImageRep(cgImage: cgImage).colorAt(x: 0, y: 0)?.usingColorSpace(.sRGB) else { return false }
-        // The top-left pixel is the loading canvas or the main toolbar. Their
-        // colors differ slightly; accept either without accepting WebKit's
-        // default white frame, including when the selected theme is light.
+        // The top-left pixel is the window canvas or, in the web-drawn toolbar,
+        // --window-top. Accept either without accepting WebKit's default white
+        // frame, including when the selected theme is light. WebKit snapshots
+        // can come back tagged with a gamma-1.8 profile, so a gray of 37 reads
+        // as about 50 after conversion; accept that encoding of each gray too.
         let expected = appearance.backgroundColor.usingColorSpace(.sRGB)!
-        let toolbar: CGFloat = appearance.isDark ? 41.0 / 255 : 233.0 / 255
+        let toolbar: CGFloat = appearance.isDark ? 43.0 / 255 : 243.0 / 255
+        let bases: [CGFloat] = [expected.redComponent, toolbar]
+        let candidates: [CGFloat] = bases + bases.map { CGFloat(pow(Double($0), 1.8 / 2.2)) }
         guard color.alphaComponent > 0.95 else { return false }
         func matches(_ component: CGFloat) -> Bool {
             let redDifference: CGFloat = abs(color.redComponent - component)
@@ -183,7 +190,7 @@ final class RBNStartupSurface: NSView {
             let tolerance: CGFloat = 0.025
             return redDifference < tolerance && greenDifference < tolerance && blueDifference < tolerance
         }
-        return matches(expected.redComponent) || matches(toolbar)
+        return candidates.contains(where: matches)
     }
 }
 
@@ -284,8 +291,8 @@ private final class RBNStartupCover: NSView {
         func gray(_ component: CGFloat) -> NSColor {
             NSColor(srgbRed: component / 255, green: component / 255, blue: component / 255, alpha: 1)
         }
-        title.textColor = gray(appearance.isDark ? 240 : 37)
-        status.textColor = gray(appearance.isDark ? 192 : 87)
+        title.textColor = gray(appearance.isDark ? 237 : 29)   // --label (#EDEDED / #1D1D1D)
+        status.textColor = gray(appearance.isDark ? 168 : 92)  // --secondary (#A8A8A8 / #5C5C5C)
         needsDisplay = true
     }
 

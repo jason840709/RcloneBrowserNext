@@ -1,0 +1,186 @@
+/* ===== Transfer queue (dock under the panes) and the Transfers page ===== */
+.jobs-section { display: flex; flex-direction: column; min-height: 0; }
+/* The dock folds to its title bar; the height glides and the caret turns with it. */
+.jobs-dock {
+  flex: 0 0 auto; max-height: min(34vh, 244px); background: var(--pane); overflow: hidden;
+  border-top: 0.5px solid var(--separator); display: flex; flex-direction: column;
+  transition: max-height var(--d-expand) var(--ease-glide);
+}
+.jobs-dock.collapsed { max-height: 30px; }
+.jobs-heading { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-2); flex-shrink: 0; min-height: 30px; padding: 0 var(--sp-3) 0 6px; background: var(--pane-header); }
+.jobs-dock .jobs-heading { border-bottom: 0.5px solid var(--separator); transition: border-color var(--d-expand) var(--ease-out); }
+.jobs-dock.collapsed .jobs-heading { border-bottom-color: transparent; }
+.jobs-heading-title { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.jobs-heading-title > svg { color: var(--accent-text); width: 15px; height: 15px; }
+.jobs-heading-title h2 { font-size: var(--fs-heading); font-weight: 600; }
+.jobs-heading-title > .icon-button { width: 22px; height: 22px; min-height: 22px; border-radius: 5px; }
+.jobs-heading-title > .icon-button svg { width: 12px; height: 12px; transition: transform var(--d-expand) var(--ease-glide); }
+.jobs-dock.collapsed .jobs-heading-title > .icon-button svg { transform: rotate(-90deg); }
+.jobs-dock .job-list { transition: opacity var(--d-expand) var(--ease-out); }
+.jobs-dock.collapsed .job-list { opacity: 0; }
+.jobs-heading-actions { display: flex; align-items: center; gap: var(--sp-2); }
+.jobs-heading-actions > .text-button { font-size: var(--fs-callout); }
+.job-list { flex: 1 1 auto; min-height: 0; overflow-y: auto; }
+.jobs-empty { display: grid; place-items: center; min-height: 58px; padding: var(--sp-3); color: var(--secondary); font-size: var(--fs-body); }
+.jobs-idle { font-size: var(--fs-callout); color: var(--secondary); margin-right: 6px; }
+
+/* One job: symbol, identity, action; progress; compact metrics. */
+.job-row {
+  display: grid; grid-template-columns: 22px minmax(0, 1fr); column-gap: 10px; padding: 10px var(--sp-4) var(--sp-2) var(--sp-3);
+  border-bottom: 0.5px solid var(--separator);
+}
+.job-row.job-row-enter { animation: row-in var(--d-sheet-in) var(--ease-glide); }
+@keyframes row-in { from { opacity: 0; transform: translateY(-6px); } }
+.job-row:last-child { border-bottom: none; }
+.job-row > * { grid-column: 2; min-width: 0; }
+.job-summary { display: contents; }
+.job-symbol { grid-column: 1; grid-row: 1 / span 2; align-self: start; width: 26px; height: 20px; display: grid; place-items: center; color: var(--accent-text); }
+.job-symbol svg { width: var(--icon); height: var(--icon); }
+.job-identity { grid-column: 2; grid-row: 1; display: flex; flex-direction: column; gap: 2px; padding-right: 34px; }
+.job-title { display: flex; align-items: center; gap: var(--sp-2); min-width: 0; min-height: 18px; }
+.job-title strong { font-size: var(--fs-body); font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.job-status { display: inline-flex; align-items: center; gap: 4px; flex: 0 0 auto; font-size: var(--fs-callout); color: var(--secondary); white-space: nowrap; }
+.job-status svg { width: 11.5px; height: 11.5px; }
+.job-status.completed { color: var(--green); }
+.job-status.failed, .job-status.interrupted { color: var(--red); }
+.job-status.running, .job-status.queued { color: var(--secondary); }
+.job-status.cancelling { color: var(--orange); }
+.job-route { display: flex; align-items: center; gap: 5px; min-width: 0; font-size: var(--fs-callout); color: var(--secondary); }
+.job-route span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 48%; }
+.job-route svg { color: var(--tertiary); }
+.job-actions { grid-column: 2; grid-row: 1; justify-self: end; align-self: start; margin-top: -2px; }
+.job-actions .icon-button { width: 25px; height: 25px; min-height: 25px; background: var(--control); box-shadow: var(--control-shadow); color: var(--secondary); }
+.job-actions .icon-button:hover:not(:disabled) { background: var(--fill-strong); color: var(--label); }
+
+.job-progress-line { grid-row: 2; display: flex; align-items: center; gap: 9px; margin-top: 7px; }
+.progress-value { min-width: 42px; text-align: right; font-size: var(--fs-callout); color: var(--secondary); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.job-completed:not(.job-dry) .progress-fill { background: var(--tertiary); }
+.job-failed .progress-fill, .job-interrupted .progress-fill { background: var(--red-fill); }
+.job-cancelled .progress-fill { background: var(--tertiary); }
+.job-dry .progress-fill, .job-dry .progress-indicator { background: var(--blue-info); }
+
+.job-metrics { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 16px; margin-top: 6px; font-size: var(--fs-callout); }
+.job-metrics > div { display: inline-flex; align-items: baseline; gap: 4.5px; white-space: nowrap; }
+.metric-label { display: inline-flex; align-items: center; color: var(--tertiary); }
+.metric-label .info-tooltip-trigger { align-self: center; }
+.job-metrics strong { font-weight: 500; color: var(--label); font-variant-numeric: tabular-nums; }
+.job-metrics small { font-size: inherit; color: var(--secondary); font-weight: 400; }
+.metric-waiting strong { color: var(--orange); }
+
+.job-file-counts { display: flex; flex-wrap: wrap; gap: 2px 14.5px; margin: 3.5px 0 0; font-size: var(--fs-caption); }
+.job-file-counts > div { display: inline-flex; align-items: center; gap: 3.5px; }
+.job-file-counts dt { color: var(--tertiary); display: inline-flex; align-items: center; }
+.job-file-counts dd { margin: 0; color: var(--secondary); font-variant-numeric: tabular-nums; }
+.jobs-dock .job-file-counts { display: none; }
+.job-row > .notice { margin-top: 7px; }
+
+.job-details { margin-top: 3.5px; }
+.job-details > summary {
+  display: flex; align-items: center; gap: 4.5px; min-height: 20px; list-style: none; cursor: default;
+  font-size: var(--fs-caption); color: var(--secondary); width: 100%;
+}
+.job-details > summary::-webkit-details-marker { display: none; }
+.job-details > summary > svg { transition: transform 220ms var(--ease-out); transform: rotate(-90deg); color: var(--tertiary); }
+.job-details[open] > summary > svg { transform: rotate(0deg); }
+.job-details > summary:hover { color: var(--label); }
+.job-details > summary time { margin-left: auto; color: var(--tertiary); }
+.error-count { color: var(--red); padding-left: 3.5px; }
+.job-detail-body { padding: 5.5px 0 7px; animation: fade-up 220ms var(--ease-out); }
+.job-detail-body > h4 { margin: 12.5px 0 5.5px; font-size: var(--fs-callout); }
+.job-extra-stats, .job-byte-summary { display: flex; flex-wrap: wrap; gap: 9px 25px; margin: 9px 0; }
+.job-extra-stats > div, .job-byte-summary > div { display: flex; flex-direction: column; gap: 2px; }
+.job-extra-stats dt, .job-byte-summary dt { font-size: var(--fs-caption); color: var(--tertiary); display: flex; align-items: center; }
+.job-extra-stats dd, .job-byte-summary dd { margin: 0; font-size: var(--fs-body); font-weight: 500; }
+.job-byte-summary dd small { margin-left: 5.5px; color: var(--secondary); font-weight: 400; }
+.job-original-error { margin: 7px 0; font-size: var(--fs-caption); color: var(--secondary); }
+.current-files { margin: 11px 0; }
+.current-files h4 { margin-bottom: 5.5px; font-size: var(--fs-callout); }
+.current-file { display: grid; grid-template-columns: minmax(90px, 1fr) 153px 90px 63px; gap: 12.5px; padding: 3.5px 0; border-top: 0.5px solid var(--separator); color: var(--secondary); font-size: var(--fs-caption); }
+.current-file > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.current-file > span:first-child { color: var(--label); }
+.log-header { display: flex; align-items: center; justify-content: space-between; margin: 11px 0 5.5px; }
+.log-header h4 { font-size: var(--fs-callout); }
+.log-header .text-button { font-size: var(--fs-caption); }
+.log-output, .command-output {
+  margin: 0; padding: 7px 9px; font-family: var(--font-mono); font-size: 10.5px; line-height: 1.6; color: var(--label);
+  background: var(--fill); border: none; border-radius: 5.5px; overflow: auto;
+}
+.log-output { max-height: 216px; white-space: pre-wrap; overflow-wrap: anywhere; }
+.command-output { white-space: pre-wrap; overflow-wrap: anywhere; max-height: 234px; }
+.log-error, .log-fatal { color: var(--red); }
+.log-warning { color: var(--orange); }
+
+/* Transfers page. */
+.jobs-page-layout { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; overflow: hidden; border-top: 0.5px solid var(--separator); background: var(--pane); }
+.jobs-page { flex: 1 1 auto; min-height: 0; background: var(--pane); overflow: hidden; }
+.jobs-page > .jobs-heading { min-height: 48.5px; padding: 0 14.5px 0 18px; border-bottom: 0.5px solid var(--separator); background: var(--pane); }
+.jobs-page .jobs-heading-title h2 { font-size: var(--fs-display); font-weight: 700; }
+.jobs-page .jobs-heading-title > svg { display: none; }
+.jobs-page .job-row { padding: 11px 18px 9px 16px; }
+.jobs-page .job-list > .empty-state { min-height: 252px; }
+.filter-tabs > button { min-width: 57.5px; }
+
+/* Clear-jobs confirmation. */
+.clear-jobs-choices { display: flex; flex-direction: column; gap: 7px; padding: 0 18px 14.5px; }
+.clear-jobs-choices > button { justify-content: flex-start; height: 30.5px; }
+.clear-choice-count { margin-left: auto; color: var(--secondary); font-size: var(--fs-caption); }
+.stopping-jobs { display: inline-flex; align-items: center; gap: 5.5px; }
+
+/* Mount and stream sessions. */
+.tool-sessions { flex: 0 0 auto; max-height: 34%; overflow: auto; padding: 11px 18px; background: var(--pane-header); border-top: 0.5px solid var(--separator); }
+.tool-sessions h2 { font-size: var(--fs-body); margin-bottom: 5.5px; }
+.tool-session { display: flex; align-items: center; gap: 11px; padding: 7px 0; border-top: 0.5px solid var(--separator); }
+.tool-session-icon { color: var(--accent-text); }
+.tool-session-detail { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; font-size: var(--fs-callout); }
+.tool-session-detail > strong, .tool-session-detail > span { overflow-wrap: anywhere; }
+.tool-session-detail > span { color: var(--secondary); font-size: var(--fs-caption); }
+.tool-session-status { color: var(--secondary); font-size: var(--fs-caption); }
+.tool-session-status.failed { color: var(--red); }
+.tool-session-status.running { color: var(--green); }
+.tool-location { overflow-wrap: anywhere; font-family: var(--font-mono); font-size: var(--fs-caption); margin-bottom: 12.5px; color: var(--secondary); }
+.tree-controls { display: flex; align-items: flex-end; gap: 11px; margin-bottom: 11px; }
+.tree-controls .field { width: 126px; margin: 0; }
+.tool-output { font-family: var(--font-mono); font-size: 10.5px; line-height: 1.6; white-space: pre-wrap; overflow-wrap: anywhere; max-height: 378px; overflow: auto; padding: 9px; background: var(--fill); border: 0.5px solid var(--separator); border-radius: 7px; -webkit-user-select: text; user-select: text; }
+
+/* ===== Per-file report ===== */
+.job-report { margin: 11px 0 14.5px; border-top: 0.5px solid var(--separator); border-bottom: 0.5px solid var(--separator); }
+.job-report-header { display: flex; align-items: center; gap: 5.5px; padding: 9px 0 5.5px; }
+.job-report-header h4 { font-size: var(--fs-callout); }
+.job-report-header .text-button { font-size: var(--fs-caption); }
+.report-tabs { display: flex; flex-wrap: wrap; width: max-content; max-width: 100%; margin: 0 0 7px; }
+.report-tabs > button { flex: 0 0 auto; gap: 4.5px; font-size: var(--fs-caption); padding: 0 9px; }
+.report-tab-count { font-size: var(--fs-mini); color: var(--secondary); font-weight: 500; }
+.report-interpretation { margin: 2px 0 7px; font-size: var(--fs-caption); color: var(--secondary); line-height: 1.5; }
+.job-report > .notice { margin: 5.5px 0; }
+.report-extra-actions { display: flex; justify-content: flex-end; margin: -2px 0 5.5px; }
+.report-extra-actions .text-button { font-size: var(--fs-caption); }
+.report-list { max-height: 324px; min-height: 57.5px; overflow: auto; border-top: 0.5px solid var(--separator); }
+.report-list ol { list-style: none; padding: 0; margin: 0; }
+.report-entry { display: grid; grid-template-columns: 126px minmax(0, 1fr); gap: 11px; padding: 7px 3.5px; border-bottom: 0.5px solid var(--separator); }
+.report-entry:last-child { border-bottom: none; }
+.report-entry:nth-child(even) { background: var(--row-alt); }
+.report-entry-meta { display: flex; flex-direction: column; gap: 2.5px; align-items: flex-start; }
+.report-entry-meta time, .report-entry-meta small { font-size: var(--fs-mini); color: var(--tertiary); }
+.report-action { display: inline-flex; align-items: center; gap: 3.5px; font-size: var(--fs-caption); color: var(--secondary); }
+.report-action-success { color: var(--green); }
+.report-entry-error .report-action { color: var(--red); }
+.report-entry-content { min-width: 0; }
+.report-entry-content strong { font-size: var(--fs-callout); font-weight: 500; white-space: pre-wrap; overflow-wrap: anywhere; }
+.report-entry-content p { margin: 2.5px 0 0; color: var(--secondary); font-size: var(--fs-caption); line-height: 1.55; white-space: pre-wrap; overflow-wrap: anywhere; }
+.report-entry-error .report-entry-content p { color: var(--red); }
+.report-entry-content, .report-entry-content strong, .report-entry-content p { -webkit-user-select: text; user-select: text; }
+.report-general-label { color: var(--secondary); }
+.report-file-path { overflow-wrap: anywhere; }
+.report-empty { padding: 14.5px; margin: 0; color: var(--secondary); font-size: var(--fs-caption); line-height: 1.6; }
+.report-pagination { display: flex; align-items: center; gap: 5.5px; flex-wrap: wrap; padding: 3.5px 0; border-top: 0.5px solid var(--separator); }
+.report-pagination > span { font-size: var(--fs-caption); color: var(--secondary); }
+.report-pagination .report-new-records { color: var(--accent-text); }
+.report-pagination .icon-button { width: 21.5px; height: 21.5px; min-height: 21.5px; }
+.report-size-detail { display: flex; flex-wrap: wrap; gap: 5.5px 20px; margin: 7px 0 2px; font-size: var(--fs-caption); }
+.report-size-detail dt { color: var(--secondary); }
+.report-size-detail dd { margin: 2px 0 0; font-weight: 500; }
+.report-size-detail dd small { margin-left: 5.5px; color: var(--secondary); font-weight: 400; font-size: var(--fs-mini); }
+.report-raw-message { margin-top: 5.5px; color: var(--secondary); font-size: var(--fs-caption); }
+.report-raw-message p { padding: 3.5px 0; font-family: var(--font-mono); font-size: var(--fs-caption); }
+.report-raw-message pre { padding: 7px; max-height: 252px; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; background: var(--fill); border-radius: 5.5px; font-size: var(--fs-mini); -webkit-user-select: text; user-select: text; }
+.report-related-path { color: var(--secondary); font-size: var(--fs-caption); }

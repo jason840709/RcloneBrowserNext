@@ -1,12 +1,12 @@
 import {test,expect,type Page} from '@playwright/test';
 import {fileURLToPath,pathToFileURL} from 'node:url';
 import path from 'node:path';
-import {installHostFixture} from './native-fixture';
+import {installHostFixture,openTerminalConfig} from './native-fixture';
 import {accountTranslator,accountLabel} from '../renderer/account-i18n';
 import type {ResolvedLanguage,Theme} from '../shared/types';
 
 const url=process.env.RBN_TEST_URL||pathToFileURL(path.resolve(path.dirname(fileURLToPath(import.meta.url)),'../../Resources/Web/index.html')).href;
-async function open(page:Page,options:{platform?:string;theme?:Theme;language?:ResolvedLanguage;existing?:boolean;existingType?:string;locked?:boolean}={}) {
+async function open(page:Page,options:{platform?:string;theme?:Theme;language?:ResolvedLanguage;existing?:boolean;existingType?:string;locked?:boolean;viaMenu?:boolean}={}) {
  await installHostFixture(page,{platform:options.platform||'darwin',job:false,settings:{autoCheckUpdates:false,theme:options.theme||'purple-dark',language:options.language||'zh-TW'}});
  await page.goto(url);await page.getByTestId('left-pane').waitFor();
  await page.evaluate(({existing,existingType,locked})=>{
@@ -60,7 +60,9 @@ async function open(page:Page,options:{platform?:string;theme?:Theme;language?:R
    } catch(error){setTimeout(()=>w.__rbnReply({id:message.id,error:{message:String(error)}}),5);}
   };
  },{existing:!!options.existing,existingType:options.existingType,locked:!!options.locked});
- await page.locator('.account-setup-button').click();
+ // Narrow dialog-layout tests open the dialog through the menu command, as the native toolbar does.
+ if(options.viaMenu)await page.evaluate(()=>(window as any).__rbnEvent({type:'menuAction',data:{action:'configureRemotes'}}));
+ else await page.locator('.account-setup-button').click();
  await expect(page.locator('.accounts-dialog')).toBeVisible();
  await expect(page.locator('.account-body [role="status"]')).toHaveCount(0);
 }
@@ -225,7 +227,7 @@ test('browser opening is automatic once per attempt and can be reopened explicit
  await page.getByRole('button',{name:'取消',exact:true}).click();await page.getByRole('button',{name:'放棄變更',exact:true}).click();
  await expect(page.locator('.accounts-dialog')).toHaveCount(0);
  expect(await page.evaluate(()=>(window as any).__accounts.commits)).toBe(0);
- await page.locator('.terminal-config-link').click();await expect.poll(async()=>(await calls(page,'configureRemotes')).length).toBe(1);
+ await openTerminalConfig(page);await expect.poll(async()=>(await calls(page,'configureRemotes')).length).toBe(1);
 });
 
 test('OneDrive lets the user choose between multiple returned drives',async({page})=>{
@@ -286,7 +288,11 @@ test('the complete quick journey works with the keyboard and Escape confirms can
  await open(page);await page.keyboard.type('keyboard-drive');await page.keyboard.press('Tab');
  await expect(page.getByLabel('雲端或伺服器')).toBeFocused();
  await page.keyboard.press('ArrowDown');await page.keyboard.press('Enter');
- await page.getByRole('button',{name:'登入並新增帳號',exact:true}).focus();await page.keyboard.press('Enter');
+ // Chrome on macOS may already submit the form from the service popup's Enter (start is sent at once);
+ // only press the submit button when that did not happen, so the journey is not started twice.
+ await page.waitForTimeout(150);
+ if(!(await starts(page)).length){await page.getByRole('button',{name:'登入並新增帳號',exact:true}).focus();await page.keyboard.press('Enter');}
+ await expect.poll(async()=>(await starts(page)).length).toBe(1);
  await expect(page.getByText('等待瀏覽器登入',{exact:true})).toBeVisible();
  await page.keyboard.press('Escape');await expect(page.getByText('放棄這次尚未完成的設定？')).toBeVisible();
  await page.getByRole('button',{name:'繼續設定',exact:true}).click();
@@ -297,7 +303,7 @@ const themes:Theme[]=['purple-light','purple-dark','blue-light','blue-dark','gre
 for(const [i,theme] of themes.entries())test(`readable long choices at narrow 200% equivalent viewport: ${theme}`,async({page},testInfo)=>{
  const language:ResolvedLanguage=(['zh-TW','en','ja'] as const)[i%3],a=accountTranslator(language);
  // 1280×900 at 200% browser/native zoom has a 640×450 CSS viewport.
- await page.setViewportSize({width:640,height:450});await open(page,{theme,language});
+ await page.setViewportSize({width:640,height:450});await open(page,{theme,language,viaMenu:true});
  await page.getByRole('radio',{name:a('detailed'),exact:true}).check();
  await page.getByLabel(a('accountName'),{exact:true}).fill('shared-drive');
  const scope=page.locator('[data-option-name="scope"]');await scope.scrollIntoViewIfNeeded();
@@ -317,7 +323,7 @@ for(const [i,theme] of themes.entries())test(`readable long choices at narrow 20
 });
 
 test('quick form and expandable details fit a very narrow window without hiding actions',async({page},testInfo)=>{
- await page.setViewportSize({width:360,height:580});await open(page);await nameAccount(page);
+ await page.setViewportSize({width:360,height:580});await open(page,{viaMenu:true});await nameAccount(page);
  await expect(page.locator('.account-footer .primary')).toBeInViewport();
  await page.locator('.accounts-dialog').screenshot({path:testInfo.outputPath('accounts-quick-narrow.png')});
  await page.getByText('自訂登入憑證（通常可不填）',{exact:true}).click();

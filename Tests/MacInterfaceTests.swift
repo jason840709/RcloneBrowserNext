@@ -153,7 +153,7 @@ import CoreGraphics
             try require(!window.isVisible && view.url == nil && view.isHidden, "The first WebKit frame became visible before preparation")
             try require(window.backgroundColor == initialAppearance.backgroundColor && view.underPageBackgroundColor == initialAppearance.backgroundColor,
                         "The native window and unloaded web view do not share the saved background")
-            try require(abs(view.pageZoom - 0.9) < 0.0001, "New default 100% must use the former 90% size before first load")
+            try require(abs(view.pageZoom - 1.0) < 0.0001, "Default 100% must be actual size (one CSS pixel per point) before first load")
         }
         window.orderFront(nil)
         let loader = Loader()
@@ -188,7 +188,7 @@ import CoreGraphics
                 try require(view.configuration.userContentController.userScripts.first === script,
                             "Saving unchanged appearance recreated the document-start script")
             }
-            for (scale, effectiveZoom) in [(80, 0.7), (90, 0.8), (100, 0.9), (110, 1.0), (125, 1.15), (120, 1.1), (135, 1.25)] {
+            for (scale, effectiveZoom) in [(80, 0.8), (90, 0.9), (100, 1.0), (110, 1.1), (125, 1.25), (120, 1.2), (135, 1.35)] {
                 test("\(scale)% zoom changes the viewport and preserves native pane hit testing") {
                     view.pageZoom = RBNInterfaceScale.zoom(scale)
                     try require(abs(Double(view.pageZoom) - effectiveZoom) < 0.0001, "Displayed scale mapped to the wrong visual size")

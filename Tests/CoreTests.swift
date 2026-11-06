@@ -367,7 +367,7 @@ private final class CoreTestSuite {
             }
             let engine = try self.engine("system-language", useRclone: false); defer { engine.shutdown() }
             let settings = engine.settingsSnapshot()
-            try expect(settings["language"] as? String == "system" && settings["theme"] as? String == "purple-dark" && settings["maxConcurrentJobs"] as? Int == 0, "new installation defaults")
+            try expect(settings["language"] as? String == "system" && settings["theme"] as? String == "purple-auto" && settings["maxConcurrentJobs"] as? Int == 0, "new installation defaults")
             let bootstrap = try engine.invoke("bootstrap", arguments: []) as! [String: Any]
             try expect(bootstrap["resolvedLanguage"] as? String == RBNLanguageResolver.resolve("system"), "bootstrap and native resolver disagree")
             _ = try engine.invoke("saveSettings", arguments: [["language": "ja"]])
@@ -549,11 +549,19 @@ private final class CoreTestSuite {
 
         test("settings migrate old themes and preserve language, path, skip and both pane widths across patches") {
             let engine = try self.engine("settings-patches", useRclone: false); defer { engine.shutdown() }
-            try expect(engine.settingsSnapshot()["theme"] as? String == "purple-dark", "new theme default")
+            try expect(engine.settingsSnapshot()["theme"] as? String == "purple-auto", "new theme default")
             _ = try engine.invoke("saveSettings", arguments: [["theme": "dark"]])
             try expect(engine.settingsSnapshot()["theme"] as? String == "blue-dark", "legacy dark did not migrate")
             _ = try engine.invoke("saveSettings", arguments: [["theme": "system"]])
-            try expect(engine.settingsSnapshot()["theme"] as? String == "purple-dark", "legacy system did not migrate")
+            try expect(engine.settingsSnapshot()["theme"] as? String == "purple-auto", "legacy system did not follow the system appearance")
+            for theme in ["green-auto", "blue-auto", "purple-light"] {
+                _ = try engine.invoke("saveSettings", arguments: [["theme": theme]])
+                try expect(engine.settingsSnapshot()["theme"] as? String == theme, "appearance \(theme) was not accepted")
+            }
+            for invalid in ["purple", "auto", "pink-auto", "purple-auto-dark", "-auto"] {
+                do { _ = try engine.invoke("saveSettings", arguments: [["theme": invalid]]); throw EngineError("accepted \(invalid)") }
+                catch let error as EngineError where error.localizedDescription.hasPrefix("accepted") { throw error } catch {}
+            }
             _ = try engine.invoke("saveSettings", arguments: [["language": "ja", "skippedRcloneVersion": "v99.1.0"]])
             let tools = try folder("settings-patches/chosen-tools")
             _ = try engine.invoke("saveSettings", arguments: [["rcloneDirectory": tools.path, "rclonePath": ""]])
@@ -799,7 +807,7 @@ private final class CoreTestSuite {
         }
 
         test("native-copy JSON with zero rclone speed retains rolling throughput independently of local-copy policy") {
-            var progress = EngineProgressWindow(); progress.start(at: 1000)
+            var progress = EngineThroughput(); progress.start(at: 1000)
             // rclone's BytesNoNetwork path reports logical bytes even when its
             // global network-speed estimate stays zero (including macOS copyfile).
             let raw = try EngineJSON.object(Data(#"{"bytes":1500000000,"totalBytes":3400000000,"elapsedTime":30,"transfers":150,"totalTransfers":340,"serverSideCopyBytes":1500000000,"speed":0,"eta":null}"#.utf8)) as! [String: Any]
@@ -815,14 +823,14 @@ private final class CoreTestSuite {
             }
         }
 
-        test("rolling rate uses the most recent minute, handles a full stall, and bounds memory under repeated updates") {
-            var progress = EngineProgressWindow(); progress.start(at: 0)
+        test("rolling rate uses the last ten seconds, handles a full stall, and bounds memory under repeated updates") {
+            var progress = EngineThroughput(); progress.start(at: 0)
             var result = EngineStatistics.empty
             for second in 1...120 {
                 let bytes = second <= 60 ? second * 100 : 6000 + (second - 60) * 200
                 result = progress.update(["bytes": bytes, "totalBytes": 100000, "elapsedTime": second, "transfers": second, "totalTransfers": 1000], previous: result, at: Double(second))
             }
-            try expect(EngineJSON.number(result["speed"]) == 200 && EngineJSON.number(result["averageSpeed"]) == 150 && EngineJSON.number(result["speedWindowSeconds"]) == 60, "rolling rate used whole-job average or the wrong window")
+            try expect(EngineJSON.number(result["speed"]) == 200 && EngineJSON.number(result["averageSpeed"]) == 150 && EngineJSON.number(result["speedWindowSeconds"]) == 10, "rolling rate used whole-job average or the wrong window")
             for second in 121...181 { result = progress.update(["bytes": 18000, "totalBytes": 100000, "elapsedTime": second, "transfers": 120], previous: result, at: Double(second)) }
             try expect(EngineJSON.number(result["speed"]) == 0 && result["eta"] is NSNull, "stalled transfer retained stale speed or an invented ETA")
             let measuredAt = ProcessInfo.processInfo.systemUptime
@@ -835,8 +843,66 @@ private final class CoreTestSuite {
             print(String(format: "BENCHMARK: 10000 counter snapshots %.6f seconds; peak bound 64 samples", ProcessInfo.processInfo.systemUptime - measuredAt))
         }
 
+        test("a running file that reports no bytes hides the speed instead of decaying it toward zero") {
+            // Shape of a real 0.9.5 macOS native copy: small files finish, then a
+            // 5 GB file runs for 87 s while rclone's byte counter stays flat.
+            var progress = EngineThroughput(); progress.start(at: 0)
+            var result = EngineStatistics.empty
+            let big: [String: Any] = ["name": "large.mov", "size": 5_031_000_000, "bytes": 0, "speed": 0]
+            let counters: [(Double, Double)] = [(1, 1_000_000), (2, 34_000_000), (3, 34_000_000), (4, 34_000_000), (5, 34_000_000), (6, 193_000_000)]
+            for (second, bytes) in counters {
+                result = progress.update(["bytes": bytes, "totalBytes": 5_225_000_000, "elapsedTime": second, "transferring": [big]], previous: result, at: second)
+            }
+            try expect(result["speedState"] as? String == "live", "short native copies were hidden before the quiet period")
+            var states = Set<String>()
+            for second in 12...92 {
+                result = progress.update(["bytes": 193_000_000, "totalBytes": 5_225_000_000, "elapsedTime": Double(second), "transferring": [big]], previous: result, at: Double(second))
+                states.insert(result["speedState"] as? String ?? "")
+                try expect(EngineJSON.number(result["speed"]) == 0 && result["eta"] is NSNull, "hidden progress produced a speed or ETA at \(second) s")
+            }
+            try expect(states == ["hidden"], "silent running file was not reported as hidden progress: \(states)")
+            result = progress.update(["bytes": 5_225_000_000, "totalBytes": 5_225_000_000, "elapsedTime": 92.8, "transfers": 6, "totalTransfers": 6, "transferring": []], previous: result, at: 92.8)
+            try expect(result["speedState"] as? String == "live" && EngineJSON.number(result["speed"]) > 0, "completed hidden file did not return to a live rate")
+            let finished = progress.finish(result, completed: true, at: 92.8)
+            try expect(abs(EngineJSON.number(finished["speed"]) - 5_225_000_000 / 92.8) < 1 && finished["speedState"] as? String == "live", "finished job did not report its overall average")
+        }
+
+        test("chunked uploads keep a steady speed between bursts while a real stall still reaches zero") {
+            // An 8 MB chunk every 8 s is 1 MB/s; a plain ten-second window
+            // alternates between 0.8 and 1.6 MB/s.
+            var progress = EngineThroughput(); progress.start(at: 0)
+            var result = EngineStatistics.empty
+            let file: [String: Any] = ["name": "archive.zip", "size": 800_000_000, "bytes": 1, "speed": 0]
+            var low = Double.infinity, high = 0.0
+            for second in 1...96 {
+                let bytes = Double((second / 8) * 8_000_000)
+                result = progress.update(["bytes": bytes, "totalBytes": 800_000_000, "elapsedTime": Double(second), "transferring": [file]], previous: result, at: Double(second))
+                if second >= 40 { let speed = EngineJSON.number(result["speed"]); low = min(low, speed); high = max(high, speed) }
+                try expect(result["speedState"] as? String != "hidden", "file with reported bytes was treated as hidden")
+            }
+            try expect(low >= 700_000 && high <= 1_150_000, "bursty upload speed swung between \(low) and \(high)")
+            for second in 97...140 {
+                result = progress.update(["bytes": 96_000_000, "totalBytes": 800_000_000, "elapsedTime": Double(second), "transferring": [file]], previous: result, at: Double(second))
+            }
+            try expect(EngineJSON.number(result["speed"]) == 0 && result["eta"] is NSNull && result["speedState"] as? String == "live", "stalled upload kept a stale speed")
+        }
+
+        test("steady streaming reports the last ten seconds and follows a speed change within that window") {
+            var progress = EngineThroughput(); progress.start(at: 0)
+            var result = EngineStatistics.empty
+            var bytes = 0.0
+            for second in 1...60 {
+                bytes += second <= 30 ? 50_000_000 : 10_000_000
+                let files: [[String: Any]] = [["name": "a.bin", "size": 9e9, "bytes": bytes, "speed": 0], ["name": "queued.bin", "size": 9e9, "bytes": 0, "speed": 0]]
+                result = progress.update(["bytes": bytes, "totalBytes": 18e9, "elapsedTime": Double(second), "transferring": files], previous: result, at: Double(second))
+                if second == 30 { try expect(EngineJSON.number(result["speed"]) == 50_000_000, "steady stream speed was not exact") }
+            }
+            try expect(EngineJSON.number(result["speed"]) == 10_000_000 && result["speedState"] as? String == "live", "speed did not follow the slowdown within ten seconds")
+            try expect(EngineJSON.number(result["eta"]) == (18e9 - bytes) / 10_000_000 && result["etaSource"] as? String == "bytes", "remaining time did not use the calmer thirty-second rate")
+        }
+
         test("statistics recover from counter resets and missing elapsed fields without negative rates or clock spikes") {
-            var progress = EngineProgressWindow(); progress.start(at: 100)
+            var progress = EngineThroughput(); progress.start(at: 100)
             var result = progress.update(["bytes": 1000, "elapsedTime": 10, "totalBytes": 5000], previous: EngineStatistics.empty, at: 110)
             result = progress.update(["bytes": 1200, "totalBytes": 6000, "elapsedTime": NSNull()], previous: result, at: 112)
             try expect(EngineJSON.number(result["speed"]) == 100 && EngineJSON.number(result["elapsedTime"]) == 12, "missing elapsed field did not use monotonic time")
@@ -846,17 +912,17 @@ private final class CoreTestSuite {
             try expect(EngineJSON.number(result["speed"]) == 100 && EngineJSON.number(result["totalBytes"]) == 5000, "rate did not recover after reset")
             result = progress.update(["bytes": 350], previous: result, at: 116)
             try expect(EngineJSON.number(result["elapsedTime"]) == 4 && EngineJSON.number(result["speed"]) == 100, "missing clock after reset reused pre-reset elapsed time")
-            var extreme = EngineProgressWindow(); extreme.start(at: 0)
+            var extreme = EngineThroughput(); extreme.start(at: 0)
             let overflow = extreme.update(["bytes": 1e308, "totalBytes": 1.5e308, "elapsedTime": 1e-308, "transfers": 1e308], previous: EngineStatistics.empty, at: 1e-308)
             try expect(EngineJSON.number(overflow["speed"]) == 0 && overflow["eta"] is NSNull, "non-finite quotient produced a completed-looking ETA")
             _ = try EngineJSON.data(EngineStatistics.finished(overflow, completed: false))
         }
 
         test("tiny-file ETA uses completed file counts and finished history retains an overall byte rate") {
-            var progress = EngineProgressWindow(); progress.start(at: 10)
+            var progress = EngineThroughput(); progress.start(at: 10)
             let tiny = progress.update(["bytes": 0, "totalBytes": 0, "elapsedTime": 20, "transfers": 20, "totalTransfers": 100], previous: EngineStatistics.empty, at: 30)
             try expect(EngineJSON.number(tiny["filesPerSecond"]) == 1 && EngineJSON.number(tiny["eta"]) == 80 && tiny["etaSource"] as? String == "files", "zero-byte file ETA is unavailable")
-            var short = EngineProgressWindow(); short.start(at: 100)
+            var short = EngineThroughput(); short.start(at: 100)
             let value = short.update(["bytes": 1024, "totalBytes": 1024, "transfers": 1, "totalTransfers": 1, "elapsedTime": 0.25, "speed": 0], previous: EngineStatistics.empty, at: 100.25)
             let finished = short.finish(value, completed: true, at: 100.3)
             try expect(EngineJSON.number(finished["speed"]) == 4096 && finished["speedKind"] as? String == "overall" && EngineJSON.number(finished["eta"]) == 0, "short job lost its final average")

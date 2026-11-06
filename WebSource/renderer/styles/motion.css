@@ -1,0 +1,26 @@
+/*
+ * Reduce Motion: keep every piece of feedback, drop the movement. Slides,
+ * scales and nudges become short cross-fades; spinners keep turning (a frozen
+ * ring reads as a hang); thumbs still glide but without travel time.
+ */
+@keyframes fade-in { from { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) {
+  :is(.dialog[open], .dialog::backdrop, .application-menu-content, .pane-more-content, .operation-menu, .location-popup, .info-tooltip,
+      .status-card, .job-row.job-row-enter, .pane-tab, .pane-tabs-row, .job-detail-body, .advanced-content, .size-result, .loaded-task, .transfer-block, .engine-banner,
+      .page-view, .preferences-pane, .options-pane, .browser-pane > .notice, .count-badge, .accent-swatch svg) {
+    animation-name: fade-in !important; animation-duration: 140ms !important; animation-timing-function: linear !important;
+  }
+  .folder-loading-overlay { animation-name: fade-in !important; animation-duration: 140ms !important; animation-delay: 120ms !important; }
+  .dialog[data-nudge] { animation: none !important; }
+  :is(.segmented, .filter-tabs, .mode-picker, .options-tabs, .report-tabs, .account-mode-switch, .interface-scale-picker, .main-nav, .direction-picker, .preferences-tabs)[data-thumb="ready"]::before { transition: opacity 140ms linear; }
+  .progress-fill { transition: none; }
+  .floating-notice, .floating-notice[data-visible="true"] { transform: translate(-50%, 0); transition: opacity 150ms linear; }
+  button:active:not(:disabled), .icon-button:active:not(:disabled), .preferences-tabs > button:active:not(:disabled),
+  :is(.segmented, .filter-tabs, .mode-picker, .options-tabs, .report-tabs, .main-nav, .direction-picker) > button:active:not(:disabled) { transform: none; }
+  .accent-swatch:hover { transform: none; }
+  .progress-indicator { animation: none; transform: none; width: 100%; opacity: 0.4; }
+  .progress-track.waiting::after { animation: none; transform: none; width: 100%; background: var(--accent-tint); }
+  .path-go { transform: none; }
+  .browser-pane, .browser-pane.destination-pane { transition: none; }
+  .file-table .check-cell input, .destination-pane .file-table .check-cell input { transform: none; transition: opacity 140ms linear; }
+}

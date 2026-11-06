@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent, type MouseEvent, type PointerEvent } from 'react';
 import { TableVirtuoso, type TableComponents, type TableVirtuosoHandle } from 'react-virtuoso';
-import { ArrowLeft, ArrowRight, ArrowUp, ArrowClockwise, Folder, FolderOpen, FolderPlus, HardDrives, Cloud, MagnifyingGlass,
-  Eye, EyeSlash, CaretDown, CaretUp, File as FileIcon, FileText, FileImage, FileZip, PencilSimple, Trash, ChartBar, X, Plus } from '@phosphor-icons/react';
+import { ArrowRight, ArrowUp, ArrowClockwise, Folder, FolderOpen, FolderPlus, HardDrives, Cloud, MagnifyingGlass,
+  CaretDown, CaretUp, CaretLeft, CaretRight, File as FileIcon, FileText, FileImage, FileZip, FileVideo, FileAudio, FileCode, PencilSimple, Trash, ChartBar, X, Plus } from '@phosphor-icons/react';
 import type { FileEntry, ResolvedLanguage, RemoteInfo, LocalLocation, PaneColumnWidths, Settings } from '../shared/types';
 import type { BrowserState } from './useBrowser';
 import { fileRows, type FileRow } from './fileRows';
@@ -25,7 +25,7 @@ interface PaneContext {
   onFocus(item: FileEntry): void;
 }
 const tableComponents: TableComponents<FileRow, PaneContext> = {
-  Table: ({ context, children, ...props }) => <table {...props} className="file-table" style={{width: '100%', minWidth: (context?.checkWidth || 14) + (context?.widths.name || 180) + (context?.widths.size || 86) + (context?.widths.modified || 164)}}><colgroup><col style={{width: context?.checkWidth || 14}}/><col style={{width: context?.widths.name}}/><col style={{width: context?.widths.size}}/><col style={{width: context?.widths.modified}}/><col className="row-fill"/></colgroup>{children}</table>,
+  Table: ({ context, children, ...props }) => <table {...props} className="file-table" style={{width: '100%', minWidth: `calc(var(--check-w) + ${(context?.widths.name || 180) + (context?.widths.size || 86) + (context?.widths.modified || 164)}px)`}}><colgroup><col style={{width: 'var(--check-w)'}}/><col style={{width: context?.widths.name}}/><col style={{width: context?.widths.size}}/><col style={{width: context?.widths.modified}}/><col className="row-fill"/></colgroup>{children}</table>,
   TableRow: ({ item, context, ...props }) => <tr {...props} data-row-parity={Number(props['data-index']) % 2} data-selected={context?.selected.has(item.name) || undefined}
     tabIndex={!context?.disabled && context?.focused === item.name ? 0 : -1} aria-selected={context?.selected.has(item.name)} aria-disabled={context?.disabled || undefined}
     onFocus={() => context?.onFocus(item)}
@@ -35,12 +35,15 @@ const tableComponents: TableComponents<FileRow, PaneContext> = {
 };
 
 function EntryIcon({ entry }: {entry: FileEntry}) {
-  if (entry.isDir) return <Folder className="folder-icon" size={19} weight="duotone"/>;
+  if (entry.isDir) return <Folder className="folder-icon" size={17} weight="fill"/>;
   const extension = entry.name.toLowerCase().split('.').at(-1) || '';
-  if (['jpg', 'jpeg', 'png', 'heic', 'webp', 'tif', 'tiff', 'svg', 'gif'].includes(extension)) return <FileImage size={18} className="file-icon"/>;
-  if (['zip', 'gz', '7z', 'rar', 'tar', 'bz2', 'xz'].includes(extension)) return <FileZip size={18} className="file-icon"/>;
-  if (['txt', 'md', 'pdf', 'doc', 'docx', 'tex', 'csv'].includes(extension)) return <FileText size={18} className="file-icon"/>;
-  return <FileIcon size={18} className="file-icon"/>;
+  if (['jpg', 'jpeg', 'png', 'heic', 'webp', 'tif', 'tiff', 'svg', 'gif', 'raw', 'arw', 'cr3', 'dng'].includes(extension)) return <FileImage size={16} className="file-icon"/>;
+  if (['mp4', 'mov', 'mkv', 'avi', 'm4v', 'webm'].includes(extension)) return <FileVideo size={16} className="file-icon"/>;
+  if (['mp3', 'm4a', 'flac', 'wav', 'aac', 'ogg'].includes(extension)) return <FileAudio size={16} className="file-icon"/>;
+  if (['zip', 'gz', '7z', 'rar', 'tar', 'bz2', 'xz', 'dmg', 'iso'].includes(extension)) return <FileZip size={16} className="file-icon"/>;
+  if (['js', 'ts', 'tsx', 'py', 'swift', 'json', 'sh', 'c', 'h', 'go', 'rs', 'html', 'css'].includes(extension)) return <FileCode size={16} className="file-icon"/>;
+  if (['txt', 'md', 'pdf', 'doc', 'docx', 'tex', 'csv', 'pages', 'rtf'].includes(extension)) return <FileText size={16} className="file-icon"/>;
+  return <FileIcon size={16} className="file-icon"/>;
 }
 
 export default function BrowserPane({ side, browser, remotes, locations, home, platform, t, language, active, isSource, disabled, remoteAvailable, onActivate, onFileAction, onError, columnWidths, onColumnWidths, preferences, onToolAction }:
@@ -50,7 +53,8 @@ export default function BrowserPane({ side, browser, remotes, locations, home, p
   const openingName = browser.pendingEndpoint ? browser.pendingEndpoint.remote ? browser.pendingEndpoint.path.replace(/\/+$/, '').split('/').at(-1) || browser.pendingEndpoint.remote : endpointName(browser.pendingEndpoint) : '';
   const loadingLabel = browser.cancelling ? t('cancellingFolder') : openingName ? t('openingFolder').replace('{name}', openingName) : t('loadingFolder');
   const fileSelection = isSource ? selection : browser.focusedEntry ? [browser.focusedEntry] : [];
-  const checkWidth = isSource ? 36 : 14;
+  // Only the source pane has the checkbox column; its width animates through --check-w (styles/panes.css).
+  const checkWidth = isSource ? 32 : 0;
   useEffect(() => { if (!isSource) browser.clearSelections(); }, [isSource, browser.clearSelections]);
   const navigationDisabled = disabled || browser.cancelling || Boolean(endpoint.remote && !remoteAvailable);
   const listingDisabled = navigationDisabled || loading || !browser.hasListing;
@@ -106,7 +110,8 @@ export default function BrowserPane({ side, browser, remotes, locations, home, p
   rememberedPaths.current[endpoint.remote || ''] = endpoint.path;
   useLayoutEffect(() => { setPathDraft(null); setQuery(''); setFocused(''); anchor.current = null; }, [endpoint.remote, endpoint.path, browser.activeTab]);
   useLayoutEffect(() => { if (!browser.pathDirty) setPathDraft(null); }, [browser.pathDirty]);
-  const selected = useMemo(() => new Set(isSource ? selection.map(item => item.name) : []), [selection, isSource]);
+  // The source selects for transfer; the destination's focused row is what rename/delete act on, so it must look selected too.
+  const selected = useMemo(() => new Set(isSource ? selection.map(item => item.name) : browser.focusedEntry ? [browser.focusedEntry.name] : []), [selection, isSource, browser.focusedEntry]);
   const rows = useMemo(() => fileRows(endpoint, entries), [endpoint.remote, endpoint.path, entries]);
   const filtered = useMemo(() => rows.filter(entry => (showHidden || !entry.name.startsWith('.')) && entry.name.toLocaleLowerCase().includes(query.toLocaleLowerCase()))
     .sort((a, b) => {
@@ -164,8 +169,9 @@ export default function BrowserPane({ side, browser, remotes, locations, home, p
       if (event.key === 'Enter' && item.isDir && !navigationDisabled) { event.preventDefault(); navigate(childEndpoint(endpoint, item.name)); }
     },
   };
+  const canNewTab = browser.tabs.length < 12 && browser.hasListing && !browser.cancelling;
   const sortBy = (key: typeof sort.key) => setSort(old => ({key, ascending: old.key === key ? !old.ascending : true}));
-  const sortHeader = (key: typeof sort.key, label: string) => <button type="button" className="sort-button" onClick={() => sortBy(key)}>{label}{sort.key === key && (sort.ascending ? <CaretUp size={10}/> : <CaretDown size={10}/>)}</button>;
+  const sortHeader = (key: typeof sort.key, label: string) => <button type="button" className="sort-button" onClick={() => sortBy(key)}>{label}{sort.key === key && (sort.ascending ? <CaretUp size={9} weight="bold"/> : <CaretDown size={9} weight="bold"/>)}</button>;
   const chooseLocal = async () => {
     try { const path = await window.rclone.chooseFolder(endpoint.remote ? home : endpoint.path); if (path) navigate({remote: null, path}); }
     catch (reason) { onError(errorMessage(reason)); }
@@ -175,6 +181,7 @@ export default function BrowserPane({ side, browser, remotes, locations, home, p
     const modifier = event.metaKey || event.ctrlKey;
     if (modifier && event.key.toLowerCase() === 'l') { event.preventDefault(); pathRef.current?.focus(); pathRef.current?.select(); }
     if ((modifier && event.key.toLowerCase() === 'r') || event.key === 'F5') { event.preventDefault(); browser.reload(); return; }
+    if (modifier && event.key.toLowerCase() === 't' && !event.shiftKey) { event.preventDefault(); if (canNewTab) browser.newTab(); return; }
     if (event.key === 'Escape' && loading && pathDraft === null) { event.preventDefault(); event.stopPropagation(); void cancelRead(); return; }
     const editing = (event.target as HTMLElement).closest('input,textarea,select');
     if (editing) return;
@@ -185,27 +192,31 @@ export default function BrowserPane({ side, browser, remotes, locations, home, p
 
   return <section ref={sectionRef} className={`browser-pane ${active ? 'pane-active' : ''} ${preferences.alternatingRows ? 'striped-rows' : ''} ${isSource ? 'source-pane' : 'destination-pane'}`} aria-label={`${t(side)} ${t('files')}`} data-testid={`${side}-pane`} data-pane-side={side}
     onFocusCapture={onActivate} onPointerDown={onActivate} onKeyDownCapture={onKeyDown}>
-    <header className="pane-heading"><span className="pane-side">{t(side)}</span><span className={`role-tag ${isSource ? 'source-tag' : ''}`}>{t(isSource ? 'source' : 'destination')}</span></header>
-    <div className="pane-tabs" role="tablist" aria-label={`${t(side)} ${t('locationTabs')}`}>{browser.tabs.map(tab => <div key={tab.id} className={`pane-tab ${tab.id === browser.activeTab ? 'active' : ''}`}><button type="button" role="tab" aria-selected={tab.id === browser.activeTab} title={endpointText(tab.endpoint)} onClick={() => browser.switchTab(tab.id)} onKeyDown={event => { if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') { event.preventDefault(); const index = browser.tabs.findIndex(item => item.id === tab.id); const next = browser.tabs[(index + (event.key === 'ArrowRight' ? 1 : browser.tabs.length - 1)) % browser.tabs.length]; browser.switchTab(next.id); requestAnimationFrame(() => sectionRef.current?.querySelector<HTMLButtonElement>('[role="tab"][aria-selected="true"]')?.focus()); } }}>{tab.endpoint.remote ? <Cloud size={13}/> : <HardDrives size={13}/>}<span>{endpointName(tab.endpoint)}</span></button>{browser.tabs.length > 1 && <button type="button" className="tab-close" aria-label={`${t('closeTab')} ${endpointName(tab.endpoint)}`} onClick={() => browser.closeTab(tab.id)}><X size={11}/></button>}</div>)}<IconButton title={t('newTab')} disabled={browser.tabs.length >= 12 || !browser.hasListing || browser.cancelling} onClick={browser.newTab}><Plus size={15}/></IconButton></div>
-    <div className="path-toolbar">
-      <LocationPicker compact endpoint={endpoint} locations={locations} remotes={remotes} label={`${t(side)} ${t('location')}`} disabled={disabled} remoteAvailable={remoteAvailable} t={t} onChange={navigate} remotePath={name => rememberedPaths.current[name] || ''}/>
-      <IconButton title={t('back')} disabled={!browser.canBack || navigationDisabled} onClick={() => { setPathDraft(null); browser.back(); }}><ArrowLeft size={17}/></IconButton>
-      <IconButton title={t('forward')} disabled={!browser.canForward || navigationDisabled} onClick={() => { setPathDraft(null); browser.forward(); }}><ArrowRight size={17}/></IconButton>
-      <IconButton title={t('up')} disabled={navigationDisabled || endpointEqual(endpoint, parentEndpoint(endpoint))} onClick={() => { setPathDraft(null); browser.up(); }}><ArrowUp size={17}/></IconButton>
-      <form className="path-form" onSubmit={event => { event.preventDefault(); if (navigationDisabled) return; const raw = pathDraft ?? endpoint.path; if (!endpoint.remote && !raw.trim()) return; navigate({ ...endpoint, path: raw }); }}>
-        {endpoint.remote && <span className="path-endpoint-name" title={endpoint.remote}>{endpoint.remote}:</span>}
-        <input ref={pathRef} aria-label={`${t(side)} ${t('path')}`} spellCheck={false} value={pathDraft ?? (endpoint.path || '/')} onChange={event => { setPathDraft(event.target.value); browser.setPathDirty(event.target.value !== endpoint.path); }} onKeyDown={event => { if (event.key === 'Escape') { event.preventDefault(); setPathDraft(null); browser.setPathDirty(false); } }} disabled={navigationDisabled}/>
-        <button type="submit" className="path-go" title={t('go')} aria-label={t('go')} disabled={navigationDisabled}><CaretDown className="rotate-left" size={13}/></button>
-      </form>
-      <IconButton title={t('refresh')} className={loading ? 'loading-icon' : ''} onClick={browser.reload} disabled={navigationDisabled || loading}><ArrowClockwise size={18}/></IconButton>
-    </div>
-    <div className="file-toolbar">
-      <div className="search-field"><MagnifyingGlass size={15}/><input aria-label={`${t(side)} ${t('search')}`} placeholder={t('search')} value={query} onChange={event => setQuery(event.target.value)} spellCheck={false}/>{query && <button type="button" onClick={() => setQuery('')} aria-label={t('clearSelection')}><X size={12}/></button>}</div>
-      {!endpoint.remote && <IconButton title={t('chooseFolder')} onClick={chooseLocal} disabled={disabled}><FolderOpen size={18}/></IconButton>}
-      <IconButton title={t('newFolder')} onClick={() => onFileAction('newFolder')} disabled={listingDisabled || browser.pathDirty}><FolderPlus size={18}/></IconButton>
-      <PaneMenu t={t} remote={Boolean(endpoint.remote)} canMount={platform === 'darwin'} selectedCount={fileSelection.length} selectedDirectory={fileSelection[0]?.isDir || false} disabled={listingDisabled || browser.pathDirty} onAction={onToolAction} onResetColumns={resetWidths}/>
-      <IconButton title={t(showHidden ? 'hideHidden' : 'showHidden')} aria-pressed={showHidden} onClick={() => setShowHidden(!showHidden)}>{showHidden ? <Eye size={18}/> : <EyeSlash size={18}/>}</IconButton>
-    </div>
+    <header className="pane-header">
+      {browser.tabs.length > 1 && <div className="pane-tabs-row">
+        <div className="pane-tabs" role="tablist" aria-label={`${t(side)} ${t('locationTabs')}`}>{browser.tabs.map(tab => <div key={tab.id} className={`pane-tab ${tab.id === browser.activeTab ? 'active' : ''}`}><button type="button" role="tab" aria-selected={tab.id === browser.activeTab} title={endpointText(tab.endpoint)} onClick={() => browser.switchTab(tab.id)} onKeyDown={event => { if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') { event.preventDefault(); const index = browser.tabs.findIndex(item => item.id === tab.id); const next = browser.tabs[(index + (event.key === 'ArrowRight' ? 1 : browser.tabs.length - 1)) % browser.tabs.length]; browser.switchTab(next.id); requestAnimationFrame(() => sectionRef.current?.querySelector<HTMLButtonElement>('[role="tab"][aria-selected="true"]')?.focus()); } }}>{tab.endpoint.remote ? <Cloud size={13}/> : <Folder size={13}/>}<span>{endpointName(tab.endpoint)}</span></button>{browser.tabs.length > 1 && <button type="button" className="tab-close" aria-label={`${t('closeTab')} ${endpointName(tab.endpoint)}`} onClick={() => browser.closeTab(tab.id)}><X size={10} weight="bold"/></button>}</div>)}<IconButton className="new-tab-button" title={t('newTab')} disabled={!canNewTab} onClick={browser.newTab}><Plus size={13} weight="bold"/></IconButton></div>
+      </div>}
+      <div className="path-toolbar">
+        <span className={`role-tag ${isSource ? 'source-tag' : 'destination-tag'}`} title={`${t(side)} · ${t(isSource ? 'source' : 'destination')}`}>{t(isSource ? 'source' : 'destination')}</span>
+        <div className="nav-buttons">
+          <IconButton title={t('back')} disabled={!browser.canBack || navigationDisabled} onClick={() => { setPathDraft(null); browser.back(); }}><CaretLeft size={16}/></IconButton>
+          <IconButton title={t('forward')} disabled={!browser.canForward || navigationDisabled} onClick={() => { setPathDraft(null); browser.forward(); }}><CaretRight size={16}/></IconButton>
+          <IconButton title={t('up')} disabled={navigationDisabled || endpointEqual(endpoint, parentEndpoint(endpoint))} onClick={() => { setPathDraft(null); browser.up(); }}><ArrowUp size={16}/></IconButton>
+        </div>
+        <div className="address-bar" data-dirty={browser.pathDirty || undefined} data-disabled={navigationDisabled || undefined}>
+        <LocationPicker compact endpoint={endpoint} locations={locations} remotes={remotes} label={`${t(side)} ${t('location')}`} disabled={disabled} remoteAvailable={remoteAvailable} t={t} onChange={navigate} remotePath={name => rememberedPaths.current[name] || ''}/>
+        <form className="path-form" data-dirty={browser.pathDirty || undefined} onSubmit={event => { event.preventDefault(); if (navigationDisabled) return; const raw = pathDraft ?? endpoint.path; if (!endpoint.remote && !raw.trim()) return; navigate({ ...endpoint, path: raw }); }}>
+          {endpoint.remote && <span className="path-endpoint-name" title={endpoint.remote}>{endpoint.remote}:</span>}
+          <input ref={pathRef} aria-label={`${t(side)} ${t('path')}`} spellCheck={false} value={pathDraft ?? (endpoint.path || '/')} onChange={event => { setPathDraft(event.target.value); browser.setPathDirty(event.target.value !== endpoint.path); }} onKeyDown={event => { if (event.key === 'Escape') { event.preventDefault(); setPathDraft(null); browser.setPathDirty(false); } }} disabled={navigationDisabled}/>
+          <button type="submit" className="path-go" title={t('go')} aria-label={t('go')} disabled={navigationDisabled}><ArrowRight size={12} weight="bold"/></button>
+        </form>
+        </div>
+        <div className="search-field"><MagnifyingGlass size={13}/><input type="search" aria-label={`${t(side)} ${t('search')}`} placeholder={t('search')} value={query} onChange={event => setQuery(event.target.value)} onKeyDown={event => { if (event.key === 'Escape' && query) { event.preventDefault(); event.stopPropagation(); setQuery(''); } }} spellCheck={false}/>{query && <button type="button" onClick={() => setQuery('')} aria-label={t('clearSearch')}><X size={9} weight="bold"/></button>}</div>
+        <IconButton title={t('refresh')} className={loading ? 'loading-icon' : ''} onClick={browser.reload} disabled={navigationDisabled || loading}><ArrowClockwise size={16}/></IconButton>
+        <IconButton title={t('newFolder')} onClick={() => onFileAction('newFolder')} disabled={listingDisabled || browser.pathDirty}><FolderPlus size={16}/></IconButton>
+        <PaneMenu t={t} remote={Boolean(endpoint.remote)} canMount={platform === 'darwin'} selectedCount={fileSelection.length} selectedDirectory={fileSelection[0]?.isDir || false} disabled={listingDisabled || browser.pathDirty} showHidden={showHidden} onToggleHidden={() => setShowHidden(!showHidden)} canNewTab={canNewTab} onNewTab={browser.newTab} onChooseFolder={endpoint.remote ? undefined : () => void chooseLocal()} chooseDisabled={disabled} onAction={onToolAction} onResetColumns={resetWidths}/>
+      </div>
+    </header>
     {isSource && browser.missingSelection && <Notice kind="warning">{t('missingSelection')} <button type="button" className="text-button" onClick={() => browser.setSelection([])}>{t('clearSelection')}</button></Notice>}
     {error && browser.hasListing && <Notice kind="error">{t('cannotBrowse')}: {error} <button type="button" className="text-button" onClick={browser.retry}>{t('retry')}</button></Notice>}
     <span className="sr-only" role="status">{loading ? loadingLabel : ''}</span>
@@ -217,16 +228,16 @@ export default function BrowserPane({ side, browser, remotes, locations, home, p
           <EmptyState compact kind="error" icon={endpoint.remote ? <Cloud size={30}/> : <FolderOpen size={30}/>} title={t('cannotBrowse')} action={<button type="button" onClick={browser.retry}>{t('retry')}</button>}>{error}</EmptyState> : !browser.hasListing ? null :
           <EmptyState compact icon={query ? <MagnifyingGlass size={32}/> : <FolderOpen size={34} weight="duotone"/>} title={t(query || entries.length > 0 ? 'noMatches' : 'emptyFolder')}>{(query || entries.length > 0) ? t('noMatchesHint') : null}</EmptyState>}
         </div> :
-        <TableVirtuoso ref={virtuoso} data={filtered} components={tableComponents} context={context} fixedItemHeight={37} overscan={200} onScroll={event => { const element = event.currentTarget as HTMLElement; element.closest<HTMLElement>('.file-list')?.style.setProperty('--stripe-offset', `${33 - element.scrollTop % 74}px`); }}
+        <TableVirtuoso ref={virtuoso} data={filtered} components={tableComponents} context={context} fixedItemHeight={22} overscan={200}
           computeItemKey={(_index, item) => item.rowKey}
-          fixedHeaderContent={() => <tr><th scope="col" className="check-cell" aria-hidden={!isSource || undefined}>{isSource && <input type="checkbox" aria-label={`${t(side)} ${t('selectAll')}`} checked={allSelected} disabled={listingDisabled} ref={element => { if (element) element.indeterminate = someSelected && !allSelected; }} onChange={selectVisible}/>}</th><th scope="col" aria-sort={sort.key === 'name' ? sort.ascending ? 'ascending' : 'descending' : 'none'}>{sortHeader('name', t('name'))}{resizeHandle('name', t('name'))}</th><th scope="col" className="numeric" aria-sort={sort.key === 'size' ? sort.ascending ? 'ascending' : 'descending' : 'none'}>{sortHeader('size', t('size'))}{resizeHandle('size', t('size'))}</th><th scope="col" aria-sort={sort.key === 'modified' ? sort.ascending ? 'ascending' : 'descending' : 'none'}>{sortHeader('modified', t('modified'))}{resizeHandle('modified', t('modified'))}</th><th scope="col" className="row-fill" aria-label=""/></tr>}
-          itemContent={(_index, entry) => <><td className="check-cell" aria-hidden={!isSource || undefined}>{isSource && <input type="checkbox" aria-label={`${t('selected')} ${entry.name}`} checked={selected.has(entry.name)} disabled={listingDisabled} onChange={() => toggle(entry)} onClick={event => event.stopPropagation()}/>}</td><td><div className="file-name" title={entry.name}>{(entry.isDir ? preferences.showFolderIcons : preferences.showFileIcons) && <EntryIcon entry={entry}/>}<span>{entry.name}</span>{entry.isLink && <span className="link-marker">↗</span>}</div></td><td className="numeric muted">{entry.isDir ? '—' : formatBytes(entry.size)}</td><td className="date-cell muted" title={formatDate(entry.modified, language)}>{formatDate(entry.modified, language)}</td><td className="row-fill" aria-hidden="true"/></>}/>
+          fixedHeaderContent={() => <tr><th scope="col" className="check-cell" aria-hidden={!isSource || undefined} inert={!isSource || undefined}>{<input type="checkbox" tabIndex={isSource ? undefined : -1} aria-label={`${t(side)} ${t('selectAll')}`} checked={allSelected} disabled={listingDisabled} ref={element => { if (element) element.indeterminate = someSelected && !allSelected; }} onChange={selectVisible}/>}</th><th scope="col" aria-sort={sort.key === 'name' ? sort.ascending ? 'ascending' : 'descending' : 'none'}>{sortHeader('name', t('name'))}{resizeHandle('name', t('name'))}</th><th scope="col" className="numeric" aria-sort={sort.key === 'size' ? sort.ascending ? 'ascending' : 'descending' : 'none'}>{sortHeader('size', t('size'))}{resizeHandle('size', t('size'))}</th><th scope="col" aria-sort={sort.key === 'modified' ? sort.ascending ? 'ascending' : 'descending' : 'none'}>{sortHeader('modified', t('modified'))}{resizeHandle('modified', t('modified'))}</th><th scope="col" className="row-fill" aria-label=""/></tr>}
+          itemContent={(_index, entry) => <><td className="check-cell" aria-hidden={!isSource || undefined} inert={!isSource || undefined}>{<input type="checkbox" tabIndex={isSource ? undefined : -1} aria-label={`${t('selected')} ${entry.name}`} checked={isSource && selected.has(entry.name)} disabled={listingDisabled} onChange={() => toggle(entry)} onClick={event => event.stopPropagation()}/>}</td><td><div className="file-name" title={entry.name}>{(entry.isDir ? preferences.showFolderIcons : preferences.showFileIcons) && <EntryIcon entry={entry}/>}<span>{entry.name}</span>{entry.isLink && <span className="link-marker">↗</span>}</div></td><td className="numeric muted">{entry.isDir ? '—' : formatBytes(entry.size)}</td><td className="date-cell muted" title={formatDate(entry.modified, language)}>{formatDate(entry.modified, language)}</td><td className="row-fill" aria-hidden="true"/></>}/>
       }
       {loading && <div className="folder-loading-overlay"><button type="button" className="folder-load-cancel" aria-label={t(browser.cancelling ? 'cancellingFolder' : 'cancelLoadingFolder')} aria-describedby={`${side}-folder-read-label`} title={t(browser.cancelling ? 'cancellingFolder' : 'cancelLoadingFolder')} disabled={browser.cancelling} onClick={() => void cancelRead()}><span className="folder-loading-ring" aria-hidden="true"/><X className="folder-loading-cross" size={13} weight="bold" aria-hidden="true"/></button><span className="folder-loading-label" id={`${side}-folder-read-label`} title={browser.pendingEndpoint ? endpointText(browser.pendingEndpoint) : undefined}>{loadingLabel}</span></div>}
     </div>
     <footer className="pane-footer">
-      <div className="selection-summary" title={hiddenSelection ? t('hiddenSelection') : endpointText(endpoint)}><span>{filtered.length.toLocaleString()} {t('items')}</span>{isSource && selection.length > 0 && <><span className="dot-separator">·</span><button type="button" className="text-button" onClick={() => browser.setSelection([])} title={t('clearSelection')}>{t('selected')} {selection.length}{hiddenSelection ? ' *' : ''}<X size={11}/></button></>}</div>
-      <div className="pane-file-actions"><IconButton title={t('rename')} disabled={listingDisabled || browser.pathDirty || fileSelection.length !== 1 || (isSource && browser.missingSelection)} onClick={() => onFileAction('rename')}><PencilSimple size={15}/></IconButton><IconButton title={t('remove')} disabled={listingDisabled || browser.pathDirty || fileSelection.length === 0 || (isSource && browser.missingSelection)} onClick={() => onFileAction('remove')}><Trash size={15}/></IconButton><IconButton title={t('folderSize')} disabled={listingDisabled || browser.pathDirty} onClick={() => onFileAction('size')}><ChartBar size={15}/></IconButton></div>
+      <div className="selection-summary" title={hiddenSelection ? t('hiddenSelection') : endpointText(endpoint)}><span>{filtered.length.toLocaleString()} {t('items')}</span>{isSource && selection.length > 0 && <><span className="dot-separator">·</span><button type="button" className="text-button selection-chip" onClick={() => browser.setSelection([])} title={t('clearSelection')}>{t('selected')} {selection.length}{hiddenSelection ? ' *' : ''}<X size={9} weight="bold"/></button></>}</div>
+      <div className="pane-file-actions"><IconButton title={t('rename')} disabled={listingDisabled || browser.pathDirty || fileSelection.length !== 1 || (isSource && browser.missingSelection)} onClick={() => onFileAction('rename')}><PencilSimple size={14}/></IconButton><IconButton title={t('remove')} disabled={listingDisabled || browser.pathDirty || fileSelection.length === 0 || (isSource && browser.missingSelection)} onClick={() => onFileAction('remove')}><Trash size={14}/></IconButton><IconButton title={t('folderSize')} disabled={listingDisabled || browser.pathDirty} onClick={() => onFileAction('size')}><ChartBar size={14}/></IconButton></div>
     </footer>
   </section>;
 }

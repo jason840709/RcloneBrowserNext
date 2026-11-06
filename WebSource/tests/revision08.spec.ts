@@ -1,7 +1,7 @@
 import {expect, test, type Page} from '@playwright/test';
 import {fileURLToPath, pathToFileURL} from 'node:url';
 import path from 'node:path';
-import {installHostFixture} from './native-fixture';
+import {installHostFixture, openSettings} from './native-fixture';
 import {translator} from '../renderer/i18n';
 import {interfaceScaleZoom} from '../renderer/appearance';
 import type {InterfaceScale, Theme} from '../shared/types';
@@ -130,7 +130,7 @@ test('latest folder request wins and an empty successful folder does not become 
 test('down-only and up-only side buttons use the pointed pane and preserve independent forward history', async ({page}) => {
   await open(page);
   for (const side of ['left', 'right'] as const) for (const name of ['A', 'B']) await navigate(page, side, `/Users/test/${side}/${name}`);
-  await pane(page).locator('.pane-side').click();
+  await pane(page).locator('.role-tag').click();
   const sideButton = async (side: 'left'|'right', type: string, button: number) => pane(page, side).evaluate((target, {type, button}) => {
     const r = target.getBoundingClientRect();
     const event = new MouseEvent(type, {button, buttons: type === 'mousedown' ? 1 << button : 0, clientX: r.x + 35, clientY: r.y + 45, bubbles: true, cancelable: true});
@@ -172,13 +172,17 @@ for (const order of ['native-up-first', 'dom-up-first', 'long-dom-down-native-up
   await expect(pathInput(page)).toHaveValue('/Users/test/E');
 });
 
-const appearanceCases: {name: string; theme: Theme; native?: string; stored?: string; blocked?: boolean}[] = [
+// `first` is the theme painted before bootstrap when it differs from the saved setting.
+const appearanceCases: {name: string; theme: Theme; first?: Theme; native?: string; stored?: string; blocked?: boolean}[] = [
   {name: 'native light overrides cached dark', theme: 'blue-light', native: 'blue-light', stored: 'purple-dark'},
   {name: 'native dark overrides cached light', theme: 'green-dark', native: 'green-dark', stored: 'purple-light'},
+  {name: 'native automatic appearance overrides a cached fixed one', theme: 'green-auto', native: 'green-auto', stored: 'blue-dark'},
   {name: 'cached theme is available before bootstrap', theme: 'purple-light', stored: 'purple-light'},
   {name: 'invalid host theme uses the valid cache', theme: 'blue-dark', native: 'invalid-theme', stored: 'blue-dark'},
-  {name: 'unavailable storage uses the dark default', theme: 'purple-dark', blocked: true},
+  {name: 'unavailable storage uses the automatic purple default', theme: 'purple-dark', first: 'purple-auto', blocked: true},
 ];
+// The suite runs with a light system appearance, so "auto" paints the light window colour.
+const windowBackground = (theme: Theme) => theme.endsWith('-dark') ? 'rgb(37, 37, 37)' : 'rgb(237, 237, 237)';
 for (const scenario of appearanceCases) test(`first paint: ${scenario.name}`, async ({page}) => {
   await installHostFixture(page, {initialAppearance: false, delays: {bootstrap: [600]}, settings: {theme: scenario.theme, autoCheckUpdates: false}});
   await page.addInitScript(scenario => {
@@ -199,19 +203,20 @@ for (const scenario of appearanceCases) test(`first paint: ${scenario.name}`, as
   }, scenario);
   await page.goto(url);
   await page.waitForFunction(() => (window as any).__appearanceFrames.length >= 8);
-  const expected = {theme: scenario.theme, background: scenario.theme.endsWith('-light') ? 'rgb(241, 241, 241)' : 'rgb(28, 28, 28)'};
+  const first = scenario.first ?? scenario.theme;
+  const expected = {theme: first, background: windowBackground(first)};
   expect(await page.evaluate(() => (window as any).__appearanceBeforeBridge)).toEqual(expected);
   for (const frame of await page.evaluate(() => (window as any).__appearanceFrames)) expect(frame).toEqual(expected);
   await expect(pane(page).locator('.file-list')).toHaveAttribute('aria-busy', 'false');
   await expect(page.locator('html')).toHaveAttribute('data-theme', scenario.theme);
+  await expect.poll(() => page.evaluate(() => getComputedStyle(document.documentElement).backgroundColor)).toBe(windowBackground(scenario.theme));
 });
 
 for (const legacy of [120, 135] as const) test(`migrated ${legacy} percent stays selected and disappears from choices after choosing the new default`, async ({page}, info) => {
   const resize = async (scale: InterfaceScale) => page.setViewportSize({width: Math.floor(1060 / interfaceScaleZoom(scale)), height: Math.floor(680 / interfaceScaleZoom(scale))});
   await page.exposeFunction('__testNativeScale', resize); await resize(legacy);
   await open(page, {settings: {interfaceScale: legacy}});
-  await page.locator('.workspace-title > .icon-button').click();
-  const dialog = page.locator('.settings-dialog');
+  const dialog = await openSettings(page);
   await dialog.getByRole('button', {name: t('appearance'), exact: true}).click();
   const group = dialog.getByRole('radiogroup', {name: t('interfaceScale')}), radios = group.getByRole('radio');
   await expect(radios).toHaveCount(6);

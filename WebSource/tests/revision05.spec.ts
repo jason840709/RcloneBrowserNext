@@ -1,7 +1,7 @@
 import {expect, test, type Page} from '@playwright/test';
 import {fileURLToPath, pathToFileURL} from 'node:url';
 import path from 'node:path';
-import {installHostFixture, selectPlace} from './native-fixture';
+import {installHostFixture, newTab, selectPlace} from './native-fixture';
 import {translator} from '../renderer/i18n';
 import {DEFAULT_OPTIONS, type Settings} from '../shared/types';
 import {MAC_EXCLUDES} from '../renderer/presets';
@@ -16,7 +16,7 @@ async function open(page: Page, options: Parameters<typeof installHostFixture>[1
 }
 async function calls(page: Page, method: string): Promise<any[]> {return page.evaluate(method => (window as any).__fixture.calls.filter((entry:any) => entry.method === method), method);}
 async function state(page: Page): Promise<Settings> {return page.evaluate(() => (window as any).__fixture.bootstrap.settings);}
-async function navigate(page: Page, side: 'left'|'right', value: string) {const input=page.getByLabel(`${t(side)} ${t('path')}`,{exact:true});await input.fill(value);await input.press('Enter');await expect(page.getByTestId(`${side}-pane`).locator('.file-name').first()).toBeVisible();}
+async function navigate(page: Page, side: 'left'|'right', value: string) {const input=page.getByLabel(`${t(side)} ${t('path')}`,{exact:true});await input.fill(value);await input.press('Enter');await expect(input).toHaveValue(value);await expect(page.getByTestId(`${side}-pane`).locator('.file-list')).toHaveAttribute('aria-busy','false');await expect(page.getByTestId(`${side}-pane`).locator('.file-name').first()).toBeVisible();}
 async function preset(page: Page, name: string) {await page.getByTestId('operation-picker').click();await page.getByRole('menuitemradio',{name:new RegExp('^'+name.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'))}).click();}
 async function nativeHistory(page: Page, side: 'left'|'right', direction: 'back'|'forward') {const box=await page.getByTestId(`${side}-pane`).boundingBox();await page.evaluate(data=>(window as any).__rbnEvent({type:'navigateHistory',data}),{direction,x:box!.x+20,y:box!.y+20});}
 
@@ -39,8 +39,8 @@ test('initial directory failure keeps icon, title, long diagnostic and Retry wit
   await page.goto(url);
   const pane=page.getByTestId('right-pane');const card=pane.locator('.status-card-error');await expect(card).toContainText('Sample cloud session expired');
   await expect(card.getByRole('heading',{name:t('cannotBrowse')})).toBeVisible();await expect(card.locator('.empty-icon')).toBeVisible();await expect(card.getByRole('button',{name:t('retry')})).toHaveCount(1);
-  expect(await pane.locator('.file-list').evaluate(e=>getComputedStyle(e).backgroundImage)).toBe('none');
-  const bounds=await card.evaluate(e=>{const p=e.parentElement!.getBoundingClientRect(),c=e.getBoundingClientRect();return{inside:c.x>=p.x&&c.right<=p.right&&c.y>=p.y&&c.bottom<=p.bottom,bg:getComputedStyle(e).backgroundColor};});expect(bounds.inside).toBe(true);expect(bounds.bg).not.toBe('rgba(0, 0, 0, 0)');
+  // Redesign: the status card is unboxed (no fill of its own); it must still stay inside the list and scroll a long diagnostic.
+  const bounds=await card.evaluate(e=>{const p=e.parentElement!.getBoundingClientRect(),c=e.getBoundingClientRect(),text=e.querySelector('p')!;return{inside:c.x>=p.x&&c.right<=p.right&&c.y>=p.y&&c.bottom<=p.bottom,scrolls:text.scrollHeight>text.clientHeight&&getComputedStyle(text).overflowY==='auto'};});expect(bounds).toEqual({inside:true,scrolls:true});
   await card.getByRole('button',{name:t('retry')}).scrollIntoViewIfNeeded();await page.screenshot({path:info.outputPath('contained-error.png')});
   await page.evaluate(()=>{(window as any).__fixture.listingError='';});await card.getByRole('button',{name:t('retry')}).click();await expect(pane.locator('.file-name').first()).toBeVisible();await expect(card).toHaveCount(0);
 });
@@ -55,14 +55,14 @@ test('success toast floats without moving panes, closes with motion, and dismiss
 });
 
 test('reduced-motion toast fades without translating and can be replaced before an old dismissal', async ({page}) => {
-  await open(page);await page.getByRole('button',{name:t('rememberWorkspace'),exact:true}).click();const toast=page.locator('.floating-notice');await expect(toast).toBeVisible();expect(await toast.evaluate(e=>getComputedStyle(e).transform)).toBe('none');
+  await open(page);await page.getByRole('button',{name:t('rememberWorkspace'),exact:true}).click();const toast=page.locator('.floating-notice');await expect(toast).toBeVisible();const motion=await toast.evaluate(e=>({transform:getComputedStyle(e).transform,transition:getComputedStyle(e).transitionProperty}));expect(motion.transform).toMatch(/^matrix\(1, 0, 0, 1, -?[\d.]+, 0\)$/);expect(motion.transition).toBe('opacity');
   await toast.getByRole('button',{name:t('close')}).evaluate((button:HTMLButtonElement)=>{button.click();button.click();});
   await page.getByRole('button',{name:t('rememberWorkspace'),exact:true}).click();await expect(toast).toHaveAttribute('data-visible','true');await page.waitForTimeout(260);await expect(toast).toHaveAttribute('data-visible','true');
 });
 
 test('new default sync choices are unlimited, during-transfer deletion, and size-time without local hashes', async ({page}) => {
-  await open(page);await page.locator('.options-button').click();const d=page.locator('.options-dialog');await expect(d.getByTestId('transfer-comparison')).toHaveValue('nas');await d.getByRole('button',{name:t('sync'),exact:true}).click();
-  await expect(d.getByRole('checkbox',{name:t('unlimitedJobs'),exact:true})).toBeChecked();await expect(d.getByLabel(t('deleteMode'),{exact:true})).toHaveValue('during');await expect(d).toContainText(t('syncHint'));
+  await open(page);await page.locator('.options-button').click();const d=page.locator('.options-dialog');await expect(d.getByTestId('transfer-comparison')).toHaveValue('nas');await d.getByTestId('transfer-mode').selectOption('sync');
+  await expect(d.getByRole('checkbox',{name:t('unlimitedJobs'),exact:true})).toBeChecked();await expect(d.getByLabel(t('deleteMode'),{exact:true})).toHaveValue('during');const mode=d.getByTestId('transfer-mode');await expect(d.locator(`label[for="${await mode.getAttribute('id')}"]`)).toHaveAttribute('title',t('syncDetail'));
   await d.getByRole('button',{name:t('apply'),exact:true}).click();await page.locator('.dry-run-button').click();const request=(await calls(page,'startTransfer')).at(-1).args[0];expect(request).toMatchObject({mode:'sync',dryRun:true,options:{maxDelete:-1,deleteMode:'during',comparison:'default',localHashPolicy:'none'}});
 });
 
@@ -80,15 +80,17 @@ test('preset hiding persists, does not alter the applied request, and Restore ch
   await open(page);await preset(page,t('presetLocalNAS'));await page.getByTestId('operation-picker').click();await page.screenshot({path:info.outputPath('preset-menu.png')});await page.getByRole('menuitem',{name:`${t('hidePreset')} ${t('presetLocalNAS')}`,exact:true}).click();await expect.poll(async()=>(await state(page)).hiddenBuiltinPresets).toEqual(['local-nas']);
   await expect(page.getByRole('menuitemradio',{name:new RegExp('^'+t('presetLocalNAS'))})).toHaveCount(0);await page.keyboard.press('Escape');
   const saved=await state(page), next=await browser.newPage();await open(next,{settings:saved});await next.getByTestId('operation-picker').click();await expect(next.getByRole('menuitemradio',{name:new RegExp('^'+t('presetLocalNAS'))})).toHaveCount(0);await next.close();
-  await page.locator('.options-button').click();const d=page.locator('.options-dialog');await d.getByRole('button',{name:t('restorePresets'),exact:true}).click();await expect.poll(async()=>(await state(page)).hiddenBuiltinPresets).toEqual([]);await d.getByRole('button',{name:t('apply'),exact:true}).click();
+  await page.locator('.options-button').click();const d=page.locator('.options-dialog');await d.getByRole('button',{name:t('advancedTab'),exact:true}).click();await d.getByRole('button',{name:t('restorePresets'),exact:true}).click();await expect.poll(async()=>(await state(page)).hiddenBuiltinPresets).toEqual([]);await d.getByRole('button',{name:t('apply'),exact:true}).click();
   await page.locator('.command-button').click();await expect(page.locator('.command-output')).toBeVisible();expect((await calls(page,'previewTransfer')).at(-1).args[0].options).toMatchObject({transfers:1,checkers:10,extraArgs:['--multi-thread-streams=0']});expect(await calls(page,'startTransfer')).toHaveLength(0);
 });
 
 test('native side buttons navigate the pane under the pointer and preserve independent forward history per tab', async ({page}) => {
   const errors=await open(page);await navigate(page,'left','/Users/test/A');await navigate(page,'left','/Users/test/B');await navigate(page,'right','RemoteFolder');
   await nativeHistory(page,'left','back');await expect(page.getByLabel(`${t('left')} ${t('path')}`,{exact:true})).toHaveValue('/Users/test/A');await expect(page.getByLabel(`${t('right')} ${t('path')}`,{exact:true})).toHaveValue('RemoteFolder');
-  const pane=page.getByTestId('left-pane');await pane.getByRole('button',{name:t('newTab'),exact:true}).click();await expect(pane.getByRole('button',{name:t('forward'),exact:true})).toBeDisabled();await navigate(page,'left','/Users/test/C');await nativeHistory(page,'left','back');await pane.getByRole('tab').first().click();
-  await nativeHistory(page,'left','forward');await expect(page.getByLabel(`${t('left')} ${t('path')}`,{exact:true})).toHaveValue('/Users/test/B');await pane.getByRole('tab').last().click();await nativeHistory(page,'left','forward');await expect(page.getByLabel(`${t('left')} ${t('path')}`,{exact:true})).toHaveValue('/Users/test/C');
+  const pane=page.getByTestId('left-pane'),settled=async(value:string)=>{await expect(page.getByLabel(`${t('left')} ${t('path')}`,{exact:true})).toHaveValue(value);await expect(pane.locator('.file-list')).toHaveAttribute('aria-busy','false');};
+  const tab=async(index:number,value:string)=>{const target=pane.getByRole('tab').nth(index);await target.click();await expect(target).toHaveAttribute('aria-selected','true');await settled(value);};
+  await newTab(pane);await expect(pane.getByRole('button',{name:t('forward'),exact:true})).toBeDisabled();await navigate(page,'left','/Users/test/C');await nativeHistory(page,'left','back');await settled('/Users/test/A');await tab(0,'/Users/test/A');
+  await nativeHistory(page,'left','forward');await expect(page.getByLabel(`${t('left')} ${t('path')}`,{exact:true})).toHaveValue('/Users/test/B');await settled('/Users/test/B');await tab(1,'/Users/test/A');await nativeHistory(page,'left','forward');await expect(page.getByLabel(`${t('left')} ${t('path')}`,{exact:true})).toHaveValue('/Users/test/C');
   await nativeHistory(page,'left','back');await navigate(page,'left','/Users/test/D');await expect(pane.getByRole('button',{name:t('forward'),exact:true})).toBeDisabled();await nativeHistory(page,'left','forward');await expect(page.getByLabel(`${t('left')} ${t('path')}`,{exact:true})).toHaveValue('/Users/test/D');expect(errors).toEqual([]);
 });
 
@@ -102,22 +104,27 @@ test('DOM side-button fallback fires once despite a legacy native flag, and a di
 });
 
 test('keyboard back and forward use active pane and keep edited text in inputs untouched', async ({page})=>{
-  await open(page);await navigate(page,'left','/Users/test/A');await navigate(page,'left','/Users/test/B');await page.getByTestId('left-pane').locator('.pane-side').click();await page.keyboard.press('Control+[');await expect(page.getByLabel(`${t('left')} ${t('path')}`,{exact:true})).toHaveValue('/Users/test/A');await page.keyboard.press('Control+]');await expect(page.getByLabel(`${t('left')} ${t('path')}`,{exact:true})).toHaveValue('/Users/test/B');
+  await open(page);await navigate(page,'left','/Users/test/A');await navigate(page,'left','/Users/test/B');await page.getByTestId('left-pane').locator('.role-tag').click();await page.keyboard.press('Control+[');await expect(page.getByLabel(`${t('left')} ${t('path')}`,{exact:true})).toHaveValue('/Users/test/A');await page.keyboard.press('Control+]');await expect(page.getByLabel(`${t('left')} ${t('path')}`,{exact:true})).toHaveValue('/Users/test/B');
   const input=page.getByLabel(`${t('left')} ${t('path')}`,{exact:true});await input.focus();await page.keyboard.press('Control+[');await expect(input).toHaveValue('/Users/test/B');
 });
 
 for(const theme of ['purple-dark','purple-light']as const) for(const width of [1060,1440]) {
- test(`${theme} ${width}: roles, connected tabs and one path row remain distinct and fit`,async({page},info)=>{
-  await page.setViewportSize({width,height:680});await open(page,{settings:{autoCheckUpdates:false,theme}});const pane=page.getByTestId('left-pane');await pane.getByRole('button',{name:t('newTab'),exact:true}).click();await navigate(page,'left','/Users/test/Long folder name for tabs');
-  await expect(pane.locator('.pane-heading .role-tag')).toBeVisible();const geometry=await pane.evaluate(p=>{const heading=p.querySelector('.pane-heading')!.getBoundingClientRect(),tabs=p.querySelector('.pane-tabs')!.getBoundingClientRect(),nav=p.querySelector('.path-toolbar')!.getBoundingClientRect(),active=p.querySelector('.pane-tab.active')!,inactive=p.querySelector('.pane-tab:not(.active)')!;return{ordered:heading.bottom<=tabs.top+1&&tabs.bottom<=nav.top+1,connected:getComputedStyle(active).backgroundColor===getComputedStyle(p.querySelector('.path-toolbar')!).backgroundColor,activeBottom:active.getBoundingClientRect().bottom,navTop:nav.top,inactiveBorder:getComputedStyle(inactive).borderWidth,locationSameRow:p.querySelector('.path-toolbar')!.contains(p.querySelector('.location-select')),noOverflow:p.querySelector('.path-toolbar')!.scrollWidth<=nav.width+1};});
-  expect(geometry).toMatchObject({ordered:true,connected:true,inactiveBorder:'0px',locationSameRow:true,noOverflow:true});expect(Math.abs(geometry.activeBottom-geometry.navTop)).toBeLessThanOrEqual(1);
-  await page.screenshot({path:info.outputPath('connected-tabs.png')});
+ test(`${theme} ${width}: roles, tab strip and one path row remain distinct and fit`,async({page},info)=>{
+  await page.setViewportSize({width,height:680});await open(page,{settings:{autoCheckUpdates:false,theme}});const pane=page.getByTestId('left-pane');
+  // The tab strip only appears once a pane has two tabs.
+  await expect(pane.locator('.pane-tabs-row')).toHaveCount(0);await newTab(pane);await expect(pane.locator('.pane-tabs-row')).toHaveCount(1);await navigate(page,'left','/Users/test/Long folder name for tabs');
+  await expect(pane.locator('.path-toolbar .role-tag')).toHaveText(t('source'));await expect(page.getByTestId('right-pane').locator('.path-toolbar .role-tag')).toHaveText(t('destination'));
+  const geometry=await pane.evaluate(p=>{const tabs=p.querySelector('.pane-tabs-row')!.getBoundingClientRect(),toolbar=p.querySelector('.path-toolbar')!,nav=toolbar.getBoundingClientRect(),active=p.querySelector('.pane-tab.active')!,inactive=p.querySelector('.pane-tab:not(.active)')!;
+   const parts=['.role-tag','.nav-buttons','.location-select','.path-form','.search-field','.pane-more-menu'].map(selector=>toolbar.querySelector(selector)?.getBoundingClientRect());
+   return{ordered:tabs.bottom<=nav.top+1,distinct:getComputedStyle(active).backgroundColor!==getComputedStyle(inactive).backgroundColor,inactiveBorder:getComputedStyle(inactive).borderWidth,allInToolbar:parts.every(Boolean),oneRow:parts.every(r=>r&&r.top>=nav.top-0.5&&r.bottom<=nav.bottom+0.5),inside:parts.every(r=>r&&r.left>=nav.left-0.5&&r.right<=nav.right+0.5),leftToRight:parts.every((r,i)=>i===0||(parts[i-1]&&r&&parts[i-1]!.right<=r.left+0.5)),noOverflow:toolbar.scrollWidth<=nav.width+1};});
+  expect(geometry).toMatchObject({ordered:true,distinct:true,inactiveBorder:'0px',allInToolbar:true,oneRow:true,inside:true,leftToRight:true,noOverflow:true});
+  await page.screenshot({path:info.outputPath('pane-tabs.png')});
  });
 }
 
 test('job progress shows one decimal, rolling speed, rough ETA and a retained completed average',async({page})=>{
   await open(page,{job:true});const job=page.getByTestId('job-fixture-job');await page.evaluate(()=>{const w=window as any,j=structuredClone(w.__fixture.job);j.stats={...j.stats,bytes:1400000000,totalBytes:3400000000,speed:21000000,speedKind:'rolling',speedWindowSeconds:60,eta:95,filesPerSecond:12.6};w.__rbnEvent({type:'jobUpdate',data:j});});await expect(job.locator('.progress-value')).toHaveText('41.2%');await expect(job.getByRole('progressbar')).toHaveAttribute('aria-valuenow','41.2');await expect(job.locator('.job-metrics')).toContainText(t('fileCount'));await expect(job.locator('.job-metrics')).toContainText('20 MiB/s');await expect(job.locator('.job-metrics')).toContainText('1:35');
-  await job.getByRole('button',{name:`${t('speed')} — ${t('infoLabel')}`,exact:true}).click();await expect(page.getByRole('tooltip')).toHaveText(t('speedCalculationHint'));await page.keyboard.press('Escape');
+  const speedLabel=job.locator('.job-metrics .metric-label').nth(2);await expect(speedLabel).toHaveText(t('rollingSpeed'));await expect(speedLabel).toHaveAttribute('title',t('speedCalculationHint'));await expect(job.locator('.job-metrics .info-tooltip-trigger')).toHaveCount(0);
   await page.evaluate(()=>{const w=window as any,j=structuredClone(w.__fixture.job);j.status='completed';j.stats={...j.stats,bytes:3400000000,totalBytes:3400000000,speed:20000000,speedKind:'overall',averageSpeed:20000000,eta:0,elapsedTime:170,transferring:[]};w.__rbnEvent({type:'jobUpdate',data:j});});await expect(job.locator('.progress-value')).toHaveText('100.0%');await expect(job.locator('.job-metrics')).toContainText('19.1 MiB/s');await expect(job.locator('.job-metrics')).toContainText(t('averageSpeed'));
 });
 
@@ -146,7 +153,11 @@ test('opening the operation menu by keyboard focuses the selected operation, nev
   await preset(page,t('presetNASCloud'));await page.getByTestId('operation-picker').focus();await page.keyboard.press('ArrowDown');await expect(page.getByRole('menuitemradio',{name:new RegExp('^'+t('presetNASCloud'))})).toBeFocused();await page.keyboard.press('Escape');await expect(page.getByTestId('operation-picker')).toBeFocused();
 });
 
-for(const language of ['zh-TW','en','ja']as const) test(`${language}: NAS-to-cloud advice names the route and explains unavoidable data transfer`,async({page})=>{
-  const tx=translator(language);await open(page,{settings:{autoCheckUpdates:false,language}});await selectPlace(page.getByTestId('left-pane').locator('.location-trigger'),'@local:test-nas-volume');await page.locator('.options-button').click();const d=page.locator('.options-dialog');await expect(d.locator('.comparison-advice')).toContainText(tx('presetNASCloud'));await expect(d.locator('.comparison-advice')).toContainText(tx('comparisonRecommendedSummary'));await expect(d.getByTestId('transfer-comparison')).toHaveValue('nas');
-  await d.getByRole('button',{name:`${tx('comparisonRecommendation')} — ${tx('infoLabel')}`,exact:true}).click();await expect(page.getByRole('tooltip')).toHaveText(tx('comparisonAdviceDetail'));await page.keyboard.press('Escape');await expect(d).toBeVisible();
+// The recommendation box was removed from the options sheet; the NAS-to-cloud route keeps the
+// recommended size-and-time comparison by default and offers its preset in the operation menu.
+for(const language of ['zh-TW','en','ja']as const) test(`${language}: NAS-to-cloud keeps the size-and-time comparison and offers the matching preset`,async({page})=>{
+  const tx=translator(language);await open(page,{settings:{autoCheckUpdates:false,language}});await selectPlace(page.getByTestId('left-pane').locator('.location-trigger'),'@local:test-nas-volume');await page.locator('.options-button').click();const d=page.locator('.options-dialog');
+  const select=d.getByTestId('transfer-comparison');await expect(select).toHaveValue('nas');await expect(select.locator('option:checked')).toHaveText(tx('comparisonNAS'));await expect(d.locator(`label[for="${await select.getAttribute('id')}"]`)).toHaveAttribute('title',tx('comparisonNASHint'));
+  await expect(d.locator('.comparison-advice')).toHaveCount(0);await d.getByRole('button',{name:tx('cancel'),exact:true}).click();await expect(d).toHaveCount(0);
+  await page.getByTestId('operation-picker').click();await expect(page.getByRole('menuitemradio',{name:new RegExp('^'+tx('presetNASCloud').replace(/[.*+?^${}()|[\]\\]/g,'\\$&'))})).toBeVisible();await page.keyboard.press('Escape');expect(await calls(page,'startTransfer')).toHaveLength(0);
 });

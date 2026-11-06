@@ -21,6 +21,8 @@ final class BrowserAppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegat
     private var toolsManager: RcloneTools!
     private var statusItem: NSStatusItem?
     private var themeIcons = [String: NSImage]()
+    private var mainToolbar: RBNMainToolbar?
+    private var appearanceObservation: NSKeyValueObservation?
     private var currentIconFamily: String?
     private var notificationRequested = false
     private let completionAttention = RBNCompletionAttention()
@@ -60,10 +62,13 @@ final class BrowserAppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegat
         "saveTask", "deleteTask", "listTasks", "saveSettings", "unlockConfig", "configureRemotes", "accountConfig", "openAccountAuthorization",
         "openExternal", "exportLog", "getJobReport", "exportJobReport", "exportTasks", "importTasks", "checkForUpdates", "checkAppUpdates", "showAbout",
         "directoryTree", "exportFileList", "publicLink", "startMount", "startStream",
-        "listToolSessions", "stopToolSession", "copyText"
+        "listToolSessions", "stopToolSession", "copyText", "setChrome"
     ]
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        // Help tags (toolbar items and page titles) appear after 0.4 s instead of the
+        // system default, matching the page's own help bubbles.
+        UserDefaults.standard.register(defaults: ["NSInitialToolTipDelay": 400])
         do {
             let fm = FileManager.default
             let support = try fm.url(for: .applicationSupportDirectory, in: .userDomainMask,
@@ -98,7 +103,9 @@ final class BrowserAppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegat
             configuration.preferences.javaScriptCanOpenWindowsAutomatically = false
             configuration.userContentController.add(self, name: "rclone")
             let browserView = RcloneWebView(frame: .zero, configuration: configuration)
-            let initialAppearance = RBNWebAppearance(theme: engine.settingsSnapshot()["theme"] as? String)
+            // Tell the page before it loads that this host draws the toolbar.
+            browserView.hostScript = "window.__rbnHost = {nativeChrome: true};"
+            let initialAppearance = currentAppearance()
             browserView.prepareForInitialLoad(initialAppearance)
             browserView.acceptsHistoryNavigation = { [weak self] in
                 guard let self = self else { return false }
@@ -132,6 +139,13 @@ final class BrowserAppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegat
                               backing: .buffered, defer: false)
             window.title = "Rclone Browser Next"
             window.titleVisibility = .hidden
+            // The toolbar band shows the same canvas as the page below it.
+            window.titlebarAppearsTransparent = true
+            let toolbar = RBNMainToolbar(localize: { [weak self] zh, en, ja in self?.local(zh, en, ja) ?? zh })
+            toolbar.onAction = { [weak self] action in self?.toolbarAction(action) }
+            toolbar.install(in: window)
+            toolbar.setAccent(family: initialAppearance.family, isDark: initialAppearance.isDark)
+            mainToolbar = toolbar
             window.contentMinSize = NSSize(width: 1060, height: 680)
             window.isReleasedWhenClosed = false
             window.delegate = self
@@ -148,9 +162,15 @@ final class BrowserAppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegat
             (window as? RcloneBrowserWindow)?.browserView = browserView
             window.center()
             applyAppearance()
+            appearanceObservation = NSApp.observe(\.effectiveAppearance, options: [.new]) { [weak self] _, _ in
+                DispatchQueue.main.async { self?.applyAppearance() }
+            }
             installMenus()
             applyInterfacePreferences()
             loadStartupDocument()
+            #if RBN_DEV_HOOKS
+            RBNDevHooks.install(window: window, webView: webView)
+            #endif
             window.makeKeyAndOrderFront(nil)
             NSApp.activate(ignoringOtherApps: true)
         } catch {
@@ -176,6 +196,8 @@ final class BrowserAppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegat
         settings.target = self; appMenu.addItem(settings)
         let accounts = NSMenuItem(title: local("帳號設定…", "Account setup…", "アカウント設定…"), action: #selector(configureFromMenu), keyEquivalent: "")
         accounts.target = self; appMenu.addItem(accounts)
+        let terminal = NSMenuItem(title: local("在終端機設定 rclone…", "Configure rclone in Terminal…", "ターミナルで rclone を設定…"), action: #selector(configureTerminalFromMenu), keyEquivalent: "")
+        terminal.target = self; appMenu.addItem(terminal)
         let recovery = NSMenuItem(title: local("修復未完成的本機複製…", "Recover unfinished local copies…", "未完了のローカルコピーを復元…"), action: #selector(recoverPartialCopies), keyEquivalent: "")
         recovery.target = self; appMenu.addItem(recovery)
         let languageItem = NSMenuItem(title: local("語言", "Language", "言語"), action: nil, keyEquivalent: "")
@@ -235,6 +257,7 @@ final class BrowserAppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegat
         NSApp.mainMenu = menuBar
         NSApp.windowsMenu = windowMenu
         NSApp.helpMenu = helpMenu
+        mainToolbar?.relocalize()
     }
 
     @objc private func recoverPartialCopies() {
@@ -281,6 +304,19 @@ final class BrowserAppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegat
         guard let language = sender.representedObject as? String, ["system", "zh-TW", "en", "ja"].contains(language) else { return }
         showWindow(); sendEvent(type: "menuAction", data: ["action": "language", "language": language])
     }
+    @objc private func configureTerminalFromMenu() {
+        showWindow()
+        sendEvent(type: "menuAction", data: ["action": "configureTerminal"])
+    }
+
+    private func toolbarAction(_ action: String) {
+        if action.hasPrefix("page:") {
+            sendEvent(type: "menuAction", data: ["action": "page", "page": String(action.dropFirst(5))])
+        } else if ["configureRemotes", "rememberWorkspace", "saveTask", "settings", "dismissModal"].contains(action) {
+            sendEvent(type: "menuAction", data: ["action": action])
+        }
+    }
+
     @objc private func configureFromMenu() {
         showWindow()
         sendEvent(type: "menuAction", data: ["action": "configureRemotes"])
@@ -485,13 +521,29 @@ final class BrowserAppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegat
         RBNLanguageResolver.resolve(engine?.settingsSnapshot()["language"] as? String ?? "system")
     }
 
+    /// While AppKit follows the system, its effective appearance is the
+    /// system's; otherwise read the global setting the app is overriding.
+    private func currentAppearance() -> RBNWebAppearance {
+        let systemIsDark = NSApp.appearance == nil
+            ? NSApp.effectiveAppearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
+            : RBNWebAppearance.systemIsDark
+        return RBNWebAppearance(theme: engine.settingsSnapshot()["theme"] as? String, systemIsDark: systemIsDark)
+    }
+
     private func applyAppearance() {
-        let appearance = RBNWebAppearance(theme: engine.settingsSnapshot()["theme"] as? String)
+        var appearance = currentAppearance()
+        // "Auto" leaves AppKit on the system appearance so menus, alerts and
+        // WebKit's prefers-color-scheme all switch together with macOS.
+        let desired: NSAppearance.Name? = appearance.followsSystem ? nil : (appearance.isDark ? .darkAqua : .aqua)
+        if NSApp.appearance?.name != desired {
+            NSApp.appearance = desired.flatMap { NSAppearance(named: $0) }
+            appearance = currentAppearance()
+        }
         let theme = appearance.theme
-        NSApp.appearance = NSAppearance(named: appearance.isDark ? .darkAqua : .aqua)
         window?.backgroundColor = appearance.backgroundColor
         (webView as? RcloneWebView)?.applyAppearance(appearance)
-        let family = theme.hasPrefix("green-") ? "green" : (theme.hasPrefix("blue-") || ["dark", "light"].contains(theme) ? "blue" : "purple")
+        let family = appearance.family
+        mainToolbar?.setAccent(family: family, isDark: appearance.isDark)
         let startupIcon = Bundle.main.resourceURL.flatMap { RBNStartupArtwork.image(resources: $0, theme: theme) }
         if family == currentIconFamily {
             startupSurface?.applyAppearance(appearance, icon: startupIcon)
@@ -614,7 +666,7 @@ final class BrowserAppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegat
 
     private func handle(method: String, arguments: [Any]) throws -> Any {
         guard !terminationStarted else { throw EngineError(local("程式正在關閉。", "The app is closing.", "アプリを終了しています。")) }
-        let conflictsWithRecovery = !["bootstrap", "list", "cancelList", "listJobs", "getJobReport", "listToolSessions", "copyText"].contains(method)
+        let conflictsWithRecovery = !["bootstrap", "list", "cancelList", "listJobs", "getJobReport", "listToolSessions", "copyText", "setChrome"].contains(method)
         if conflictsWithRecovery {
             try activityLock.holding {
                 guard !repairingPartials else {
@@ -726,6 +778,10 @@ final class BrowserAppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegat
         case "checkAppUpdates":
             guard arguments.isEmpty else { throw EngineError("更新檢查不需要額外參數。") }
             return try checkAppUpdates().json
+        case "setChrome":
+            guard let state = argument(0) as? [String: Any] else { throw EngineError("工具列狀態格式不正確。") }
+            onMain { mainToolbar?.apply(RBNMainToolbar.State(json: state)) }
+            return NSNull()
         case "showAbout":
             guard arguments.isEmpty else { throw EngineError("關於視窗不需要額外參數。") }
             onMain { showAbout() }
@@ -871,6 +927,8 @@ final class BrowserAppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegat
             alert.addButton(withTitle: local("取消", "Cancel"))
             let proceed = alert.addButton(withTitle: action)
             proceed.keyEquivalent = ""
+            // Sync and move can delete files: macOS draws the action in red.
+            if #available(macOS 11.0, *) { proceed.hasDestructiveAction = true }
             alert.buttons[0].keyEquivalent = "\r"
             return alert.runModal() == .alertSecondButtonReturn
         }
