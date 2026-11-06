@@ -596,7 +596,7 @@ async def inspect(args, report: dict) -> None:
                 await pane.locator('.file-name[title="child folder"]').dblclick()
                 await expect(pane.locator('.file-name[title="local-child-marker.txt"]')).to_be_visible(timeout=15000)
                 assert normalized_path(await path_input.input_value()) == normalized_path(str(local_root / "child folder"))
-                await pane.locator(".path-toolbar > .icon-button").nth(2).click()
+                await pane.locator(".nav-buttons .icon-button").nth(2).click()  # Up
                 await expect(pane.locator('.file-name[title="local-root-marker.txt"]')).to_be_visible(timeout=15000)
                 assert normalized_path(await path_input.input_value()) == normalized_path(str(local_root))
                 return {"side": side, "root": str(local_root), "visitedChild": "child folder", "returnedToParent": True}

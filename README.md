@@ -8,9 +8,9 @@
   <img src="docs/images/intro-zh-TW.svg" alt="給 Mac 的雙面板 rclone 圖形介面。本機、NAS、雲端，左右自由選。" width="560">
 </p>
 
-![Rclone Browser Next：黑紫雙面板主畫面，中央提供方向、操作方式與 Dry Run](docs/images/main-dark.png)
+![Rclone Browser Next 0.10.1：深色紫主題的雙面板主畫面，上方是 macOS 原生工具列，中央是傳輸方向、操作方式、預演與開始複製](docs/images/main-dark.png)
 
-*由介面程式產生的預覽，使用示意檔案與路徑。*
+*0.10.1 的實際 App 畫面，使用測試帳號與示意檔案。*
 
 <p align="center">
   <a href="https://github.com/jason840709/RcloneBrowserNext/releases/latest">下載</a> ·
@@ -91,6 +91,12 @@ App 另有「檢查 Rclone Next 更新」，查詢本專案的正式 Release，�
 
 建置不會自行安裝開發工具、Homebrew、Node.js 或 rclone；編譯快取與產物留在專案資料夾。
 App 採 **ad-hoc 本機簽章**，尚未取得 Developer ID 簽章與 Apple 公證；若下載後遭到 Gatekeeper 阻擋，請依 [Mac 建置說明](docs/BUILD_MAC.zh-TW.md) 操作。
+
+## 舊版介面（0.9.6 以前）
+
+0.9.6 以前的介面由 ChatGPT 設計，畫面和現在不同，如下圖。0.10.0 起改成接近 macOS 原生 App 的設計，傳輸、比對與帳號設定的功能都相同。如果比較喜歡舊版畫面，可以到 [0.9.6 發布頁](https://github.com/jason840709/RcloneBrowserNext/releases/tag/v0.9.6) 下載 0.9.6。
+
+![0.9.6 以前的舊版介面：黑紫雙面板主畫面，中央提供方向、操作方式與 Dry Run](docs/images/legacy-0.9.6-main-dark.png)
 
 ## 文件與回報
 

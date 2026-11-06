@@ -2,7 +2,8 @@ import type {InterfaceScale, Theme, ThemeAccent, ThemeMode} from '../shared/type
 
 export const INTERFACE_SCALES: readonly InterfaceScale[] = [80, 90, 100, 110, 125];
 
-export const interfaceScaleZoom = (scale: InterfaceScale): number => (scale - 10) / 100;
+/** 100% is actual size: one CSS pixel per point (macOS) or per device-independent pixel (Windows, Linux). */
+export const interfaceScaleZoom = (scale: InterfaceScale): number => scale / 100;
 
 export function interfaceScaleChoices(current: InterfaceScale): readonly InterfaceScale[] {
   return INTERFACE_SCALES.includes(current) ? INTERFACE_SCALES : [...INTERFACE_SCALES, current].sort((a, b) => a - b);

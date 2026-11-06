@@ -8,9 +8,9 @@
   <img src="docs/images/intro-en.svg" alt="A dual-pane rclone app for Mac. Choose local folders, NAS or cloud storage on either side." width="560">
 </p>
 
-![Rclone Browser Next: dark purple folder panes with direction, operation and Dry Run controls in the middle](docs/images/main-dark-en.png)
+![Rclone Browser Next 0.10.1: dark purple dual-pane window with the native macOS toolbar on top and direction, operation, Dry Run and Start controls in the middle](docs/images/main-dark-en.png)
 
-*Preview rendered by the app's frontend, using example files and paths.*
+*The actual 0.10.1 app, shown with test accounts and sample files.*
 
 <p align="center">
   <a href="https://github.com/jason840709/RcloneBrowserNext/releases/latest">Download</a> ·
@@ -87,6 +87,12 @@ Requires **macOS 13 or later**. Local builds use an existing **Xcode or Apple Co
 
 The build does not install developer tools, Homebrew, Node.js or rclone. Build caches and outputs stay inside the project folder.
 App bundles use an **ad-hoc signature**, without Developer ID signing or Apple notarization. If Gatekeeper blocks a download, follow the [Mac build guide](docs/BUILD_MAC.zh-TW.md).
+
+## Earlier interface (0.9.6 and before)
+
+Versions up to 0.9.6 used an interface designed with ChatGPT, shown below. From 0.10.0 the app follows a native macOS design; transfers, comparison and account setup work the same way. If you prefer the earlier look, download 0.9.6 from its [release page](https://github.com/jason840709/RcloneBrowserNext/releases/tag/v0.9.6).
+
+![The interface up to 0.9.6: dark purple folder panes with direction, operation and Dry Run controls in the middle](docs/images/legacy-0.9.6-main-dark-en.png)
 
 ## Documentation and feedback
 

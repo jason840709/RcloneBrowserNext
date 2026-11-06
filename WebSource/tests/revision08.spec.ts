@@ -226,8 +226,8 @@ for (const legacy of [120, 135] as const) test(`migrated ${legacy} percent stays
   await page.screenshot({path: info.outputPath(`scale-legacy-${legacy}.png`), animations: 'disabled'});
   await group.locator('input[value="100"]').locator('..').click();
   await expect(radios).toHaveCount(5); await expect(group.locator('input[value="100"]')).toBeChecked();
-  await expect.poll(() => page.viewportSize()).toEqual({width: 1177, height: 755});
+  await expect.poll(() => page.viewportSize()).toEqual({width: Math.floor(1060 / interfaceScaleZoom(100)), height: Math.floor(680 / interfaceScaleZoom(100))});
   expect(await page.evaluate(() => (window as any).__fixture.bootstrap.settings.interfaceScale)).toBe(100);
   await group.locator('input[value="110"]').locator('..').click();
-  await expect.poll(() => page.viewportSize()).toEqual({width: 1060, height: 680});
+  await expect.poll(() => page.viewportSize()).toEqual({width: Math.floor(1060 / interfaceScaleZoom(110)), height: Math.floor(680 / interfaceScaleZoom(110))});
 });

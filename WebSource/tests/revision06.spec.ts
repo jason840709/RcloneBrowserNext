@@ -96,7 +96,7 @@ test('scale keyboard selection and rapid edits survive save rejection without ap
   await expect(dialog.getByRole('alert')).toContainText('Settings rejected');await expect(dialog.locator('.interface-scale-picker input[value="110"]')).toBeChecked();
   await page.evaluate(()=>{const w=window as any;w.__fixture.delays.saveSettings=[120,2];});
   await dialog.locator('.interface-scale-picker').evaluate(group=>{(group.querySelector('input[value="80"]') as HTMLInputElement).click();(group.querySelector('input[value="100"]') as HTMLInputElement).click();});
-  await expect.poll(async()=>(await saved(page)).interfaceScale).toBe(100);await expect.poll(()=>page.viewportSize()).toEqual({width:1177,height:755});await expect(dialog.locator('.interface-scale-picker input[value="100"]')).toBeChecked();
+  await expect.poll(async()=>(await saved(page)).interfaceScale).toBe(100);await expect.poll(()=>page.viewportSize()).toEqual({width:Math.floor(1060/interfaceScaleZoom(100)),height:Math.floor(680/interfaceScaleZoom(100))});await expect(dialog.locator('.interface-scale-picker input[value="100"]')).toBeChecked();
   expect((await calls(page,'saveSettings')).map(call=>call.args[0])).toEqual([{interfaceScale:110},{interfaceScale:125},{interfaceScale:80},{interfaceScale:100}]);
 });
 

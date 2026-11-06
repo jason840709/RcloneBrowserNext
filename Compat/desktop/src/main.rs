@@ -243,7 +243,8 @@ fn open_url(value: &str) -> Result<(), String> {
 
 fn interface_zoom(displayed_scale: u64) -> f64 {
     let scale = if [80, 90, 100, 110, 120, 125, 135].contains(&displayed_scale) { displayed_scale } else { 100 };
-    (scale as f64 - 10.0) / 100.0
+    // 100% is actual size (one CSS pixel per device-independent pixel), as on macOS since 0.10.0.
+    scale as f64 / 100.0
 }
 
 fn appearance_theme(settings: &Value) -> &str {
