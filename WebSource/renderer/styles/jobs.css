@@ -85,6 +85,31 @@
 .job-details > summary:hover { color: var(--label); }
 .job-details > summary time { margin-left: auto; color: var(--tertiary); }
 .error-count { color: var(--red); padding-left: 3.5px; }
+.error-count.warning, .warning-text { color: var(--orange); }
+/* Checking / not transferring is a normal phase, not a warning. */
+.metric-quiet strong { color: var(--secondary); font-weight: 500; }
+/* Problem line: a small light plus a plain title; everything else folds away.
+   Orange = rclone recovers by itself, red = the user has to act or the job failed. */
+.job-alert { margin-top: 6px; font-size: var(--fs-callout); }
+.job-alert > summary { display: flex; align-items: center; gap: 7px; min-height: 20px; list-style: none; cursor: default; color: var(--label); }
+.job-alert > summary::-webkit-details-marker { display: none; }
+.alert-light { flex: none; width: 7px; height: 7px; border-radius: 50%; background: var(--orange-fill); box-shadow: 0 0 0 3px var(--orange-tint); }
+.job-alert:is(.action, .urgent) .alert-light { background: var(--red); box-shadow: 0 0 0 3px color-mix(in srgb, var(--red) 18%, transparent); }
+.alert-light.live { animation: alert-breathe 2.4s var(--ease-out) infinite; }
+@keyframes alert-breathe { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
+.alert-title { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.alert-count { flex: none; color: var(--secondary); font-variant-numeric: tabular-nums; }
+.alert-more { flex: none; display: inline-flex; align-items: center; gap: 3px; color: var(--accent-text); font-size: var(--fs-caption); }
+.alert-more > svg { transition: transform 240ms var(--ease-out); transform: rotate(-90deg); }
+.job-alert[open] .alert-more > svg { transform: rotate(0deg); }
+.job-alert-body { max-width: 72em; display: grid; gap: 5px; margin: 6px 0 2px 14px; padding-left: 10px; border-left: 2px solid var(--orange-tint); color: var(--secondary); animation: alert-body-in 240ms var(--ease-out); }
+.job-alert:is(.action, .urgent) .job-alert-body { border-left-color: color-mix(in srgb, var(--red) 25%, transparent); }
+@keyframes alert-body-in { from { opacity: 0; transform: translateY(-4px); } }
+.job-alert-body p { margin: 0; line-height: 1.5; }
+.job-alert-body details > summary { cursor: default; font-size: var(--fs-caption); color: var(--tertiary); }
+.job-alert-body pre { margin: 4px 0 0; white-space: pre-wrap; word-break: break-word; font-size: var(--fs-mono); line-height: 1.4; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--secondary); max-height: 120px; overflow: auto; user-select: text; }
+@media (prefers-reduced-motion: reduce) { .alert-light.live { animation: none; } .job-alert-body { animation: alert-fade 140ms linear; } }
+@keyframes alert-fade { from { opacity: 0; } }
 .job-detail-body { padding: 5.5px 0 7px; animation: fade-up 220ms var(--ease-out); }
 .job-detail-body > h4 { margin: 12.5px 0 5.5px; font-size: var(--fs-callout); }
 .job-extra-stats, .job-byte-summary { display: flex; flex-wrap: wrap; gap: 9px 25px; margin: 9px 0; }

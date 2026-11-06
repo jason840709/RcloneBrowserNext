@@ -4,8 +4,8 @@ macOS is the primary platform. The compatibility editions reuse the bundled web 
 
 ## Install
 
-- **Windows x64:** use [0.10.1](https://github.com/jason840709/RcloneBrowserNext/releases/tag/v0.10.1) and run `Rclone_Browser_Next_0.10.1_Windows_x64_Setup.exe`. Installation is per user and preserves existing application settings. If WebView2 is absent, the installer downloads Microsoft's official Evergreen bootstrapper. The installer includes the Swift runtime; Swift, Rust and Node.js are not needed to run the app.
-- **Ubuntu 24.04 amd64:** install `Rclone_Browser_Next_0.10.1_Linux_amd64.deb` with your package installer or `sudo apt install ./Rclone_Browser_Next_0.10.1_Linux_amd64.deb`. The package includes Swift runtime libraries and declares its WebKitGTK, GTK, ICU and other system dependencies. Other distributions require matching dependencies or a source build.
+- **Windows x64:** use [0.10.2](https://github.com/jason840709/RcloneBrowserNext/releases/tag/v0.10.2) and run `Rclone_Browser_Next_0.10.2_Windows_x64_Setup.exe`. Installation is per user and preserves existing application settings. If WebView2 is absent, the installer downloads Microsoft's official Evergreen bootstrapper. The installer includes the Swift runtime; Swift, Rust and Node.js are not needed to run the app.
+- **Ubuntu 24.04 amd64:** install `Rclone_Browser_Next_0.10.2_Linux_amd64.deb` with your package installer or `sudo apt install ./Rclone_Browser_Next_0.10.2_Linux_amd64.deb`. The package includes Swift runtime libraries and declares its WebKitGTK, GTK, ICU and other system dependencies. Other distributions require matching dependencies or a source build.
 
 In Settings, choose an existing rclone executable or an installation folder for the app's rclone downloader. Account setup defaults to a short form followed by browser login, with a detailed form for custom options; the adjacent `config` link opens the traditional terminal configuration. Existing rclone configuration files can be selected directly.
 
@@ -13,7 +13,7 @@ Mac-specific Finder integration, status-bar controls and mount integration are a
 
 ## Build
 
-Use `Rclone_Browser_Next_0.10.1_Source.zip` from the same release, or check out tag `v0.10.1`. The package includes the prebuilt web interface and all platform build scripts.
+Use `Rclone_Browser_Next_0.10.2_Source.zip` from the same release, or check out tag `v0.10.2`. The package includes the prebuilt web interface and all platform build scripts.
 
 The release workflow pins Swift 6.1.2 and Rust 1.90.0. JavaScript build tooling is pinned in `Compat/cli/package-lock.json`; Rust dependencies are pinned in `Compat/desktop/Cargo.lock`. Generated files and caches stay in `.build-cache/compat`.
 
