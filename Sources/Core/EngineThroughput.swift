@@ -8,7 +8,15 @@ import Foundation
 /// Estimates transfer throughput from the JSON counters rclone already emits.
 ///
 /// The displayed speed is the amount of data processed during roughly the last
-/// ten seconds. rclone adds bytes as they stream through it, but a server-side
+/// ten seconds of transfer time. Only time with at least one file transferring
+/// counts: rclone reports that clock as `transferTime` (the union of all
+/// transfer intervals), so listing, comparing and creating folders neither add
+/// bytes nor dilute the rate. Files that need no update never add bytes; rclone
+/// counts only data it actually reads for a transfer. While nothing transfers
+/// the state is `checking` (rclone is comparing) or `idle`, with no speed.
+/// Older rclone versions without `transferTime` fall back to elapsed time.
+///
+/// rclone adds bytes as they stream through it, but a server-side
 /// or native copy adds a whole file only when that file finishes. While such a
 /// file is still running, the counters stay flat even though data is moving, so
 /// a plain moving average would sink to zero and then spike. Those intervals are
@@ -36,40 +44,62 @@ struct EngineThroughput {
     private var lastFiles: Double = 0
     private var lastByteIncreaseAt: Double = 0
     private var silentSince: [String: Double] = [:]
+    /// Seconds during which at least one file was transferring.
+    private var activeTime: Double = 0
+    private var lastRawActive: Double?
+    private var sawTransferClock = false
     var sampleCount: Int { samples.count }
 
     mutating func start(at uptime: TimeInterval = ProcessInfo.processInfo.systemUptime) {
         startedAt = uptime; lastObservedAt = uptime; lastElapsed = 0; lastRawElapsed = nil; lastBytes = 0; lastFiles = 0
         lastByteIncreaseAt = 0; silentSince = [:]
+        activeTime = 0; lastRawActive = nil; sawTransferClock = false
         samples = [Sample(time: 0, bytes: 0, files: 0)]
     }
 
     mutating func update(_ raw: [String: Any], previous: [String: Any], at uptime: TimeInterval = ProcessInfo.processInfo.systemUptime) -> [String: Any] {
         if samples.isEmpty { start(at: uptime) }
         var result = EngineStatistics.parse(raw, previous: previous)
+        // rclone marks errors it will retry (the whole run is repeated up to
+        // --retries times). The interface shows those as temporary.
+        if let retry = raw["retryError"] as? Bool { result["retryError"] = retry }
+        if let fatal = raw["fatalError"] as? Bool { result["fatalError"] = fatal }
         let bytes = EngineJSON.number(result["bytes"]), files = EngineJSON.number(result["transfers"])
         let rawElapsed = EngineJSON.seconds(raw["elapsedTime"]) as? Double
         let clockReset = rawElapsed != nil && lastRawElapsed != nil && rawElapsed! < lastRawElapsed!
         let elapsed = rawElapsed.map { clockReset ? $0 : max(lastElapsed, $0) } ?? (lastElapsed + max(0, uptime - lastObservedAt))
         result["elapsedTime"] = elapsed
-        let reset = bytes < lastBytes || files < lastFiles || clockReset
-        let current = Sample(time: elapsed, bytes: bytes, files: files)
+        // Advance the transfer clock. rclone's own clock is preferred; it
+        // stands still while rclone only lists, compares or makes folders.
+        let rawActive = EngineJSON.seconds(raw["transferTime"]) as? Double
+        let activeReset = rawActive != nil && lastRawActive != nil && rawActive! < lastRawActive!
+        let activeStep: Double
+        if let active = rawActive {
+            sawTransferClock = true
+            activeStep = activeReset ? active : max(0, active - (lastRawActive ?? 0))
+        } else {
+            activeStep = clockReset ? 0 : max(0, elapsed - lastElapsed)
+        }
+        activeTime += activeStep
+        let transferring = bytes > lastBytes || activeStep > 0
+        let reset = bytes < lastBytes || files < lastFiles || clockReset || activeReset
+        let current = Sample(time: activeTime, bytes: bytes, files: files)
         if reset {
             // A retry can reset counters. Do not turn the discontinuity into a
             // negative rate or assume the replacement counter arrived instantly.
             samples = [current]; lastByteIncreaseAt = elapsed; silentSince = [:]
-        } else if elapsed >= (samples.last?.time ?? 0) {
+        } else {
             if bytes > lastBytes { lastByteIncreaseAt = elapsed }
             // Keep one sample per second; rclone may log more often near the end.
-            if samples.count > 1, floor(samples.last!.time) == floor(elapsed) { samples[samples.count - 1] = current }
-            else if elapsed > (samples.last?.time ?? 0) { samples.append(current) }
+            if samples.count > 1, floor(samples.last!.time) == floor(activeTime) { samples[samples.count - 1] = current }
+            else if activeTime > (samples.last?.time ?? 0) { samples.append(current) }
             else if samples.count > 1 { samples[samples.count - 1] = current }
             // Retain one sample older than the history window as its left edge.
-            let cutoff = max(0, elapsed - Self.historyWindow)
+            let cutoff = max(0, activeTime - Self.historyWindow)
             while samples.count > 2 && samples[1].time <= cutoff { samples.removeFirst() }
             if samples.count > 64 { samples.removeFirst(samples.count - 64) }
         }
-        lastElapsed = elapsed; lastRawElapsed = rawElapsed ?? lastRawElapsed; lastBytes = bytes; lastFiles = files; lastObservedAt = uptime
+        lastElapsed = elapsed; lastRawElapsed = rawElapsed ?? lastRawElapsed; lastRawActive = rawActive ?? lastRawActive; lastBytes = bytes; lastFiles = files; lastObservedAt = uptime
 
         // Files that are running but have reported no bytes at all.
         var silent: [String: Double] = [:]
@@ -83,18 +113,24 @@ struct EngineThroughput {
         let display = rate(\.bytes, window: Self.speedWindow, now: current)
         let calm = rate(\.bytes, window: Self.etaWindow, now: current)
         let fileRate = rate(\.files, window: Self.etaWindow, now: current).value
-        let speed = hidden ? 0 : display.value
+        // No file is moving: say what rclone is doing instead of a speed.
+        let waiting = sawTransferClock && !transferring && !hidden
+        let checking = !((raw["checking"] as? [Any]) ?? []).isEmpty
+        let speed = hidden || waiting ? 0 : display.value
         result["speed"] = speed; result["filesPerSecond"] = fileRate
         result["speedKind"] = "rolling"; result["speedWindowSeconds"] = display.span
-        result["speedState"] = hidden ? "hidden" : display.span > 0 ? "live" : "measuring"
-        let average = elapsed > 0 ? bytes / elapsed : 0
+        result["speedState"] = hidden ? "hidden" : waiting ? (checking ? "checking" : "idle") : display.span > 0 ? "live" : "measuring"
+        result["transferTime"] = activeTime
+        let average = activeTime > 0 ? bytes / activeTime : 0
         result["averageSpeed"] = average.isFinite ? average : 0
         result["eta"] = NSNull(); result["etaSource"] = NSNull()
         let remainingBytes = max(0, EngineJSON.number(result["totalBytes"]) - bytes)
         let remainingFiles = max(0, EngineJSON.number(result["totalTransfers"]) - files)
         if hidden {
             // Unknown progress cannot produce a trustworthy countdown.
-        } else if remainingBytes > 0 && speed > 0 && calm.value > 0 {
+        } else if remainingBytes > 0 && (speed > 0 || waiting) && calm.value > 0 {
+            // While rclone compares between transfers the last transfer rate
+            // still describes the remaining data best.
             let eta = remainingBytes / calm.value
             if eta.isFinite { result["eta"] = eta; result["etaSource"] = "bytes" }
         } else if remainingBytes == 0 && remainingFiles > 0 && fileRate > 0 {
@@ -151,6 +187,17 @@ struct EngineThroughput {
             result["elapsedTime"] = max(0, uptime - startedAt)
         }
         var finished = EngineStatistics.finished(result, completed: completed)
+        // The overall average covers transfer time only, so a long comparison
+        // phase does not make a finished job look slow.
+        if sawTransferClock && activeTime > 0 {
+            let average = EngineJSON.number(finished["bytes"]) / activeTime
+            if average.isFinite {
+                finished["speed"] = average; finished["averageSpeed"] = average
+                finished["speedWindowSeconds"] = activeTime
+                finished["filesPerSecond"] = EngineJSON.number(finished["transfers"]) / activeTime
+            }
+            finished["transferTime"] = activeTime
+        }
         finished["speedState"] = "live"
         return finished
     }

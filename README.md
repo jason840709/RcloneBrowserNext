@@ -21,6 +21,8 @@
 
 **Mac 是主要開發平台**，另提供 Windows x64 與 Linux amd64 相容版；三平台使用同一個正式版本。[下載與更新說明](https://github.com/jason840709/RcloneBrowserNext/releases/latest) · [相容版安裝](docs/BUILD_COMPATIBILITY.md)
 
+[0.10.2 改進說明](docs/RELEASE_0.10.2.md)：傳輸速度只算真正在傳的時間；統計數字改成檔案去向；錯誤改成小燈號並翻成白話，rclone 會自己重試的只亮橘燈。
+
 [0.10.1 修正說明](docs/RELEASE_0.10.1.md)：修正捲到底會往上彈、設定提示不會消失等問題。
 
 [0.10.0 改版說明](docs/RELEASE_0.10.0.md)：傳輸速度改用最近 10 秒計算；介面重新設計，改用原生 macOS 工具列、自動淺色／深色外觀與低飽和配色。

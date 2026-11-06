@@ -927,8 +927,9 @@ final class BrowserAppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegat
             alert.addButton(withTitle: local("取消", "Cancel"))
             let proceed = alert.addButton(withTitle: action)
             proceed.keyEquivalent = ""
-            // Sync and move can delete files: macOS draws the action in red.
-            if #available(macOS 11.0, *) { proceed.hasDestructiveAction = true }
+            // Starting a sync or move is the requested action, not an error, so
+            // it stays a plain button. Safety comes from Cancel being the
+            // default (blue, Return) and the deletion notice in the text.
             alert.buttons[0].keyEquivalent = "\r"
             return alert.runModal() == .alertSecondButtonReturn
         }

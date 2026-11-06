@@ -1,3 +1,4 @@
+import { explainError } from './errorExplain';
 import {useEffect, useMemo, useRef, useState} from 'react';
 import {ArrowClockwise, CaretLeft, CaretRight, DownloadSimple, WarningCircle, CheckCircle} from '@phosphor-icons/react';
 import type {JobReportCategory, JobReportItem, JobReportPage, JobReportSummary, Language, TransferOptions} from '../shared/types';
@@ -42,7 +43,7 @@ export default function JobReport({id, summary, options, language, t, onNotice}:
             {typeof item.sourceSize==='number'&&<div><dt>{tx('reportSourceSize')}</dt><dd title={`${item.sourceSize.toLocaleString()} B`}>{formatBytes(item.sourceSize)}<small>{item.sourceSize.toLocaleString()} B</small></dd></div>}
             {typeof item.destinationSize==='number'&&<div><dt>{tx('reportDestinationSize')}</dt><dd title={`${item.destinationSize.toLocaleString()} B`}>{formatBytes(item.destinationSize)}<small>{item.destinationSize.toLocaleString()} B</small></dd></div>}
           </dl>}
-          {item.issue&&explanation!==item.message&&<details className="report-raw-message"><summary>{tx('reportOriginalMessage')}</summary><p>{item.message}</p></details>}
+          {(item.issue||item.status==='error')&&explanation!==item.message&&<details className="report-raw-message"><summary>{tx('reportOriginalMessage')}</summary><p>{item.message}</p></details>}
           {item.configuration&&<details className="report-raw-message"><summary>{tx('reportConfigurationDetails')}</summary><pre>{JSON.stringify(item.configuration,null,2)}</pre></details>}</div>
       </li>;
     });
@@ -90,7 +91,7 @@ function reportMessage(item:JobReportItem,t:Translate,options:TransferOptions){
   if(item.action==='configuration')return t('reportConfigurationHint');
   const issueLabels={'source-growing':'reportSourceGrowing','source-changed':'reportSourceChanged','size-mismatch':'reportSizeMismatch','cleanup-failed':'reportCleanupFailed','deletion-deferred':'reportDeletionDeferred','symlink-ignored':'reportSymlinkIgnored','special-ignored':'reportSpecialIgnored','partial-rename-denied':'reportPartialRenameDenied'} as const;
   if(item.issue && item.issue in issueLabels)return t(issueLabels[item.issue]);
-  if(item.evidence!=='comparison')return item.message;
+  if(item.evidence!=='comparison')return (item.status==='error'&&explainError(item.message,t)?.detail)||item.message;
   switch(item.action){
     case 'match':return options.skipExisting?t('reportSkipExisting'):options.comparison==='none'?t('reportMatchedMessage'):t(options.updateOnly?'reportSkipNewer':'reportSkipCompared').replace('{comparison}',comparisonName(options,t));
     case 'missing-destination':return t('reportMissingDestinationMessage');

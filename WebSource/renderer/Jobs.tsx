@@ -1,16 +1,18 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { X, ArrowsDownUp, ArrowRight, ArrowsClockwise, ArrowFatLinesRight, Copy, CheckCircle, XCircle, Clock, Stop, ArrowCounterClockwise, DownloadSimple, CaretDown, CaretUp, ListBullets, Trash, WarningCircle, SpinnerGap } from '@phosphor-icons/react';
 import type { Job, Language, ClearJobsRequest } from '../shared/types';
 import type { Translate } from './i18n';
 import { Dialog, IconButton, Notice, InfoTooltip, EmptyState } from './components';
 import { endpointText, errorMessage, formatBytes, formatDate, formatDuration } from './utils';
 import JobReport from './JobReport';
+import { explainError } from './errorExplain';
 
 export const jobIsActive = (job: Job) => ['queued', 'running', 'cancelling'].includes(job.status);
 
 function JobRow({ job, t, language, entering = false, onError, onNotice, onRetry }: {job: Job; t: Translate; language: Language; entering?: boolean; onError(message: string): void; onNotice(message: string): void; onRetry(job: Job): void}) {
   const [busy, setBusy] = useState(false);
   const [detailsOpen, setDetailsOpen] = useState(false);
+  const alertRef = useRef<HTMLDetailsElement>(null);
   const stats = job.stats;
   const sizeError = job.status === 'failed' && /sizes differ src/.test(job.error || '');
   const failureMessage = sizeError ? t(job.report?.growingSourceEvents ? 'sourceGrowingJob' : 'sizeMismatchJob') : job.error;
@@ -24,6 +26,25 @@ function JobRow({ job, t, language, entering = false, onError, onNotice, onRetry
   const displaySpeed = Number.isFinite(stats.speed) && stats.speed >= 0 ? stats.speed : 0;
   // rclone reports some copies only when a whole file finishes (see EngineProgressWindow).
   const hiddenProgress = active && !dry && stats.speedState === 'hidden';
+  // Nothing is transferring: rclone is comparing files or making folders.
+  const waitingState = active && !dry && (stats.speedState === 'checking' || stats.speedState === 'idle') ? stats.speedState : null;
+  // Problems show as one line with a small light: orange when rclone recovers
+  // by itself (rate limits, network drops, retried errors), red when the user
+  // has to act or the job failed. The full explanation and the original rclone
+  // text stay folded under the line.
+  const plain = sizeError ? null : explainError(job.error, t);
+  const unattributedErrors = Boolean(report?.available) && stats.errors > (report?.errorEvents || 0);
+  const passes = String(report?.maxAttempts || job.request.options.retries || 3);
+  const alert: {severity: 'caution' | 'action' | 'urgent'; title: string} | null = !failureMessage ? null : active && !sizeError
+    ? {severity: plain && plain.severity !== 'caution' ? plain.severity : stats.retryError === false ? 'action' : 'caution',
+       title: plain?.title ?? t(stats.retryError === false ? 'runningErrorTitle' : 'transientErrorTitle')}
+    : {severity: plain?.severity === 'urgent' ? 'urgent' : 'action', title: plain ? `${t('failedJobTitle')} · ${plain.title}` : failureMessage.length <= 90 ? failureMessage : t('failedJobTitle')};
+  // Only an urgent problem (nothing more can transfer) unfolds by itself, once.
+  const urgent = alert?.severity === 'urgent';
+  // A job that finished successfully repaired its own errors on retry: it looks
+  // normal, and the counts stay available without colour.
+  const recovered = job.status === 'completed' && stats.errors > 0;
+  useEffect(() => { if (urgent && alertRef.current) alertRef.current.open = true; }, [urgent]);
   const stateLabel = dry && job.status === 'completed' ? t('dryCompleted') : dry && job.status === 'running' ? t('dryRunning') : !active && job.cancellation?.processExited ? t('stopped') : t(job.status);
   const act = async (action: () => Promise<unknown>) => { setBusy(true); try { await action(); } catch (reason) { onError(errorMessage(reason)); } finally { setBusy(false); } };
   const counts = `${stats.transfers.toLocaleString()} / ${stats.totalTransfers > 0 ? stats.totalTransfers.toLocaleString() : '—'}`;
@@ -35,19 +56,28 @@ function JobRow({ job, t, language, entering = false, onError, onNotice, onRetry
       <div className="job-actions">{active ? <IconButton title={t('cancelJob')} disabled={busy || job.status === 'cancelling'} onClick={() => act(() => window.rclone.cancelJob(job.id))}><X size={12} weight="bold"/></IconButton> : <IconButton title={t('retryJob')} disabled={busy} onClick={() => act(async () => { const next = await window.rclone.retryJob(job.id); if (next) onRetry(next); })}><ArrowCounterClockwise size={18}/></IconButton>}</div>
     </div>
     <div className="job-progress-line"><div className={`progress-track ${indeterminate ? 'indeterminate' : ''} ${hiddenProgress ? 'waiting' : ''}`} role="progressbar" aria-label={dry ? t('dryLabel') : t('transferred')} aria-valuenow={progress ?? undefined} aria-valuemin={0} aria-valuemax={100} aria-valuetext={progress !== null ? `${progress.toFixed(1)}%` : job.status === 'running' ? t('scanning') : stateLabel}>{indeterminate ? <span className="progress-indicator" aria-hidden="true"/> : <span className="progress-fill" style={{transform: `translateX(${(progress ?? 0) - 100}%)`}}/>}</div><span className="progress-value">{progress !== null ? `${progress.toFixed(1)}%` : job.status === 'running' ? t('scanning') : stateLabel}</span></div>
-    <div className="job-metrics"><div><span className="metric-label" title={!dry ? t('processedBytesHint') : undefined}>{dry ? t('estimate') : t('processedBytes')}</span><strong>{formatBytes(stats.bytes)}<small> / {stats.totalBytes > 0 ? formatBytes(stats.totalBytes) : '—'}</small></strong></div><div><span className="metric-label" title={t('completedTransfersHint')}>{t('fileCount')}</span><strong>{counts}</strong></div><div className={hiddenProgress ? 'metric-waiting' : undefined}><span className="metric-label" title={t('speedCalculationHint')}>{t(active ? 'rollingSpeed' : 'averageSpeed')}</span><strong>{dry ? '—' : hiddenProgress ? t('speedHidden') : displaySpeed > 0 ? `${formatBytes(displaySpeed)}/s` : stats.elapsedTime > 0 ? '0 B/s' : t('calculating')}</strong></div><div><span className="metric-label" title={active ? t('etaHint') : undefined}>{active ? t('remaining') : t('elapsed')}</span><strong>{active ? hiddenProgress ? '—' : stats.eta == null ? t('calculating') : formatDuration(stats.eta) : formatDuration(stats.elapsedTime)}</strong></div></div>
-    <dl className="job-file-counts"><div><dt title={t('neededFilesHint')}>{t('neededFiles')}</dt><dd>{stats.totalTransfers.toLocaleString()}</dd></div><div><dt>{t(dry?'plannedFiles':'transferredFiles')}</dt><dd>{stats.transfers.toLocaleString()}</dd></div><div><dt title={t('checksHint')}>{t('checked')}</dt><dd>{stats.checks.toLocaleString()} / {stats.totalChecks.toLocaleString()}</dd></div><div><dt title={t('skippedRecordsHint')}>{t('skippedRecords')}</dt><dd>{job.report?.available?(job.report.matchedEvents+(job.report.skippedEvents||0)).toLocaleString():'—'}</dd></div><div><dt title={t('errorAttemptsHint')}>{t('errorAttempts')}</dt><dd className={stats.errors?'error-text':''}>{stats.errors.toLocaleString()}</dd></div></dl>
-    {failureMessage && <Notice kind="error">{failureMessage}</Notice>}
+    <div className="job-metrics"><div><span className="metric-label" title={!dry ? t('processedBytesHint') : undefined}>{dry ? t('estimate') : t('processedBytes')}</span><strong>{formatBytes(stats.bytes)}<small> / {stats.totalBytes > 0 ? formatBytes(stats.totalBytes) : '—'}</small></strong></div><div><span className="metric-label" title={t('completedTransfersHint')}>{t('fileCount')}</span><strong>{counts}</strong></div><div className={hiddenProgress ? 'metric-waiting' : waitingState ? 'metric-quiet' : undefined}><span className="metric-label" title={t('speedCalculationHint')}>{t(active ? 'rollingSpeed' : 'averageSpeed')}</span><strong>{dry ? '—' : hiddenProgress ? t('speedHidden') : waitingState ? t(waitingState === 'checking' ? 'speedChecking' : 'speedIdle') : displaySpeed > 0 ? `${formatBytes(displaySpeed)}/s` : stats.elapsedTime > 0 ? '0 B/s' : t('calculating')}</strong></div><div><span className="metric-label" title={active ? t('etaHint') : undefined}>{active ? t('remaining') : t('elapsed')}</span><strong>{active ? hiddenProgress ? '—' : stats.eta == null ? t('calculating') : formatDuration(stats.eta) : formatDuration(stats.elapsedTime)}</strong></div></div>
+    <dl className="job-file-counts"><div><dt title={t('upToDateFilesHint')}>{t('upToDateFiles')}</dt><dd>{report?.available ? report.matchedEvents.toLocaleString() : '—'}</dd></div><div><dt title={t('skippedItemsHint')}>{t('skippedItems')}</dt><dd>{report?.available ? (report.skippedEvents || 0).toLocaleString() : '—'}</dd></div>{job.request.mode === 'sync' && <div><dt title={t('deletedFilesHint')}>{t(dry ? 'plannedDeletes' : 'deletedFiles')}</dt><dd>{stats.deletes.toLocaleString()}</dd></div>}<div><dt title={t(recovered ? 'errorsRecoveredHint' : 'errorAttemptsHint')}>{t('errorAttempts')}</dt><dd className={!stats.errors || recovered ? '' : active ? 'warning-text' : 'error-text'}>{stats.errors.toLocaleString()}</dd></div></dl>
+    {alert && <details ref={alertRef} className={`job-alert ${alert.severity}`}>
+      <summary><span className={`alert-light ${active ? 'live' : ''}`} aria-hidden="true"/><span className="alert-title">{alert.title}</span>{stats.errors > 1 && <span className="alert-count">{t('alertCount').replace('{count}', stats.errors.toLocaleString())}</span>}<span className="alert-more">{t('alertMore')}<CaretDown size={11}/></span></summary>
+      <div className="job-alert-body">
+        {plain && <p>{plain.detail}</p>}
+        {plain?.shared && <p>{t('errRateLimitShared')}</p>}
+        {!plain && failureMessage !== alert.title && failureMessage !== job.error && <p>{failureMessage}</p>}
+        {active && !sizeError && stats.retryError !== false && <p>{t('transientErrorBody').replace('{max}', passes)}</p>}
+        {active && unattributedErrors && <p>{t('unattributedErrorHint')}</p>}
+        {job.error && job.error !== alert.title && <details><summary>{t('lastErrorOriginal')}</summary><pre>{job.error}</pre></details>}
+      </div>
+    </details>}
     {!active && job.cancellation && job.startedAt && <Notice kind={job.cancellation.forced ? 'warning' : 'info'}>{t(job.cancellation.forced ? 'forcedStopHint' : 'stoppedJobHint')}</Notice>}
-    <details className="job-details" onToggle={event=>setDetailsOpen(event.currentTarget.open)}><summary><CaretDown size={12}/>{t('jobDetails')}{stats.errors > 0 && <span className="error-count">{stats.errors} {t('errors')}</span>}<time dateTime={job.createdAt}>{formatDate(job.createdAt, language, true)}</time></summary><div className="job-detail-body">
+    <details className="job-details" onToggle={event=>setDetailsOpen(event.currentTarget.open)}><summary><CaretDown size={12}/>{t('jobDetails')}{stats.errors > 0 && !recovered && <span className={alert?.severity === 'caution' ? 'error-count warning' : 'error-count'}>{stats.errors} {t('errors')}</span>}<time dateTime={job.createdAt}>{formatDate(job.createdAt, language, true)}</time></summary><div className="job-detail-body">
       <p className="section-hint">{dry ? t('dryStatsHint') : t('totalsHint')}</p>
-      <dl className="job-extra-stats">{typeof stats.listed==='number'&&<div><dt>{t('listedEntries')}</dt><dd>{stats.listed.toLocaleString()}</dd></div>}<div><dt>{dry ? `${t('estimate')} ${t('deletes')}` : t('deletes')}</dt><dd>{stats.deletes.toLocaleString()}</dd></div><div><dt>{t('elapsed')}</dt><dd>{formatDuration(stats.elapsedTime)}</dd></div>{!dry && Number.isFinite(stats.filesPerSecond) && <div><dt>{t('fileRate')}</dt><dd>{stats.filesPerSecond!.toFixed(1)}</dd></div>}</dl>
+      <dl className="job-extra-stats">{typeof stats.listed==='number'&&<div><dt>{t('listedEntries')}</dt><dd>{stats.listed.toLocaleString()}</dd></div>}<div><dt title={t('checksHint')}>{t('checkItems')}</dt><dd>{stats.checks.toLocaleString()} / {stats.totalChecks.toLocaleString()}</dd></div><div><dt>{t('elapsed')}</dt><dd>{formatDuration(stats.elapsedTime)}</dd></div>{!dry && Number.isFinite(stats.filesPerSecond) && <div><dt>{t('fileRate')}</dt><dd>{stats.filesPerSecond!.toFixed(1)}</dd></div>}</dl>
       {!dry&&report?.available&&(copyDataAvailable||Boolean(report.sizeMismatchEvents)||Boolean(report.lastAttempt))&&<dl className="job-byte-summary">
         {copyDataAvailable&&<div><dt>{t('copiedBytes')}<InfoTooltip label={t('copiedBytes')} text={t('copiedBytesHint')}/></dt><dd>{formatBytes(report.copiedBytes!)}<small>{report.copiedBytes!.toLocaleString()} B</small></dd></div>}
         {Boolean(report.sizeMismatchEvents)&&typeof report.failedCopyBytes==='number'&&<div><dt>{t('failedCopyBytes')}<InfoTooltip label={t('failedCopyBytes')} text={t('failedCopyBytesHint')}/></dt><dd>{formatBytes(report.failedCopyBytes)}<small>{report.failedCopyBytes.toLocaleString()} B</small></dd></div>}
         {Boolean(report.lastAttempt)&&<div><dt>{t('jobAttempt')}<InfoTooltip label={t('jobAttempt')} text={t('jobAttemptHint')}/></dt><dd>{report.lastAttempt} / {report.maxAttempts||job.request.options.retries}</dd></div>}
       </dl>}
-      {failureMessage!==job.error&&job.error&&<details className="job-original-error"><summary>{t('reportOriginalMessage')}</summary><pre>{job.error}</pre></details>}
       {detailsOpen&&<JobReport id={job.id} summary={job.report} options={job.request.options} language={language} t={t} onNotice={onNotice}/>}
       {stats.transferring.length > 0 && <div className="current-files"><h4>{t('currentFiles')}</h4>{stats.transferring.map((file, index) => <div className="current-file" key={`${file.name}-${index}`}><span title={file.name}>{file.name}</span><span>{formatBytes(file.bytes)} / {formatBytes(file.size)}</span><span>{dry ? '—' : `${formatBytes(file.speedAvg || file.speed)}/s`}</span><span>{file.eta == null ? t('calculating') : formatDuration(file.eta)}</span></div>)}</div>}
       <div className="log-header"><h4>{t('originalLog')}</h4><button type="button" className="text-button" disabled={busy} onClick={() => act(async () => { const path = await window.rclone.exportLog(job.id); if (path) onNotice(`${t('exportSuccess')} ${path}`); })}><DownloadSimple size={14}/>{t('exportLog')}</button></div>

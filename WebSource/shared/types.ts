@@ -35,7 +35,7 @@ export interface TransferRequest {
 export interface TransferFile { name: string; size: number; bytes: number; percentage: number; speed: number; speedAvg: number; eta: number | null }
 export interface TransferStats {
   bytes: number; totalBytes: number; speed: number; eta: number | null; transfers: number; totalTransfers: number;
-  speedKind?: 'rolling' | 'overall'; speedState?: 'measuring' | 'live' | 'hidden'; speedWindowSeconds?: number; averageSpeed?: number; filesPerSecond?: number; etaSource?: 'bytes' | 'files' | null;
+  speedKind?: 'rolling' | 'overall'; speedState?: 'measuring' | 'live' | 'hidden' | 'checking' | 'idle'; transferTime?: number; retryError?: boolean; fatalError?: boolean; speedWindowSeconds?: number; averageSpeed?: number; filesPerSecond?: number; etaSource?: 'bytes' | 'files' | null;
   checks: number; totalChecks: number; listed?: number; errors: number; deletes: number; elapsedTime: number; transferring: TransferFile[];
 }
 export type JobStatus = 'queued' | 'running' | 'cancelling' | 'completed' | 'failed' | 'cancelled' | 'interrupted';
