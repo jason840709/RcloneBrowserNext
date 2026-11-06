@@ -697,10 +697,12 @@ mod tests {
     #[test] fn native_only_methods_are_not_exposed() {
         for name in ["_shutdown", "_cancelListings", "_beginConfiguration", "_installRclone", "_exportTo", "getLogPath", "getJobReportPath"] { assert!(!METHODS.contains(&name)); }
     }
-    #[test] fn displayed_scale_maps_to_the_retained_visual_sizes() {
-        for (displayed, expected) in [(80, 0.7), (90, 0.8), (100, 0.9), (110, 1.0), (120, 1.1), (125, 1.15), (135, 1.25)] {
+    #[test] fn displayed_scale_is_actual_size() {
+        // Since 0.10.0, 100% is actual size on every platform.
+        for (displayed, expected) in [(80, 0.8), (90, 0.9), (100, 1.0), (110, 1.1), (120, 1.2), (125, 1.25), (135, 1.35)] {
             assert!((interface_zoom(displayed) - expected).abs() < 0.000001);
         }
+        assert!((interface_zoom(95) - 1.0).abs() < 0.000001);
     }
     #[test] fn quit_is_silent_only_without_unfinished_or_failed_work() {
         let successful = json!({"activeJobs": false, "activeTools": false,
