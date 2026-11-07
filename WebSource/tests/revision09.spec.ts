@@ -180,7 +180,7 @@ for (const language of ['zh-TW', 'en', 'ja'] as const) {
       await page.locator('.options-button').click();
       const dialog = page.locator('.options-dialog'), select = dialog.getByTestId('transfer-mode');
       await expect(select).toHaveValue(mode);
-      await expect(dialog.locator(`label[for="${await select.getAttribute('id')}"]`)).toHaveAttribute('title', tx(detailKey[mode]));
+      await expect(dialog.locator(`label[for="${await select.getAttribute('id')}"]`).locator('xpath=..')).toHaveAttribute('title', tx(detailKey[mode]));
       await expect(dialog.locator('.options-mode-hint')).toHaveCount(0);
       await dialog.getByRole('button', {name: tx('cancel'), exact: true}).click();
       await expect(dialog).toHaveCount(0);

@@ -120,9 +120,9 @@ test('comparison help follows the selected rule on its label and keeps the dialo
     const errors=await open(sample,{settings:{language,autoCheckUpdates:false}});await sample.locator('.options-button').click();const dialog=sample.locator('.options-dialog');
     const select=dialog.getByTestId('transfer-comparison');await expect(dialog.getByLabel(tx('comparison'),{exact:true})).toHaveAttribute('data-testid','transfer-comparison');
     const label=dialog.locator(`label[for="${await select.getAttribute('id')}"]`);await expect(label).toHaveText(tx('comparison'));
-    await expect(label).toHaveAttribute('title',tx('comparisonNASHint'));
+    await expect(label.locator('xpath=..')).toHaveAttribute('title',tx('comparisonNASHint'));
     for (const [value,hint] of [['default','comparisonDefaultHint'],['checksum','comparisonChecksumHint'],['checksum-only','comparisonChecksumOnlyHint'],['size','comparisonSizeHint'],['modtime','comparisonModtimeHint'],['none','comparisonNoneHint'],['nas','comparisonNASHint']] as const) {
-      await select.selectOption(value);await expect(label).toHaveAttribute('title',tx(hint));
+      await select.selectOption(value);await expect(label.locator('xpath=..')).toHaveAttribute('title',tx(hint));
     }
     await label.hover();await label.click();await expect(select).toBeFocused();await expect(dialog).toBeVisible();
     await expect(select.locator('option:checked')).toHaveText(tx('comparisonNAS'));await dialog.getByRole('button',{name:tx('cancel'),exact:true}).click();await expect(dialog).toHaveCount(0);expect(errors).toEqual([]);await sample.close();

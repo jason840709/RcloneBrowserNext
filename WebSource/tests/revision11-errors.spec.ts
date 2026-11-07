@@ -55,7 +55,34 @@ test('a job that finished after retrying its errors looks normal', async ({page}
   await expect(page.locator('.job-file-counts .error-text, .job-file-counts .warning-text')).toHaveCount(0);
 });
 
-test('while rclone only compares, the speed says so instead of showing a number', async ({page}) => {
-  await openWith(page, {}, {speedState: 'checking', speed: 0});
-  await expect(page.locator('.job-metrics .metric-quiet strong')).toHaveText(t('speedChecking'));
+test('while no new data arrives the speed stays visible with a small busy ring', async ({page}) => {
+  await openWith(page, {}, {speedState: 'hidden', speed: 76_000});
+  const speed = page.locator('.job-metrics .metric-pending');
+  await expect(speed.locator('strong')).toContainText('/s');
+  await expect(speed.locator('.activity-ring')).toHaveAttribute('aria-label', t('speedHidden'));
+  await expect(speed).toHaveAttribute('title', new RegExp(t('speedHiddenHint').slice(0, 12)));
+  await expect(page.getByText(t('speedHidden'), {exact: true})).toHaveCount(0);
+});
+
+test('while rclone only compares, the last speed stays and the ring says it is checking', async ({page}) => {
+  await openWith(page, {}, {speedState: 'checking', speed: 10_000_000});
+  const speed = page.locator('.job-metrics .metric-pending');
+  await expect(speed.locator('strong')).toContainText('/s');
+  await expect(speed.locator('.activity-ring')).toHaveAttribute('aria-label', t('speedChecking'));
+});
+
+test('each count hint covers its label, its number and the space up to the next item', async ({page}) => {
+  await openWith(page, {}, {speedState: 'live', speed: 1_000_000});
+  for (const row of ['.job-metrics', '.job-file-counts']) {
+    const items = page.locator(`${row} > div`);
+    const count = await items.count();
+    for (let index = 0; index < count - 1; index += 1) {
+      const item = items.nth(index), next = items.nth(index + 1);
+      await expect(item).toHaveAttribute('title', /.+/);
+      const box = await item.boundingBox(), nextBox = await next.boundingBox();
+      // Same line: the item reaches the next one, so no hint-free gap remains.
+      if (box && nextBox && Math.abs(box.y - nextBox.y) < 2) expect(Math.abs(box.x + box.width - nextBox.x)).toBeLessThan(1);
+    }
+  }
+  await expect(page.locator('.job-metrics [title] [title], .job-file-counts [title] [title]')).toHaveCount(0);
 });

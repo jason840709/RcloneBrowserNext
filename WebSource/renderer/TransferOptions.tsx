@@ -116,7 +116,7 @@ export default function TransferOptionsDialog({ options, mode, defaults, onSave,
           <Row label=""><div className="check-column">{check('deleteExcluded', t('deleteExcluded'), t('deleteExcludedHint'))}</div></Row>
         </>}
         <div className="form-separator" role="separator"/>
-        <Row label={t('transfers')} id={fid('transfers')} help={t('transfersHint')}><div className="inline-controls">{numberInput('transfers', 1, 64)}<label className="inline-label" htmlFor={fid('checkers')} title={t('checkersHint')}>{t('checkers')}</label>{numberInput('checkers', 1, 128)}</div></Row>
+        <Row label={t('transfers')} id={fid('transfers')} help={t('transfersHint')}><div className="inline-controls">{numberInput('transfers', 1, 64)}<span className="inline-pair" title={t('checkersHint')}><label className="inline-label" htmlFor={fid('checkers')}>{t('checkers')}</label>{numberInput('checkers', 1, 128)}</span></div></Row>
         <Row label={t('bandwidth')} id={fid('bandwidth')} help={t('bandwidthHint')}><div className="inline-controls">{textInput('bandwidth', t('unlimitedJobs'))}<span className="unit-hint">{t('bandwidthExample')}</span></div></Row>
       </div>}
       {tab === 'filters' && <div className="form-rows options-pane" data-direction={paneDirection}>
@@ -133,7 +133,7 @@ export default function TransferOptionsDialog({ options, mode, defaults, onSave,
         <Row label={t('modifyWindow')} id={fid('modifyWindow')} help={t('modifyWindowHint')}>{textInput('modifyWindow', t('automaticShort'))}</Row>
         <div className="form-separator" role="separator"/>
         <Row label={t('performance')} top><div className="check-column">{check('checkFirst', t('checkFirst'), t('checkFirstHint'))}{check('noTraverse', t('noTraverse'), t('noTraverseHint'), draftMode === 'sync')}{check('fastList', t('fastList'), t('fastListHint'))}{check('ignoreChecksum', t('ignoreChecksum'), t('ignoreChecksumHint'))}</div></Row>
-        <Row label={t('retries')} id={fid('retries')} help={t('retriesHint')}><div className="inline-controls">{numberInput('retries', 1, 100)}<label className="inline-label" htmlFor={fid('lowLevelRetries')} title={t('lowLevelRetriesHint')}>{t('lowLevelRetries')}</label>{numberInput('lowLevelRetries', 1, 100)}</div></Row>
+        <Row label={t('retries')} id={fid('retries')} help={t('retriesHint')}><div className="inline-controls">{numberInput('retries', 1, 100)}<span className="inline-pair" title={t('lowLevelRetriesHint')}><label className="inline-label" htmlFor={fid('lowLevelRetries')}>{t('lowLevelRetries')}</label>{numberInput('lowLevelRetries', 1, 100)}</span></div></Row>
         <Row label={t('retrySleep')} id={fid('retrySleep')} help={t('retrySleepHint')}>{textInput('retrySleep', '10s')}</Row>
         <Row label={t('connectTimeout')} id={fid('connectTimeout')} help={`${t('networkTimeoutHint')} ${t('inheritNetworkHint')}`}><div className="inline-controls">{textInput('connectTimeout', t('inheritNetwork'))}<label className="inline-label" htmlFor={fid('ioTimeout')}>{t('ioTimeout')}</label>{textInput('ioTimeout', t('inheritNetwork'))}</div></Row>
         <Row label={t('extraArgs')} id={fid('extraArgs')} help={t('extraArgsHint')} top><textarea id={fid('extraArgs')} rows={3} value={extraArgs} onChange={event => setExtraArgs(event.target.value)} spellCheck={false} placeholder="--buffer-size=16M"/></Row>
@@ -144,5 +144,6 @@ export default function TransferOptionsDialog({ options, mode, defaults, onSave,
 }
 
 function Row({label, id, help, top = false, children}: PropsWithChildren<{label: string; id?: string; help?: string; top?: boolean}>) {
-  return <div className={`form-row ${top ? 'form-row-top' : ''}`}>{id ? <label className="form-row-label" htmlFor={id} title={help}>{label}</label> : <span className="form-row-label" title={help}>{label}</span>}<div className="form-row-control">{children}</div></div>;
+  // The hint covers the whole row, label and controls, not only the label text.
+  return <div className={`form-row ${top ? 'form-row-top' : ''}`} title={help}>{id ? <label className="form-row-label" htmlFor={id}>{label}</label> : <span className="form-row-label">{label}</span>}<div className="form-row-control">{children}</div></div>;
 }

@@ -370,7 +370,7 @@ fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
 .form-rows { display: grid; grid-template-columns: minmax(96px, max-content) minmax(0, 1fr); column-gap: 14px; row-gap: 10px; align-items: center; }
 .form-row { display: contents; }
 .form-row-label { justify-self: end; text-align: right; font-size: var(--fs-body); color: var(--label); white-space: nowrap; }
-.form-row-label[title]:not([title=""]) { cursor: help; }
+.form-row[title]:not([title=""]) > .form-row-label { cursor: help; }
 .form-row-top > .form-row-label { align-self: start; padding-top: 4px; }
 .form-row-control { min-width: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 6px; }
 .form-row-control > select, .form-row-control > textarea, .form-row-control > input:not(.number-field):not(.short-field) { width: 100%; }
@@ -380,6 +380,7 @@ fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
 .check-column .checkbox-field[title] { cursor: default; }
 .inline-controls { display: flex; align-items: center; gap: var(--sp-2); flex-wrap: wrap; }
 .inline-label { color: var(--secondary); font-size: var(--fs-body); margin-left: var(--sp-2); }
+.inline-pair { display: inline-flex; align-items: center; gap: var(--sp-2); }
 .inline-controls > .inline-label:first-child { margin-left: 0; }
 .unit-hint { color: var(--secondary); font-size: var(--fs-callout); }
 input.number-field { width: 72px; text-align: right; }
