@@ -7,7 +7,7 @@ RBN_CACHE_ROOT="$RBN_PROJECT_ROOT/.build-cache"
 RBN_APP_PATH="$RBN_PROJECT_ROOT/Rclone Browser Next.app"
 RBN_BUNDLE_ID="org.rclone.browser.next.lite"
 RBN_EXECUTABLE="RcloneBrowserNext"
-RBN_VERSION="0.10.2"
+RBN_VERSION="0.10.3"
 RBN_MINIMUM_MACOS="13.0"
 # The interface is designed for the macOS 15 look. macOS 26 and later redraw
 # the toolbar of an App linked against their own SDK with glass circles around
