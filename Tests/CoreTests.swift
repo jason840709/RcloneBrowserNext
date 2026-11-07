@@ -843,7 +843,7 @@ private final class CoreTestSuite {
             print(String(format: "BENCHMARK: 10000 counter snapshots %.6f seconds; peak bound 64 samples", ProcessInfo.processInfo.systemUptime - measuredAt))
         }
 
-        test("a running file that reports no bytes hides the speed instead of decaying it toward zero") {
+        test("a running file that reports no bytes keeps a one-minute speed instead of dropping at once to zero") {
             // Shape of a real 0.9.5 macOS native copy: small files finish, then a
             // 5 GB file runs for 87 s while rclone's byte counter stays flat.
             var progress = EngineThroughput(); progress.start(at: 0)
@@ -855,12 +855,17 @@ private final class CoreTestSuite {
             }
             try expect(result["speedState"] as? String == "live", "short native copies were hidden before the quiet period")
             var states = Set<String>()
+            var previousSpeed = Double.infinity
             for second in 12...92 {
                 result = progress.update(["bytes": 193_000_000, "totalBytes": 5_225_000_000, "elapsedTime": Double(second), "transferring": [big]], previous: result, at: Double(second))
                 states.insert(result["speedState"] as? String ?? "")
-                try expect(EngineJSON.number(result["speed"]) == 0 && result["eta"] is NSNull, "hidden progress produced a speed or ETA at \(second) s")
+                let speed = EngineJSON.number(result["speed"])
+                if second == 12 { try expect(speed > 10_000_000 && EngineJSON.number(result["eta"]) > 0, "waiting file hid the speed or remaining time at once: \(speed)") }
+                try expect(speed <= previousSpeed, "speed rose while nothing was reported at \(second) s")
+                previousSpeed = speed
             }
             try expect(states == ["hidden"], "silent running file was not reported as hidden progress: \(states)")
+            try expect(EngineJSON.number(result["speed"]) == 0 && result["eta"] is NSNull, "a minute without any reported data still showed a speed")
             result = progress.update(["bytes": 5_225_000_000, "totalBytes": 5_225_000_000, "elapsedTime": 92.8, "transfers": 6, "totalTransfers": 6, "transferring": []], previous: result, at: 92.8)
             try expect(result["speedState"] as? String == "live" && EngineJSON.number(result["speed"]) > 0, "completed hidden file did not return to a live rate")
             let finished = progress.finish(result, completed: true, at: 92.8)
@@ -901,7 +906,7 @@ private final class CoreTestSuite {
             try expect(EngineJSON.number(result["eta"]) == (18e9 - bytes) / 10_000_000 && result["etaSource"] as? String == "bytes", "remaining time did not use the calmer thirty-second rate")
         }
 
-        test("speed counts only time with files transferring; comparing and making folders shows checking instead") {
+        test("speed counts only time with files transferring; comparing and making folders keeps the last speed and reports checking") {
             // rclone's transferTime stands still while it only lists, compares
             // or makes folders. That time must neither lower nor raise the rate.
             var progress = EngineThroughput(); progress.start(at: 0)
@@ -919,7 +924,7 @@ private final class CoreTestSuite {
             for second in 21...40 { tick(second, bytes: Double(second - 20) * 10_000_000, active: Double(second - 20), transferring: file) }
             try expect(EngineJSON.number(result["speed"]) == 10_000_000 && EngineJSON.number(result["averageSpeed"]) == 10_000_000, "comparison time diluted the rate: \(result["speed"] ?? 0), \(result["averageSpeed"] ?? 0)")
             for second in 41...60 { tick(second, bytes: 200_000_000, active: 20, checking: folder) }
-            try expect(result["speedState"] as? String == "checking" && EngineJSON.number(result["speed"]) == 0, "comparison between transfers was shown as a slow transfer")
+            try expect(result["speedState"] as? String == "checking" && EngineJSON.number(result["speed"]) == 10_000_000, "comparison between transfers changed the last transfer speed")
             try expect(EngineJSON.number(result["eta"]) == 80, "remaining time vanished while rclone compared between transfers")
             tick(61, bytes: 200_000_000, active: 20)
             try expect(result["speedState"] as? String == "idle", "a pause with nothing to compare was labelled as checking")

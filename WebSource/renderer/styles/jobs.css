@@ -59,16 +59,25 @@
 .job-cancelled .progress-fill { background: var(--tertiary); }
 .job-dry .progress-fill, .job-dry .progress-indicator { background: var(--blue-info); }
 
-.job-metrics { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 16px; margin-top: 6px; font-size: var(--fs-callout); }
-.job-metrics > div { display: inline-flex; align-items: baseline; gap: 4.5px; white-space: nowrap; }
+/* Hover hints belong to a whole item, label and value together. The space
+   between items is the item's own padding instead of a flex gap, so the
+   pointer never lands in a gap without a hint. */
+.job-metrics { display: flex; flex-wrap: wrap; align-items: baseline; margin-top: 4px; font-size: var(--fs-callout); }
+.job-metrics > div { display: inline-flex; align-items: baseline; gap: 4.5px; white-space: nowrap; padding: 2px 16px 0 0; }
 .metric-label { display: inline-flex; align-items: center; color: var(--tertiary); }
 .metric-label .info-tooltip-trigger { align-self: center; }
 .job-metrics strong { font-weight: 500; color: var(--label); font-variant-numeric: tabular-nums; }
 .job-metrics small { font-size: inherit; color: var(--secondary); font-weight: 400; }
-.metric-waiting strong { color: var(--orange); }
+/* rclone is busy but no new data arrived: the speed stays, in the secondary
+   colour, with the same ring the folder loader uses. */
+.metric-pending strong { display: inline-flex; align-items: baseline; color: var(--secondary); }
+.activity-ring {
+  align-self: center; width: 9px; height: 9px; margin-left: 5px; flex: none; box-sizing: border-box;
+  border: 1.5px solid var(--fill-strong); border-top-color: var(--accent); border-radius: 50%; animation: spin 900ms linear infinite;
+}
 
-.job-file-counts { display: flex; flex-wrap: wrap; gap: 2px 14.5px; margin: 3.5px 0 0; font-size: var(--fs-caption); }
-.job-file-counts > div { display: inline-flex; align-items: center; gap: 3.5px; }
+.job-file-counts { display: flex; flex-wrap: wrap; margin: 1.5px 0 0; font-size: var(--fs-caption); }
+.job-file-counts > div { display: inline-flex; align-items: center; gap: 3.5px; padding: 2px 14.5px 0 0; }
 .job-file-counts dt { color: var(--tertiary); display: inline-flex; align-items: center; }
 .job-file-counts dd { margin: 0; color: var(--secondary); font-variant-numeric: tabular-nums; }
 .jobs-dock .job-file-counts { display: none; }
@@ -86,8 +95,6 @@
 .job-details > summary time { margin-left: auto; color: var(--tertiary); }
 .error-count { color: var(--red); padding-left: 3.5px; }
 .error-count.warning, .warning-text { color: var(--orange); }
-/* Checking / not transferring is a normal phase, not a warning. */
-.metric-quiet strong { color: var(--secondary); font-weight: 500; }
 /* Problem line: a small light plus a plain title; everything else folds away.
    Orange = rclone recovers by itself, red = the user has to act or the job failed. */
 .job-alert { margin-top: 6px; font-size: var(--fs-callout); }
@@ -112,8 +119,8 @@
 @keyframes alert-fade { from { opacity: 0; } }
 .job-detail-body { padding: 5.5px 0 7px; animation: fade-up 220ms var(--ease-out); }
 .job-detail-body > h4 { margin: 12.5px 0 5.5px; font-size: var(--fs-callout); }
-.job-extra-stats, .job-byte-summary { display: flex; flex-wrap: wrap; gap: 9px 25px; margin: 9px 0; }
-.job-extra-stats > div, .job-byte-summary > div { display: flex; flex-direction: column; gap: 2px; }
+.job-extra-stats, .job-byte-summary { display: flex; flex-wrap: wrap; row-gap: 9px; margin: 9px 0; }
+.job-extra-stats > div, .job-byte-summary > div { display: flex; flex-direction: column; gap: 2px; padding-right: 25px; }
 .job-extra-stats dt, .job-byte-summary dt { font-size: var(--fs-caption); color: var(--tertiary); display: flex; align-items: center; }
 .job-extra-stats dd, .job-byte-summary dd { margin: 0; font-size: var(--fs-body); font-weight: 500; }
 .job-byte-summary dd small { margin-left: 5.5px; color: var(--secondary); font-weight: 400; }

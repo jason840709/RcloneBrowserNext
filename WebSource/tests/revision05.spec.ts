@@ -62,7 +62,7 @@ test('reduced-motion toast fades without translating and can be replaced before 
 
 test('new default sync choices are unlimited, during-transfer deletion, and size-time without local hashes', async ({page}) => {
   await open(page);await page.locator('.options-button').click();const d=page.locator('.options-dialog');await expect(d.getByTestId('transfer-comparison')).toHaveValue('nas');await d.getByTestId('transfer-mode').selectOption('sync');
-  await expect(d.getByRole('checkbox',{name:t('unlimitedJobs'),exact:true})).toBeChecked();await expect(d.getByLabel(t('deleteMode'),{exact:true})).toHaveValue('during');const mode=d.getByTestId('transfer-mode');await expect(d.locator(`label[for="${await mode.getAttribute('id')}"]`)).toHaveAttribute('title',t('syncDetail'));
+  await expect(d.getByRole('checkbox',{name:t('unlimitedJobs'),exact:true})).toBeChecked();await expect(d.getByLabel(t('deleteMode'),{exact:true})).toHaveValue('during');const mode=d.getByTestId('transfer-mode');await expect(d.locator(`label[for="${await mode.getAttribute('id')}"]`).locator('xpath=..')).toHaveAttribute('title',t('syncDetail'));
   await d.getByRole('button',{name:t('apply'),exact:true}).click();await page.locator('.dry-run-button').click();const request=(await calls(page,'startTransfer')).at(-1).args[0];expect(request).toMatchObject({mode:'sync',dryRun:true,options:{maxDelete:-1,deleteMode:'during',comparison:'default',localHashPolicy:'none'}});
 });
 
@@ -124,7 +124,7 @@ for(const theme of ['purple-dark','purple-light']as const) for(const width of [1
 
 test('job progress shows one decimal, rolling speed, rough ETA and a retained completed average',async({page})=>{
   await open(page,{job:true});const job=page.getByTestId('job-fixture-job');await page.evaluate(()=>{const w=window as any,j=structuredClone(w.__fixture.job);j.stats={...j.stats,bytes:1400000000,totalBytes:3400000000,speed:21000000,speedKind:'rolling',speedWindowSeconds:60,eta:95,filesPerSecond:12.6};w.__rbnEvent({type:'jobUpdate',data:j});});await expect(job.locator('.progress-value')).toHaveText('41.2%');await expect(job.getByRole('progressbar')).toHaveAttribute('aria-valuenow','41.2');await expect(job.locator('.job-metrics')).toContainText(t('fileCount'));await expect(job.locator('.job-metrics')).toContainText('20 MiB/s');await expect(job.locator('.job-metrics')).toContainText('1:35');
-  const speedLabel=job.locator('.job-metrics .metric-label').nth(2);await expect(speedLabel).toHaveText(t('rollingSpeed'));await expect(speedLabel).toHaveAttribute('title',t('speedCalculationHint'));await expect(job.locator('.job-metrics .info-tooltip-trigger')).toHaveCount(0);
+  const speedLabel=job.locator('.job-metrics .metric-label').nth(2);await expect(speedLabel).toHaveText(t('rollingSpeed'));await expect(job.locator('.job-metrics > div').nth(2)).toHaveAttribute('title',t('speedCalculationHint'));await expect(job.locator('.job-metrics .info-tooltip-trigger')).toHaveCount(0);
   await page.evaluate(()=>{const w=window as any,j=structuredClone(w.__fixture.job);j.status='completed';j.stats={...j.stats,bytes:3400000000,totalBytes:3400000000,speed:20000000,speedKind:'overall',averageSpeed:20000000,eta:0,elapsedTime:170,transferring:[]};w.__rbnEvent({type:'jobUpdate',data:j});});await expect(job.locator('.progress-value')).toHaveText('100.0%');await expect(job.locator('.job-metrics')).toContainText('19.1 MiB/s');await expect(job.locator('.job-metrics')).toContainText(t('averageSpeed'));
 });
 
@@ -157,7 +157,7 @@ test('opening the operation menu by keyboard focuses the selected operation, nev
 // recommended size-and-time comparison by default and offers its preset in the operation menu.
 for(const language of ['zh-TW','en','ja']as const) test(`${language}: NAS-to-cloud keeps the size-and-time comparison and offers the matching preset`,async({page})=>{
   const tx=translator(language);await open(page,{settings:{autoCheckUpdates:false,language}});await selectPlace(page.getByTestId('left-pane').locator('.location-trigger'),'@local:test-nas-volume');await page.locator('.options-button').click();const d=page.locator('.options-dialog');
-  const select=d.getByTestId('transfer-comparison');await expect(select).toHaveValue('nas');await expect(select.locator('option:checked')).toHaveText(tx('comparisonNAS'));await expect(d.locator(`label[for="${await select.getAttribute('id')}"]`)).toHaveAttribute('title',tx('comparisonNASHint'));
+  const select=d.getByTestId('transfer-comparison');await expect(select).toHaveValue('nas');await expect(select.locator('option:checked')).toHaveText(tx('comparisonNAS'));await expect(d.locator(`label[for="${await select.getAttribute('id')}"]`).locator('xpath=..')).toHaveAttribute('title',tx('comparisonNASHint'));
   await expect(d.locator('.comparison-advice')).toHaveCount(0);await d.getByRole('button',{name:tx('cancel'),exact:true}).click();await expect(d).toHaveCount(0);
   await page.getByTestId('operation-picker').click();await expect(page.getByRole('menuitemradio',{name:new RegExp('^'+tx('presetNASCloud').replace(/[.*+?^${}()|[\]\\]/g,'\\$&'))})).toBeVisible();await page.keyboard.press('Escape');expect(await calls(page,'startTransfer')).toHaveLength(0);
 });

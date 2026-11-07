@@ -13,15 +13,18 @@ import Foundation
 /// transfer intervals), so listing, comparing and creating folders neither add
 /// bytes nor dilute the rate. Files that need no update never add bytes; rclone
 /// counts only data it actually reads for a transfer. While nothing transfers
-/// the state is `checking` (rclone is comparing) or `idle`, with no speed.
+/// the state is `checking` (rclone is comparing) or `idle`; the transfer clock
+/// stands still then, so the speed keeps the last measured transfer rate.
 /// Older rclone versions without `transferTime` fall back to elapsed time.
 ///
 /// rclone adds bytes as they stream through it, but a server-side
 /// or native copy adds a whole file only when that file finishes. While such a
-/// file is still running, the counters stay flat even though data is moving, so
-/// a plain moving average would sink to zero and then spike. Those intervals are
-/// reported as `speedState = "hidden"` with no speed or ETA instead of a fake
-/// slowdown. No file reads, scans, subprocesses or timers are added.
+/// file is still running, the counters stay flat even though data is moving.
+/// Cloud uploads of many small files look the same: each file waits for the
+/// service to accept it, often for half a minute. Those intervals are reported
+/// as `speedState = "hidden"`, and the speed and remaining time use the calmer
+/// one-minute rate so the reading neither vanishes nor drops at once to zero.
+/// No file reads, scans, subprocesses or timers are added.
 struct EngineThroughput {
     private struct Sample { let time: Double; let bytes: Double; let files: Double }
     /// The speed users read: data processed over about the last ten seconds.
@@ -110,13 +113,16 @@ struct EngineThroughput {
         silentSince = silent
         let hidden = elapsed - lastByteIncreaseAt >= Self.hiddenAfter && silent.values.contains { elapsed - $0 >= Self.hiddenAfter }
 
-        let display = rate(\.bytes, window: Self.speedWindow, now: current)
-        let calm = rate(\.bytes, window: Self.etaWindow, now: current)
+        // While counters are flat, the one-minute rate describes the job better
+        // than ten seconds that may hold no update at all.
+        let display = rate(\.bytes, window: hidden ? Self.historyWindow : Self.speedWindow, now: current)
+        let calm = rate(\.bytes, window: hidden ? Self.historyWindow : Self.etaWindow, now: current)
         let fileRate = rate(\.files, window: Self.etaWindow, now: current).value
-        // No file is moving: say what rclone is doing instead of a speed.
+        // No file is moving: rclone is comparing or idle. The transfer clock
+        // stands still, so `display` still holds the last transfer rate.
         let waiting = sawTransferClock && !transferring && !hidden
         let checking = !((raw["checking"] as? [Any]) ?? []).isEmpty
-        let speed = hidden || waiting ? 0 : display.value
+        let speed = display.value
         result["speed"] = speed; result["filesPerSecond"] = fileRate
         result["speedKind"] = "rolling"; result["speedWindowSeconds"] = display.span
         result["speedState"] = hidden ? "hidden" : waiting ? (checking ? "checking" : "idle") : display.span > 0 ? "live" : "measuring"
@@ -126,9 +132,7 @@ struct EngineThroughput {
         result["eta"] = NSNull(); result["etaSource"] = NSNull()
         let remainingBytes = max(0, EngineJSON.number(result["totalBytes"]) - bytes)
         let remainingFiles = max(0, EngineJSON.number(result["totalTransfers"]) - files)
-        if hidden {
-            // Unknown progress cannot produce a trustworthy countdown.
-        } else if remainingBytes > 0 && (speed > 0 || waiting) && calm.value > 0 {
+        if remainingBytes > 0 && calm.value > 0 {
             // While rclone compares between transfers the last transfer rate
             // still describes the remaining data best.
             let eta = remainingBytes / calm.value
