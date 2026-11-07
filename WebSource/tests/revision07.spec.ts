@@ -200,7 +200,8 @@ for (const language of ['zh-TW', 'en', 'ja'] as const) test(`${language}: symbol
   await symlinks.selectOption('preserve');
   // Option help is native label help (title) instead of an ⓘ tooltip.
   await expect(options.getByLabel(tx('symlinkMode'), {exact: true})).toHaveAttribute('data-testid', 'transfer-symlinks');
-  await expect(options.locator(`label[for="${await symlinks.getAttribute('id')}"]`)).toHaveAttribute('title', tx('symlinkHint'));
+  // The hint covers the whole option row (label and control).
+  await expect(options.locator(`label[for="${await symlinks.getAttribute('id')}"]`).locator('xpath=..')).toHaveAttribute('title', tx('symlinkHint'));
   await options.getByRole('button', {name: tx('saveDefaults'), exact: true}).click();
   await expect.poll(async () => (await calls(page, 'saveSettings')).length).toBeGreaterThan(0);
   await options.getByRole('button', {name: tx('apply'), exact: true}).click();
