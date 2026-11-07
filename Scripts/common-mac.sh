@@ -9,6 +9,14 @@ RBN_BUNDLE_ID="org.rclone.browser.next.lite"
 RBN_EXECUTABLE="RcloneBrowserNext"
 RBN_VERSION="0.10.2"
 RBN_MINIMUM_MACOS="13.0"
+# The interface is designed for the macOS 15 look. macOS 26 and later redraw
+# the toolbar of an App linked against their own SDK with glass circles around
+# every item, which this design does not use. Recording SDK 15.0 keeps the
+# released look whichever Xcode or Command Line Tools build the App
+# (UIDesignRequiresCompatibility no longer has an effect on macOS 27).
+# verify-mac.sh rejects an App that records any other SDK version.
+RBN_DESIGN_SDK="15.0"
+RBN_DESIGN_LINK_FLAGS=(-Xlinker -platform_version -Xlinker macos -Xlinker "$RBN_MINIMUM_MACOS" -Xlinker "$RBN_DESIGN_SDK")
 
 rbn_fail() {
   printf '\n%s\n' "$1" >&2

@@ -90,6 +90,7 @@ printf '目標版本：macOS %s 以上\n' "$RBN_MINIMUM_MACOS"
   -sdk "$RBN_SDK" \
   -module-cache-path "$SWIFT_MODULECACHE_PATH" \
   -Xcc "-fmodules-cache-path=$CLANG_MODULE_CACHE_PATH" \
+  "${RBN_DESIGN_LINK_FLAGS[@]}" \
   "${RBN_CORE_SOURCES[@]}" "${RBN_MAC_SOURCES[@]}" \
   -framework Foundation \
   -framework AppKit \
