@@ -1,7 +1,7 @@
 {
   "version": "0.10.3",
-  "file_count_excluding_manifest": 281,
-  "total_bytes_excluding_manifest": 9237667,
+  "file_count_excluding_manifest": 282,
+  "total_bytes_excluding_manifest": 9242353,
   "files": {
     ".github/workflows/mac-local-recovery.yml": {
       "bytes": 1565,
@@ -308,8 +308,8 @@
       "sha256": "29656bba65666f64bc023581c1d6149d4ed0cba8b781917e5bfc675c35f31e81"
     },
     "Scripts/windows/verify-installation.py": {
-      "bytes": 27628,
-      "sha256": "3ea72838ffda9d3d7ab5aba4e5208205d878beed94d2dd1b94101828eb8d220a"
+      "bytes": 29217,
+      "sha256": "5add17193b99292b68d5da7ad0328b17b77dd6f3141e87b21a5c4d8f44855d46"
     },
     "Sources/Compat/CompatMain.swift": {
       "bytes": 18274,
@@ -836,8 +836,8 @@
       "sha256": "82a4e00b946da5f7ef7a7edf4ec6fd212bfe1723df822b90074f98ae5468de09"
     },
     "WebSource/tests/revision07.spec.ts": {
-      "bytes": 24113,
-      "sha256": "0cb1d311d524394703411fbb89784ed1f5983308f65ea2f4d0e244b28133f180"
+      "bytes": 24196,
+      "sha256": "d749fe8137ce2e4b27287b0ca4a14d1fb10b18c2921fbb585f65fcb712e06136"
     },
     "WebSource/tests/revision08.spec.ts": {
       "bytes": 16558,
@@ -942,6 +942,10 @@
     "docs/RELEASE_0.10.2.md": {
       "bytes": 4810,
       "sha256": "93749b56e61ae7336206a4e0a4b2460eaed3818dd6a3505f8add00ca4111c3c5"
+    },
+    "docs/RELEASE_0.10.3.md": {
+      "bytes": 3014,
+      "sha256": "a094e5689ddaa49d4a11f90e16d6760dd2a2e5ed20185c0fbd6e6d8d5dd2ce19"
     },
     "docs/RELEASE_0.4.0.md": {
       "bytes": 2151,

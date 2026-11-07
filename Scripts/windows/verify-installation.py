@@ -189,7 +189,40 @@ def validate_installed(directory, version, numeric, package=None):
     return paths
 
 
+def running_apps():
+    """Image names of app processes the installer treats as "still running"."""
+    names = {"rclone-browser-next.exe", (PRODUCT + ".exe").lower()}
+    result = subprocess.run(["tasklist", "/FO", "CSV", "/NH"], capture_output=True, text=True,
+                            encoding="utf-8", errors="replace", env=clean_environment(), timeout=30)
+    found = []
+    for line in result.stdout.splitlines():
+        fields = [field.strip('"') for field in line.split('","')]
+        if fields and fields[0].lower() in names:
+            found.append({"image": fields[0], "pid": fields[1] if len(fields) > 1 else ""})
+    return found
+
+
+def wait_for_app_exit(log_path, deadline=60):
+    # A window opened by an earlier check (for example the UI probe) can take a
+    # few seconds to finish closing its WebView2. The installer refuses to run
+    # while any app process exists ("is running! Please close it first"), so
+    # wait for a clean exit instead of racing it. Nothing is killed: a process
+    # that never exits is reported as a failure.
+    started = time.monotonic()
+    while True:
+        found = running_apps()
+        if not found:
+            waited = round(time.monotonic() - started, 1)
+            if waited:
+                log_path.with_suffix(".wait.json").write_text(json.dumps({"waitedSeconds": waited}), encoding="utf-8")
+            return
+        if time.monotonic() - started > deadline:
+            raise AssertionError(f"The app was still running {deadline} s before installing: {found}")
+        time.sleep(1)
+
+
 def run_installer(installer, directory, log_path, *, allow_failure=False):
+    wait_for_app_exit(log_path)
     # NSIS /D must remain the final argument and must not contain extra quotes.
     with log_path.open("w", encoding="utf-8") as log:
         result = subprocess.run([str(installer), "/S", f"/D={directory}"],
