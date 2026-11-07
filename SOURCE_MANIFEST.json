@@ -1,7 +1,7 @@
 {
   "version": "0.10.2",
   "file_count_excluding_manifest": 281,
-  "total_bytes_excluding_manifest": 9230400,
+  "total_bytes_excluding_manifest": 9232205,
   "files": {
     ".github/workflows/mac-local-recovery.yml": {
       "bytes": 1565,
@@ -220,8 +220,8 @@
       "sha256": "94aadd96ef12179184d1a537f8b7adef41142b850ee6a554ceeaf5736a1773d1"
     },
     "Scripts/build-mac.sh": {
-      "bytes": 6951,
-      "sha256": "a3f1983d216ee5ad74c3e54922d232880c63e770a2b27c2329d263d1f5748637"
+      "bytes": 6985,
+      "sha256": "a019f16f0b246dec161bcc4b6b55a2e324492b7ffd996d6b4a2787645f629575"
     },
     "Scripts/bundle-compat-runtime.py": {
       "bytes": 2440,
@@ -240,8 +240,8 @@
       "sha256": "a0291e320e83a97590e564750be8f98106b40003d5e86984f140cd3059b0ada0"
     },
     "Scripts/common-mac.sh": {
-      "bytes": 4699,
-      "sha256": "06092b4876cde1ef30941492195505409e81669f3d67333f2b333e7edfbfbd1b"
+      "bytes": 5281,
+      "sha256": "02158f70d36ab32ec59e1881fd906e3c206bbb59d5ba2625a306688d172e6992"
     },
     "Scripts/native/WindowsRcloneLauncher.c": {
       "bytes": 7812,
@@ -272,16 +272,16 @@
       "sha256": "6d9a9c4cd25f7ce7dc559955d134b608baaed83129e38c595925ef5d8a2d1c96"
     },
     "Scripts/test-mac.sh": {
-      "bytes": 4995,
-      "sha256": "98243ad88c62d78fa9e928663ffcc246d15755fd5840cf93aeeee86fc0beff2d"
+      "bytes": 5031,
+      "sha256": "d6bb706ea9bcff438f014e2c50cfe779930bc186cf28922f5192ee22f1e23191"
     },
     "Scripts/update-source-manifest.py": {
       "bytes": 949,
       "sha256": "1849bece60a610c9c6e79540577e2eaa8c44ead152d14a5db6086bc2f0600866"
     },
     "Scripts/verify-mac.sh": {
-      "bytes": 4839,
-      "sha256": "6ab0c53395088f59b94eee85498425514f6865e64469e215571c0b633e3bfb1d"
+      "bytes": 5356,
+      "sha256": "67369fc6bbb8e294ac90a97580176f7b4289b0cb8eb52a89d98fa3d387446262"
     },
     "Scripts/verify-version.py": {
       "bytes": 6567,
@@ -904,16 +904,16 @@
       "sha256": "7c4a510f37b008d8de9d9855c304aa5e124505ccbff220858e5a1f0f35b6f360"
     },
     "docs/CHANGELOG.zh-TW.md": {
-      "bytes": 16851,
-      "sha256": "e729b7e7cc1a6f07b1cbeb77fa62f80c83687ecc8914a59e840c0d3429125d64"
+      "bytes": 17136,
+      "sha256": "55cabfb7be821a2266240b84512dc9e7ae3d9ac080f754820736cf6300ab1f0b"
     },
     "docs/DEBUG_0.9.5.zh-TW.md": {
       "bytes": 4313,
       "sha256": "6fecc4356c3339138aa56778505dfbec2887c639ff9ad24ad7ec58d753144098"
     },
     "docs/DESIGN_SYSTEM.md": {
-      "bytes": 9146,
-      "sha256": "f770ef169e4008fb5489198e35643ccb824389b1d3505b46d3855c197f772f59"
+      "bytes": 9497,
+      "sha256": "001c01e11b6a7b9d80a089c624fa374638dd90998bc5dfa8a6fc0f7bdb78ec01"
     },
     "docs/DEVELOPMENT.md": {
       "bytes": 32984,

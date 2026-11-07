@@ -83,6 +83,7 @@ for RBN_NATIVE_SUITE in MacInterfaceTests MacStartupTests MacIconTests MacNaviga
     -sdk "$RBN_SDK" \
     -module-cache-path "$SWIFT_MODULECACHE_PATH" \
     -Xcc "-fmodules-cache-path=$CLANG_MODULE_CACHE_PATH" \
+    "${RBN_DESIGN_LINK_FLAGS[@]}" \
     "${RBN_NATIVE_SOURCES[@]}" "$RBN_NATIVE_SOURCE" \
     -framework Foundation -framework AppKit -framework WebKit \
     -o "$RBN_TEST_RUN/$RBN_NATIVE_SUITE"; then

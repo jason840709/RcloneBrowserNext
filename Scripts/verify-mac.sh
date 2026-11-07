@@ -49,6 +49,10 @@ RBN_BINARY_MINIMUM="$(printf '%s\n' "$RBN_LOAD_COMMANDS" | /usr/bin/awk '
   legacy && $1 == "version" { print $2; exit }
 ')"
 case "$RBN_BINARY_MINIMUM" in 13.0|13.0.0) ;; *) rbn_fail "主程式的最低 macOS 版本不符：$RBN_BINARY_MINIMUM" 2 ;; esac
+# A newer recorded SDK makes macOS 26+ draw glass circles around every toolbar
+# item (see RBN_DESIGN_SDK in common-mac.sh).
+RBN_BINARY_SDK="$(printf '%s\n' "$RBN_LOAD_COMMANDS" | /usr/bin/awk '$1 == "cmd" && $2 == "LC_BUILD_VERSION" { modern = 1; next } modern && $1 == "sdk" { print $2; exit }')"
+case "$RBN_BINARY_SDK" in "$RBN_DESIGN_SDK"|"$RBN_DESIGN_SDK.0") ;; *) rbn_fail "主程式記錄的 SDK 版本是 $RBN_BINARY_SDK，應為 $RBN_DESIGN_SDK；工具列會被新版 macOS 畫成玻璃圓圈。" 2 ;; esac
 
 RBN_LINKED_LIBRARIES="$(/usr/bin/xcrun --no-cache otool -L "$RBN_VERIFY_BINARY")"
 while IFS= read -r RBN_LIBRARY; do
