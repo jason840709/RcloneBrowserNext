@@ -1,7 +1,7 @@
 {
   "version": "0.10.4",
   "file_count_excluding_manifest": 284,
-  "total_bytes_excluding_manifest": 9295773,
+  "total_bytes_excluding_manifest": 9295797,
   "files": {
     ".github/workflows/mac-local-recovery.yml": {
       "bytes": 1565,
@@ -308,8 +308,8 @@
       "sha256": "bd39ac38b829f112e294599f3288a9abb6ff8cd871634a431fc82d304f64d9a6"
     },
     "Scripts/windows/verify-installation.py": {
-      "bytes": 29237,
-      "sha256": "7c2a5421f9f8dd57f7660793ef023f4c75a0b1a1f7166257d56f8d120c98c9d4"
+      "bytes": 29261,
+      "sha256": "d51e0fe150d787c566124ec7fd03cd10c1efac1d6c81940ab6f89b044aa0333c"
     },
     "Sources/Compat/CompatMain.swift": {
       "bytes": 18274,

@@ -457,7 +457,7 @@ def main():
             client = StateClient(paths["engine"], state, fixture, evidence, "upgrade-new")
             try:
                 actual_boot, actual_tasks = client.call("bootstrap"), client.call("listTasks")
-                default_settings = {"bounceDockOnCompletion": True}
+                default_settings = {"bounceDockOnCompletion": True, "retryScope": "failed"}
                 require(actual_boot["settings"] == {**default_settings, **expected_boot["settings"]}, "The upgraded helper changed existing settings or lost the new default")
                 require(actual_tasks == expected_tasks and len(actual_tasks) == 1, "The upgraded helper did not reload the saved task")
                 require(actual_boot["environment"]["available"] is True and actual_boot["resolvedLanguage"] == "ja", "The upgraded helper lost the configured engine or language")
