@@ -86,3 +86,22 @@ test('each count hint covers its label, its number and the space up to the next 
   }
   await expect(page.locator('.job-metrics [title] [title], .job-file-counts [title] [title]')).toHaveCount(0);
 });
+
+// Retry scope: after errors, only the failed files are retried by default; the
+// setting can restore rclone's complete re-check.
+test('retrying only failed files is the default and can be switched to a complete re-check', async ({page}) => {
+  const errors: string[] = [];
+  page.on('pageerror', error => errors.push(error.message));
+  await installHostFixture(page, {settings: {autoCheckUpdates: false}});
+  await page.goto(url);
+  await page.getByTestId('left-pane').locator('.file-name').first().waitFor();
+  await page.locator('.app-toolbar .settings-button').click();
+  const dialog = page.locator('dialog.settings-dialog');
+  const scope = dialog.getByLabel(t('retryScope'), {exact: true});
+  await expect(scope).toHaveValue('failed');
+  await expect(scope.locator('option:checked')).toHaveText(t('retryScopeFailed'));
+  await scope.selectOption('full');
+  await expect.poll(async () => page.evaluate(() => (window as any).__fixture.calls.filter((call: any) => call.method === 'saveSettings').map((call: any) => call.args[0])))
+    .toContainEqual({retryScope: 'full'});
+  expect(errors).toEqual([]);
+});

@@ -85,6 +85,8 @@ export interface Settings {
   paneColumnWidths: {left?: PaneColumnWidths; right?: PaneColumnWidths};
   hiddenBuiltinPresets?: BuiltinPresetID[];
   defaultTransferOptions: TransferOptions; maxConcurrentJobs: number;
+  /** After errors: retry only what failed (default), or check every file again. */
+  retryScope?: 'failed' | 'full';
   proxyMode: 'system' | 'manual'; httpProxy: string; httpsProxy: string; noProxy: string;
   defaultRcloneOptions: string[]; initialLocations: {left?: Endpoint; right?: Endpoint};
   savedWorkspace: SavedWorkspace | null; networkOptions: NetworkOptions;

@@ -934,6 +934,132 @@ private final class CoreTestSuite {
             try expect(EngineJSON.number(finished["speed"]) == 10_000_000 && EngineJSON.number(finished["transferTime"]) == 25, "finished average included comparison time")
         }
 
+        test("retry plan: errors that fail the same way are not retried, single files are retried by name, folders and unnamed errors repeat everything") {
+            let area = try folder("retry-plan"), from = area.appendingPathComponent("a"), to = area.appendingPathComponent("b")
+            let sync = try EngineTransferRequest(request(from, to, mode: "sync"), validateOperationalRules: false)
+            func decide(_ failures: [EngineRetryFailure], exit: Int32 = 1, attempt: Int = 1, request: EngineTransferRequest,
+                        retryable: Bool? = true, scoped: Bool = false, deferred: Bool = false, outstanding: Int = 0, overflow: Bool = false) -> EngineRetryOutcome {
+                EngineRetryPlan.decide(failures: failures, overflow: overflow, exitCode: exit, cancelled: false, attempt: attempt, limit: 3, request: request,
+                                       fatal: false, retryable: retryable, lastPassScoped: scoped, deferredEarlier: deferred, outstanding: outstanding)
+            }
+            // The 2026-11-09 NAS-to-card sync: 52 folders could not be read in
+            // every pass, and rclone compared all 239,921 files three times.
+            let missingFolder = EngineRetryFailure(path: "3387710-[名前] ‛‛？", objectType: "string", message: "error reading source directory: directory not found")
+            let summary = EngineRetryFailure(path: nil, objectType: nil, message: "Attempt 1/1 failed with 52 errors and: march failed with 51 error(s): first error: directory not found")
+            let deferral = EngineRetryFailure(path: nil, objectType: "*local.Fs", message: "not deleting directories as there were IO errors")
+            var outcome = decide(Array(repeating: missingFolder, count: 52) + [summary, deferral], request: sync)
+            try expect(outcome.permanent.count == 52 && outcome.deletionDeferred, "permanent folder errors or postponed deletions were not recognised")
+            try expect(outcome.decision == .finish(EngineRetryPlan.fill(EngineRetryPlan.permanentNote, 52)), "errors that fail the same way were retried: \(outcome.decision)")
+            // Google reports rate limits as 403; they are temporary. Unknown
+            // errors are retried too, each file once in the list.
+            let limited = EngineRetryFailure(path: "a/1.jpg", objectType: "*drive.Object", message: "Failed to copy: googleapi: Error 403: Rate Limit Exceeded, rateLimitExceeded")
+            let unknown = EngineRetryFailure(path: "a/2.jpg", objectType: "*local.Object", message: "Failed to copy: couldn't copy from a to b: errno -1")
+            outcome = decide([limited, unknown, limited, summary], request: sync)
+            try expect(outcome.decision == .files(["a/1.jpg", "a/2.jpg"]) && outcome.permanent.isEmpty, "single files were not retried by name: \(outcome.decision)")
+            let denied = EngineRetryFailure(path: "a/3.jpg", objectType: "*local.Object", message: "Failed to copy: open /a/3.jpg: permission denied")
+            outcome = decide([denied, unknown], request: sync)
+            try expect(outcome.decision == .files(["a/2.jpg"]) && outcome.permanent == [denied], "a permission error was retried or a temporary one dropped")
+            // A folder that failed for a temporary reason must be listed again,
+            // and an error without a path could be anywhere: complete pass.
+            let slowFolder = EngineRetryFailure(path: "photos", objectType: "string", message: "error reading source directory: i/o timeout")
+            try expect(decide([unknown, slowFolder], request: sync).decision == .full(EngineRetryPlan.folderReason), "a folder listing error was retried as a file")
+            try expect(decide([EngineRetryFailure(path: nil, objectType: "*local.Fs", message: "something failed")], request: sync).decision == .full(EngineRetryPlan.noPathReason),
+                       "an error without a path did not repeat the complete transfer")
+            try expect(decide([], exit: 3, request: sync).decision == .full(EngineRetryPlan.exitReason), "a failed run without recorded errors was not repeated")
+            try expect(decide([unknown], request: sync, overflow: true).decision == .full(EngineRetryPlan.manyReason), "too many failures were listed one by one")
+            // --delete-excluded with a file list deletes every other destination file.
+            let deleting = try EngineTransferRequest(request(from, to, mode: "sync", options: ["deleteExcluded": true]), validateOperationalRules: false)
+            try expect(decide([unknown], request: deleting).decision == .full(EngineRetryPlan.deleteExcludedReason), "a file-list retry ran with --delete-excluded")
+            try expect(decide([unknown], attempt: 3, request: sync).decision == .finish(EngineRetryPlan.fill(EngineRetryPlan.limitNote, 3)), "retries exceeded the attempt limit")
+            try expect(decide([unknown], request: sync, retryable: false).decision == .finish(EngineRetryPlan.notRetryableNote), "errors rclone marks as not retryable were retried")
+            let preview = try EngineTransferRequest(request(from, to, mode: "sync", dryRun: true), validateOperationalRules: false)
+            try expect(decide([unknown], request: preview).decision == .finish(nil), "a dry run was retried")
+            // Deletions an earlier error postponed need one complete pass after a
+            // successful file retry, unless no pass remains or errors stay.
+            try expect(decide([], exit: 0, attempt: 2, request: sync, scoped: true, deferred: true).decision == .full(EngineRetryPlan.completionReason), "postponed deletions were never completed")
+            try expect(decide([], exit: 0, attempt: 3, request: sync, scoped: true, deferred: true).decision == .finish(EngineRetryPlan.completionSkipped), "a completion pass exceeded the attempt limit")
+            try expect(decide([], exit: 0, attempt: 2, request: sync, scoped: true, deferred: true, outstanding: 1).decision == .finish(nil), "deletions ran although errors remain")
+            try expect(decide([], exit: 0, request: sync).decision == .finish(nil), "a successful first pass was repeated")
+
+            let arguments = ["sync", "--retries=3", "--min-size=1K", "--max-depth=2", "--delete-excluded", "--delete-during",
+                             "--filter-from=/x/job.filter", "--combined=-", "--", "/src", "/dst"]
+            try expect(EngineRetryPlan.singlePass(arguments).filter { $0.hasPrefix("--retries") } == ["--retries=1"], "a planned pass kept rclone's own retries")
+            try expect(EngineRetryPlan.scoped(arguments, listPath: "/x/job.retry") == ["sync", "--retries=1", "--delete-during", "--combined=-", "--files-from-raw=/x/job.retry", "--", "/src", "/dst"],
+                       "a file-list pass kept filters rclone rejects with --files-from-raw, or --delete-excluded")
+            try expect(EngineRetryPlan.seconds("1m30s") == 90 && EngineRetryPlan.seconds("500ms") == 0.5 && EngineRetryPlan.seconds("2s") == 2
+                       && EngineRetryPlan.seconds("") == nil && EngineRetryPlan.seconds("soon") == nil, "retry pause durations were misread")
+            let base: [String: Any] = ["bytes": 1000.0, "checks": 239921.0, "transfers": 4.0, "elapsedTime": 300.0, "transferTime": 2.0, "totalBytes": 1200.0]
+            let next = EngineRetryPlan.accumulate(["bytes": 50, "checks": 2, "transfers": 1, "totalTransfers": 2, "totalBytes": 200, "elapsedTime": 3.5, "errors": 1],
+                                                  base: base, carriedErrors: 52)
+            try expect(EngineJSON.number(next["bytes"]) == 1050 && EngineJSON.number(next["checks"]) == 239923 && EngineJSON.number(next["transfers"]) == 5
+                       && EngineJSON.number(next["totalTransfers"]) == 6 && EngineJSON.number(next["totalBytes"]) == 1200
+                       && EngineJSON.number(next["elapsedTime"]) == 303.5 && EngineJSON.number(next["errors"]) == 53, "pass statistics did not add up: \(next)")
+        }
+
+        if rclone == nil { skip("only failed files are retried, and the full scope still repeats everything") }
+        else { test("only failed files are retried, and the full scope still repeats everything") {
+            let area = try folder("retry-scope"), from = area.appendingPathComponent("source"), to = area.appendingPathComponent("destination")
+            for index in 0..<20 { try file(from, "ok/\(index).txt") }
+            try file(from, "locked/secret.txt")
+            let locked = from.appendingPathComponent("locked/secret.txt").path
+            try FileManager.default.setAttributes([.posixPermissions: 0o000], ofItemAtPath: locked)
+            defer { try? FileManager.default.setAttributes([.posixPermissions: 0o644], ofItemAtPath: locked) }
+            let engine = try self.engine("retry-scope-engine"); defer { engine.shutdown() }
+            try expect(engine.settingsSnapshot()["retryScope"] as? String == "failed", "retrying only failed files is not the default")
+            // One pass compares 21 files and records the error (22 lines). A
+            // permission error is not retried; where the filesystem reports it
+            // as an unknown error, only that one file is retried.
+            var value = try wait(engine, submit(engine, request(from, to, options: ["transfers": 2, "checkers": 2])), seconds: 120)
+            var report = value["report"] as? [String: Any] ?? [:]
+            try expect(value["status"] as? String == "failed", "an unreadable file did not fail the job")
+            try expect(EngineJSON.number(report["comparisonEvents"]) <= 30, "the failed scope compared every file again: \(report)")
+            try expect(FileManager.default.fileExists(atPath: to.appendingPathComponent("ok/19.txt").path), "readable files were not copied")
+            try expect(EngineJSON.number((value["stats"] as? [String: Any])?["errors"]) >= 1, "the remaining error was not counted")
+            _ = try engine.invoke("saveSettings", arguments: [["retryScope": "full"]])
+            try FileManager.default.removeItem(at: to)
+            value = try wait(engine, submit(engine, request(from, to, options: ["transfers": 2, "checkers": 2])), seconds: 180)
+            report = value["report"] as? [String: Any] ?? [:]
+            try expect(value["status"] as? String == "failed" && EngineJSON.number(report["lastAttempt"]) == 3, "the full scope did not repeat the run three times: \(report)")
+            try expect(EngineJSON.number(report["comparisonEvents"]) >= 60, "the full scope did not compare every file again: \(report)")
+        } }
+
+        if rclone == nil { skip("a temporary file error is retried alone and the job completes") }
+        else { test("a temporary file error is retried alone and the job completes") {
+            // A deterministic temporary error: this wrapper runs the real
+            // rclone, then reports a network timeout for one file and fails,
+            // but only for the first, complete pass. The retry pass carries
+            // --files-from-raw and runs rclone unchanged, which also proves
+            // rclone accepts the scoped arguments.
+            let area = try folder("retry-temporary"), from = area.appendingPathComponent("source"), to = area.appendingPathComponent("destination")
+            for index in 0..<10 { try file(from, "ok/\(index).txt") }
+            try file(from, "big.bin", Data(count: 64 * 1024))
+            let wrapper = try folder("retry-temporary/bin").appendingPathComponent("rclone")
+            let failure = #"{"level":"error","msg":"Failed to copy: read tcp 10.0.0.2:51234->10.0.0.9:443: i/o timeout","object":"big.bin","objectType":"*local.Object"}"#
+            let script = """
+            #!/bin/sh
+            case " $* " in *" --files-from-raw="*) exec '\(rclone!)' "$@";; esac
+            case " $* " in *" --combined=- "*) '\(rclone!)' "$@"; echo '\(failure)' >&2; exit 1;; esac
+            exec '\(rclone!)' "$@"
+            """
+            try Data(script.utf8).write(to: wrapper)
+            try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: wrapper.path)
+            let engine = try self.engine("retry-temporary-engine"); defer { engine.shutdown() }
+            var settings = engine.settingsSnapshot(); settings["rclonePath"] = wrapper.path
+            let environment = try engine.invoke("saveSettings", arguments: [settings]) as! [String: Any]
+            try expect(environment["available"] as? Bool == true, "the rclone wrapper did not start: \(environment["error"] ?? "unknown")")
+            let value = try wait(engine, submit(engine, request(from, to, options: ["transfers": 2, "checkers": 2])), seconds: 120)
+            let report = value["report"] as? [String: Any] ?? [:]
+            try expect(value["status"] as? String == "completed", "the temporary error was not retried: \(value["error"] ?? "unknown")")
+            try expect(EngineJSON.number(report["lastAttempt"]) == 2, "the job did not finish on its second pass: \(report)")
+            // 11 files once, then only the retried file.
+            try expect(EngineJSON.number(report["comparisonEvents"]) == 12, "the retry compared every file again: \(report)")
+            let logs = value["logs"] as? [[String: Any]] ?? []
+            try expect(logs.contains { $0["message"] as? String == "第 2 輪：只重試上一輪出錯的 1 個檔案，其他檔案不重新檢查。" }, "the retry plan was not logged")
+            let stats = value["stats"] as? [String: Any] ?? [:]
+            try expect(EngineJSON.number(stats["transfers"]) == 11 && EngineJSON.number(stats["checks"]) >= 1, "statistics of both passes were not added up: \(stats)")
+            try expect(FileManager.default.fileExists(atPath: to.appendingPathComponent("big.bin").path), "the file was not copied")
+        } }
+
         test("statistics recover from counter resets and missing elapsed fields without negative rates or clock spikes") {
             var progress = EngineThroughput(); progress.start(at: 100)
             var result = progress.update(["bytes": 1000, "elapsedTime": 10, "totalBytes": 5000], previous: EngineStatistics.empty, at: 110)
@@ -1586,6 +1712,9 @@ private final class CoreTestSuite {
             try file(from, jsonName, Data("a literal filename is not statistics".utf8))
             let evidence: (String, String, String, Int) = try {
                 let engine = try self.engine("report-integration-engine"); defer { engine.shutdown() }
+                // This fixture checks that rclone's own whole-run retry keeps the
+                // earlier attempt's evidence, so it uses the full retry scope.
+                _ = try engine.invoke("saveSettings", arguments: [["retryScope": "full"]])
                 let value = try wait(engine, submit(engine, request(from, to, options: ["transfers": 1, "checkers": 1, "retries": 2,
                                                                                       "lowLevelRetries": 1, "retrySleep": "0", "extraArgs": ["--order-by=name,ascending"]])))
                 try expect(value["status"] as? String == "failed", "report error fixture did not exercise a real failed file")

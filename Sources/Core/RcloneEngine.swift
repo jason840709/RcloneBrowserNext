@@ -31,6 +31,11 @@ final class RcloneEngine {
     private var tasks: [String: EngineTask] = [:]
     private var active: [String: EngineActiveJob] = [:]
     private var transferReports: [String: EngineTransferReport] = [:]
+    // Passes planned by EngineRetryPlan: each new rclone process starts its
+    // counters at zero, so statistics are added to the earlier passes' totals.
+    private var passBases: [String: [String: Any]] = [:]
+    private var carriedErrors: [String: Int] = [:]
+    private var latestStats: [String: [String: Any]] = [:]
     private var captureChildren: [UUID: Process] = [:]
     private var listings: [String: EngineListing] = [:]
     private let listingTimeout: TimeInterval
@@ -121,7 +126,7 @@ final class RcloneEngine {
          "autoCheckUpdates": true, "skippedRcloneVersion": "", "settingsRevision": 0, "settingsSchemaVersion": 7,
          "paneColumnWidths": [String: Any](), "defaultTransferOptions": EngineTransferOptions.defaults,
          "hiddenBuiltinPresets": [String](),
-         "maxConcurrentJobs": 0, "proxyMode": "system", "httpProxy": "", "httpsProxy": "", "noProxy": "",
+         "maxConcurrentJobs": 0, EngineRetryScope.settingKey: EngineRetryScope.defaultValue, "proxyMode": "system", "httpProxy": "", "httpsProxy": "", "noProxy": "",
          "networkOptions": EngineNetworkOptions.defaults,
          "defaultRcloneOptions": [String](), "showStatusItem": false, "notifyOnCompletion": false, "bounceDockOnCompletion": true,
          "showHiddenFiles": true, "showFolderIcons": true, "showFileIcons": true, "alternatingRows": true,
@@ -925,6 +930,7 @@ final class RcloneEngine {
                 ? "只處理勾選資料夾內、符合包含規則的檔案。開始前會先列出兩側檔名；此範圍內只有目標存在的檔案也會納入同步刪除。"
                 : "只處理勾選範圍內、符合包含規則的檔案；開始前會先掃描來源。")
         }
+        if retryScope() == .failed { arguments = EngineRetryPlan.singlePass(arguments) }
         return ["command": Self.displayCommand(try resolvedRclonePath(), configuredArguments(arguments)), "warnings": warnings]
     }
 
@@ -1031,11 +1037,13 @@ final class RcloneEngine {
             // our own report without losing early comparisons or parsing JSON
             // looking filenames as statistics.
             if let index = args.firstIndex(of: "--") { args.insert("--combined=-", at: index) }
-            let command = Self.displayCommand(try resolvedRclonePath(), configuredArguments(args))
+            let scope = retryScope()
+            let command = Self.displayCommand(try resolvedRclonePath(), configuredArguments(scope == .failed ? EngineRetryPlan.singlePass(args) : args))
             stateLock.holding { job.command = command }
             let window = args.first { $0.hasPrefix("--modify-window=") }.map { String($0.dropFirst("--modify-window=".count)) }
             try reporter.recordConfiguration(job.request, engineVersion: stateLock.holding { environment["version"] as? String }, effectiveModifyWindow: window,
-                                             effectiveLocalCopyPolicy: EngineLocalCopyPolicy.applies(to: job.request) ? EngineLocalCopyPolicy.identifier : nil)
+                                             effectiveLocalCopyPolicy: EngineLocalCopyPolicy.applies(to: job.request) ? EngineLocalCopyPolicy.identifier : nil,
+                                             retryScope: scope.rawValue)
             if let precision = EngineLocalTimePrecision.detect(for: job.request) {
                 try appLog(job, running: running, level: "info", message: precision.message)
             }
@@ -1044,9 +1052,7 @@ final class RcloneEngine {
             }
             try appLog(job, running: running, level: "info", message: job.request.dryRun ? "開始預演。" : "開始傳輸。")
             stateLock.holding { var meter = EngineThroughput(); meter.start(); throughputs[job.id] = meter }
-            let result = try runProcess(args, timeout: nil, activeJob: running,
-                                        lines: { [self] line in consumeLine(line, job: job, running: running) },
-                                        stdoutLines: { [self] line, terminated in consumeComparisonLine(line, terminated: terminated, report: reporter, job: job, running: running) }, checked: false)
+            let result = try runPasses(args, scope: scope, job: job, running: running, reporter: reporter)
             if let failure = stateLock.holding({ running.failure }) { throw EngineError(failure) }
             stateLock.holding {
                 job.exitCode = result.exitCode
@@ -1054,8 +1060,14 @@ final class RcloneEngine {
                     finalStatus = closing ? "interrupted" : "cancelled"
                     if job.cancellation?.forced == true { job.error = Self.forcedStopMessage }
                     else if closing { job.error = "程式關閉，工作已停止。" }
-                } else if result.exitCode == 0 { finalStatus = "completed"; job.error = nil }
-                else { finalStatus = "failed"; job.error = job.error ?? "rclone 結束代碼：\(result.exitCode)。請查看記錄。" }
+                } else if result.exitCode == 0 && result.outstanding.isEmpty { finalStatus = "completed"; job.error = nil }
+                else {
+                    finalStatus = "failed"
+                    // A later retry pass may have succeeded while errors that are
+                    // not retried remain; keep rclone's own text for the explanation.
+                    if let first = result.outstanding.first { job.error = first.message }
+                    job.error = job.error ?? "rclone 結束代碼：\(result.exitCode)。請查看記錄。"
+                }
             }
         } catch {
             stateLock.holding {
@@ -1087,6 +1099,7 @@ final class RcloneEngine {
             job.endedAt = EngineJSON.now()
             if running.cancel { job.cancellation?.processExited = true }
             job.stats = (throughputs.removeValue(forKey: job.id) ?? EngineThroughput()).finish(job.stats, completed: job.status == "completed")
+            latestStats.removeValue(forKey: job.id); passBases.removeValue(forKey: job.id); carriedErrors.removeValue(forKey: job.id)
         }
         do {
             let (message, level): (String, String) = stateLock.holding {
@@ -1103,6 +1116,91 @@ final class RcloneEngine {
         do { try persist() }
         catch { stateLock.holding { job.error = "工作狀態無法儲存：\(error.localizedDescription)"; if job.status == "completed" { job.status = "failed" } } }
         notify(job.id, immediate: true)
+    }
+
+    private func retryScope() -> EngineRetryScope {
+        EngineRetryScope(rawValue: settingsSnapshot()[EngineRetryScope.settingKey] as? String ?? "") ?? .failed
+    }
+
+    private struct PassResult { let exitCode: Int32; let outstanding: [EngineRetryFailure] }
+
+    /// Runs the transfer. In the `full` scope rclone repeats a failed run
+    /// itself (`--retries`). In the `failed` scope every rclone process is one
+    /// pass, and EngineRetryPlan decides what the next pass covers.
+    private func runPasses(_ args: [String], scope: EngineRetryScope, job: EngineJob, running: EngineActiveJob,
+                           reporter: EngineTransferReport) throws -> PassResult {
+        func run(_ arguments: [String]) throws -> Int32 {
+            try runProcess(arguments, timeout: nil, activeJob: running,
+                           lines: { [self] line in consumeLine(line, job: job, running: running) },
+                           stdoutLines: { [self] line, terminated in consumeComparisonLine(line, terminated: terminated, report: reporter, job: job, running: running) },
+                           checked: false).exitCode
+        }
+        guard scope == .failed else { return PassResult(exitCode: try run(args), outstanding: []) }
+        let limit = max(1, job.request.options.integer("retries"))
+        let list = filterDirectory.appendingPathComponent(job.id + ".retry")
+        defer {
+            try? FileManager.default.removeItem(at: list)
+            stateLock.holding { passBases[job.id] = nil; carriedErrors[job.id] = nil; latestStats[job.id] = nil }
+        }
+        var arguments = EngineRetryPlan.singlePass(args)
+        var attempt = 1, scoped = false, deferred = false, firstFailure: Int32 = 0
+        var outstanding: [EngineRetryFailure] = []
+        while true {
+            reporter.beginAttempt(attempt, of: limit)
+            let exit = try run(arguments)
+            if exit != 0 && firstFailure == 0 { firstFailure = exit }
+            let (failures, overflow) = reporter.takePassFailures()
+            let (cancelled, stats, carried) = stateLock.holding { (running.cancel || running.failure != nil, job.stats, carriedErrors[job.id] ?? 0) }
+            // rclone reports retryError=false also when a pass had no error at
+            // all; it only means "nothing can be retried" when errors exist.
+            let passErrors = EngineJSON.number(stats["errors"]) - Double(carried)
+            let outcome = EngineRetryPlan.decide(
+                failures: failures, overflow: overflow, exitCode: exit, cancelled: cancelled, attempt: attempt, limit: limit,
+                request: job.request, fatal: stats["fatalError"] as? Bool == true,
+                retryable: passErrors > 0 ? stats["retryError"] as? Bool : nil,
+                lastPassScoped: scoped, deferredEarlier: deferred, outstanding: outstanding.count)
+            // A complete pass finds every remaining error again; a scoped pass
+            // leaves the earlier pass's unretried errors in place.
+            outstanding = scoped ? outstanding + outcome.permanent : outcome.permanent
+            deferred = scoped ? deferred || outcome.deletionDeferred : outcome.deletionDeferred
+            let note: String
+            switch outcome.decision {
+            case .finish(let message):
+                if let message = message {
+                    try appLog(job, running: running, level: "info", message: message)
+                    try reporter.recordRetryPlan(message, attempt: attempt, files: nil)
+                }
+                return PassResult(exitCode: exit != 0 ? exit : outstanding.isEmpty ? 0 : firstFailure, outstanding: outstanding)
+            case .files(let paths):
+                attempt += 1
+                try EngineStorage.atomicData(Data((paths.joined(separator: "\n") + "\n").utf8), to: list)
+                note = EngineRetryPlan.fill(EngineRetryPlan.scopedMessage, attempt, paths.count)
+                try reporter.recordRetryPlan(note, attempt: attempt, files: paths.count)
+                arguments = EngineRetryPlan.scoped(args, listPath: list.path)
+                stateLock.holding { passBases[job.id] = latestStats[job.id]; carriedErrors[job.id] = outstanding.count }
+                scoped = true
+            case .full(let reason):
+                attempt += 1
+                note = EngineRetryPlan.fill(reason, attempt)
+                try reporter.recordRetryPlan(note, attempt: attempt, files: nil)
+                arguments = EngineRetryPlan.singlePass(args)
+                stateLock.holding { passBases[job.id] = latestStats[job.id]; carriedErrors[job.id] = 0 }
+                scoped = false
+            }
+            try appLog(job, running: running, level: "info", message: note)
+            try pauseBetweenPasses(job.request, running: running)
+        }
+    }
+
+    /// `--retries-sleep` applies between the app's passes as it would between
+    /// rclone's own attempts. Cancelling ends the pause at once.
+    private func pauseBetweenPasses(_ request: EngineTransferRequest, running: EngineActiveJob) throws {
+        guard let seconds = EngineRetryPlan.seconds(request.options.text("retrySleep")), seconds > 0 else { return }
+        let deadline = Date().addingTimeInterval(min(seconds, 3600))
+        while Date() < deadline {
+            if stateLock.holding({ running.cancel || closing }) { throw EngineError("已取消。") }
+            Thread.sleep(forTimeInterval: min(0.2, max(0, deadline.timeIntervalSinceNow)))
+        }
     }
 
     private func consumeLine(_ line: String, job: EngineJob, running: EngineActiveJob) {
@@ -1128,7 +1226,9 @@ final class RcloneEngine {
             }
         }
         stateLock.holding {
-            if let stats = raw["stats"] as? [String: Any] {
+            if let raw = raw["stats"] as? [String: Any] {
+                let stats = EngineRetryPlan.accumulate(raw, base: passBases[job.id], carriedErrors: carriedErrors[job.id] ?? 0)
+                latestStats[job.id] = stats
                 var meter = throughputs[job.id] ?? EngineThroughput()
                 job.stats = meter.update(stats, previous: job.stats)
                 throughputs[job.id] = meter
@@ -1421,6 +1521,7 @@ final class RcloneEngine {
         output["settingsRevision"] = try EngineJSON.integer(merged["settingsRevision"], "設定版本", 0...9007199254740990)
         output["settingsSchemaVersion"] = 7
         output["maxConcurrentJobs"] = try EngineJSON.integer(merged["maxConcurrentJobs"], "同時執行的工作數", 0...128)
+        output[EngineRetryScope.settingKey] = try EngineRetryScope.validated(merged[EngineRetryScope.settingKey])
         guard let hidden = merged["hiddenBuiltinPresets"] as? [String], hidden.count <= 6,
               Set(hidden).isSubset(of: ["local-nas", "nas-cloud", "local-cloud", "local-local", "cloud-cloud", "cloud-local"]) else {
             throw EngineError("內建方案設定格式不正確。")

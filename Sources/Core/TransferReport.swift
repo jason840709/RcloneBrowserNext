@@ -122,6 +122,14 @@ final class EngineTransferReport {
     private struct SizeObservation { let source: Int64; let destination: Int64; let sequence: Int64 }
     private var recentSizeFailures: [String: SizeObservation] = [:]
     private static let maximumSizeHistory = 256
+    // Errors of the current pass, for planning the next one (see
+    // EngineRetryPlan). Bounded: beyond the limit a complete pass follows.
+    private var passFailures: [EngineRetryFailure] = []
+    private var passOverflow = false
+    // With the app planning retries, rclone runs one attempt per process and
+    // numbers each "Attempt 1/1". These map that to the job's own pass number.
+    private var attemptOffset: Int64 = 0
+    private var attemptLimit: Int64?
 
     var comparisonPath: String { directory.appendingPathComponent(id + Self.suffixes["raw"]!).path }
 
@@ -146,11 +154,13 @@ final class EngineTransferReport {
     /// Export the validated request with the engine version and the exact
     /// modify-window argument used for this run. Credentials, config contents
     /// and the process environment are outside this snapshot.
-    func recordConfiguration(_ request: EngineTransferRequest, engineVersion: String?, effectiveModifyWindow: String?, effectiveLocalCopyPolicy: String? = nil) throws {
+    func recordConfiguration(_ request: EngineTransferRequest, engineVersion: String?, effectiveModifyWindow: String?, effectiveLocalCopyPolicy: String? = nil,
+                             retryScope: String? = nil) throws {
         var metadata: [String: Any] = ["kind": "complete", "schemaVersion": 1,
                                        "request": request.json, "engineVersion": engineVersion as Any? ?? NSNull(),
                                        "effectiveModifyWindow": effectiveModifyWindow as Any? ?? NSNull()]
         if let policy = effectiveLocalCopyPolicy { metadata["effectiveLocalCopyPolicy"] = policy }
+        if let scope = retryScope { metadata["retryScope"] = scope }
         var records: [[String: Any]] = []
         if try EngineJSON.data(metadata).count <= Self.maximumRecordBytes / 2 { records = [metadata] }
         else {
@@ -245,9 +255,10 @@ final class EngineTransferReport {
         try lock.holding {
             counts["lastAttempt"] = max(counts["lastAttempt"]!, 1)
             if let retry = retry {
-                record["attempt"] = retry.attempt; record["attemptLimit"] = retry.limit
-                counts["lastAttempt"] = max(counts["lastAttempt"]!, retry.attempt)
-                counts["maxAttempts"] = max(counts["maxAttempts"]!, retry.limit)
+                let attempt = attemptOffset + retry.attempt, limit = attemptLimit ?? retry.limit
+                record["attempt"] = attempt; record["attemptLimit"] = limit
+                counts["lastAttempt"] = max(counts["lastAttempt"]!, attempt)
+                counts["maxAttempts"] = max(counts["maxAttempts"]!, limit)
                 if retry.failed { increment("retryFailures") }
             }
             // Only the direct per-file verification message contributes bytes.
@@ -287,6 +298,9 @@ final class EngineTransferReport {
                 if action == "delete" { increment("deletedEvents") }
             } else if status == "error" {
                 increment("errorEvents"); if path == nil { increment("unattributedErrors") }
+                if passFailures.count < EngineRetryPlan.maximumRecordedFailures {
+                    passFailures.append(EngineRetryFailure(path: path, objectType: objectType, message: message))
+                } else { passOverflow = true }
             } else if status == "planned" { increment("plannedEvents") }
             else if status == "skipped" { increment("skippedEvents") }
             else { increment("informationEvents") }
@@ -358,6 +372,36 @@ final class EngineTransferReport {
     }
 
     func flushVisible() throws { try lock.holding { try makeVisible() } }
+
+    /// Starts pass `attempt` of `limit` when the app plans retries itself.
+    func beginAttempt(_ attempt: Int, of limit: Int) {
+        lock.holding {
+            attemptOffset = Int64(max(0, attempt - 1)); attemptLimit = Int64(limit)
+            counts["lastAttempt"] = max(counts["lastAttempt"]!, Int64(attempt))
+            counts["maxAttempts"] = Int64(limit)
+            passFailures.removeAll(); passOverflow = false
+        }
+    }
+
+    /// The errors recorded since the current pass began.
+    func takePassFailures() -> (failures: [EngineRetryFailure], overflow: Bool) {
+        lock.holding {
+            defer { passFailures.removeAll(); passOverflow = false }
+            return (passFailures, passOverflow)
+        }
+    }
+
+    /// Records why the next pass covers what it covers (or why none follows).
+    func recordRetryPlan(_ message: String, attempt: Int, files: Int?) throws {
+        var record: [String: Any] = ["time": EngineJSON.now(), "status": "info", "action": "retry-plan",
+                                     "evidence": "app", "message": message, "attempt": attempt]
+        if let files = files { record["retryFiles"] = files }
+        try lock.holding {
+            try append(record, destinations: ["all"])
+            increment("informationEvents")
+            try makeVisible()
+        }
+    }
     func flush() throws { try lock.holding { for output in outputs.values { try output.finish() } } }
 
     var summary: [String: Any] {
