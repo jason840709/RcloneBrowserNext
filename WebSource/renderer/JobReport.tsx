@@ -67,6 +67,7 @@ function categoryCount(category:JobReportCategory,summary:JobReportSummary){retu
 function reportAction(item:JobReportItem,t:Translate){
   if(item.action==='configuration')return t('reportConfigurationDetails');
   if(item.action==='retry')return `${t('jobAttempt')} ${item.attempt||'—'} / ${item.attemptLimit||'—'}`;
+  if(item.action==='retry-plan')return t('reportRetryPlan');
   if(item.action==='cleanup')return t('reportCleanupAction');
   if(item.status==='matched'||item.action==='match')return t('reportMatchedAction');
   if(item.status==='candidate')return t('reportCandidateAction');
