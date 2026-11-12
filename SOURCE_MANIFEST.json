@@ -33,7 +33,7 @@
     },
     "Compat/desktop/Cargo.lock": {
       "bytes": 118277,
-      "sha256": "beecd9858736551a188d31f4a990187a6d2339c09f42e9b3e0528933f4283172"
+      "sha256": "b4ca5b2c169b2d751c1cb1d4fc9ea94a336a413f9aef3477e564d1a6aba1ff92"
     },
     "Compat/desktop/Cargo.toml": {
       "bytes": 666,
