@@ -92,7 +92,7 @@ jobs:
             timeout: 35
           - runner: macos-15-intel
             arch: x86_64
-            timeout: 45
+            timeout: 60
     runs-on: ${{ matrix.runner }}
     timeout-minutes: ${{ matrix.timeout }}
     env:
