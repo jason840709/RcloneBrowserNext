@@ -220,7 +220,7 @@
 .location-group-label { padding: 5px 8px 3px; color: var(--secondary); font-size: var(--fs-label); font-weight: 600; }
 .location-option { display: flex; align-items: center; gap: 7px; min-height: 24px; padding: 2px 8px 2px 4px; border-radius: 6px; font-size: var(--fs-body); color: var(--label); }
 .location-option-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.location-option-detail { flex: 0 0 auto; font-size: var(--fs-callout); color: var(--tertiary); }
+.location-option-detail { flex: 0 0 auto; font-size: var(--fs-callout); font-weight: 400; color: var(--secondary); }
 .location-option[data-active="true"] .location-option-detail { color: var(--accent-ink); opacity: 0.75; }
 .location-option svg { color: var(--folder); width: 16px; height: 16px; }
 .location-option .location-check svg { color: var(--accent-text); width: 12px; height: 12px; }

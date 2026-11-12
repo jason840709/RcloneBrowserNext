@@ -55,6 +55,7 @@ final class RcloneEngine {
     private var configurationChanging = false
     private var closing = false
     private var configPassword: String?
+    private var remoteTypes: [String: String] = [:]
     private let accountLock = NSLock()
     private var accountService: RBNAccountConfiguration?
     var accounts: RBNAccountConfiguration { accountLock.holding {
@@ -347,6 +348,7 @@ final class RcloneEngine {
     }
 
     private func configuredArguments(_ arguments: [String]) -> [String] {
+        let arguments = EngineSMBNames.arguments(arguments, types: stateLock.holding { remoteTypes })
         let snapshot = settingsSnapshot()
         let path = snapshot["configPath"] as? String ?? ""
         // A transfer may explicitly override one of the permitted tuning flags.
@@ -364,7 +366,9 @@ final class RcloneEngine {
     func auxiliaryContext() throws -> (binary: String, arguments: [String], environment: [String: String]) {
         try stateLock.holding {
             guard !closing, !maintenance else { throw EngineError("rclone 目前無法使用，請稍後再試。") }
-            return (try resolvedRclonePath(), configuredArguments([]), childEnvironment())
+            // Auxiliary tools launch their own remote commands. This flag only
+            // affects SMB backends and keeps their names consistent with panes.
+            return (try resolvedRclonePath(), configuredArguments(EngineSMBNames.backendFlags()), childEnvironment())
         }
     }
 
@@ -569,10 +573,15 @@ final class RcloneEngine {
     private func remotes(activeJob: EngineActiveJob? = nil) throws -> [[String: Any]] {
         let output = try runProcess(["listremotes", "--json", "--ask-password=false", "--use-json-log"], activeJob: activeJob)
         guard let array = try EngineJSON.object(output.stdout) as? [[String: Any]] else { throw EngineError("rclone 未回傳有效的遠端清單，請更新 rclone。") }
-        return array.compactMap { item in
+        let result: [[String: Any]] = array.compactMap { item in
             guard let name = item["name"] as? String, let type = item["type"] as? String else { return nil }
             return ["name": name, "type": type, "group": EngineLocationCatalog.remoteGroup(type: type)]
         }
+        stateLock.holding { remoteTypes = Dictionary(result.compactMap { item in
+            guard let name = item["name"] as? String, let type = item["type"] as? String else { return nil }
+            return (name, type)
+        }, uniquingKeysWith: { _, last in last }) }
+        return result
     }
 
     private func requireEndpoints(_ endpoints: [EngineEndpoint], activeJob: EngineActiveJob? = nil) throws {
@@ -594,7 +603,7 @@ final class RcloneEngine {
             let snapshot = settingsSnapshot()
             return ["environment": environment, "settings": snapshot, "remotes": remotes,
                     "resolvedLanguage": RBNLanguageResolver.resolve(snapshot["language"] as? String ?? "system"),
-                    "localLocations": EngineLocationCatalog.localLocations(),
+                    "localLocations": EngineSMBNames.locations(EngineLocationCatalog.localLocations()),
                     "home": FileManager.default.homeDirectoryForCurrentUser.path, "jobs": listJobs(), "tasks": listTasks()]
         }
     }
@@ -623,7 +632,7 @@ final class RcloneEngine {
 
     private func listRaw(_ endpoint: EngineEndpoint, extra: [String] = [], activeJob: EngineActiveJob? = nil,
                          allowMissingDirectory: Bool = false, listing: EngineListing? = nil) throws -> [[String: Any]] {
-        let output = try runProcess(["lsjson", "--no-mimetype", "--ask-password=false", "--use-json-log"] + extra + ["--", endpoint.argument],
+        let output = try runProcess(["lsjson", "--no-mimetype", "--ask-password=false", "--use-json-log"] + EngineSMBNames.backendFlags() + extra + ["--", endpoint.argument],
                                     activeJob: activeJob, checked: false, listing: listing)
         // rclone's DirNotFound exit status is 3. Only the destination-side
         // selection pre-scan may treat that as empty; authorization, connection,
@@ -900,8 +909,8 @@ final class RcloneEngine {
     private func preview(_ request: EngineTransferRequest) throws -> [String: Any] {
         var warnings: [String] = []
         let complex = !request.selection.isEmpty && !request.options.includes.isEmpty
-        var arguments = EngineLocalCopyPolicy.arguments(for: request, filterPath: complex ? "<精確選取清單>" : nil)
-        if !complex, let index = arguments.firstIndex(of: "--") { arguments.insert(contentsOf: request.selectionFilterRules.map { "--filter=\($0)" }, at: index) }
+        var arguments = EngineLocalNames.arguments(EngineLocalCopyPolicy.arguments(for: request, filterPath: complex ? "<精確選取清單>" : nil), for: request)
+        if !complex, let index = arguments.firstIndex(of: "--") { arguments.insert(contentsOf: smbFilterRules(request.selectionFilterRules, request: request).map { "--filter=\($0)" }, at: index) }
         if let index = arguments.firstIndex(of: "--") { arguments.insert("--combined=-", at: index) }
         if request.mode == "sync" {
             let limit = request.options.integer("maxDelete")
@@ -975,6 +984,15 @@ final class RcloneEngine {
         }
     }
 
+    private func listingNameFlags(_ request: EngineTransferRequest) -> [String] {
+        let smb = EngineSMBNames.localFlags([request.source, request.destination], types: stateLock.holding { remoteTypes })
+        return smb.isEmpty ? EngineLocalNames.listingFlags(for: request) : smb
+    }
+
+    private func smbFilterRules(_ rules: [String], request: EngineTransferRequest) -> [String] {
+        EngineSMBNames.filterRules(rules, request: request, types: stateLock.holding { remoteTypes })
+    }
+
     private func writeFilter(_ job: EngineJob, running: EngineActiveJob) throws -> URL? {
         var rules: [String]
         let request = job.request
@@ -985,7 +1003,7 @@ final class RcloneEngine {
             // both sides: a source-only list would protect stale destination
             // files instead of deleting them. No hashes or contents are read.
             let endpoints = request.mode == "sync" ? [request.source, request.destination] : [request.source]
-            let flags = ["--recursive", "--no-modtime"] + request.options.filterRules.map { "--filter=\($0)" }
+            let flags = ["--recursive", "--no-modtime"] + listingNameFlags(request) + smbFilterRules(request.options.filterRules, request: request).map { "--filter=\($0)" }
             var allowed = Set<String>()
             let selectedNames = Set(request.selection.map(\.name))
             let selectedDirectories = Set(request.selection.filter(\.isDir).map(\.name))
@@ -1004,6 +1022,7 @@ final class RcloneEngine {
             }
             rules = allowed.sorted() + ["- **"]
         } else { rules = request.selectionFilterRules }
+        rules = smbFilterRules(rules, request: request)
         if rules.isEmpty { return nil }
         let file = filterDirectory.appendingPathComponent(job.id + ".filter")
         try EngineStorage.atomicData(Data((rules.joined(separator: "\n") + "\n").utf8), to: file)
@@ -1026,12 +1045,12 @@ final class RcloneEngine {
             try requireEndpoints([job.request.source, job.request.destination], activeJob: running)
             if stateLock.holding({ running.cancel }) { throw EngineError("已取消。") }
             if !job.request.selection.isEmpty {
-                let raw = try listRaw(job.request.source, activeJob: running)
+                let raw = try listRaw(job.request.source, extra: listingNameFlags(job.request), activeJob: running)
                 try validateSelection(job.request.selection, entries: raw.map { ["name": $0["Name"] ?? "", "isDir": $0["IsDir"] ?? false] })
             }
             filter = try writeFilter(job, running: running)
             if stateLock.holding({ running.cancel }) { throw EngineError("已取消。") }
-            var args = EngineLocalCopyPolicy.arguments(for: job.request, filterPath: filter?.path)
+            var args = EngineLocalNames.arguments(EngineLocalCopyPolicy.arguments(for: job.request, filterPath: filter?.path), for: job.request)
             // Rclone recreates a named --combined file on each high-level
             // retry. Its stdout stream instead lets us append every attempt to
             // our own report without losing early comparisons or parsing JSON
@@ -1043,7 +1062,8 @@ final class RcloneEngine {
             let window = args.first { $0.hasPrefix("--modify-window=") }.map { String($0.dropFirst("--modify-window=".count)) }
             try reporter.recordConfiguration(job.request, engineVersion: stateLock.holding { environment["version"] as? String }, effectiveModifyWindow: window,
                                              effectiveLocalCopyPolicy: EngineLocalCopyPolicy.applies(to: job.request) ? EngineLocalCopyPolicy.identifier : nil,
-                                             retryScope: scope.rawValue)
+                                             retryScope: scope.rawValue,
+                                             effectiveLocalNamePolicy: EngineLocalNames.applies(to: job.request) ? "literal-unix-local-names" : nil)
             if let precision = EngineLocalTimePrecision.detect(for: job.request) {
                 try appLog(job, running: running, level: "info", message: precision.message)
             }
@@ -1053,6 +1073,13 @@ final class RcloneEngine {
             try appLog(job, running: running, level: "info", message: job.request.dryRun ? "開始預演。" : "開始傳輸。")
             stateLock.holding { var meter = EngineThroughput(); meter.start(); throughputs[job.id] = meter }
             let result = try runPasses(args, scope: scope, job: job, running: running, reporter: reporter)
+            if result.exitCode != 0 && EngineLocalSyncDirectories.applies(to: job.request) {
+                // A source read error makes rclone suppress all final rmdir
+                // operations. Independently remove only proven empty orphans;
+                // retain the original error/exit status for unreadable content.
+                do { try pruneEmptySyncDirectories(job, running: running, reporter: reporter, filter: filter) }
+                catch { try appLog(job, running: running, level: "warning", message: "空資料夾清理未完成：\(error.localizedDescription)") }
+            }
             if let failure = stateLock.holding({ running.failure }) { throw EngineError(failure) }
             stateLock.holding {
                 job.exitCode = result.exitCode
@@ -1065,7 +1092,11 @@ final class RcloneEngine {
                     finalStatus = "failed"
                     // A later retry pass may have succeeded while errors that are
                     // not retried remain; keep rclone's own text for the explanation.
-                    if let first = result.outstanding.first { job.error = first.message }
+                    if let first = result.outstanding.first {
+                        if result.outstanding.allSatisfy({ $0.message.hasPrefix("error reading source directory:") }) {
+                            job.error = "來源資料夾無法讀取，該部分尚未同步。請查看逐檔報告。"
+                        } else { job.error = first.message }
+                    }
                     job.error = job.error ?? "rclone 結束代碼：\(result.exitCode)。請查看記錄。"
                 }
             }
@@ -1120,6 +1151,33 @@ final class RcloneEngine {
 
     private func retryScope() -> EngineRetryScope {
         EngineRetryScope(rawValue: settingsSnapshot()[EngineRetryScope.settingKey] as? String ?? "") ?? .failed
+    }
+
+    private func pruneEmptySyncDirectories(_ job: EngineJob, running: EngineActiveJob,
+                                            reporter: EngineTransferReport, filter: URL?) throws {
+        let cancelled = { [self] in stateLock.holding { running.cancel || running.failure != nil || closing } }
+        guard !cancelled() else { return }
+        let limit = job.request.options.integer("maxDelete")
+        let deleted = stateLock.holding { EngineJSON.number(job.stats["deletes"]) }
+        let remaining = limit < 0 ? -1 : max(0, limit - Int(min(deleted, Double(limit))))
+        guard remaining != 0 else { return }
+        let entries = try listRaw(job.request.destination,
+                                  extra: EngineLocalSyncDirectories.listingFlags(for: job.request, filter: filter),
+                                  activeJob: running)
+        let candidates = try entries.map { item -> String in
+            guard item["IsDir"] as? Bool == true, let path = item["Path"] as? String else {
+                throw EngineError("空資料夾清理清單格式不正確。")
+            }
+            return path
+        }
+        guard !cancelled() else { return }
+        try appLog(job, running: running, level: "info", message: EngineLocalSyncDirectories.starting)
+        let count = try EngineLocalSyncDirectories.prune(
+            source: URL(fileURLWithPath: job.request.source.path), destination: URL(fileURLWithPath: job.request.destination.path),
+            candidates: candidates, maximum: remaining, dryRun: job.request.dryRun, cancelled: cancelled,
+            record: { path, preview in try reporter.recordDirectoryCleanup(path: path, dryRun: preview) })
+        let message = EngineRetryPlan.fill(job.request.dryRun ? EngineLocalSyncDirectories.planned : EngineLocalSyncDirectories.finished, count)
+        try appLog(job, running: running, level: "info", message: message)
     }
 
     private struct PassResult { let exitCode: Int32; let outstanding: [EngineRetryFailure] }

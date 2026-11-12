@@ -15,8 +15,31 @@ import Foundation
         var loaded = false
         var error: Error?
         var bootstrapRequests = 0
+        var completedTheme: String?
         func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
             if (message.body as? [String: Any])?["method"] as? String == "bootstrap" { bootstrapRequests += 1 }
+            if let theme = completedTheme,
+               let body = message.body as? [String: Any], let id = body["id"] as? String,
+               let method = body["method"] as? String {
+                let result: Any
+                if method == "bootstrap" {
+                    var settings = RcloneEngine.defaultSettings(directory: URL(fileURLWithPath: "/fixture/tools"))
+                    settings["theme"] = theme; settings["language"] = "en"; settings["autoCheckUpdates"] = false
+                    settings["savedWorkspace"] = ["left": ["remote": NSNull(), "path": "/fixture/source"],
+                        "right": ["remote": NSNull(), "path": "/fixture/target"], "direction": "lr", "mode": "copy",
+                        "options": EngineTransferOptions.defaults]
+                    result = ["environment": ["available": true, "platform": "darwin", "arch": "arm64", "version": "rclone v1.76.0", "rclonePath": "/fixture/rclone", "configPath": ""],
+                        "settings": settings, "remotes": [], "localLocations": [], "home": "/fixture", "jobs": [], "tasks": []] as [String: Any]
+                } else if method == "list" {
+                    let args = body["args"] as? [Any] ?? []
+                    let options = args.count > 1 ? args[1] as? [String: Any] : nil
+                    result = ["requestId": options?["requestId"] as? String ?? "", "entries": [], "cancelled": false] as [String: Any]
+                } else if method == "listToolSessions" { result = [] as [Any] }
+                else { result = NSNull() }
+                if let data = try? JSONSerialization.data(withJSONObject: ["id": id, "result": result]) {
+                    message.webView?.evaluateJavaScript("window.__rbnReply(\(String(decoding: data, as: UTF8.self)))") { _, _ in }
+                }
+            }
             // Leave configuration loading in progress, as on a cold launch.
             // The test must see the real loading UI rather than a test page.
         }
@@ -139,8 +162,9 @@ import Foundation
         catch { failed += 1; print("FAIL \(title): \(error)") }
     }
 
-    private static func fixture(theme: String, resources: URL, scale: Int = 100) -> (RcloneBrowserWindow, RcloneWebView, RBNStartupSurface, Host) {
+    private static func fixture(theme: String, resources: URL, scale: Int = 100, completed: Bool = false) -> (RcloneBrowserWindow, RcloneWebView, RBNStartupSurface, Host) {
         let host = Host()
+        if completed { host.completedTheme = theme }
         let config = WKWebViewConfiguration()
         config.websiteDataStore = .nonPersistent()
         config.userContentController.add(host, name: "rclone")
@@ -149,6 +173,7 @@ import Foundation
         requestAnimationFrame(()=>{window.__rbnStartupTestFrames++;requestAnimationFrame(()=>{window.__rbnStartupTestFrames++})});
         """, injectionTime: .atDocumentEnd, forMainFrameOnly: true))
         let view = RcloneWebView(frame: .zero, configuration: config)
+        if completed { view.hostScript = "window.__rbnHost = {nativeChrome: true};" }
         let appearance = RBNWebAppearance(theme: theme)
         NSApp.appearance = NSAppearance(named: appearance.isDark ? .darkAqua : .aqua)
         view.pageZoom = RBNInterfaceScale.zoom(scale)
@@ -246,6 +271,24 @@ import Foundation
         app.activate(ignoringOtherApps: true)
         let resources = URL(fileURLWithPath: CommandLine.arguments[1], isDirectory: true)
         let web = resources.appendingPathComponent("Web", isDirectory: true)
+
+        for theme in ["green-dark", "blue-light"] {
+            test("\(theme) completed native-chrome interface is revealed on first load") {
+                let (window, view, surface, host) = fixture(theme: theme, resources: resources, completed: true)
+                defer { close(window, view: view) }
+                var completed = false
+                defer { if !completed { print("STARTUP COMPLETED DIAGNOSTIC \(theme): \(diagnostics(view, surface: surface, host: host))") } }
+                view.loadFileURL(web.appendingPathComponent("index.html"), allowingReadAccessTo: web)
+                try wait(seconds: 25, context: "complete native-chrome interface") { host.error != nil || !surface.isCoverVisible }
+                if let error = host.error { throw error }
+                try require(try evaluate("!!document.querySelector('.browser-grid') && !!document.querySelector('.app-statusbar')", in: view) as? Bool == true,
+                            "The fully loaded production interface was not rendered")
+                completed = true
+            }
+        }
+        if ProcessInfo.processInfo.environment["RBN_STARTUP_COMPLETED_ONLY"] == "1" {
+            print("RESULT \(passed) passed, \(failed) failed"); exit(failed == 0 ? 0 : 1)
+        }
 
         for theme in ["purple-dark", "blue-dark", "green-dark", "purple-light", "blue-light", "green-light"] {
             test("\(theme) cold start covers WebKit until the bundled loading UI is painted") {

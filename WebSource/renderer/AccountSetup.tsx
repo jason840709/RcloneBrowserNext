@@ -9,8 +9,8 @@ import {errorMessage} from './utils';
 type Props={language:ResolvedLanguage;t:Translate;onClose():void;onSaved():Promise<void>;onTerminal():Promise<void>;onSettings(patch:SettingsPatch):Promise<void>};
 type StartRequest=Extract<AccountRequest,{action:'start'}>;
 const popularProviders=['drive','onedrive','dropbox'];
-const serverProviders=['sftp','webdav','ftp'];
-const serverFields:Record<string,string[]>={sftp:['host','user','pass','port'],webdav:['url','vendor','user','pass'],ftp:['host','user','pass','port','tls']};
+const serverProviders=['smb','sftp','webdav','ftp'];
+const serverFields:Record<string,string[]>={smb:['host','user','pass','port','domain'],sftp:['host','user','pass','port'],webdav:['url','vendor','user','pass'],ftp:['host','user','pass','port','tls']};
 const terminalPhases=['committed','cancelled'];
 
 function optionDefault(option:AccountOption):string {
@@ -34,15 +34,15 @@ function orderedProviders(providers:AccountProvider[]) {
 }
 
 /** The same field renders the schema form and the few remaining dynamic questions. */
-function AccountField({option,value,onChange,onUseDefault,language,disabled=false,editing=false,selectedProvider='',onChooseFile}: {
- option:AccountOption;value:string;onChange(value:string):void;onUseDefault?():void;language:ResolvedLanguage;disabled?:boolean;editing?:boolean;selectedProvider?:string;onChooseFile?():void;
+function AccountField({option,value,onChange,onUseDefault,language,disabled=false,editing=false,selectedProvider='',connectionType='',onChooseFile}: {
+ option:AccountOption;value:string;onChange(value:string):void;onUseDefault?():void;language:ResolvedLanguage;disabled?:boolean;editing?:boolean;selectedProvider?:string;connectionType?:string;onChooseFile?():void;
 }) {
  const a=accountTranslator(language),id=useId();
  const [custom,setCustom]=useState(false);
  const choices=(option.Type==='bool'?[{Value:'true',Help:a('yes')},{Value:'false',Help:a('no')}]:option.Examples||[]).filter(item=>matchesProvider('Provider' in item?item.Provider:undefined,selectedProvider));
  const sensitive=!!option.Sensitive||!!option.IsPassword;
  const password=!!option.IsPassword||/(?:pass|secret|token|key_pem|credentials)/i.test(option.Name);
- const label=accountLabel(option.Name,language),hint=option.Required&&['client_id','client_secret'].includes(option.Name)?undefined:accountHint(option.Name,language);
+ const label=accountLabel(option.Name,language),hint=connectionType==='smb'&&option.Name==='pass'?a('smbPasswordHint'):option.Required&&['client_id','client_secret'].includes(option.Name)?undefined:accountHint(option.Name,language);
  const required=!!option.Required&&!editing;
  const smallChoices=!sensitive&&choices.length>0&&choices.length<=12;
  const isCustom=custom||!!value&&!choices.some(item=>item.Value===value);
@@ -192,7 +192,7 @@ export default function AccountSetup({language,t,onClose,onSaved,onTerminal,onSe
   const values=Object.fromEntries(Object.entries(fields).filter(([key])=>visibleNames.has(key)));
   await perform(()=>runStart({action:'start',mode,name,provider,setup,fields:values,useSharedClient:!values.client_id?.trim(),autoSave:mode==='create'&&setup==='quick'}));
  }
- const renderOption=(option:AccountOption)=><AccountField key={option.Name} option={option} value={optionValue(option)} language={language} disabled={working} editing={editing} selectedProvider={subtype} onChange={value=>setField(option.Name,value)} onUseDefault={()=>setFields(previous=>{const next={...previous};delete next[option.Name];return next;})} onChooseFile={/(?:_file|_path)$/.test(option.Name)&&!option.IsPassword?()=>void perform(async()=>{const file=await window.rclone.chooseFile('credential');if(file)setField(option.Name,file);}):undefined}/>;
+ const renderOption=(option:AccountOption)=><AccountField key={option.Name} option={option} value={optionValue(option)} language={language} disabled={working} editing={editing} selectedProvider={subtype} connectionType={provider} onChange={value=>setField(option.Name,value)} onUseDefault={()=>setFields(previous=>{const next={...previous};delete next[option.Name];return next;})} onChooseFile={/(?:_file|_path)$/.test(option.Name)&&!option.IsPassword?()=>void perform(async()=>{const file=await window.rclone.chooseFile('credential');if(file)setField(option.Name,file);}):undefined}/>;
  const question=session?.question;
  return <Dialog title={a('title')} t={t} onClose={requestClose} dismissible={!pending&&!cancelling} className="accounts-dialog">
   <div className="dialog-body account-body">
@@ -220,6 +220,7 @@ export default function AccountSetup({language,t,onClose,onSaved,onTerminal,onSe
        return items.length>0?<optgroup key={group.label} label={group.label}>{items.map(item=><option key={item.name} value={item.name}>{accountProvider(item.name,item.description,language)}</option>)}</optgroup>:null;
       })}
      </select></Field>
+     {provider==='smb'&&<p className="field-hint">{a('smbHint')}</p>}
      {isOAuth&&setup==='quick'?<div className="account-login-options">
       <p className="account-built-in">{a(fields.client_id?.trim()?'customLogin':'builtInLogin')}</p>
       <details className="account-credentials" open={credentialsOpen} onToggle={event=>setCredentialsOpen(event.currentTarget.open)}><summary>{a('customCredentials')}</summary><div className="account-option-stack"><p className="field-hint">{a('credentialsHint')}</p>{credentials.map(renderOption)}{provider==='drive'&&<p className="field-hint">{a('googleNote')}</p>}<button type="button" className="text-button account-docs" onClick={()=>void perform(()=>window.rclone.openExternal(docs))}>{a('docs')}<ArrowSquareOut size={13}/></button></div></details>
@@ -238,7 +239,7 @@ export default function AccountSetup({language,t,onClose,onSaved,onTerminal,onSe
     {session.phase==='question'&&question&&!cancelling&&<form id="account-question" ref={questionForm} onSubmit={event=>{event.preventDefault();void perform(async()=>put(await window.rclone.accountConfig({action:'answer',id:session.id,step:session.step,value:answer,useDefault:keep}) as AccountSession));}}>
      <div className="account-question-intro"><h3>{a('additionalInput')}</h3><p className="field-hint">{question.Required&&['client_id','client_secret'].includes(question.Name)?a('requiresOwnCredentials'):a('unexpectedQuestion')}</p></div>
      {question.HasSavedValue&&<label className="account-keep"><input type="checkbox" checked={keep} onChange={event=>setKeep(event.target.checked)}/>{a('keep')}</label>}
-     <AccountField key={`${session.id}-${session.step}`} option={{...question,Required:question.Required&&!keep}} value={keep?'':answer} language={language} disabled={pending||keep} selectedProvider={subtype} onChange={setAnswer} onChooseFile={/(?:_file|_path)$/.test(question.Name)&&!question.IsPassword?()=>void perform(async()=>{const file=await window.rclone.chooseFile('credential');if(file){setKeep(false);setAnswer(file);}}):undefined}/>
+     <AccountField key={`${session.id}-${session.step}`} option={{...question,Required:question.Required&&!keep}} value={keep?'':answer} language={language} disabled={pending||keep} selectedProvider={subtype} connectionType={provider} onChange={setAnswer} onChooseFile={/(?:_file|_path)$/.test(question.Name)&&!question.IsPassword?()=>void perform(async()=>{const file=await window.rclone.chooseFile('credential');if(file){setKeep(false);setAnswer(file);}}):undefined}/>
     </form>}
     {session.phase==='ready'&&!cancelling&&<div className="account-ready"><h3>{session.mode==='delete'?a('removeReady'):a('ready')}</h3><p>{session.mode==='delete'?a('removeHint'):a('staged')}</p>{session.tested&&<Notice kind="success">{a('tested')}</Notice>}{session.mode!=='delete'&&<button type="button" title={a('testHint')} disabled={pending} onClick={()=>void perform(async()=>put(await window.rclone.accountConfig({action:'test',id:session.id}) as AccountSession))}>{a('test')}</button>}</div>}
     {session.phase==='error'&&!session.error&&<Notice kind="error">{a('failed')}</Notice>}

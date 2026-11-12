@@ -3,6 +3,7 @@ import {fileURLToPath, pathToFileURL} from 'node:url';
 import path from 'node:path';
 import {installHostFixture} from './native-fixture';
 import {translator} from '../renderer/i18n';
+import {explainError} from '../renderer/errorExplain';
 
 // 0.10.2: problems show as a small light with a plain title. Orange when rclone
 // recovers by itself, red when the user must act; only urgent problems unfold.
@@ -10,6 +11,16 @@ import {translator} from '../renderer/i18n';
 const t = translator('zh-TW');
 const url = pathToFileURL(path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../Resources/Web/index.html')).href;
 const rateLimit = "couldn't list directory: googleapi: Error 403: Quota exceeded for quota metric 'Queries' of service 'drive.googleapis.com' for consumer 'project_number:202264815644'. rateLimitExceeded";
+
+test('source directory lookup failure is explained as a folder problem requiring attention', () => {
+  for (const message of ['error reading source directory: directory not found', '來源資料夾無法讀取，該部分尚未同步。請查看逐檔報告。']) {
+    const result = explainError(message, t);
+    expect(result?.severity).toBe('action');
+    expect(result?.title).toBe('來源資料夾無法讀取');
+    expect(result?.detail).toContain('尚未同步');
+  }
+  expect(explainError('Failed to copy: open /source/a.txt: no such file or directory', t)?.severity).toBe('caution');
+});
 
 async function openWith(page: Page, patch: Record<string, unknown>, stats: Record<string, unknown>) {
   const errors: string[] = [];
@@ -25,6 +36,15 @@ async function openWith(page: Page, patch: Record<string, unknown>, stats: Recor
   await page.locator('.main-nav button').nth(1).click();
   return errors;
 }
+
+test('source folder failure remains red and explains that its contents have not synced', async ({page}) => {
+  await openWith(page, {status: 'failed', error: 'error reading source directory: directory not found'}, {errors: 7, retryError: false});
+  const alert = page.locator('.job-alert');
+  await expect(alert).toHaveClass(/action/);
+  await expect(alert.locator('.alert-title')).toContainText('來源資料夾無法讀取');
+  await alert.locator('summary').first().click();
+  await expect(alert.locator('.job-alert-body')).toContainText('尚未同步');
+});
 
 test('a retried rate limit is an orange light with its explanation folded', async ({page}) => {
   const errors = await openWith(page, {error: rateLimit}, {errors: 3, retryError: true});

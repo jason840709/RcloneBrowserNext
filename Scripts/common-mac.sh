@@ -7,7 +7,7 @@ RBN_CACHE_ROOT="$RBN_PROJECT_ROOT/.build-cache"
 RBN_APP_PATH="$RBN_PROJECT_ROOT/Rclone Browser Next.app"
 RBN_BUNDLE_ID="org.rclone.browser.next.lite"
 RBN_EXECUTABLE="RcloneBrowserNext"
-RBN_VERSION="0.10.4"
+RBN_VERSION="0.10.6"
 RBN_MINIMUM_MACOS="13.0"
 # The interface is designed for the macOS 15 look. macOS 26 and later redraw
 # the toolbar of an App linked against their own SDK with glass circles around
@@ -108,6 +108,14 @@ rbn_collect_core_sources() {
     RBN_CORE_SOURCES+=("$source_path")
   done
   [[ "${#RBN_CORE_SOURCES[@]}" -gt 0 ]] || rbn_fail '來源包缺少 Sources/Core 的 Swift 檔案。' 2
+}
+
+rbn_build_process_launcher() {
+  local output="$1"
+  /usr/bin/xcrun --no-cache --sdk macosx clang -std=c11 -Wall -Wextra -Werror -O2 \
+    -arch "$RBN_TARGET_ARCH" -mmacosx-version-min="$RBN_MINIMUM_MACOS" -isysroot "$RBN_SDK" \
+    "$RBN_PROJECT_ROOT/Scripts/native/MacRcloneLauncher.c" -o "$output"
+  /usr/bin/codesign --force --sign - --timestamp=none "$output"
 }
 
 rbn_start_log() {

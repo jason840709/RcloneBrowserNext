@@ -22,6 +22,7 @@ const rules: Array<[RegExp, ErrorSeverity, Key, Key]> = [
   [/permission denied|operation not permitted|access denied|insufficientPermissions|forbidden|\b403\b/i, 'action', 'errPermissionTitle', 'errPermission'],
   [/file name too long|name too long|path too long/i, 'action', 'errNameTooLongTitle', 'errNameTooLong'],
   [/invalid argument|illegal character|invalid (file ?)?name|invalid character/i, 'action', 'errBadNameTitle', 'errBadName'],
+  [/error reading source directory|來源資料夾無法讀取|Source folders could not be read|コピー元のフォルダを読み込めない/i, 'action', 'errSourceFolderTitle', 'errSourceFolder'],
   [/directory not found|object not found|no such file|not found|\b404\b/i, 'caution', 'errNotFoundTitle', 'errNotFound'],
   [/hash(es)? differ|checksum|corrupted on transfer|md5 (do not|don't) match/i, 'caution', 'errChecksumTitle', 'errChecksum'],
   [/connection reset|connection refused|i\/o timeout|timeout|timed out|no such host|network is unreachable|unexpected EOF|broken pipe|TLS handshake|dial tcp/i, 'caution', 'errNetworkTitle', 'errNetwork'],

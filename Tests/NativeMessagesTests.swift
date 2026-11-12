@@ -43,6 +43,7 @@ import Glibc
                 ("請拖入原始檔案或資料夾；拖放不會跟隨符號連結。", "Drag the original file or folder. Drag and drop does not follow symbolic links.", "元のファイルまたはフォルダをドラッグしてください。ドラッグ＆ドロップではシンボリックリンクをたどりません。"),
                 ("同步會刪除目的地中來源沒有的檔案；本次未設定刪除數量上限。", "Sync deletes destination files absent from the source. No deletion limit is set for this run.", "同期では転送元に存在しない転送先のファイルを削除します。今回は削除数の上限を設定していません。"),
                 ("工作已停止。", "The job stopped.", "処理を停止しました。"),
+                ("缺少 Mac 程序啟動元件，請重新安裝。", "A Mac process launch component is missing. Reinstall the app.", "Mac のプロセス起動コンポーネントがありません。アプリを再インストールしてください。"),
                 ("依本次比對與略過設定，無需更新。", "No update is needed under this job's comparison and skip settings.", "この処理の比較・スキップ設定では更新不要です。"),
                 ("檔案有變更，已列入傳輸清單。", "This file has changed and is listed for transfer.", "このファイルに変更があるため、転送対象に追加しました。"),
                 ("第 2 輪：只重試上一輪出錯的 3 個檔案，其他檔案不重新檢查。", "Pass 2: retrying only the 3 files that failed in the previous pass. Other files are not checked again.", "2 回目：前回失敗した 3 件のファイルだけを再試行します。ほかのファイルは確認し直しません。"),

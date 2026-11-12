@@ -104,6 +104,16 @@ enum EnginePlatform {
         if needsNullHandle(process.standardError) { process.standardError = try FileHandle(forWritingTo: nullURL) }
         process.arguments = [executable.path] + (process.arguments ?? [])
         process.executableURL = launcher
+        #elseif os(macOS)
+        guard let executable = process.executableURL else { throw EngineError("缺少執行檔。") }
+        let values = [executable.path] + (process.arguments ?? [])
+        // Foundation converts argv to filesystem strings (NFD). A remote may
+        // store NFC and NFD names side by side, so neither may be normalized.
+        guard values.contains(where: { !$0.utf8.allSatisfy({ $0 < 128 }) }) else { return }
+        let launcher = URL(fileURLWithPath: CommandLine.arguments[0]).deletingLastPathComponent().appendingPathComponent("rbn-process-launcher")
+        guard FileManager.default.isExecutableFile(atPath: launcher.path) else { throw EngineError("缺少 Mac 程序啟動元件，請重新安裝。") }
+        process.arguments = values.map { Data($0.utf8).base64EncodedString() }
+        process.executableURL = launcher
         #endif
     }
 

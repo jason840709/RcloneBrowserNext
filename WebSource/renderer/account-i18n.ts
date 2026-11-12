@@ -2,6 +2,8 @@ import type {ResolvedLanguage} from '../shared/types';
 
 type Localized = readonly [string,string,string];
 const messages = {
+ smbPasswordHint:['填入 NAS 帳號的密碼；只有 NAS 允許該帳號不需密碼時才留空。','Enter the password for your NAS account. Leave it blank only if the NAS allows this account to sign in without one.','NAS アカウントのパスワードを入力します。NAS でパスワードなしのログインが許可されている場合だけ空欄にします。'],
+ smbHint:['SMB 直連可直接讀取 NAS，不需要先在電腦掛載。儲存連線後，可從位置選單選擇共享資料夾。','Direct SMB connects to your NAS without an OS mount. After saving the connection, choose a shared folder from the location menu.','SMB 直接接続では、OS にマウントせずに NAS に接続します。保存後、場所メニューから共有フォルダーを選びます。'],
  title:['帳號設定','Account setup','アカウント設定'],
  add:['新增帳號','Add account','アカウントを追加'], edit:['編輯','Edit','編集'], remove:['移除','Remove','削除'],
  accountName:['帳號名稱','Account name','アカウント名'], provider:['雲端或伺服器','Cloud or server','クラウド・サーバー'],
@@ -68,6 +70,7 @@ const index = (language:ResolvedLanguage) => language==='ja'?2:language==='en'?1
 export function accountTranslator(language:ResolvedLanguage) {return (key:AccountText):string=>messages[key][index(language)];}
 
 const labels:Record<string,Localized> = {
+ domain:['網域','Domain','ドメイン'],
  client_id:['Client ID（應用程式識別碼）','Client ID (application ID)','Client ID（アプリの識別子）'], client_secret:['Client Secret（應用程式密鑰）','Client secret','Client Secret（アプリのシークレット）'],
  scope:['允許的檔案操作','File access','ファイルへのアクセス'], service_account_file:['服務帳戶金鑰檔案','Service account key file','サービスアカウントの鍵ファイル'],
  config_fs_advanced:['調整進階選項','Adjust advanced options','詳細オプションを変更'], config_is_local:['使用這台電腦的瀏覽器登入','Sign in with this computer’s browser','このパソコンのブラウザーでログイン'],
@@ -109,6 +112,7 @@ const hints:Record<string,Localized> = {
  key_file:['使用 SSH 私鑰登入時，選擇金鑰檔案。','Choose your key file when using SSH key authentication.','SSH 鍵認証を使用する場合に、秘密鍵ファイルを選択します。'],
 };
 const providers:Record<string,Localized> = {
+ smb:['SMB 直連（NAS／伺服器）','Direct SMB (NAS / server)','SMB 直接接続（NAS／サーバー）'],
  drive:['Google Drive','Google Drive','Google Drive'], onedrive:['Microsoft OneDrive','Microsoft OneDrive','Microsoft OneDrive'], dropbox:['Dropbox','Dropbox','Dropbox'],
  sftp:['SFTP 伺服器','SFTP server','SFTP サーバー'], ftp:['FTP 伺服器','FTP server','FTP サーバー'], webdav:['WebDAV 伺服器','WebDAV server','WebDAV サーバー'],
  local:['本機資料夾','Local folder','ローカルフォルダー'], alias:['既有位置的捷徑','Shortcut to an existing location','既存の場所へのショートカット'],

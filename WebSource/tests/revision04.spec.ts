@@ -191,3 +191,16 @@ for (const language of ['zh-TW','en','ja'] as const) {
     await d.getByRole('button',{name:tx('cancel'),exact:true}).click();const pref=await settings(page);await pref.getByRole('button',{name:tx('network'),exact:true}).click();await pref.locator('.network-options-section').scrollIntoViewIfNeeded();await expect(pref.getByLabel(tx('tpsLimit'),{exact:true})).toBeVisible();await page.screenshot({path:testInfo.outputPath(`network-${language}.png`),animations:'disabled'});expect(errors).toEqual([]);
   });
 }
+
+ test('NAS picker distinguishes Mac mounted volumes and direct SMB with standard secondary text',async({page},info)=>{
+  await installHostFixture(page,{settings:{autoCheckUpdates:false,theme:'purple-dark'}});
+  await page.addInitScript(()=>{const b=(window as any).__fixture.bootstrap;const mount=b.localLocations.find((x:any)=>x.group==='network');mount.connection='mac-mounted';mount.name='Ironwolf Pro 16tb';const direct=b.remotes.find((x:any)=>x.name==='lab-nas');direct.type='smb';direct.name='Ironwolf Pro 16tb';});
+  await page.goto(appURL);await page.getByTestId('left-pane').locator('.location-trigger').click();
+  const mounted=page.locator('.location-option[data-value="@local:test-nas-volume"] .location-option-detail');
+  const direct=page.locator('.location-option[data-value="Ironwolf Pro 16tb"] .location-option-detail');
+  await expect(mounted).toHaveText('Mac 掛載');await expect(direct).toHaveText('SMB 直連');
+  const style=await mounted.evaluate(e=>({size:getComputedStyle(e).fontSize,weight:getComputedStyle(e).fontWeight,color:getComputedStyle(e).color,secondary:getComputedStyle(document.documentElement).getPropertyValue('--secondary').trim()}));
+  expect(style.size).toBe('12px');expect(style.weight).toBe('400');
+  const expectedColor=await mounted.evaluate(e=>{const p=document.createElement('span');p.style.color='var(--secondary)';e.append(p);const c=getComputedStyle(p).color;p.remove();return c;});expect(style.color).toBe(expectedColor);
+  await page.screenshot({path:info.outputPath('nas-connection-methods.png')});
+ });

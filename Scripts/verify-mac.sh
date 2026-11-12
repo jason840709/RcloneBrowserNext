@@ -25,6 +25,8 @@ esac
 RBN_VERIFY_PLIST="$RBN_VERIFY_APP/Contents/Info.plist"
 RBN_VERIFY_BINARY="$RBN_VERIFY_APP/Contents/MacOS/$RBN_EXECUTABLE"
 [[ -s "$RBN_VERIFY_PLIST" && -x "$RBN_VERIFY_BINARY" ]] || rbn_fail 'App 缺少 Info.plist 或可執行的主程式。' 2
+RBN_VERIFY_LAUNCHER="$RBN_VERIFY_APP/Contents/MacOS/rbn-process-launcher"
+[[ -x "$RBN_VERIFY_LAUNCHER" && ! -L "$RBN_VERIFY_LAUNCHER" ]] || rbn_fail 'App 缺少 Mac 程序啟動元件。' 2
 for RBN_VERIFY_RESOURCE in Resources/Web/index.html Resources/AppIcon.icns Resources/AppIcon-blue.icns Resources/AppIcon-green.icns; do
   [[ -s "$RBN_VERIFY_APP/Contents/$RBN_VERIFY_RESOURCE" ]] || rbn_fail "App 缺少資源：$RBN_VERIFY_RESOURCE" 2
 done
@@ -41,6 +43,7 @@ done
 RBN_ACTUAL_ARCH="$(/usr/bin/xcrun --no-cache lipo -archs "$RBN_VERIFY_BINARY")"
 case "$RBN_ACTUAL_ARCH" in arm64|x86_64) ;; *) rbn_fail "App 架構不符：$RBN_ACTUAL_ARCH" 2 ;; esac
 [[ -z "${RBN_EXPECTED_ARCH:-}" || "$RBN_ACTUAL_ARCH" == "$RBN_EXPECTED_ARCH" ]] || rbn_fail 'App 與這次指定的架構不同。' 2
+[[ "$(/usr/bin/xcrun --no-cache lipo -archs "$RBN_VERIFY_LAUNCHER")" == "$RBN_ACTUAL_ARCH" ]] || rbn_fail 'Mac 程序啟動元件架構不符。' 2
 RBN_LOAD_COMMANDS="$(/usr/bin/xcrun --no-cache otool -l "$RBN_VERIFY_BINARY")"
 RBN_BINARY_MINIMUM="$(printf '%s\n' "$RBN_LOAD_COMMANDS" | /usr/bin/awk '
   $1 == "cmd" && $2 == "LC_BUILD_VERSION" { modern = 1; next }

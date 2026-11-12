@@ -448,6 +448,10 @@ final class BrowserAppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegat
         }
     }
 
+    func windowWillUseStandardFrame(_ window: NSWindow, defaultFrame: NSRect) -> NSRect {
+        RBNTitlebarInteraction.standardFrame(for: window, fallback: defaultFrame)
+    }
+
     func windowShouldClose(_ sender: NSWindow) -> Bool {
         sender.orderOut(nil)
         return false
@@ -780,7 +784,10 @@ final class BrowserAppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegat
             return try checkAppUpdates().json
         case "setChrome":
             guard let state = argument(0) as? [String: Any] else { throw EngineError("工具列狀態格式不正確。") }
-            onMain { mainToolbar?.apply(RBNMainToolbar.State(json: state)) }
+            onMain {
+                mainToolbar?.apply(RBNMainToolbar.State(json: state))
+                (window as? RcloneBrowserWindow)?.titlebarZoomAllowed = !(state["modalOpen"] as? Bool ?? false)
+            }
             return NSNull()
         case "showAbout":
             guard arguments.isEmpty else { throw EngineError("關於視窗不需要額外參數。") }

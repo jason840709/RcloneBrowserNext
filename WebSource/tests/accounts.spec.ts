@@ -18,6 +18,7 @@ async function open(page:Page,options:{platform?:string;theme?:Theme;language?:R
    {name:'webdav',description:'WebDAV',quickSetup:false,options:[{Name:'url',Help:'The URL of the WebDAV service.',Required:true,Default:''},{Name:'vendor',Help:'Name of the WebDAV site.',Default:'',Examples:[{Value:'nextcloud',Help:'Nextcloud'},{Value:'other',Help:'Other site/service or software'}]},{Name:'user',Help:'User name.',Sensitive:true,Default:''},{Name:'pass',Help:'Password.',IsPassword:true,Default:''}]},
    {name:'dropbox',description:'Dropbox',quickSetup:true,options:credentials},
    {name:'onedrive',description:'Microsoft OneDrive',quickSetup:true,options:[...credentials,{Name:'region',Help:'Microsoft cloud region.',Default:'global',Examples:[{Value:'global',Help:'Microsoft Cloud Global'},{Value:'us',Help:'Microsoft Cloud for US Government'}]}]},
+   {name:'smb',description:'SMB / CIFS',quickSetup:false,options:[{Name:'host',Help:'SMB host.',Required:true,Default:''},{Name:'user',Help:'User name.',Default:''},{Name:'pass',Help:'Password.',IsPassword:true,Default:''},{Name:'port',Help:'SMB port.',Default:445,Type:'int'},{Name:'domain',Help:'Domain.',Default:'WORKGROUP'},{Name:'spn',Help:'Advanced service principal.',Default:'',Advanced:true}]},
    {name:'sftp',description:'SSH/SFTP',quickSetup:false,options:[{Name:'host',Help:'SSH host to connect to.',Required:true,Sensitive:true,Default:''},{Name:'user',Help:'SSH user name.',Sensitive:true,Default:''},{Name:'port',Help:'SSH port.',Default:22,Type:'int'},{Name:'pass',Help:'SSH password, leave blank to use ssh-agent.',IsPassword:true,Default:''},{Name:'key_file',Help:'Path to a PEM private key.',Default:'',Advanced:true}]},
    {name:'drive',description:'Google Drive',quickSetup:true,options:[...credentials,{Name:'scope',Help:'Comma separated list of scopes that rclone should use when requesting access from drive.',Default:'',Examples:[{Value:'drive',Help:'Full access all files, excluding Application Data Folder.'},{Value:'drive.readonly',Help:'Read-only access to file metadata and file contents.'},{Value:'drive.file',Help:'Access to files created by rclone only.\nThese are visible in the drive website.\nFile authorization is revoked when the user deauthorizes the app.'},{Value:'drive.appfolder',Help:'Allows read and write access to the Application Data folder.\nThis is not visible in the drive website.'},{Value:'drive.metadata.readonly',Help:'Allows read-only access to file metadata but does not allow any access to read or download file content.'}]},{Name:'service_account_file',Help:'Service Account Credentials JSON file path.\n\nLeave blank normally.',Default:''},{Name:'root_folder_id',Help:'ID of the root folder.',Default:'',Advanced:true},{Name:'future_option',Help:'A future option provided by the installed rclone.',Default:'server-default',Advanced:true}]},
   ];
@@ -334,3 +335,14 @@ test('quick form and expandable details fit a very narrow window without hiding 
  expect(await page.locator('.progress-indicator').evaluate(element=>getComputedStyle(element).animationName)).toBe('none');
  await finishSignIn(page);
 });
+
+ test('SMB direct connection is a server with a short form and a mount-free explanation',async({page})=>{
+  await open(page);const a=accountTranslator('zh-TW');
+  await page.getByLabel(a('provider'),{exact:true}).selectOption('smb');
+  const form=page.locator('#account-create');
+  await expect(form.locator('optgroup').filter({has:page.locator('option[value="smb"]')})).toHaveAttribute('label',a('servers'));
+  await expect(form).toContainText('不需要先在電腦掛載');
+  for(const key of ['host','user','pass','port','domain'])await expect(form.locator(`[data-option-name="${key}"]`)).toBeVisible();
+  await expect(form.locator('[data-option-name="spn"]')).toHaveCount(0);
+  await expect(form.locator('[data-option-name="pass"] input')).toHaveAttribute('type','password');
+ });

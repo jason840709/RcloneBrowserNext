@@ -12,7 +12,10 @@ rbn_require_apple_tools
 rbn_choose_architecture
 rbn_collect_core_sources
 rbn_start_log local-recovery
-RBN_TEST_RUN="$(/usr/bin/mktemp -d "$RBN_CACHE_ROOT/tests/local-recovery.XXXXXX")"
+RBN_TEST_WORK_ROOT="${RBN_TEST_WORK_ROOT:-$RBN_CACHE_ROOT/tests}"
+[[ "$RBN_TEST_WORK_ROOT" == /* && -d "$RBN_TEST_WORK_ROOT" && ! -L "$RBN_TEST_WORK_ROOT" ]] || rbn_fail 'RBN_TEST_WORK_ROOT 必須是已存在的實體資料夾。' 5
+RBN_TEST_RUN="$(/usr/bin/mktemp -d "$RBN_TEST_WORK_ROOT/local-recovery.XXXXXX")"
+rbn_build_process_launcher "$RBN_TEST_RUN/rbn-process-launcher"
 RBN_TEST_APP="$RBN_APP_PATH/Contents/MacOS/$RBN_EXECUTABLE"
 [[ -x "$RBN_TEST_APP" ]] || rbn_fail '請先建立 Mac App，再驗證內建修復入口。' 5
 RBN_TEST_FAILURES=0
