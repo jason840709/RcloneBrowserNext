@@ -279,9 +279,16 @@ import Foundation
                 var completed = false
                 defer { if !completed { print("STARTUP COMPLETED DIAGNOSTIC \(theme): \(diagnostics(view, surface: surface, host: host))") } }
                 view.loadFileURL(web.appendingPathComponent("index.html"), allowingReadAccessTo: web)
-                try wait(seconds: 25, context: "complete native-chrome interface") { host.error != nil || !surface.isCoverVisible }
+                let interfaceReady = "!!document.querySelector('.browser-grid') && !!document.querySelector('.app-statusbar')"
+                try wait(seconds: 25, context: "complete native-chrome interface") {
+                    if host.error != nil { return true }
+                    guard !surface.isCoverVisible else { return false }
+                    // The cover may reveal the valid loading screen before
+                    // React applies the fixture's completed bootstrap reply.
+                    return (try? evaluate(interfaceReady, in: view)) as? Bool == true
+                }
                 if let error = host.error { throw error }
-                try require(try evaluate("!!document.querySelector('.browser-grid') && !!document.querySelector('.app-statusbar')", in: view) as? Bool == true,
+                try require(try evaluate(interfaceReady, in: view) as? Bool == true,
                             "The fully loaded production interface was not rendered")
                 completed = true
             }
