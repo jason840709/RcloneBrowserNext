@@ -9,7 +9,7 @@
     },
     ".github/workflows/macos.yml": {
       "bytes": 21232,
-      "sha256": "62160dd0c6b770e63ed5e19d771c9e44f8a3812a5c6f16bc40a82fce78629ec8"
+      "sha256": "dd97377e2579306f650234ee6544e5bb90d691aa38300ea27135a58b36684971"
     },
     ".gitignore": {
       "bytes": 278,
