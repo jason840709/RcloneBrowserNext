@@ -111,9 +111,11 @@ fi
 /usr/bin/find "$RBN_STAGE_APP" -type d -exec /bin/chmod 755 {} +
 /usr/bin/find "$RBN_STAGE_APP" -type f -exec /bin/chmod 644 {} +
 /bin/chmod 755 "$RBN_STAGE_APP/Contents/MacOS/$RBN_EXECUTABLE"
+rbn_build_process_launcher "$RBN_STAGE_APP/Contents/MacOS/rbn-process-launcher"
 /usr/bin/plutil -lint "$RBN_STAGE_APP/Contents/Info.plist"
 
-# There is one native executable and no bundled frameworks or rclone binary.
+# The process launcher is signed before sealing the complete bundle.
+# There are no bundled frameworks or rclone binary.
 # Sign the finished bundle, including Info.plist and all Web resources.
 /usr/bin/codesign --force --sign - --timestamp=none \
   --identifier "$RBN_BUNDLE_ID" "$RBN_STAGE_APP"

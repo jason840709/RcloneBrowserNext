@@ -37,6 +37,8 @@ Use an existing Xcode or Apple Command Line Tools installation on macOS 13+. The
 
 Run from the extracted project folder. On a checkout stored on a third-party NTFS driver, `swiftc` crashes (SIGTRAP) when its temporary files live there; set `RBN_TMPDIR` to an existing local folder and only temporary files go there (module caches, logs and outputs stay in the checkout). `RBN_BUILD_ARCH=arm64` or `RBN_BUILD_ARCH=x86_64` selects an architecture when cross-building with Apple's SDK. Tests require a rclone executable that the testing host can actually run.
 
+Mac build and test scripts also compile `Scripts/native/MacRcloneLauncher.c` next to each engine executable as `rbn-process-launcher`. Keep this signed helper in the App bundle and beside any manually compiled Mac engine/test. It preserves Unicode argument bytes across Foundation's filesystem normalization, then replaces itself with the requested executable, retaining the PID, pipes, environment and cancellation behavior.
+
 The complete bundle is assembled before ad-hoc signing. Existing app builds are backed up only after the new bundle compiles and verifies. The external rclone executable is never copied into `Contents/Resources`.
 
 ## Develop the web interface

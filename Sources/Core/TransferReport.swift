@@ -104,7 +104,7 @@ final class EngineTransferReport {
     ]
     private static let detailCounterKeys = [
         "copiedBytes", "failedCopyBytes", "copySizeMissingEvents", "sizeMismatchEvents", "growingSourceEvents",
-        "retryFailures", "lastAttempt", "maxAttempts", "cleanupEvents", "cleanupFailureEvents"
+        "retryFailures", "lastAttempt", "maxAttempts", "cleanupEvents", "cleanupFailureEvents", "directoryDeletedEvents", "directoryPlannedEvents"
     ]
     private static let maximumRecordBytes = 2 * 1024 * 1024
     private let lock = NSLock()
@@ -155,12 +155,13 @@ final class EngineTransferReport {
     /// modify-window argument used for this run. Credentials, config contents
     /// and the process environment are outside this snapshot.
     func recordConfiguration(_ request: EngineTransferRequest, engineVersion: String?, effectiveModifyWindow: String?, effectiveLocalCopyPolicy: String? = nil,
-                             retryScope: String? = nil) throws {
+                             retryScope: String? = nil, effectiveLocalNamePolicy: String? = nil) throws {
         var metadata: [String: Any] = ["kind": "complete", "schemaVersion": 1,
                                        "request": request.json, "engineVersion": engineVersion as Any? ?? NSNull(),
                                        "effectiveModifyWindow": effectiveModifyWindow as Any? ?? NSNull()]
         if let policy = effectiveLocalCopyPolicy { metadata["effectiveLocalCopyPolicy"] = policy }
         if let scope = retryScope { metadata["retryScope"] = scope }
+        if let policy = effectiveLocalNamePolicy { metadata["effectiveLocalNamePolicy"] = policy }
         var records: [[String: Any]] = []
         if try EngineJSON.data(metadata).count <= Self.maximumRecordBytes / 2 { records = [metadata] }
         else {
@@ -400,6 +401,18 @@ final class EngineTransferReport {
             try append(record, destinations: ["all"])
             increment("informationEvents")
             try makeVisible()
+        }
+    }
+
+    func recordDirectoryCleanup(path: String, dryRun: Bool) throws {
+        try lock.holding {
+            try append(["time": EngineJSON.now(), "status": dryRun ? "planned" : "success", "action": "cleanup",
+                        "evidence": "app", "path": path, "objectType": "directory", "issue": "empty-directory",
+                        "message": dryRun ? EngineLocalSyncDirectories.wouldRemove : EngineLocalSyncDirectories.removed],
+                       destinations: dryRun ? ["all"] : ["all", "success"])
+            if dryRun { increment("plannedEvents"); increment("directoryPlannedEvents") }
+            else { increment("successEvents"); increment("cleanupEvents"); increment("directoryDeletedEvents") }
+            try periodicallyMakeVisible()
         }
     }
     func flush() throws { try lock.holding { for output in outputs.values { try output.finish() } } }

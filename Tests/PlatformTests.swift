@@ -50,6 +50,43 @@ struct PlatformTests {
             try check(EnginePlatform.absoluteLocalPath("/tmp/a:b\\c", windows: false), "POSIX filename changed")
             try check(!EnginePlatform.absoluteLocalPath("C:/windows", windows: false), "Windows path accepted on POSIX")
         }
+        #if os(macOS)
+        test("Mac child arguments preserve composed and decomposed Unicode byte for byte") {
+            let values = ["が", "か\u{3099}", "é", "e\u{301}", "引用‛？／", "", "a b", "\"'$`\\"]
+            let child = Process(), output = Pipe()
+            child.executableURL = URL(fileURLWithPath: "/bin/sh")
+            child.arguments = ["-c", "printf '%s\\0' \"$@\"", "fixture"] + values
+            child.standardOutput = output
+            try EnginePlatform.prepare(child); try child.run()
+            let actual = output.fileHandleForReading.readDataToEndOfFile()
+            child.waitUntilExit()
+            let expected = values.reduce(into: Data()) { $0.append(contentsOf: $1.utf8); $0.append(0) }
+            try check(child.terminationStatus == 0 && actual == expected, "Child argument bytes or boundaries changed")
+        }
+        test("Mac Unicode launch retains standard streams environment and exit status") {
+            let child = Process(), output = Pipe(), errors = Pipe(), input = Pipe()
+            child.executableURL = URL(fileURLWithPath: "/bin/sh")
+            child.arguments = ["-c", "IFS= read -r value; printf '%s:%s' \"$value\" \"$RBN_TEST_VALUE\"; printf error >&2; exit 37", "が"]
+            child.environment = ProcessInfo.processInfo.environment.merging(["RBN_TEST_VALUE": "environment"]) { _, new in new }
+            child.standardInput = input; child.standardOutput = output; child.standardError = errors
+            try EnginePlatform.prepare(child); try child.run()
+            input.fileHandleForWriting.write(Data("input\n".utf8)); try input.fileHandleForWriting.close()
+            let actual = output.fileHandleForReading.readDataToEndOfFile(), diagnostics = errors.fileHandleForReading.readDataToEndOfFile()
+            child.waitUntilExit()
+            try check(actual == Data("input:environment".utf8) && diagnostics == Data("error".utf8) && child.terminationStatus == 37, "Launch context changed")
+        }
+        test("Mac Unicode launch cancellation reaches the tracked child PID") {
+            let child = Process()
+            child.executableURL = URL(fileURLWithPath: "/bin/sh")
+            child.arguments = ["-c", "exec /bin/sleep 20", "が"]
+            try EnginePlatform.prepare(child); try child.run()
+            Thread.sleep(forTimeInterval: 0.1)
+            let start = Date()
+            try check(EnginePlatform.signal(child.processIdentifier, SIGTERM) == 0, "Could not stop child")
+            child.waitUntilExit()
+            try check(Date().timeIntervalSince(start) < 2 && child.terminationReason == .uncaughtSignal, "Cancellation did not reach child")
+        }
+        #endif
         test("destination roots include drive and UNC share roots") {
             for path in ["C:/", "C:\\", "//server/share", "//server/share/"] {
                 try check(EnginePlatform.isFilesystemRoot(path, windows: true), "Root was not protected: \(path)")

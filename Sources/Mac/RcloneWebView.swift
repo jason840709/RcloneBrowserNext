@@ -57,8 +57,10 @@ struct RBNWebAppearance {
 /// responder chain. Route mouse buttons and driver-generated swipes first.
 final class RcloneBrowserWindow: NSWindow {
     weak var browserView: RcloneWebView?
+    var titlebarZoomAllowed = true
 
     override func sendEvent(_ event: NSEvent) {
+        if RBNTitlebarInteraction.handle(event, in: self, enabled: titlebarZoomAllowed) { return }
         if let browser = browserView ?? contentView as? RcloneWebView,
            browser.handleHistoryEvent(event, routedByWindow: true) { return }
         super.sendEvent(event)

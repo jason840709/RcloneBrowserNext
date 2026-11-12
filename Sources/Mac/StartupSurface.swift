@@ -135,10 +135,10 @@ final class RBNStartupSurface: NSView {
                 return
             }
             let configuration = WKSnapshotConfiguration()
-            // Sample only the top-left corner: with the native toolbar the
-            // panes start a few points below it, so a downscaled whole-view
-            // snapshot would blend the pane edge into the canvas pixel.
-            configuration.rect = CGRect(x: self.browserView.bounds.minX, y: self.browserView.bounds.minY, width: 4, height: 4)
+            // The completed workspace starts with a half-pixel separator.
+            // Sample just inside it: the outermost pixel is a border rather
+            // than the canvas when bootstrap finishes before this check.
+            configuration.rect = CGRect(x: self.browserView.bounds.minX + 2, y: self.browserView.bounds.minY + 2, width: 4, height: 4)
             configuration.snapshotWidth = 4
             configuration.afterScreenUpdates = true
             self.browserView.takeSnapshot(with: configuration) { [weak self] image, _ in

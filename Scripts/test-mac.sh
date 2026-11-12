@@ -18,10 +18,19 @@ rbn_start_log test
 
 # Every suite has its own @main. Keep each executable separate and use only
 # Apple's already-installed tools. All compiled tests and data stay here.
-RBN_TEST_RUN="$(/usr/bin/mktemp -d "$RBN_CACHE_ROOT/tests/run.XXXXXX")"
-RBN_TEST_SUITES=(AccountsTests CoreTests ListingTests UpdaterTests ToolsTests NativeMessagesTests FinderDropTests AppReleaseTests TransferReportTests PlatformTests)
+# Permission/immutable-file and disk-image fixtures need APFS when the source
+# checkout lives on NTFS. Only synthetic work data moves; caches stay here.
+RBN_TEST_WORK_ROOT="${RBN_TEST_WORK_ROOT:-$RBN_CACHE_ROOT/tests}"
+[[ "$RBN_TEST_WORK_ROOT" == /* && -d "$RBN_TEST_WORK_ROOT" && ! -L "$RBN_TEST_WORK_ROOT" ]] || rbn_fail 'RBN_TEST_WORK_ROOT 必須是已存在的實體資料夾。' 5
+RBN_TEST_RUN="$(/usr/bin/mktemp -d "$RBN_TEST_WORK_ROOT/run.XXXXXX")"
+rbn_build_process_launcher "$RBN_TEST_RUN/rbn-process-launcher"
+RBN_TEST_SUITES=(AccountsTests CoreTests SyncDirectoryTests SMBTests ListingTests UpdaterTests ToolsTests NativeMessagesTests FinderDropTests AppReleaseTests TransferReportTests PlatformTests)
 if [[ "${RBN_NATIVE_TESTS_ONLY:-0}" != 1 ]]; then
 for RBN_TEST_SUITE in "${RBN_TEST_SUITES[@]}"; do
+  if [[ ( "$RBN_TEST_SUITE" == SyncDirectoryTests || "$RBN_TEST_SUITE" == SMBTests ) && -z "$RBN_TEST_ENGINE" ]]; then
+    printf '\nSKIP %s: 請提供 rclone 路徑。\n' "$RBN_TEST_SUITE"
+    continue
+  fi
   RBN_TEST_SOURCE="$RBN_PROJECT_ROOT/Tests/$RBN_TEST_SUITE.swift"
   [[ -s "$RBN_TEST_SOURCE" && ! -L "$RBN_TEST_SOURCE" ]] || rbn_fail "來源包缺少測試檔案：$RBN_TEST_SOURCE" 2
   RBN_SUITE_WORK="$RBN_TEST_RUN/$RBN_TEST_SUITE-work"
@@ -52,14 +61,14 @@ fi
 # Native zoom, startup pixels and navigation need the actual macOS WebKit
 # engine. Run every native suite so one failure does not hide the others.
 RBN_NATIVE_FAILURES=0
-for RBN_NATIVE_SUITE in MacInterfaceTests MacStartupTests MacIconTests MacNavigationIntegrationTests MacCompletionTests; do
+for RBN_NATIVE_SUITE in MacInterfaceTests MacStartupTests MacIconTests MacNavigationIntegrationTests MacCompletionTests MacWindowInteractionTests; do
   RBN_NATIVE_SOURCE="$RBN_PROJECT_ROOT/Tests/$RBN_NATIVE_SUITE.swift"
   [[ -s "$RBN_NATIVE_SOURCE" && ! -L "$RBN_NATIVE_SOURCE" ]] || rbn_fail "來源包缺少測試檔案：$RBN_NATIVE_SOURCE" 2
-  RBN_NATIVE_SOURCES=("$RBN_PROJECT_ROOT/Sources/Mac/RcloneWebView.swift")
+  RBN_NATIVE_SOURCES=("$RBN_PROJECT_ROOT/Sources/Mac/RcloneWebView.swift" "$RBN_PROJECT_ROOT/Sources/Mac/WindowTitlebar.swift")
   RBN_NATIVE_ARGS=("$RBN_PROJECT_ROOT/Resources")
   case "$RBN_NATIVE_SUITE" in
     MacCompletionTests) RBN_NATIVE_SOURCES=("$RBN_PROJECT_ROOT/Sources/Mac/CompletionAttention.swift") ;;
-    MacStartupTests) RBN_NATIVE_SOURCES+=("$RBN_PROJECT_ROOT/Sources/Mac/StartupSurface.swift") ;;
+    MacStartupTests) RBN_NATIVE_SOURCES+=("$RBN_PROJECT_ROOT/Sources/Mac/StartupSurface.swift" "${RBN_CORE_SOURCES[@]}") ;;
     MacIconTests)
       RBN_NATIVE_SOURCES=("$RBN_PROJECT_ROOT/Sources/Mac/AppIconAppearance.swift")
       RBN_NATIVE_ARGS+=("$RBN_APP_PATH")
