@@ -20,7 +20,7 @@ enum EnginePartialRecovery {
     private struct UnsupportedExclusiveRename: LocalizedError {
         let code: Int32
         var errorDescription: String? {
-            "此磁碟不支援原子且不覆寫的改名（errno \(code): \(String(cString: strerror(code)))）。"
+            "此磁碟不支援不覆寫的原子改名（errno \(code): \(String(cString: strerror(code)))）。"
         }
     }
 
@@ -30,7 +30,7 @@ enum EnginePartialRecovery {
     private struct JournalStorageFailure: LocalizedError {
         let underlying: Error
         var errorDescription: String? {
-            "修復日誌無法繼續保存，已停止。若已建立新檔，該檔尚未確認完成，請查看最後一筆日誌；原暫存檔保留。\(underlying.localizedDescription)"
+            "無法繼續寫入修復日誌，已停止處理。若已建立新檔，該檔仍未確認完成，請查看最後一筆日誌；原暫存檔已保留。\(underlying.localizedDescription)"
         }
     }
 
@@ -324,7 +324,7 @@ enum EnginePartialRecovery {
                 let destinationParent = try roots.destination.appending(Array(temporary.dropLast()))
                 if try exists(parent: destinationParent, leaf: original.last!) {
                     item.status = "existing"
-                    item.message = "正式檔名已存在，保留原檔，不覆寫。"
+                    item.message = "正式檔名已存在，保留原檔不覆寫。"
                 } else {
                     let sourceParent = try roots.source.appending(Array(original.dropLast()))
                     let source = try BoundFile(parent: sourceParent, leaf: original.last!)
@@ -347,7 +347,7 @@ enum EnginePartialRecovery {
                             item.message = "來源與暫存檔的 SHA-256 不同，不改名。"
                         } else {
                             item.status = "ready"
-                            item.message = "大小與完整 SHA-256 一致，可恢復正式檔名。"
+                            item.message = "檔案大小與 SHA-256 完全一致，可還原為正式檔名。"
                             item.source = sourceHash.snapshot
                             item.temporary = partialHash.snapshot
                             item.sourceParent = sourceParent.identity
@@ -390,13 +390,13 @@ enum EnginePartialRecovery {
         let planData = try readDocument(planURL, maximum: 32 * 1024 * 1024)
         let plan = try JSONDecoder().decode(Plan.self, from: planData)
         guard plan.schemaVersion == 1, plan.kind == "local-partial-recovery-plan" else {
-            throw Failure("這不是支援的暫存檔修復計畫。")
+            throw Failure("此版本不支援這份暫存檔修復計畫。")
         }
         let report = try parseReport(URL(fileURLWithPath: plan.reportPath))
         guard report.sha256 == plan.reportSHA256,
               report.sourceRoot == plan.sourceRoot,
               report.destinationRoot == plan.destinationRoot else {
-            throw Failure("原始報表或來源／目的路徑已改變，請重新預覽。")
+            throw Failure("原始報告或來源／目標路徑已變更，請重新預覽。")
         }
         let allowed = Dictionary(uniqueKeysWithValues: report.candidates.map { ($0.id, $0) })
         var seen = Set<String>()
@@ -404,13 +404,13 @@ enum EnginePartialRecovery {
             guard allowed[item.candidate.id] == item.candidate,
                   seen.insert(item.candidate.id).inserted,
                   ["ready", "existing", "mismatch", "blocked"].contains(item.status) else {
-                throw Failure("修復計畫含有重複、未列在原始報表或不支援的項目。")
+                throw Failure("修復計畫含有重複、未在原始報告中或不支援的項目。")
             }
         }
         let roots = try openRoots(report)
         guard roots.source.identity == plan.sourceRootIdentity,
               roots.destination.identity == plan.destinationRootIdentity else {
-            throw Failure("來源或目的目錄已被替換，請重新預覽。")
+            throw Failure("來源或目標目錄已變更，請重新預覽。")
         }
         let output = try ExclusiveOutput(receiptURL, outside: report, roots: roots)
         let journalURL = URL(fileURLWithPath: try documentPath(receiptURL) + ".journal.jsonl")
@@ -444,22 +444,22 @@ enum EnginePartialRecovery {
                           let expectedSourceParent = item.sourceParent,
                           let expectedDestinationParent = item.destinationParent,
                           let expectedHash = item.sha256, validHash(expectedHash) else {
-                        throw Failure("修復計畫缺少原始身分或內容校驗值。")
+                        throw Failure("修復計畫缺少原始檔案識別或校驗值。")
                     }
                     let original = try relativeComponents(item.candidate.relativePath)
                     let temporary = try relativeComponents(item.candidate.temporaryRelativePath)
                     let destinationParent = try roots.destination.appending(Array(temporary.dropLast()))
                     guard destinationParent.identity == expectedDestinationParent else {
-                        throw Failure("目的父目錄已被替換，請重新預覽。")
+                        throw Failure("目標上層目錄已變更，請重新預覽。")
                     }
                     if try exists(parent: destinationParent, leaf: original.last!) {
                         outcome = Outcome(candidate: item.candidate, status: "skipped",
-                                          message: "正式檔名已存在，保留原檔，不覆寫。",
+                                          message: "正式檔名已存在，保留原檔不覆寫。",
                                           clearedUserImmutable: false)
                     } else {
                         let sourceParent = try roots.source.appending(Array(original.dropLast()))
                         guard sourceParent.identity == expectedSourceParent else {
-                            throw Failure("來源父目錄已被替換，請重新預覽。")
+                            throw Failure("來源上層目錄已變更，請重新預覽。")
                         }
                         let source = try BoundFile(parent: sourceParent, leaf: original.last!)
                         let partial = try BoundFile(parent: destinationParent, leaf: temporary.last!)
@@ -471,7 +471,7 @@ enum EnginePartialRecovery {
                         let sourceHash = try stableHash(source)
                         let partialHash = try stableHash(partial)
                         guard sourceHash.digest == expectedHash, partialHash.digest == expectedHash else {
-                            throw Failure("來源或暫存內容已改變，請重新預覽；未改名。")
+                            throw Failure("來源或暫存檔內容已變更，未改名；請重新預覽。")
                         }
                         _ = try source.validate(expected: expectedSource)
                         _ = try partial.validate(expected: expectedPartial)
@@ -480,7 +480,7 @@ enum EnginePartialRecovery {
                                                       finalLeaf: original.last!,
                                                       forceUnsupported: testOptions?.forceUnsupportedRename == true)
                             outcome = Outcome(candidate: item.candidate, status: "recovered",
-                                              message: "已核對完整內容並以原子改名恢復正式檔名。",
+                                              message: "已核對完整內容並還原為正式檔名。",
                                               clearedUserImmutable: unlocked, method: "atomic-rename",
                                               partialRetained: false)
                         } catch let unavailable as UnsupportedExclusiveRename {
@@ -490,7 +490,7 @@ enum EnginePartialRecovery {
                             let restored = try partial.validate()
                             guard restored.sameContentState(as: expectedPartial),
                                   restored.flags == expectedPartial.flags else {
-                                throw Failure("改名未受支援，但無法確認原暫存檔與旗標已還原；不建立新檔。")
+                                throw Failure("無法使用不覆寫的原子改名，且無法確認原暫存檔與鎖定狀態已還原，因此未建立新檔。")
                             }
                             outcome = try rebuild(candidate: item.candidate, source: source,
                                                   expectedSource: expectedSource, partial: partial,
@@ -532,9 +532,9 @@ enum EnginePartialRecovery {
         let receiptData = try readDocument(receiptURL, maximum: 32 * 1024 * 1024)
         let receipt = try JSONDecoder().decode(Receipt.self, from: receiptData)
         guard receipt.schemaVersion == 1, receipt.kind == "local-partial-recovery-receipt",
-              receipt.finishedAt != nil else { throw Failure("只接受完整完成的修復收據；中斷作業不能授權清理。") }
+              receipt.finishedAt != nil else { throw Failure("只接受已完成全部步驟的修復收據；中斷的工作不能用來清理暫存檔。") }
         let planData = try readDocument(URL(fileURLWithPath: receipt.planPath), maximum: 32 * 1024 * 1024)
-        guard digest(planData) == receipt.planSHA256 else { throw Failure("修復計畫已改變，不清理暫存檔。") }
+        guard digest(planData) == receipt.planSHA256 else { throw Failure("修復計畫已變更，不清理暫存檔。") }
         let plan = try JSONDecoder().decode(Plan.self, from: planData)
         let report = try parseReport(URL(fileURLWithPath: plan.reportPath))
         guard plan.schemaVersion == 1, plan.kind == "local-partial-recovery-plan",
@@ -542,14 +542,14 @@ enum EnginePartialRecovery {
               report.path == receipt.reportPath, report.sourceRoot == plan.sourceRoot,
               report.destinationRoot == plan.destinationRoot,
               report.sourceRoot == receipt.sourceRoot, report.destinationRoot == receipt.destinationRoot else {
-            throw Failure("收據、計畫與原始報表不一致，不清理暫存檔。")
+            throw Failure("收據、計畫與原始報告不一致，不清理暫存檔。")
         }
         let allowed = Dictionary(uniqueKeysWithValues: report.candidates.map { ($0.id, $0) })
         var planned: [String: Item] = [:]
         for item in plan.items {
             guard allowed[item.candidate.id] == item.candidate, planned[item.candidate.id] == nil,
                   ["ready", "existing", "mismatch", "blocked"].contains(item.status) else {
-                throw Failure("計畫含有未列入原始報表的項目，不清理暫存檔。")
+                throw Failure("計畫含有不在原始報告中的項目，不清理暫存檔。")
             }
             planned[item.candidate.id] = item
         }
@@ -557,14 +557,14 @@ enum EnginePartialRecovery {
         for item in receipt.items {
             guard planned[item.candidate.id]?.candidate == item.candidate,
                   seen.insert(item.candidate.id).inserted else {
-                throw Failure("收據插入了重複或未列入計畫的項目，不清理暫存檔。")
+                throw Failure("收據含有重複或不在計畫中的項目，不清理暫存檔。")
             }
         }
         try verifyRecoveryJournal(receipt)
         let roots = try openRoots(report)
         guard roots.source.identity == plan.sourceRootIdentity,
               roots.destination.identity == plan.destinationRootIdentity else {
-            throw Failure("來源或目的根目錄已改變，不清理暫存檔。")
+            throw Failure("來源或目標根目錄已變更，不清理暫存檔。")
         }
         let output = try ExclusiveOutput(resultURL, outside: report, roots: roots)
         let journalURL = URL(fileURLWithPath: try documentPath(resultURL) + ".journal.jsonl")
@@ -584,7 +584,7 @@ enum EnginePartialRecovery {
             if recovered.status != "recovered" || recovered.method != "verified-exclusive-copy" ||
                 recovered.partialRetained != true {
                 outcome = Outcome(candidate: recovered.candidate, status: "skipped",
-                                  message: "此項目不是完整驗證且保留暫存檔的重建結果，不清理。",
+                                  message: "此項目不是已驗證完成、並保留原暫存檔的重建結果，不能清理。",
                                   clearedUserImmutable: false, method: "verified-partial-cleanup")
             } else {
                 try journal.append(JournalEvent(event: "cleanup-intent", time: now(),
@@ -600,7 +600,7 @@ enum EnginePartialRecovery {
                           expectedPartial.flags == originalPartial.flags,
                           expectedFinal.size == originalPartial.size,
                           recovered.bytesWritten == originalPartial.size else {
-                        throw Failure("收據缺少可驗證的新檔或原暫存檔身分，不清理。")
+                        throw Failure("收據缺少新檔或原暫存檔的驗證資訊，不清理。")
                     }
                     let original = try relativeComponents(item.candidate.relativePath)
                     let temporary = try relativeComponents(item.candidate.temporaryRelativePath)
@@ -608,7 +608,7 @@ enum EnginePartialRecovery {
                     let destinationParent = try roots.destination.appending(Array(temporary.dropLast()))
                     guard sourceParent.identity == sourceParentIdentity,
                           destinationParent.identity == destinationParentIdentity else {
-                        throw Failure("清理目錄已改變，原暫存檔保留。")
+                        throw Failure("清理目錄已變更，保留原暫存檔。")
                     }
                     let source = try BoundFile(parent: sourceParent, leaf: original.last!)
                     let partial = try BoundFile(parent: destinationParent, leaf: temporary.last!)
@@ -619,12 +619,12 @@ enum EnginePartialRecovery {
                     try validatePair(expectedSource, expectedPartial)
                     guard expectedFinal.links == 1, expectedFinal.node != expectedPartial.node,
                           expectedFinal.node != expectedSource.node else {
-                        throw Failure("正式檔與其他檔案連結或身分重疊，不清理。")
+                        throw Failure("正式檔案與其他路徑共用同一個檔案，不能清理。")
                     }
                     guard try stableHash(source).digest == hash,
                           try stableHash(partial).digest == hash,
                           try stableHash(final).digest == hash else {
-                        throw Failure("來源、暫存檔或正式檔的完整 SHA-256 不符，原暫存檔保留。")
+                        throw Failure("來源、暫存檔或正式檔的 SHA-256 不一致，保留原暫存檔。")
                     }
                     _ = try source.validate(expected: expectedSource)
                     _ = try partial.validate(expected: expectedPartial)
@@ -633,7 +633,7 @@ enum EnginePartialRecovery {
                                                             source: source, expectedSource: expectedSource,
                                                             final: final, expectedFinal: expectedFinal)
                     outcome = Outcome(candidate: recovered.candidate, status: "removed",
-                                      message: "已重新核對來源與本次重建正式檔的完整內容，並清理這一個原暫存檔。",
+                                      message: "已再次核對來源與重建檔案內容一致，並清除此暫存檔。",
                                       clearedUserImmutable: cleared, method: "verified-partial-cleanup",
                                       partialRetained: false)
                 } catch {
@@ -679,7 +679,7 @@ enum EnginePartialRecovery {
         guard last?.event == "finished", last?.counts == receipt.counts,
               completed.count == receipt.items.count,
               receipt.items.allSatisfy({ completed[$0.candidate.id] == $0 }) else {
-            throw Failure("收據內容與已完成的原修復日誌不一致，不清理暫存檔。")
+            throw Failure("收據內容與原修復日誌不一致，不清理暫存檔。")
         }
     }
 
@@ -689,12 +689,12 @@ enum EnginePartialRecovery {
         let immutable = UInt32(UF_IMMUTABLE)
         let cleared = expected.flags & immutable != 0
         if cleared && Darwin.fchflags(partial.descriptor.raw, expected.flags & ~immutable) != 0 {
-            throw systemFailure("無法解除這一個已驗證暫存檔的鎖定，未清理")
+            throw systemFailure("無法解除此暫存檔的鎖定，未清理")
         }
         do {
             let unlocked = try partial.validate()
             guard unlocked.sameContentState(as: expected), unlocked.flags == expected.flags & ~immutable else {
-                throw Failure("暫存檔在解除鎖定期間改變，未清理。")
+                throw Failure("暫存檔在解除鎖定時發生變更，未清理。")
             }
             _ = try source.validate(expected: expectedSource)
             _ = try final.validate(expected: expectedFinal)
@@ -706,7 +706,7 @@ enum EnginePartialRecovery {
             }
         } catch {
             if cleared && Darwin.fchflags(partial.descriptor.raw, expected.flags) != 0 {
-                throw Failure("\(error.localizedDescription)；原暫存檔鎖定還原失敗，請檢查此檔案。")
+                throw Failure("\(error.localizedDescription)；無法還原暫存檔的鎖定狀態，請手動檢查此檔案。")
             }
             throw error
         }
@@ -716,11 +716,11 @@ enum EnginePartialRecovery {
     private static func parseReport(_ url: URL) throws -> Report {
         let data = try readDocument(url, maximum: 64 * 1024 * 1024)
         guard let text = String(data: data, encoding: .utf8), !text.isEmpty else {
-            throw Failure("報表不是有效的 UTF-8 JSONL。")
+            throw Failure("報告不是有效的 UTF-8 JSONL 檔案。")
         }
         var lines = text.components(separatedBy: "\n")
         if lines.last == "" { lines.removeLast() }
-        guard !lines.isEmpty, lines.count <= 200_000 else { throw Failure("報表筆數超出可安全處理的範圍。") }
+        guard !lines.isEmpty, lines.count <= 200_000 else { throw Failure("報告筆數超過單次可處理上限。") }
         var rows: [[String: Any]] = []
         var previousSequence = 0
         for line in lines {
@@ -728,7 +728,7 @@ enum EnginePartialRecovery {
                   let row = try JSONSerialization.jsonObject(with: Data(line.utf8)) as? [String: Any],
                   let number = row["sequence"] as? NSNumber, CFGetTypeID(number) != CFBooleanGetTypeID(),
                   number.doubleValue == Double(number.intValue), number.intValue > previousSequence else {
-                throw Failure("報表含有無效 JSON、過長記錄或不連續遞增的 sequence。")
+                throw Failure("報告含有無效 JSON、過長紀錄或不連續的序號。")
             }
             previousSequence = number.intValue
             rows.append(row)
@@ -751,18 +751,18 @@ enum EnginePartialRecovery {
               let destinationText = destination["path"] as? String,
               let selection = request["selection"] as? [[String: Any]],
               rows.filter({ $0["action"] as? String == "configuration" }).count == 1 else {
-            throw Failure("只接受含完整設定的本機 copy／sync／move 正式傳輸報表。")
+            throw Failure("僅支援含完整設定的本機複製、同步或移動報告（不含預演）。")
         }
         let sourceRoot = try normalizedRoot(sourceText)
         let destinationRoot = try normalizedRoot(destinationText)
-        guard !pathsOverlap(sourceRoot, destinationRoot) else { throw Failure("來源與目的目錄不能重疊。") }
+        guard !pathsOverlap(sourceRoot, destinationRoot) else { throw Failure("來源與目標目錄不可重疊。") }
         var scope: [(String, Bool)] = []
         for entry in selection {
             guard let name = entry["name"] as? String,
                   let directory = entry["isDir"] as? NSNumber,
                   CFGetTypeID(directory) == CFBooleanGetTypeID(),
                   try relativeComponents(name).count == 1 else {
-                throw Failure("報表的選取範圍格式不正確。")
+                throw Failure("報告中的選取範圍格式不正確。")
             }
             scope.append((name, directory.boolValue))
         }
@@ -773,10 +773,10 @@ enum EnginePartialRecovery {
         for row in rows where row["action"] as? String == "missing-destination" {
             guard row["evidence"] as? String == "comparison",
                   row["status"] as? String == "candidate", let path = row["path"] as? String else {
-                throw Failure("缺少可信的來源候選路徑。")
+                throw Failure("報告缺少有效的來源路徑。")
             }
             _ = try relativeComponents(path)
-            guard inScope(path) else { throw Failure("報表含有選取範圍以外的來源候選。") }
+            guard inScope(path) else { throw Failure("報告含有選取範圍外的來源項目。") }
             missing.insert(path)
         }
         var candidates: [Candidate] = []
@@ -785,20 +785,20 @@ enum EnginePartialRecovery {
         for row in rows where row["action"] as? String == "rename" && row["status"] as? String == "error" {
             guard row["evidence"] as? String == "json-log",
                   let partial = row["path"] as? String, let message = row["message"] as? String,
-                  let sequence = row["sequence"] as? Int else { throw Failure("改名失敗記錄不完整。") }
+                  let sequence = row["sequence"] as? Int else { throw Failure("改名失敗的紀錄不完整。") }
             let components = try relativeComponents(partial)
             guard seen.insert(partial).inserted else { continue }
             let leaf = components.last!
             let validSuffix = leaf.range(of: #"\.[0-9a-f]{8}\.partial$"#, options: .regularExpression) != nil
             let original = validSuffix ? String(partial.dropLast(17)) : ""
             if validSuffix && !inScope(original) {
-                throw Failure("報表含有選取範圍以外的暫存檔。")
+                throw Failure("報告含有選取範圍外的暫存檔。")
             }
             let expectedMessage = "partial file rename failed: rename \(destinationRoot)/\(partial) \(destinationRoot)/\(original): operation not permitted"
             guard validSuffix, leaf.utf8.count <= 97, !original.isEmpty,
                   missing.contains(original), inScope(original), message == expectedMessage else {
                 excluded.append(Excluded(sequence: sequence, temporaryRelativePath: partial,
-                                         reason: "無法從原始候選與完整 rename 訊息精確配對，或屬於長名截斷／其他錯誤；不自動改名。"))
+                                         reason: "無法精確配對原始檔案與改名錯誤紀錄（或屬檔名過長等其他錯誤），不自動改名。"))
                 continue
             }
             _ = try relativeComponents(original)
@@ -806,7 +806,7 @@ enum EnginePartialRecovery {
             candidates.append(Candidate(id: id, relativePath: original,
                                         temporaryRelativePath: partial, renameSequence: sequence))
         }
-        guard candidates.count + excluded.count <= 10_000 else { throw Failure("修復項目過多，請使用較小範圍的報表。") }
+        guard candidates.count + excluded.count <= 10_000 else { throw Failure("待修復項目過多，請縮小報告範圍。") }
         return Report(path: try documentPath(url), sha256: digest(data),
                       sourceRoot: sourceRoot, destinationRoot: destinationRoot,
                       candidates: candidates, excluded: excluded)
@@ -819,14 +819,14 @@ enum EnginePartialRecovery {
         let destination = try DirectoryChain.absolute(report.destinationRoot)
         guard !destination.nodes.contains(where: { $0.identity == source.identity }),
               !source.nodes.contains(where: { $0.identity == destination.identity }) else {
-            throw Failure("來源與目的實際目錄重疊或指向相同位置。")
+            throw Failure("來源與目標指向同一個實際目錄或互相重疊。")
         }
         return Roots(source: source, destination: destination)
     }
 
     private static func validatePair(_ source: Snapshot, _ partial: Snapshot) throws {
         guard partial.links == 1, source.node != partial.node else {
-            throw Failure("暫存檔是硬連結或與來源相同，不進行修復。")
+            throw Failure("暫存檔為硬連結或與來源為同一檔案，不進行修復。")
         }
     }
 
@@ -834,7 +834,7 @@ enum EnginePartialRecovery {
         guard snapshot.size == 0 else { return }
         var information = statfs()
         guard Darwin.fstatfs(file.descriptor.raw, &information) == 0 else {
-            throw systemFailure("無法確認空檔案所在磁碟的識別能力")
+            throw systemFailure("無法確認空檔案所在磁碟的檔案識別能力")
         }
         let capacity = MemoryLayout.size(ofValue: information.f_fstypename)
         let fileSystem = withUnsafePointer(to: &information.f_fstypename) {
@@ -844,7 +844,7 @@ enum EnginePartialRecovery {
         // for empty files with no allocated cluster. Conservatively decline
         // empty card files, rather than treating a shared number as identity.
         guard fileSystem != "msdos" && fileSystem != "exfat" else {
-            throw Failure("此記憶卡格式的空檔無法保證唯一檔案身分，不自動改名。")
+            throw Failure("此磁碟格式的空檔案無法確保唯一識別碼，不自動改名。")
         }
     }
 
@@ -878,14 +878,14 @@ enum EnginePartialRecovery {
         var renamed = false
         if cleared {
             guard Darwin.fchflags(partial.descriptor.raw, expected.flags & ~immutable) == 0 else {
-                throw systemFailure("無法解除這個暫存檔的鎖定")
+                throw systemFailure("無法解除此暫存檔的鎖定")
             }
         }
         do {
             let unlocked = try partial.validate()
             guard unlocked.sameContentState(as: expected),
                   unlocked.flags == expected.flags & ~immutable else {
-                throw Failure("暫存檔在解除鎖定期間改變，未改名。")
+                throw Failure("暫存檔在解除鎖定時發生變更，未改名。")
             }
             // There is never a fallback to rename(), FileManager.moveItem,
             // shell mv, or deletion. Unsupported filesystems may instead use
@@ -901,7 +901,7 @@ enum EnginePartialRecovery {
                 if failureCode == ENOTSUP || failureCode == ENOSYS {
                     throw UnsupportedExclusiveRename(code: failureCode)
                 }
-                throw systemFailure("正式檔名已存在或無法原子改名", code: failureCode)
+                throw systemFailure("正式檔名已存在，或無法執行不覆寫的原子改名", code: failureCode)
             }
             renamed = true
             var committed = stat()
@@ -912,14 +912,14 @@ enum EnginePartialRecovery {
                   NodeIdentity(committed) == expected.node,
                   Snapshot(held).sameContentState(as: expected),
                   held.st_flags == expected.flags & ~immutable else {
-                throw Failure("改名後的身分或內容狀態異常。")
+                throw Failure("改名後的檔案狀態或內容異常。")
             }
         } catch {
-            let phase = renamed ? "檔名已改動，但提交後核對未通過；請檢查正式檔名與收據。" : ""
+            let phase = renamed ? "已改名但最終核對未通過，請檢查正式檔案與修復收據。" : ""
             if cleared && Darwin.fchflags(partial.descriptor.raw, expected.flags) != 0 {
-                throw Failure("\(phase)\(error.localizedDescription)；原鎖定旗標還原失敗：\(String(cString: strerror(errno)))。請檢查此檔案，未刪除任何內容。")
+                throw Failure("\(phase)\(error.localizedDescription)；且無法還原鎖定屬性：\(String(cString: strerror(errno)))。未刪除任何內容，請檢查此檔案。")
             }
-            if renamed { throw Failure("\(phase)\(error.localizedDescription)原有鎖定旗標已保留或還原，未刪除任何內容。") }
+            if renamed { throw Failure("\(phase)\(error.localizedDescription)已保留或還原鎖定屬性，未刪除任何內容。") }
             throw error
         }
         return cleared
@@ -944,7 +944,7 @@ enum EnginePartialRecovery {
         func record(_ event: String) throws {
             let pending = Outcome(candidate: candidate,
                                   status: created == nil ? "pending-rebuild" : "failed-new-output",
-                                  message: "新檔尚未確認完成；只有後續 recovered outcome 才表示完整修復。原暫存檔保留。",
+                                  message: "新檔尚待最終確認；後續記錄為修復完成才算成功。原暫存檔已保留。",
                                   clearedUserImmutable: false, method: "verified-exclusive-copy",
                                   partialRetained: true, renameErrno: renameErrno,
                                   newOutput: lastOutput, bytesWritten: bytesWritten,
@@ -963,10 +963,10 @@ enum EnginePartialRecovery {
                   current.links == 1, current.size == bytesWritten,
                   current.node != expectedSource.node, current.node != expectedPartial.node,
                   current.flags & UInt32(UF_IMMUTABLE) == 0 else {
-                throw Failure("新檔的身分、大小或保護狀態異常，未確認修復完成。")
+                throw Failure("新檔的大小、權限或識別狀態異常，未確認修復完成。")
             }
             if let pinnedIdentity = pinnedIdentity, current.node != pinnedIdentity {
-                throw Failure("新檔配置內容後的檔案身分改變，未確認修復完成。")
+                throw Failure("新檔寫入期間檔案識別改變，未確認修復完成。")
             }
             // FAT-family drivers can retain the creation ID or report a
             // different ID only after content and metadata have been flushed.
@@ -980,7 +980,7 @@ enum EnginePartialRecovery {
             if finalizeIdentity {
                 if pinnedIdentity == nil { pinnedIdentity = current.node }
                 guard pinnedIdentity == current.node else {
-                    throw Failure("新檔完成資料、修改時間與同步後的身分不一致，未確認修復完成。")
+                    throw Failure("新檔寫入完成並同步磁碟後識別不一致，未確認修復完成。")
                 }
             }
             return current
@@ -991,7 +991,7 @@ enum EnginePartialRecovery {
             _ = try partial.validate(expected: expectedPartial)
             guard try stableHash(source).digest == expectedHash,
                   try stableHash(partial).digest == expectedHash else {
-                throw Failure("開始重建前內容已改變，未建立新檔。")
+                throw Failure("重建前檔案內容已改變，未建立新檔。")
             }
             _ = try source.validate(expected: expectedSource)
             _ = try partial.validate(expected: expectedPartial)
@@ -1001,7 +1001,7 @@ enum EnginePartialRecovery {
             let raw = Darwin.openat(partial.parent.fd, finalLeaf,
                                     O_RDWR | O_CREAT | O_EXCL | O_NOFOLLOW | O_CLOEXEC,
                                     mode_t(0o600))
-            guard raw >= 0 else { throw systemFailure("無法以不覆寫方式建立正式檔名") }
+            guard raw >= 0 else { throw systemFailure("無法以不覆寫方式建立正式檔案") }
             let handle = Descriptor(raw)
             created = handle
             let newFile = try BoundFile(parent: partial.parent, leaf: finalLeaf, descriptor: handle)
@@ -1009,7 +1009,7 @@ enum EnginePartialRecovery {
             let initial = try newFile.validate()
             creationIdentity = initial.node
             var fileSystemInfo = statfs()
-            guard Darwin.fstatfs(raw, &fileSystemInfo) == 0 else { throw systemFailure("無法確認新檔的身分配置方式") }
+            guard Darwin.fstatfs(raw, &fileSystemInfo) == 0 else { throw systemFailure("無法確認新檔的系統識別資訊") }
             let fileSystem = withUnsafeBytes(of: fileSystemInfo.f_fstypename) {
                 String(decoding: $0.prefix { $0 != 0 }, as: UTF8.self)
             }
@@ -1050,7 +1050,7 @@ enum EnginePartialRecovery {
                 testOptions?.afterDurableProgress?()
             }
             let copiedHash = hash.finalize().map { String(format: "%02x", $0) }.joined()
-            guard copiedHash == expectedHash else { throw Failure("重建串流的 SHA-256 不符，原暫存檔保留。") }
+            guard copiedHash == expectedHash else { throw Failure("重建過程的 SHA-256 校驗不符，保留原暫存檔。") }
 
             let times = [timespec(tv_sec: 0, tv_nsec: Int(UTIME_OMIT)),
                          timespec(tv_sec: Int(expectedSource.modifiedSeconds),
@@ -1061,7 +1061,7 @@ enum EnginePartialRecovery {
             lastOutput = try validateOutput(finalizeIdentity: true)
             guard let final = output, let finalState = lastOutput,
                   try modificationTimeMatches(finalState, expectedSource, descriptor: raw) else {
-                throw Failure("新檔未能保留來源修改時間，未確認修復完成。")
+                throw Failure("無法將來源修改時間套用至新檔，未確認修復完成。")
             }
             let finalHash = try stableHash(final)
             let sourceHash = try stableHash(source)
@@ -1069,13 +1069,13 @@ enum EnginePartialRecovery {
             guard finalHash.snapshot == finalState,
                   finalHash.digest == expectedHash, sourceHash.digest == expectedHash,
                   partialHash.digest == expectedHash else {
-                throw Failure("重建後完整 SHA-256 核對未通過，原暫存檔保留。")
+                throw Failure("重建後的完整 SHA-256 核對未通過，保留原暫存檔。")
             }
             _ = try source.validate(expected: expectedSource)
             _ = try partial.validate(expected: expectedPartial)
             lastOutput = try final.validate(expected: finalHash.snapshot)
             return Outcome(candidate: candidate, status: "recovered",
-                           message: "已建立並完整核對正式檔名的新副本；原有 .partial 及其鎖定保留，未使用原子改名。",
+                           message: "已另建正式檔案並完成完整內容核對；原 .partial 暫存檔與鎖定仍保留。",
                            clearedUserImmutable: false, method: "verified-exclusive-copy",
                            partialRetained: true, renameErrno: renameErrno,
                            newOutput: lastOutput, bytesWritten: bytesWritten,
@@ -1093,8 +1093,8 @@ enum EnginePartialRecovery {
             let code = (error as? Failure)?.code
             let status = created != nil ? "failed-new-output" : code == EEXIST ? "skipped" : "failed"
             let message = created != nil
-                ? "新正式檔名已建立但尚未確認完成，不能視為修復成功；保留此新檔與原 .partial，請依收據檢查。\(error.localizedDescription)"
-                : "未完成新副本建立，原 .partial 保留。\(error.localizedDescription)"
+                ? "已建立正式檔案，但尚未確認修復完成；新檔與原 .partial 皆已保留，請依收據檢查。\(error.localizedDescription)"
+                : "未能完成新檔建立，已保留原 .partial 暫存檔。\(error.localizedDescription)"
             return Outcome(candidate: candidate, status: status, message: message,
                            clearedUserImmutable: false, method: "verified-exclusive-copy",
                            partialRetained: retained, renameErrno: renameErrno, errorCode: code,
@@ -1140,11 +1140,11 @@ enum EnginePartialRecovery {
         init(_ url: URL, outside report: Report, roots: Roots, appendOnly: Bool = false) throws {
             let path = try documentPath(url)
             guard !pathsOverlap(path, report.sourceRoot), !pathsOverlap(path, report.destinationRoot),
-                  path != report.path else { throw Failure("計畫與收據必須儲存在來源及目的目錄以外。") }
+                  path != report.path else { throw Failure("修復計畫與收據必須存放在來源與目標目錄之外。") }
             let components = try absoluteComponents(path)
             parent = try DirectoryChain.absolute("/" + components.dropLast().joined(separator: "/"))
             guard !parent.nodes.contains(where: { $0.identity == roots.source.identity || $0.identity == roots.destination.identity }) else {
-                throw Failure("輸出目錄實際位於來源或目的目錄內。")
+                throw Failure("輸出位置不可位於來源或目標目錄內。")
             }
             leaf = components.last!
             let raw = Darwin.openat(parent.fd, leaf,
@@ -1208,7 +1208,7 @@ enum EnginePartialRecovery {
         let parent = try DirectoryChain.absolute("/" + parts.dropLast().joined(separator: "/"))
         let file = try BoundFile(parent: parent, leaf: parts.last!)
         let before = try file.validate()
-        guard before.size > 0, before.size <= Int64(maximum) else { throw Failure("報表或計畫大小不正確。") }
+        guard before.size > 0, before.size <= Int64(maximum) else { throw Failure("報告或計畫檔案大小異常。") }
         var data = Data()
         var buffer = [UInt8](repeating: 0, count: 64 * 1024)
         var offset: Int64 = 0
@@ -1218,7 +1218,7 @@ enum EnginePartialRecovery {
                 Darwin.pread(file.descriptor.raw, $0.baseAddress, wanted, off_t(offset))
             }
             if count < 0 && errno == EINTR { continue }
-            guard count > 0 else { throw systemFailure("無法讀取報表或計畫") }
+            guard count > 0 else { throw systemFailure("無法讀取報告或計畫檔案") }
             data.append(contentsOf: buffer.prefix(count))
             offset += Int64(count)
         }
@@ -1245,13 +1245,13 @@ enum EnginePartialRecovery {
         var path = text
         while path.count > 1 && path.hasSuffix("/") { path.removeLast() }
         _ = try absoluteComponents(path)
-        guard path != "/" else { throw Failure("不接受整個檔案系統作為修復根目錄。") }
+        guard path != "/" else { throw Failure("不可直接指定磁碟根目錄作為修復位置。") }
         return path
     }
     private static func documentPath(_ url: URL) throws -> String {
         guard url.isFileURL else { throw Failure("只接受本機檔案路徑。") }
         let path = url.path
-        guard path != "/" else { throw Failure("必須指定檔案或測試目錄，不能使用檔案系統根目錄。") }
+        guard path != "/" else { throw Failure("請指定具體的檔案或資料夾，不可使用磁碟根目錄。") }
         _ = try absoluteComponents(path)
         return path
     }

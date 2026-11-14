@@ -174,18 +174,18 @@ enum EngineRetryPlan {
 
     // App log texts. Each has English and Japanese in NativeMessages.swift.
     // `.full` reasons contain one `{}` for the number of the next pass.
-    static let scopedMessage = "第 {} 輪：只重試上一輪出錯的 {} 個檔案，其他檔案不重新檢查。"
-    static let noPathReason = "第 {} 輪：重新檢查全部檔案，因為有錯誤沒有對應到特定檔案。"
-    static let folderReason = "第 {} 輪：重新檢查全部檔案，因為有資料夾讀取失敗，需要重新列出。"
-    static let manyReason = "第 {} 輪：重新檢查全部檔案，因為出錯的檔案太多。"
-    static let deleteExcludedReason = "第 {} 輪：重新檢查全部檔案，因為已開啟「刪除排除項目」，只重試部分檔案會刪除其他檔案。"
-    static let completionReason = "第 {} 輪：重新檢查全部檔案，補做先前因錯誤而暫停的刪除。"
-    static let exitReason = "第 {} 輪：重新檢查全部檔案，因為 rclone 異常結束，沒有留下可對應的錯誤。"
-    static let permanentNote = "有 {} 個錯誤重試也會一樣（例如找不到、沒有權限、檔名不支援），不重試，也不重新檢查其他檔案。"
-    static let fatalNote = "rclone 回報無法繼續的錯誤，不再重試。"
-    static let notRetryableNote = "rclone 判斷這些錯誤重試也不會改善，不再重試。"
-    static let limitNote = "已用完 {} 輪的嘗試次數，仍有錯誤。"
-    static let completionSkipped = "錯誤已在重試中解決，但嘗試次數已用完；先前因錯誤而暫停的刪除沒有補做，下次同步會處理。"
+    static let scopedMessage = "第 {} 輪：只重試上一輪失敗的 {} 個檔案，不重掃其他檔案。"
+    static let noPathReason = "第 {} 輪：因有不屬於單一檔案的錯誤，重新檢查全部檔案。"
+    static let folderReason = "第 {} 輪：因上一輪有資料夾讀取失敗，重新檢查全部檔案。"
+    static let manyReason = "第 {} 輪：因失敗檔案數過多，改為重新檢查全部檔案。"
+    static let deleteExcludedReason = "第 {} 輪：因開啟了「刪除排除項目」，只重試部分檔案會誤刪其他檔案，改為重新檢查全部檔案。"
+    static let completionReason = "第 {} 輪：重新檢查全部檔案，以補做先前因錯誤而暫停的刪除。"
+    static let exitReason = "第 {} 輪：因 rclone 異常中斷且無單檔錯誤紀錄，重新檢查全部檔案。"
+    static let permanentNote = "有 {} 個固定錯誤（如找不到檔案、無權限、檔名不支援）重試也無法解決，不再重試。"
+    static let fatalNote = "rclone 回報無法繼續的嚴重錯誤，停止重試。"
+    static let notRetryableNote = "rclone 判定這些錯誤重試也無法解決，停止重試。"
+    static let limitNote = "已達 {} 輪嘗試上限，仍有未解決的錯誤。"
+    static let completionSkipped = "檔案傳輸錯誤已在重試後解決，但已達輪次上限；先前暫停的目標刪除尚未執行，下次同步時會處理。"
 
     // MARK: Arguments
 

@@ -1054,7 +1054,7 @@ private final class CoreTestSuite {
             // 11 files once, then only the retried file.
             try expect(EngineJSON.number(report["comparisonEvents"]) == 12, "the retry compared every file again: \(report)")
             let logs = value["logs"] as? [[String: Any]] ?? []
-            try expect(logs.contains { $0["message"] as? String == "第 2 輪：只重試上一輪出錯的 1 個檔案，其他檔案不重新檢查。" }, "the retry plan was not logged")
+            try expect(logs.contains { $0["message"] as? String == "第 2 輪：只重試上一輪失敗的 1 個檔案，不重掃其他檔案。" }, "the retry plan was not logged")
             let stats = value["stats"] as? [String: Any] ?? [:]
             try expect(EngineJSON.number(stats["transfers"]) == 11 && EngineJSON.number(stats["checks"]) >= 1, "statistics of both passes were not added up: \(stats)")
             try expect(FileManager.default.fileExists(atPath: to.appendingPathComponent("big.bin").path), "the file was not copied")
@@ -1368,7 +1368,7 @@ private final class CoreTestSuite {
             _ = try engine.invoke("saveSettings", arguments: [["defaultTransferOptions": ["maxDelete": 0, "exclude": [String](), "deleteMode": "after"]]])
             try expect(try engine.normalizedRequest(partial).options.integer("maxDelete") == 0, "fixture did not change defaults during confirmation")
             let preview = try engine.invoke("previewTransfer", arguments: [confirmed.json]) as! [String: Any]
-            try expect((preview["warnings"] as! [String]).contains { $0.contains("未設定刪除數量上限") }, "preview reread newer defaults")
+            try expect((preview["warnings"] as! [String]).contains { $0.contains("本次不限刪除數量") }, "preview reread newer defaults")
             let result = try completed(engine, confirmed.json)
             try expect(try EngineJSON.data(result["request"]!) == EngineJSON.data(confirmed.json), "submission changed the confirmed request snapshot")
             try expect((result["command"] as! String).contains("--max-delete=-1") && (result["command"] as! String).contains("--delete-before"), "confirmed deletion choices did not reach rclone")
@@ -1775,7 +1775,7 @@ private final class CoreTestSuite {
             let unlimitedRequest = request(from, to, mode: "sync", options: ["maxDelete": -1])
             let preview = try engine.invoke("previewTransfer", arguments: [unlimitedRequest]) as! [String: Any]
             let warnings = preview["warnings"] as! [String]
-            try expect(warnings.contains { $0.contains("未設定刪除數量上限") } && !warnings.contains { $0.contains("最多刪除 -1") }, "unlimited deletion warning is misleading")
+            try expect(warnings.contains { $0.contains("本次不限刪除數量") } && !warnings.contains { $0.contains("最多刪除 -1") }, "unlimited deletion warning is misleading")
             let unlimited = try completed(engine, unlimitedRequest)
             try expect((unlimited["command"] as! String).contains("--max-delete=-1"), "unlimited delete did not reach real rclone")
             try expect(!FileManager.default.fileExists(atPath: to.appendingPathComponent("obsolete.txt").path), "sync did not delete extra file")

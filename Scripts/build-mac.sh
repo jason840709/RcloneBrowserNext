@@ -149,7 +149,7 @@ printf 'App 大小：'
 /usr/bin/du -sk "$RBN_APP_PATH" | /usr/bin/awk '{printf "%.2f MiB（磁碟用量）\n", $1 / 1024}'
 printf '備份 ZIP：%s\n' "$RBN_ZIP_PATH"
 [[ -z "$RBN_OLD_APP_BACKUP" ]] || printf '上一份 App：%s\n' "$RBN_OLD_APP_BACKUP"
-printf '%s\n' 'rclone 另由 App 內設定選擇；這次建置沒有下載任何套件。'
+printf '%s\n' 'rclone 請於 App「設定」中指定或下載；本次建置未連網下載任何套件。'
 if [[ "$RBN_NO_LAUNCH" == 0 ]]; then
   /usr/bin/open "$RBN_APP_PATH"
 fi

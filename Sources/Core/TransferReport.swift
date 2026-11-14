@@ -332,7 +332,7 @@ final class EngineTransferReport {
                 // text in the unabridged comparison export. Never invent a path.
                 if counts["comparisonMalformed"] == 1 {
                     try append(["time": comparisonTime(), "status": "info", "action": "unparsed-comparison",
-                                "evidence": "comparison", "message": "部分比對紀錄無法辨識，請查看原始比對記錄。"], destinations: ["all", "comparison"])
+                                "evidence": "comparison", "message": "部分比對紀錄無法解析，可匯出原始比對紀錄查看。"], destinations: ["all", "comparison"])
                 }
                 try periodicallyMakeVisible(); return
             }
@@ -342,7 +342,7 @@ final class EngineTransferReport {
             var destinations = ["all", "comparison"]
             switch sigil {
             case "=":
-                status = "matched"; action = "match"; message = "依本次比對與略過設定，無需更新。"
+                status = "matched"; action = "match"; message = "依本次比對與略過設定，不需更新。"
                 destinations.append("skipped")
             case "+": status = "candidate"; action = "missing-destination"; message = "目標缺少此檔案，已列入傳輸清單。"
             case "*": status = "candidate"; action = "different"; message = "檔案有變更，已列入傳輸清單。"
@@ -622,7 +622,7 @@ final class EngineTransferReport {
                 // complete JSONL records, without loading the whole report.
                 var position = length, found = false
                 while position > 0 && !found {
-                    guard length - position <= UInt64(maximumRecordBytes) else { throw EngineError("逐檔記錄內容不完整，請查看原始記錄。") }
+                    guard length - position <= UInt64(maximumRecordBytes) else { throw EngineError("逐檔紀錄不完整，請查看原始紀錄。") }
                     let begin = position > UInt64(64 * 1024) ? position - UInt64(64 * 1024) : 0
                     try reader.seek(toOffset: begin)
                     let bytes = try reader.read(upToCount: Int(position - begin)) ?? Data()

@@ -2,6 +2,7 @@
 """Check unified version metadata and preserve the verified Windows filesystem."""
 from pathlib import Path
 import argparse
+import hashlib
 import json
 import plistlib
 import re
@@ -14,9 +15,33 @@ def require(value, message):
 def text(path): return (ROOT / path).read_text(encoding='utf-8')
 def load(path): return json.loads(text(path))
 def git(*args): return subprocess.check_output(['git', *args], cwd=ROOT, text=True, encoding='utf-8').strip()
+def blob_id(raw): return hashlib.sha1(b'blob '+str(len(raw)).encode()+b'\0'+raw).hexdigest()
+
+def before_reviewed_wording(path):
+    """Reverse only the literal substitutions reviewed for 0.11.0.
+
+    Baseline filesystem code remains pinned in full; a general source edit or
+    a change to this exact substitution inventory must still fail the check.
+    """
+    raw=(ROOT/'Scripts/reviewed-wording-0.11.0.json').read_bytes()
+    require(hashlib.sha256(raw).hexdigest()=='b95afe3c37b65a4f13d4801bad9a4a07cb34e3bbda9d61f4d48c6e3e2d91268d',
+            'Reviewed wording inventory changed')
+    value=text(path)
+    for replacement in json.loads(raw)['files'].get(path,[]):
+        require(value.count(replacement['after'])==replacement['count'], 'Reviewed literal changed: '+path)
+        value=value.replace(replacement['after'],replacement['before'])
+    return value
 
 def main():
-    parser=argparse.ArgumentParser(description=__doc__); parser.add_argument('--output',type=Path); args=parser.parse_args()
+    parser=argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--output',type=Path)
+    parser.add_argument('--reference-json',type=Path,help='API-fetched r1 baseline for verification without invoking local Git')
+    args=parser.parse_args()
+    reference=json.loads(args.reference_json.read_text()) if args.reference_json else None
+    if reference:
+        require(reference['baselineRef']=='windows-v0.9.0-r1','Unexpected API baseline')
+        require(blob_id(reference['compatMain'].encode())==reference['baselineBlobs']['Sources/Compat/CompatMain.swift'],
+                'API host content does not match its recorded blob')
     plist=plistlib.loads((ROOT/'Resources/Info.plist').read_bytes()); version=plist['CFBundleShortVersionString']
     require(re.fullmatch(r'\d+\.\d+\.\d+',version), 'Expected a unified stable version')
     require(plist['CFBundleIdentifier']=='org.rclone.browser.next.lite','Mac identity must not change')
@@ -45,12 +70,12 @@ def main():
     # These additional Windows implementation blobs are pinned to the released
     # r1 tag, rather than duplicating them into a second platform source tree.
     for path in ['Sources/Compat/WindowsLocalFileSystem.swift','Scripts/native/WindowsRcloneLauncher.c']:
-        pinned[path]=git('rev-parse','windows-v0.9.0-r1:'+path)
+        pinned[path]=reference['baselineBlobs'][path] if reference else git('rev-parse','windows-v0.9.0-r1:'+path)
     for path, blob in pinned.items():
-        require(git('hash-object','--path='+path,path)==blob,'Verified Windows filesystem changed: '+path)
+        require(blob_id(before_reviewed_wording(path).encode())==blob,'Verified Windows filesystem changed: '+path)
     compat_addition='        case "accountConfig":\n            guard !tools.hasActiveSessions, !controlLock.holding({ configuring || closing }) else { throw EngineError("請先結束終端機設定或播放，再開啟圖形帳號設定。") }\n            return try engine.invoke(method, arguments: arguments)\n        case "_accountAuthorization": return try engine.accounts.authorizationURL().absoluteString\n'
-    baseline=git('show','windows-v0.9.0-r1:Sources/Compat/CompatMain.swift')
-    compat_source=text('Sources/Compat/CompatMain.swift')
+    baseline=reference['compatMain'].strip() if reference else git('show','windows-v0.9.0-r1:Sources/Compat/CompatMain.swift')
+    compat_source=before_reviewed_wording('Sources/Compat/CompatMain.swift')
     # 0.9.4 adds scoped listing lifetime around the unchanged Windows adapter.
     # Reverse only these reviewed dispatch/cancellation additions before the
     # complete r1 host comparison; filesystem implementation hashes stay pinned.
@@ -71,7 +96,9 @@ def main():
     require(compat_source.replace(compat_addition,'').strip()==baseline,
             'Compatibility host changed outside the reviewed account and listing routes')
     result={'passed':True,'version':version,'macBuild':plist['CFBundleVersion'],
-            'sourceCommit':git('rev-parse','HEAD'),'windowsFilesystemUnchanged':True,'windowsFilesystemBlobs':pinned}
+            'sourceCommit':None if reference else git('rev-parse','HEAD'),
+            'usedLocalGit':reference is None,'reviewedWordingVersion':'0.11.0',
+            'windowsFilesystemUnchanged':True,'windowsFilesystemBlobs':pinned}
     if args.output:
         args.output.parent.mkdir(parents=True,exist_ok=True)
         args.output.write_text(json.dumps(result,indent=2)+'\n',encoding='utf-8')

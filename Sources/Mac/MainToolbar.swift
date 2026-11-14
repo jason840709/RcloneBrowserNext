@@ -208,13 +208,13 @@ final class RBNMainToolbar: NSObject, NSToolbarDelegate, NSMenuItemValidation, N
         let remember = NSMenuItem(title: localize("儲存工作區", "Save Workspace", "ワークスペースを保存"),
                                   action: #selector(rememberWorkspace), keyEquivalent: "")
         remember.target = self
-        remember.toolTip = localize("下次開啟時還原左右資料夾與傳輸設定，不會自動開始傳輸。",
+        remember.toolTip = localize("記住目前的左右位置與傳輸設定，下次啟動時自動還原（不會自動開始傳輸）。",
                                     "Restore both folders and transfer settings next time. Nothing starts automatically.",
                                     "次回起動時に左右のフォルダと転送設定を復元します。自動では開始しません。")
         let task = NSMenuItem(title: localize("儲存為作業…", "Save as Task…", "タスクとして保存…"),
                               action: #selector(saveTask), keyEquivalent: "")
         task.target = self
-        task.toolTip = localize("把目前的位置、選取項目與選項存成作業，之後可以再執行。",
+        task.toolTip = localize("將目前的位置、勾選範圍與選項存成常用作業，隨時可載入或執行。",
                                 "Keep the current locations, selection and options as a task you can run again.",
                                 "現在の場所、選択項目、オプションをタスクとして保存し、あとで再実行できます。")
         remember.image = NSImage(systemSymbolName: "pin", accessibilityDescription: nil)

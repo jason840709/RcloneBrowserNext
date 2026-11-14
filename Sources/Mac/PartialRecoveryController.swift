@@ -20,7 +20,7 @@ final class RBNPartialRecoveryController {
     func start() {
         let panel = NSOpenPanel()
         panel.title = local("選擇完整傳輸報告", "Choose the full transfer report", "完全な転送レポートを選択")
-        panel.message = local("選擇從工作明細匯出的 JSONL。會先逐檔比對來源與暫存檔的內容，再讓你確認修復。",
+        panel.message = local("請選擇從工作詳細資料匯出的 JSONL 逐檔紀錄。系統會先比對來源與暫存檔內容，再讓你確認是否修復。",
                               "Choose the JSONL exported from the job details. File contents are checked before you review and approve recovery.",
                               "処理の詳細から書き出した JSONL を選択します。元のファイルと一時ファイルの内容を照合してから、復元を確認できます。")
         panel.allowedContentTypes = [UTType(filenameExtension: "jsonl") ?? .data]
@@ -57,7 +57,7 @@ final class RBNPartialRecoveryController {
         let alert = NSAlert()
         alert.messageText = local("可修復 \(ready) 個暫存檔", "\(ready) temporary files are ready to recover", "\(ready) 個の一時ファイルを復元できます")
         alert.informativeText = local(
-            "來源：\(source)\n目的：\(destination)\n\n內容完全一致：\(ready)\n正式檔名已存在：\(existing)\n內容不一致：\(mismatch)\n無法核對：\(blocked)\n\n支援安全改名時會直接恢復；不支援時會以正確檔名建立新檔，核對完整內容，並保留原 .partial 檔案，因此需要額外空間。中斷或寫入失敗的新檔不計為已修復。來源與既有正式檔案保持原樣。修復期間請暫停其他程式對這兩個位置的寫入。",
+            "來源：\(source)\n目標：\(destination)\n\n內容完全一致：\(ready)\n正式檔名已存在：\(existing)\n內容不一致：\(mismatch)\n無法核對：\(blocked)\n\n支援不覆寫的安全改名時，會直接恢復正式檔名；否則另建正式檔案並核對完整內容（原 .partial 暫存檔會保留，需額外空間）。未完成的新檔不算修復成功。來源與既有正式檔案不會被改動。修復期間請暫停其他程式寫入這兩個位置。",
             "Source: \(source)\nDestination: \(destination)\n\nIdentical contents: \(ready)\nFinal name already exists: \(existing)\nDifferent contents: \(mismatch)\nCould not verify: \(blocked)\n\nRecovery uses a no-overwrite rename when supported. Otherwise it creates and fully verifies a file with the correct name, keeping the original .partial file; this needs additional space. Interrupted or incomplete new files are not counted as recovered. Sources and existing final files stay unchanged. Pause writes to these locations from other apps during recovery.",
             "元：\(source)\n先：\(destination)\n\n内容一致：\(ready)\n正式名が存在：\(existing)\n内容不一致：\(mismatch)\n照合できない項目：\(blocked)\n\n安全な名前変更が可能な場合は直接復元します。対応していない場合は正式名で新しいファイルを作成し、内容全体を照合して元の .partial を残すため、追加の空き容量が必要です。中断または書き込みに失敗した新規ファイルは復元済みに数えません。元のファイルや既存の正式名ファイルは変更しません。復元中はほかのアプリから両方の場所への書き込みを停止してください。")
         if ready > 0 { alert.addButton(withTitle: local("修復 \(ready) 個檔案", "Recover \(ready) files", "\(ready) 個を復元")) }
@@ -102,12 +102,12 @@ final class RBNPartialRecoveryController {
                                      "Renamed: \(renamed)\nRebuilt: \(rebuilt)\nOriginal temporary files retained: \(retained)\nSkipped: \(skipped)\nNot recovered: \(failed)\n\nPer-file results have been saved. Refresh the file list to view the results.",
                                      "直接復元：\(renamed)\n再作成：\(rebuilt)\n保持した元の一時ファイル：\(retained)\nスキップ：\(skipped)\n未完了：\(failed)\n\n各ファイルの結果を保存しました。一覧を更新して確認してください。")
         if rebuilt > 0 {
-            alert.informativeText += local("\n\n重新建立的正式檔案已完成內容核對，對應的原 .partial 檔案仍會保留。",
+            alert.informativeText += local("\n\n新建的正式檔案已完成內容核對；原 .partial 暫存檔仍保留。",
                                            "\n\nRebuilt final files have passed full content verification; their original .partial files remain.",
                                            "\n\n再作成した正式名のファイルは内容全体を照合済みで、対応する元の .partial は保持されています。")
         }
         if failedNewOutputs > 0 {
-            alert.informativeText += local("\n\n有 \(failedNewOutputs) 個新建檔案未完成，請依結果報告確認；這些項目不計入已修復，來源及暫存原檔仍保留。",
+            alert.informativeText += local("\n\n有 \(failedNewOutputs) 個新建檔案未完成（不計入已修復，來源與原暫存檔皆保留），請查看結果報告。",
                                            "\n\n\(failedNewOutputs) newly created files are incomplete. Check the results report; they are not counted as recovered, and their sources and original temporary files remain.",
                                            "\n\n\(failedNewOutputs) 個の新規ファイルが未完了です。結果レポートを確認してください。復元済みには数えず、元のファイルと一時ファイルは保持されています。")
         }
@@ -137,7 +137,7 @@ final class RBNPartialRecoveryController {
                                   "Clean up up to \(maximum) verified temporary files?",
                                   "照合済み一時ファイルを最大 \(maximum) 個削除しますか？")
         alert.informativeText = local(
-            "會再次核對來源、已修復的正式檔案與對應 .partial 的身分及完整內容；有變動就保留。只清理本次成功重新建立後留下的目的暫存檔，來源及正式檔案都會保留。這可避免下次同步再次嘗試刪除鎖定暫存檔而報錯。\n\n清理期間請繼續暫停其他程式對這兩個位置的寫入。",
+            "會再次確認來源、正式檔案與 .partial 仍是原先的檔案，並核對完整內容；有變動就保留。只刪除本次重建留下的 .partial，來源與正式檔案都會保留，避免下次同步因鎖定暫存檔而報錯。\n\n清理期間請暫停其他程式寫入這兩個位置。",
             "Sources, recovered final files and matching .partial files will be checked again for identity and complete contents. Changed items will be kept. Only destination temporary files left by this successful rebuild will be removed; sources and final files remain. This prevents a later sync from failing while trying to delete those locked temporary files.\n\nKeep writes to these locations from other apps paused during cleanup.",
             "元のファイル、復元済みの正式名ファイル、対応する .partial の識別情報と内容全体を再照合します。変更があれば保持します。今回の再作成に成功した後に残った転送先の一時ファイルだけを削除し、元のファイルと正式名ファイルは保持します。次回の同期でロックされた一時ファイルの削除が失敗することを防ぎます。\n\n削除中も、ほかのアプリから両方の場所への書き込みを停止したままにしてください。")
         alert.addButton(withTitle: local("清理已核對暫存檔", "Clean up verified temporary files", "照合済み一時ファイルを削除"))
@@ -222,7 +222,7 @@ enum RBNPartialRecoveryCLI {
         guard arguments.first == "--repair-local-partials" else { return nil }
         do {
             guard arguments.count == 6, ["preview", "apply", "cleanup"].contains(arguments[1]) else {
-                throw EngineError("用法：--repair-local-partials preview --report <JSONL> --plan <新檔案>，apply --plan <計畫> --receipt <新檔案>，或 cleanup --receipt <已完成收據> --result <新檔案>。CLI 的 apply／cleanup 會直接執行，不顯示確認視窗；執行前請先停止 App 傳輸及其他程式對來源、目的位置的寫入。")
+                throw EngineError("用法：--repair-local-partials preview --report <JSONL> --plan <新檔案>，apply --plan <計畫> --receipt <新檔案>，或 cleanup --receipt <已完成收據> --result <新檔案>。命令列的 apply／cleanup 會直接執行而不跳確認視窗；執行前請先停止 App 傳輸與其他程式對來源、目標的寫入。")
             }
             var values: [String: URL] = [:]
             for index in stride(from: 2, to: arguments.count, by: 2) {

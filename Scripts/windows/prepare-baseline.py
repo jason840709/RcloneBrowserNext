@@ -23,6 +23,12 @@ ROOT = Path(__file__).resolve().parents[2]
 REPOSITORY = "jason840709/RcloneBrowserNext"
 # Public release receipts, independently downloaded and verified at release.
 BASELINES = {
+    "0.10.6": {
+        "releaseID": 443551196,
+        "assetID": 741222154,
+        "bytes": 17179843,
+        "sha256": "543b394bffdd75c78cffbfdcd7adcff4f48fb7e22dcf766c82f323f51d73473e",
+    },
     "0.10.4": {
         "releaseID": 440849008,
         "assetID": 732775212,

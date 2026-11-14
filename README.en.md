@@ -36,9 +36,12 @@ All three systems share one version number and are released together.
 
 The Windows and Linux editions share the Mac edition's interface and transfer core: browsing, copy, one-way sync, move, Dry Run, Tasks and per-file reports. Finder integration, the menu bar item and mounting are available only on Mac. [Windows/Linux installation and builds](docs/BUILD_COMPATIBILITY.md)
 
-**If you run into any problem on any system, please open an [issue](https://github.com/jason840709/RcloneBrowserNext/issues).** Nobody has reported one yet, and no problem is too small. Reports from Windows and Linux are especially helpful, because the author does not use those systems day to day.
+**If you run into any problem on any system, please open an [issue](https://github.com/jason840709/RcloneBrowserNext/issues).** Reports of small problems are welcome too. Reports from Windows and Linux are especially helpful, because the author does not use those systems day to day.
 
 ## Recent versions
+
+- [0.11.0](docs/RELEASE_0.11.0.md): clearer Traditional Chinese interface text, error messages and user guide, including sync deletion scope, comparison and retry conditions.
+- [0.10.6](docs/RELEASE_0.10.6.md): direct SMB connections, NAS connection labels and double-click window zoom on Mac.
 
 - [0.10.3](docs/RELEASE_0.10.3.md): while files wait for the cloud to confirm them, the speed stays visible with a small busy ring; hover hints cover whole items; the Mac toolbar keeps its look without glass circles.
 - [0.10.2](docs/RELEASE_0.10.2.md): speed counts only time with files transferring; counts show what happened to each file; errors become small plain-language lights.
@@ -109,7 +112,7 @@ To build from source: on Mac, download `Source.zip` from the same page and doubl
 
 ## Earlier interface (0.9.6 and before)
 
-Versions up to 0.9.6 used an interface designed with ChatGPT, shown below. From 0.10.0 the app uses a new design; transfers, comparison and account setup work the same way. If you prefer the earlier look, download 0.9.6 from its [release page](https://github.com/jason840709/RcloneBrowserNext/releases/tag/v0.9.6).
+Versions up to 0.9.6 used the interface shown below. The current design was introduced in 0.10.0. If you prefer the earlier look, download 0.9.6 from its [release page](https://github.com/jason840709/RcloneBrowserNext/releases/tag/v0.9.6).
 
 ![The interface up to 0.9.6: dark purple folder panes with direction, operation and Dry Run controls in the middle](docs/images/legacy-0.9.6-main-dark-en.png)
 

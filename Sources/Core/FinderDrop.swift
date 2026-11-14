@@ -17,13 +17,13 @@ struct RBNFinderDrop {
             guard url.path != "/" else { throw EngineError("請拖入資料夾內的項目。") }
             let folder = url.deletingLastPathComponent().standardizedFileURL
             if let expected = parent, expected.path != folder.path {
-                throw EngineError("一次請拖入同一資料夾內的項目；不同來源可以分次加入。")
+                throw EngineError("單次拖放請選取同一個資料夾內的項目；不同資料夾請分批拖入。")
             }
             parent = folder
             guard seen.insert(url.path).inserted else { continue }
             let values = try url.resourceValues(forKeys: [.isDirectoryKey, .isSymbolicLinkKey, .isRegularFileKey])
             guard values.isSymbolicLink != true else {
-                throw EngineError("請拖入原始檔案或資料夾；拖放不會跟隨符號連結。")
+                throw EngineError("請直接拖入原始檔案或資料夾（拖放不支援符號連結）。")
             }
             guard values.isDirectory == true || values.isRegularFile == true else {
                 throw EngineError("拖入的項目不是可傳輸的檔案或資料夾。")

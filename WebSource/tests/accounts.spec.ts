@@ -132,7 +132,7 @@ test('detailed setup submits all edited options in one batch and saves only on c
  await page.getByRole('button',{name:'繼續設定',exact:true}).click();
  expect((await starts(page))[0]).toMatchObject({setup:'detailed',autoSave:false,fields:{client_id:'custom-client',client_secret:'custom-secret',scope:'drive.readonly',service_account_file:'/test/credentials.json',root_folder_id:'folder-123'}});
  expect((await starts(page))[0].fields).not.toHaveProperty('future_option');
- await expect(page.getByText('設定完成，儲存後即可使用')).toBeVisible();
+ await expect(page.getByText("設定完成，按「儲存」即可使用")).toBeVisible();
  expect(await page.evaluate(()=>(window as any).__accounts.commits)).toBe(0);
  await page.getByRole('button',{name:'測試連線',exact:true}).click();await expect(page.getByText('連線測試通過。')).toBeVisible();
  await page.getByRole('button',{name:'儲存',exact:true}).click();await expect(page.locator('.accounts-dialog')).toHaveCount(0);
@@ -194,7 +194,7 @@ test('a new required question can be answered and the quick journey resumes',asy
 test('a required personal client ID offers a way back instead of a dead end',async({page})=>{
  await open(page);await page.evaluate(()=>{(window as any).__accounts.startQuestion={Name:'client_id',Help:'Enter your own client ID.',Required:true,Sensitive:true,Default:''};(window as any).__accounts.cancelPolls=2;});
  await nameAccount(page);await page.getByRole('button',{name:'登入並新增帳號',exact:true}).click();
- await expect(page.getByText(/這次登入需要自訂憑證/)).toBeVisible();
+ await expect(page.getByText(/此登入方式需要自訂憑證/)).toBeVisible();
  await expect(page.getByRole('button',{name:'繼續',exact:true})).toBeDisabled();
  await page.getByRole('button',{name:'返回修改',exact:true}).click();
  await expect(page.getByLabel('帳號名稱',{exact:true})).toHaveValue('個人雲端');
@@ -210,7 +210,7 @@ test('a required personal client ID offers a way back instead of a dead end',asy
 test('failed sign-in can retry after native cancellation finishes',async({page})=>{
  await open(page);await page.evaluate(()=>{(window as any).__accounts.failFirstStart=true;(window as any).__accounts.cancelPolls=2;});
  await nameAccount(page);await page.getByRole('button',{name:'登入並新增帳號',exact:true}).click();
- await expect(page.getByText('連結尚未完成。可以返回修改，或重新嘗試。',{exact:true})).toBeVisible();
+ await expect(page.getByText("尚未完成連結，可返回修改或重試。",{exact:true})).toBeVisible();
  await page.getByRole('button',{name:'重新嘗試',exact:true}).click();
  await expect(page.getByText('等待瀏覽器登入',{exact:true})).toBeVisible();
  expect(await page.evaluate(()=>(window as any).__accounts.overlap)).toBe(false);
@@ -280,7 +280,7 @@ test('a stored secret in a follow-up question stays hidden and keeps its native 
 
 test('removal explains its local scope and requires explicit confirmation',async({page})=>{
  await open(page,{existing:true});await page.getByRole('button',{name:'移除 existing',exact:true}).click();
- await expect(page.getByText('只移除本機連線設定，不會刪除雲端上的檔案。')).toBeVisible();
+ await expect(page.getByText("只會刪除本機的連線設定，不會刪除雲端上的檔案。")).toBeVisible();
  expect(await page.evaluate(()=>(window as any).__accounts.commits)).toBe(0);
  await page.getByRole('button',{name:'移除',exact:true}).click();await expect(page.locator('.accounts-dialog')).toHaveCount(0);
 });
@@ -341,7 +341,7 @@ test('quick form and expandable details fit a very narrow window without hiding 
   await page.getByLabel(a('provider'),{exact:true}).selectOption('smb');
   const form=page.locator('#account-create');
   await expect(form.locator('optgroup').filter({has:page.locator('option[value="smb"]')})).toHaveAttribute('label',a('servers'));
-  await expect(form).toContainText('不需要先在電腦掛載');
+  await expect(form).toContainText('不必先在系統掛載');
   for(const key of ['host','user','pass','port','domain'])await expect(form.locator(`[data-option-name="${key}"]`)).toBeVisible();
   await expect(form.locator('[data-option-name="spn"]')).toHaveCount(0);
   await expect(form.locator('[data-option-name="pass"] input')).toHaveAttribute('type','password');

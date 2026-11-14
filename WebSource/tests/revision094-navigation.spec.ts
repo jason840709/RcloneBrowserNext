@@ -443,7 +443,7 @@ test('bridge timeout sends scoped cancellation and cannot accept a delayed listi
   await go(page, 'Slow', 'right', false);
   const request = (await calls(page)).at(-1);
   await page.clock.fastForward(120_010);
-  await expect(pane(page)).toContainText('程式回應逾時');
+  await expect(pane(page)).toContainText('等待回應逾時');
   expect((await calls(page, 'cancelList')).some((call: any) => call.args[0] === request.args[1].requestId)).toBe(true);
   await release(page, 'research-drive:Slow');
   await expect(input(page)).toHaveValue('/');

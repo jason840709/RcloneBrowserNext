@@ -1,13 +1,9 @@
 # 0.4.0 GitHub 發布整理
 
-日期：2026-10-20（Asia/Taipei）。
+日期：2026-10-20（Asia/Taipei）
 
-本次以 Jason 提供的 0.4.0 來源包整理公開專案，未修改 Sources、Scripts、Tests、WebSource 或正式 Web 資源，也沒有新增或更新任何執行環境。
+本次將 Jason 提供的 0.4.0 原始碼包整理為公開 GitHub 專案，未更動程式碼（`Sources`、`Scripts`、`Tests`、`WebSource`）與正式 Web 資源：
 
-- 首頁改寫為繁體中文介紹文，另加英文介紹。
-- 原中文 README 保留為使用手冊，修正搬移後連結及 GitHub 發布說明。
-- 加入使用者提供的圖示、原始介面截圖、來源致謝與發布說明。
-- 原始 manifest 與英文 README 留在 `archive/0.4.0`。原測試 JSON 與原測試數字保留，不改稱為新測試。根目錄 manifest 對應本次公開內容。
-- 本次檢查公開檔案清單、相對連結、來源與原包的一致性、圖示與截圖雜湊、ZIP 讀回及校驗值。
-
-先前驗證記錄中的「GitHub 尚未建立」是原交付時的狀態。實際專案與發布狀態以 GitHub 頁面為準；CI 狀態以 Actions 為準。本次沒有重跑 App、NAS 或真實雲端傳輸測試。
+- 新增繁體中文與英文專案首頁（`README.md`、`README.en.md`），原中文說明移至 `docs/USER_GUIDE.zh-TW.md`。
+- 加入應用圖示、介面截圖、致謝說明與 0.4.0 發布說明。
+- 原始交付的 manifest 與英文 README 歸檔於 `archive/0.4.0`，並核對所有連結、檔案清單與 SHA-256 校驗值。

@@ -138,13 +138,13 @@ final class RcloneTools {
         let point = selectedPoint.resolvingSymlinksInPath()
         guard attributes[.type] as? FileAttributeType == .typeDirectory,
               point.path != "/", (try FileManager.default.contentsOfDirectory(atPath: point.path)).isEmpty else {
-            throw EngineError("掛載位置必須是既存的空資料夾，不能是符號連結。")
+            throw EngineError("掛載位置必須是已存在的空資料夾（不可為符號連結）。")
         }
         #if !os(macOS)
         throw EngineError("圖形介面的掛載功能目前只支援 macOS。")
         #else
         let capability = try Self.run(context: context, arguments: ["mount"] + context.arguments + ["--help"], maximumOutput: 128 * 1024, timeout: 15)
-        try Self.requireSuccess(capability, action: "這個 rclone 無法使用 FUSE 掛載；請使用支援 mount 的引擎與已安裝的 macFUSE 或 FUSE-T")
+        try Self.requireSuccess(capability, action: "目前無法使用 FUSE 掛載；請確認 rclone 支援 mount，並已安裝 macFUSE 或 FUSE-T")
         return try lock.holding {
             try ensureCanStart()
             guard !sessions.values.contains(where: { $0.kind == "mount" && $0.status == "running" && $0.destination == point.path }) else {
@@ -307,7 +307,7 @@ final class RcloneTools {
                 else if drainFailed || session.logs.writeError != nil || session.processes.contains(where: { $0.terminationStatus != 0 }) {
                     session.status = "failed"
                     let detail = Self.cleanError(session.logs.text)
-                    session.error = drainFailed ? "工具的輸出尚未結束，請檢查播放器是否仍在執行。" : (session.logs.writeError ?? (detail.isEmpty ? "rclone 或播放器提早結束。" : detail))
+                    session.error = drainFailed ? "工具輸出尚未關閉，請確認播放器是否仍在執行。" : (session.logs.writeError ?? (detail.isEmpty ? "rclone 或播放器提早結束。" : detail))
                 } else { session.status = "completed" }
                 return session.json
             }

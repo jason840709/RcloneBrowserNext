@@ -8,7 +8,7 @@ import Foundation
 /// transfer semantics; remote and other-platform commands remain unchanged.
 enum EngineLocalCopyPolicy {
     static let identifier = "streaming-no-clone"
-    static let message = "macOS 本機傳輸使用一般複製，避免繼承來源鎖定旗標；暫存檔驗證與完成後重新命名仍會保留。"
+    static let message = "macOS 本機互傳改用一般串流複製，避免繼承來源檔案的鎖定屬性；暫存檔驗證與完成後改名仍照常執行。"
 
     static func applies(to request: EngineTransferRequest, platform: String = EnginePlatform.identifier) -> Bool {
         platform == "darwin" && request.source.remote == nil && request.destination.remote == nil &&

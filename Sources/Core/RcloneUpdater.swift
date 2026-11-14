@@ -36,7 +36,7 @@ enum RBNDownloadPolicy {
                                    retryable: [408, 429, 500, 502, 503, 504].contains(http.statusCode))
         }
         guard http.expectedContentLength < 0 || http.expectedContentLength <= Int64(maximum) else {
-            throw RBNDownloadError(message: "下載回應超過允許大小（\(http.expectedContentLength) bytes；上限 \(maximum) bytes）。已停止下載。",
+            throw RBNDownloadError(message: "下載大小超過上限（\(http.expectedContentLength) bytes，上限 \(maximum) bytes），已停止下載。",
                                    retryable: false)
         }
     }
@@ -117,7 +117,7 @@ final class RcloneUpdater {
         else { result = "available" }
         status("idle", result == "current" ? "rclone 已是最新版本。" : "版本檢查完成。")
         return ["status": result, "currentVersion": local, "latestVersion": latest.version, "path": currentPath ?? "",
-                "message": result == "unavailable" ? "目前使用自訂或測試版 rclone；請手動選擇要使用的穩定版。" : ""]
+                "message": result == "unavailable" ? "目前使用的是自訂或測試版 rclone；若要更換，請手動選擇要使用的穩定版。" : ""]
     }
 
     func versionOf(_ path: String) throws -> String {
@@ -157,7 +157,7 @@ final class RcloneUpdater {
                                                   "--output", candidate.path, "--log-level", "INFO"], directory: stage, timeout: 300,
                                        environment: Self.proxyEnvironment(connectionSettings?() ?? [:]))
             guard fetched.code == 0 else {
-                throw RBNUpdateError("下載未完成，原本的 rclone 保持不變。\n\(fetched.error.suffix(1600))")
+                throw RBNUpdateError("下載未完成，原有的 rclone 維持不變。\n\(fetched.error.suffix(1600))")
             }
             verification = "rclone selfupdate: signed release checksum"
         } else {
@@ -241,7 +241,7 @@ final class RcloneUpdater {
                   let root = EnginePlatform.canonicalComparisonPath(root)
                   return value == root || value.hasPrefix(root + "/")
               }) else {
-            throw RBNUpdateError("這個位置由 App 或套件管理工具管理。請另選自己的 rclone 資料夾，再下載更新。")
+            throw RBNUpdateError("此位置由 App 或套件管理工具管理。請另外選擇自己管理的資料夾來存放並更新 rclone。")
         }
         if let attrs = try? FileManager.default.attributesOfItem(atPath: initial.path) {
             guard attrs[.type] as? FileAttributeType == .typeRegular else {
@@ -310,9 +310,9 @@ final class RcloneUpdater {
                     try handle.synchronize(); try handle.close()
                     try EnginePlatform.replaceFile(restore.path, target.path)
                 } catch {
-                    throw RBNUpdateError("更新後驗證失敗，自動還原也未完成。\n舊版備份位置：\(backup.path)\n\(error.localizedDescription)")
+                    throw RBNUpdateError("新版驗證未通過，且自動還原失敗。\n舊版備份位置：\(backup.path)\n\(error.localizedDescription)")
                 }
-                throw RBNUpdateError("更新後驗證失敗，已還原原本的 rclone。\n\(validationMessage)")
+                throw RBNUpdateError("新版驗證未通過，已自動還原原有的 rclone。\n\(validationMessage)")
             }
             do {
                 if fm.fileExists(atPath: target.path) { try fm.removeItem(at: target) }
@@ -408,7 +408,7 @@ final class RcloneUpdater {
         guard settings["proxyMode"] as? String == "manual",
               let value = settings["httpsProxy"] as? String,
               URL(string: value)?.scheme?.lowercased() == "https" else { return }
-        throw RBNUpdateError("更新檢查目前不支援 https:// 代理位址。請改用 http:// 或 socks5://；rclone 傳輸仍可使用 https:// 代理。")
+        throw RBNUpdateError("App 更新檢查目前不支援 https:// 代理伺服器，請改用 http:// 或 socks5://（rclone 傳輸仍可使用 https:// 代理）。")
     }
 
     /// All updater resources are HTTPS. Match the HTTPS proxy field, including
@@ -615,7 +615,7 @@ enum RBNMachO {
         guard at == commands.count, let minimum = requirement else { throw RBNUpdateError("無法確認新版 rclone 的 macOS 需求，已保留原版。") }
         let label = minimum.map(String.init).joined(separator: ".")
         guard !greater(minimum, systemVersion) else {
-            throw RBNUpdateError("這個官方 rclone 執行檔需要 macOS \(label)，高於目前系統。原本的 rclone 保持不變；你可以選擇另一個相容版本。")
+            throw RBNUpdateError("這份官方 rclone 需要 macOS \(label) 以上（高於目前系統版本）。已保留原有的 rclone，請改選其他相容版本。")
         }
         return label
     }

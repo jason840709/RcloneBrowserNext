@@ -99,7 +99,7 @@ struct AppReleaseTests {
                 _ = try checker.check(settings: ["proxyMode": "manual", "httpsProxy": "https://127.0.0.1:1"])
                 throw RBNAppUpdateError("TLS-to-proxy address unexpectedly accepted")
             } catch {
-                try expect(error.localizedDescription == "更新檢查目前不支援 https:// 代理位址。請改用 http:// 或 socks5://；rclone 傳輸仍可使用 https:// 代理。", "app update fetch must preserve the shared proxy explanation")
+                try expect(error.localizedDescription == "App 更新檢查目前不支援 https:// 代理伺服器，請改用 http:// 或 socks5://（rclone 傳輸仍可使用 https:// 代理）。", "app update fetch must preserve the shared proxy explanation")
             }
         }
         print("App release tests: \(passed) passed, \(failures) failed")

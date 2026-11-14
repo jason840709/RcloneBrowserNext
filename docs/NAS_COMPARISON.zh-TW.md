@@ -1,82 +1,68 @@
-# 掛載 SMB / NAS 的檔案比較：原因、選項與驗證
+# 掛載 SMB／NAS 的檔案比對：原因、選項與實測
 
-## 為什麼比較可能讀回 NAS 內容
+## 為什麼比對時可能會讀回 NAS 檔案內容
 
-Finder 掛載的 SMB 路徑，例如 `/Volumes/NAS/Backup`，對 rclone 是 local filesystem backend。local backend 的 `Object.Hash()` 需要開啟並讀取檔案內容來計算雜湊；如果檔案在 SMB 磁碟上，這些讀取會經由網路。
+雜湊是依檔案內容算出的核對值。透過 Finder 掛載的 SMB 路徑（例如 `/Volumes/NAS/Backup`），對 rclone 而言屬於本機檔案系統（local backend）。當 rclone 需要計算檔案雜湊時，本機後端必須打開並讀取整份檔案；如果檔案位於 SMB 網路磁碟上，就會產生讀取整份檔案的網路流量。
 
-rclone 的預設比較先看大小與修改時間。兩者相同時通常能直接略過；大小相同但修改時間不同時，仍可能比較雜湊，判斷只須修正時間或需要重傳。因此「未選 checksum 模式」不等於完全不讀 NAS 內容。`--ignore-checksum` 只關閉傳輸完成後的雜湊校驗，也不會關閉這個傳輸前比較分支。
+rclone 預設會先比對檔案大小與修改時間：兩者相同時直接略過；但若**大小相同而修改時間不同**，rclone 會嘗試計算兩端共同支援的雜湊，確認內容是否真的改變（或只是時間戳不同）。因此就算沒選「大小＋雜湊」模式，遇到時間戳有差異的檔案時仍可能讀回整份 NAS 檔案。加上 `--ignore-checksum` 也只會關閉「傳輸後」的雜湊驗證，不會關閉「傳輸前」的比對讀取。
 
-這是官方 v1.75.2 原始碼中可直接追溯的路徑：
+相關 rclone v1.75.2 原始碼路徑：
 
-- [`fs/operations/operations.go`](https://github.com/rclone/rclone/blob/v1.75.2/fs/operations/operations.go)：`equal()` 先比較大小與時間，時間不同再呼叫 `CheckHashes()`；`CheckHashes()` 先求兩端共同支援的 hash set。
-- [`backend/local/local.go`](https://github.com/rclone/rclone/blob/v1.75.2/backend/local/local.go)：`Object.Hash()` 在沒有可用的快取時 `file.Open()` 並透過 `hash.StreamTypes()` 讀內容。
-- [`fs/operations/copy.go`](https://github.com/rclone/rclone/blob/v1.75.2/fs/operations/copy.go)：傳後完整性檢查與傳前 Equal 比較是不同階段。
+- [`fs/operations/operations.go`](https://github.com/rclone/rclone/blob/v1.75.2/fs/operations/operations.go)：`equal()` 先比大小與時間，時間不同時呼叫 `CheckHashes()` 檢查兩端共同支援的雜湊。
+- [`backend/local/local.go`](https://github.com/rclone/rclone/blob/v1.75.2/backend/local/local.go)：`Object.Hash()` 會開啟檔案並讀取內容串流來計算雜湊。
+- [`fs/operations/copy.go`](https://github.com/rclone/rclone/blob/v1.75.2/fs/operations/copy.go)：傳輸後的完整性檢查與傳輸前的 `equal()` 比對分屬不同階段。
 
-## 提供的 NAS 比較設定
+## Next 提供的 NAS 比對設定
 
 ### 大小與修改時間（不計算本機雜湊）
 
-使用預設大小／修改時間比較，加上 `--local-hashes none`。v1.75.2 的 local backend 有 `hashes` 選項，而 `hash.Type.Set()` 明確接受 `none`，使 local backend 回報空的雜湊集合。沒有共同雜湊時，修改時間不同的檔案會被當作需要傳輸，不會先讀回目標整個檔案算雜湊。
+此模式使用預設的大小與修改時間比對，並加上 `--local-hashes none`（[`backend/local/local.go`](https://github.com/rclone/rclone/blob/v1.75.2/backend/local/local.go)、[`fs/hash/hash.go`](https://github.com/rclone/rclone/blob/v1.75.2/fs/hash/hash.go)、[官方文件](https://rclone.org/local/#local-hashes)），讓本機後端回報不支援雜湊。當兩端沒有共同雜湊可用時，只要修改時間不同就會直接重傳，不會先讀回目標端的整份 NAS 檔案來算雜湊。
 
-這比「只比大小」多利用了修改時間：同大小的內容變更，只要修改時間也變更，就仍會傳輸。代價是涉及本機後端的傳輸不再提供該端的內容雜湊校驗，也不能偵測內容改變而大小及修改時間完全相同的情況；兩端都屬雲端後端時，不會因此停用它們原有的雜湊能力。時間標記不穩定的 NAS 可能因時間差而多傳；可先確認 NAS 的時間與精度，再設定合適的 `--modify-window`，不能為了減少傳輸盲目放大容許誤差。
-
-此選項只停用 local 後端的雜湊，包括 Finder 掛載的 SMB 磁碟。它不會停用雲端或伺服器後端的雜湊能力；實際傳輸仍需讀取來源內容，檔案列舉與中繼資料存取也仍會有網路流量。
-
-此 profile 不需要再加 `--ignore-checksum`，因為已沒有共同 local hash 可供傳前或傳後校驗。切換到雜湊比較會退出 NAS 模式；核心拒絕同時停用 local 雜湊又要求雜湊比較的設定，避免 checksum 模式默默退化成大小比較。
-
-原始碼依據：[local `Hashes()`](https://github.com/rclone/rclone/blob/v1.75.2/backend/local/local.go)、[hash parser 的 `none`](https://github.com/rclone/rclone/blob/v1.75.2/fs/hash/hash.go)。當日官網亦列出 [`--local-hashes`](https://rclone.org/local/#local-hashes)；實際 none 語義以固定版本 source 及下述 CLI 實測核對。
+- **優點**：比「只看大小」多檢查了修改時間，檔案改過後就算大小沒變，只要修改時間更新就會同步。
+- **取捨**：本機端（含 Finder 掛載的 SMB）不做內容雜湊驗證，也無法察覺「內容變了，但大小與修改時間完全沒變」的極端情況；若 NAS 時間戳不準，則可能因為時間差而多傳一次檔案。兩端都是雲端時，雲端原本的雜湊檢查不受影響。
 
 ### 外接磁碟的重複傳輸與時間精度
 
-停用本機雜湊後，rclone 需要靠大小與修改時間判斷：兩者相同便略過；修改時間超出容差時，沒有共同雜湊可再確認內容，因此可能重新傳輸。[官方比較選項](https://rclone.org/docs/#modify-window-duration)
+在本機或 Finder 掛載的 NAS 之間停用本機雜湊後，rclone 依賴大小與修改時間判斷（[官方說明](https://rclone.org/docs/#modify-window-duration)）。然而 rclone v1.75.2 的本機後端是在系統暫存資料夾建立測試檔來偵測時間精度（`readPrecision()`）；若 Mac 系統碟是高精度的 APFS，外接磁碟卻是時間精度較粗的 exFAT 或 FAT，複製過去的檔案時間被捨入後，下次同步就可能被誤判為時間不同而全部重傳（詳見 [0.6.0 研究說明](RESEARCH_0.6.0.md)）。
 
-另外，v1.75.2 的 local 後端 `readPrecision()` 在系統暫存資料夾建立檔案測量精度。若系統磁碟和外接磁碟的格式不同，這個值不一定代表真正的目的磁碟。高精度來源複製到會量化時間的目的端後，下一次便可能再次被判成不同。這是從固定版本來源找到的可能原因，不能單憑磁碟名稱或一條指令判定使用者的磁碟就是 exFAT。[實作與來源依據](RESEARCH_0.6.0.md)
+為了解決這個問題，「時間容許誤差」留空時，Next 會直接向 macOS 查詢來源與目標磁碟的檔案系統格式，自動套用兩端中較大的容差：
 
-時間容許誤差留白時，Next 會用 macOS 的卷資訊查詢實際檔案系統，按下列已知精度取兩端的較大值：
-
-| 本機卷格式 | 自動容差 |
+| 本機磁碟格式 | 自動容差 |
 |---|---|
 | FAT（`msdos`） | 2 秒 |
 | HFS／HFS+（`hfs`） | 1 秒 |
 | exFAT（`exfat`） | 10 毫秒 |
-| APFS、未知格式、掛載的 SMB | 保留 rclone 原本的判斷，不任意放寬 |
+| APFS、未知格式、已掛載 SMB | 維持 rclone 預設判斷 |
 
-這個查詢只讀取卷資訊，不會建立探測檔或讀取檔案內容。目的資料夾尚未存在時，會查詢最近的既有父資料夾；權限或 I/O 錯誤不會被當成另一種格式。手動輸入的容差優先，直接使用 SMB 等 rclone 遠端時，也保留各後端本身的精度處理。
+若有手動輸入時間容差則以手動值為準，實際套用的容差也會顯示在指令預覽與工作紀錄中。
 
-這仍是大小與時間比較，並非完整內容驗證。同大小的檔案若在容差內快速修改，可能被略過；正在持續寫入的來源檔案，也可能在兩次執行間真的有變動。App 會在指令預覽與紀錄中列出自動容差，再配合逐檔比對紀錄，讓使用者查清楚哪些檔案被判定需要傳輸。不要用 `--ignore-times`、`--refresh-times` 或關閉來源變更檢查來掩蓋原因。
+### 何時改用一般比對或 SMB 直連
 
-### 一般比較與內容完整性驗證
+- 若網路頻寬充足、且希望在時間戳不同時先核對雜湊，可改選一般的「大小與修改時間」或「大小＋雜湊」。
+- 若透過「帳號設定」新增 **SMB 直連**（使用 rclone 原生 [SMB 後端](https://github.com/rclone/rclone/blob/v1.75.2/backend/smb/smb.go)），該後端本身不提供雜湊，並回報毫秒時間精度，能避開 Finder 掛載的雜湊讀取。使用 [SFTP](https://rclone.org/sftp/) 時，能否取得雜湊則取決於伺服器支援；它不等同 SMB 的行為。
 
-需要保留預設比較，或選「大小＋雜湊」。這些選擇可能讀取網路磁碟檔案內容，應讓使用者知道流量原因。若想做更強的內容驗證而不把檔案讀回 Mac，可以選擇 NAS 端能計算 hash 的協定，例如支援遠端 shell checksum 的 SFTP；需 NAS 配置與 hash 工具確實可用，不是 GUI 改一個勾選即可保證。
+## 其他常見旗標為何不適用
 
-直接使用 rclone 的 SMB remote 是另一條路。它與 Finder 的 local mount 不同：官方 SMB backend 回報沒有 hash 支援，使用修改時間精度為毫秒。這避免 GUI 以 local backend 計算目標雜湊，但不能宣稱獲得了遠端內容 hash 保證。`--checksum` 沒有共同 hash 時還是會退回大小比較。
-
-依據：[SMB backend `Hashes()` 與 `Precision()`](https://github.com/rclone/rclone/blob/v1.75.2/backend/smb/smb.go)、[官方 SFTP](https://rclone.org/sftp/)。本次沒有連接使用者 NAS，也沒有驗證其 SSH 權限或是否有 checksum 工具。
-
-## 不適合拿來當 NAS 修正的旗標
-
-| 旗標 | 實際意義 | 為何不能宣稱解決同一問題 |
+| 旗標 | 實際作用 | 為何不適合用來解決此問題 |
 |---|---|---|
-| `--size-only` | 大小相同即略過 | 可能漏掉同大小的修改，精度較低 |
-| `--checksum` | 改以大小和共同雜湊判斷 | local SMB mount 會讀內容；沒有共同 hash 時退回大小 |
-| `--ignore-checksum` | 略過傳後 hash 驗證 | 傳前時間不同的 hash 分支仍會讀內容 |
-| `--ignore-times` | 無條件重新傳送 | 不是更省流量的比較方式 |
-| `--update` | 略過目標較新的檔案 | 比較較舊目標時仍可能讀 hash，且改變覆寫語義 |
-| `--use-server-modtime` | 部分 object storage 用伺服器時間代替額外 metadata API | 不是 local SMB backend 的雜湊開關 |
-| `--no-update-modtime` | 不修正內容相同檔案的時間 | hash 可能已經讀完才確定相同 |
-| `--local-no-check-updated` | 不檢查來源檔案在傳輸中是否變動 | 不是傳前比較開關，會放棄偵測正在修改的來源 |
+| `--size-only` | 大小相同即略過 | 會漏掉「改過內容但大小不變」的檔案 |
+| `--checksum` | 只看大小與雜湊 | 掛載的 SMB 反而每個檔案都要讀回來算雜湊；無共同雜湊時又退回只看大小 |
+| `--ignore-checksum` | 略過傳輸後的雜湊檢查 | 傳輸前遇到修改時間不同時，照樣會讀回檔案算雜湊 |
+| `--ignore-times` | 無條件全部重傳 | 每次都重傳所有檔案 |
+| `--update` | 略過目標較新的檔案 | 遇到目標較舊但大小相同的檔案仍會讀雜湊，且改變了同步語義 |
+| `--use-server-modtime` | 雲端物件儲存改看伺服器時間 | 對本機與 SMB 掛載無效 |
+| `--no-update-modtime` | 內容相同時不更新目標時間戳 | 仍須先讀完雜湊才能知道內容相同 |
+| `--local-no-check-updated` | 不檢查來源檔案在傳輸途中是否變動 | 與傳輸前比對無關，且會關掉活動檔案變動警告 |
 
-## 真實 CLI 驗證
+## CLI 實測對照
 
-測試使用官方 Linux `rclone v1.75.2`。本機建立 1 MiB 檔案，來源全為 A、目標全為 B，大小相同、時間不同。每個測試都新啟動 rclone，以 Linux inotify 監看**目標檔案本體**的 `OPEN`、`ACCESS`、`CLOSE_NOWRITE`。執行 `copy --dry-run`，不改動來源與目標。
+使用官方 Linux `rclone v1.75.2` 測試：建立兩個同為 1 MiB、修改時間不同、內容也不同的檔案（來源全為 A、目標全為 B），以 Linux `inotify` 監看目標檔案在 `rclone copy --dry-run` 期間是否被開啟讀取：
 
-| 選項 | 目標內容讀取事件 | rclone 判斷 |
+| 選項 | 目標檔案讀取事件 | rclone 判斷結果 |
 |---|---|---|
-| 預設 | OPEN + ACCESS + CLOSE_NOWRITE | 內容不同，需要傳送 |
-| `--ignore-checksum` | OPEN + ACCESS + CLOSE_NOWRITE | 仍先讀內容，需要傳送 |
-| `--local-hashes none` | 沒有 OPEN / ACCESS | 時間不同，需要傳送 |
-| `--size-only` | 沒有 OPEN / ACCESS | 誤將同大小、不同內容視為相同 |
+| 預設 | `OPEN + ACCESS + CLOSE_NOWRITE`（有讀檔） | 內容不同，需傳送 |
+| `--ignore-checksum` | `OPEN + ACCESS + CLOSE_NOWRITE`（有讀檔） | 仍先讀檔，需傳送 |
+| `--local-hashes none` | 無讀取事件 | 時間不同，需傳送 |
+| `--size-only` | 無讀取事件 | 誤判為相同而略過 |
 
-這組固定版本的四次執行均結束碼 0。這證明相同 rclone local backend 的內容讀取差異；不是 macOS SMB 網路量測，也沒有宣稱已在使用者群暉設備上實測速度。
-
-這個 profile 的價值是把網路磁碟常見的「先讀回檔案雜湊」改為可解釋、可選擇的 metadata 比較，同時保留一般與內容驗證模式，讓使用者依資料的重要程度選擇。
+實測確認 `--local-hashes none` 能在不讀取目標檔案內容的前提下，正常靠修改時間識別出需要更新的檔案。

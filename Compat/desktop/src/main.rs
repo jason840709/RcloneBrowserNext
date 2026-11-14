@@ -101,7 +101,7 @@ impl Host {
         if !self.alive.load(Ordering::SeqCst) { return Err(self.text("引擎已停止，請重新開啟程式。", "The engine stopped. Reopen the app.", "エンジンが停止しました。アプリを開き直してください。")); }
         let id = format!("host-{}", self.sequence.fetch_add(1, Ordering::Relaxed));
         let mut packet = serde_json::to_vec(&json!({"id": id, "method": method, "args": args})).map_err(|e| e.to_string())?;
-        if packet.len() > 8 * 1024 * 1024 { return Err(self.text("這次選取的內容超過單次請求上限，請分批處理。", "This selection exceeds one request. Process it in smaller groups.", "選択項目が 1 回の要求の上限を超えています。分けて実行してください。")); }
+        if packet.len() > 8 * 1024 * 1024 { return Err(self.text("選取項目超過單次上限，請分批處理。", "This selection exceeds one request. Process it in smaller groups.", "選択項目が 1 回の要求の上限を超えています。分けて実行してください。")); }
         packet.push(b'\n');
         let (tx, rx) = mpsc::channel(); self.pending.lock().unwrap().insert(id.clone(), tx);
         let write = {
@@ -202,13 +202,13 @@ fn confirm_transfer(app: &AppHandle, host: &Host, request: &Value) -> bool {
         if count > 6 { locations += &host.text(&format!("\n…另有 {} 個項目", count - 6), &format!("\n…and {} more", count - 6), &format!("\n…ほか {} 件", count - 6)); }
     }
     if request["mode"].as_str() == Some("sync") {
-        let explanation = host.text("\n\n以來源為準更新目標，套用本次篩選與刪除設定。同步範圍內只存在於目標的檔案會被刪除。", "\n\nUpdate the destination to match the source, applying this job's filters and deletion settings. Files found only at the destination within the sync scope will be deleted.", "\n\n今回の絞り込みと削除設定を適用し、転送元に合わせて転送先を更新します。同期待象内で転送先にしかないファイルを削除します。");
+        let explanation = host.text("\n\n將依本次篩選與刪除設定，以來源為準更新目標，刪除同步範圍內目標多出的檔案。", "\n\nUpdate the destination to match the source, applying this job's filters and deletion settings. Files found only at the destination within the sync scope will be deleted.", "\n\n今回の絞り込みと削除設定を適用し、転送元に合わせて転送先を更新します。同期待象内で転送先にしかないファイルを削除します。");
         let limit = request["options"]["maxDelete"].as_i64().unwrap_or(-1);
         let deletion = if limit < 0 { host.text("\n\n本次不限刪除數量。", "\n\nNo deletion-count limit is set.", "\n\n今回の削除数に上限はありません。") }
             else { host.text(&format!("\n\n本次最多刪除 {limit} 個檔案。"), &format!("\n\nDelete at most {limit} files."), &format!("\n\n今回の削除数の上限は {limit} ファイルです。")) };
         confirmed(app, host, host.text("同步到目標？", "Sync to destination?", "転送先を同期しますか？"), locations + &explanation + &deletion, host.text("開始同步", "Start sync", "同期を開始"))
     } else {
-        let explanation = host.text("\n\n複製成功，或目標副本經比對無需更新時，會刪除來源檔案。", "\n\nSource files are deleted after a successful copy, or when comparison finds no update is needed at the destination.", "\n\nコピー成功時、または比較で転送先の更新が不要と判断された場合に、転送元ファイルを削除します。");
+        let explanation = host.text("\n\n檔案傳送成功，或目標已有依本次比對設定不需更新的副本後，會刪除來源檔案。", "\n\nSource files are deleted after a successful copy, or when comparison finds no update is needed at the destination.", "\n\nコピー成功時、または比較で転送先の更新が不要と判断された場合に、転送元ファイルを削除します。");
         confirmed(app, host, host.text("移動到目標？", "Move to destination?", "転送先へ移動しますか？"), locations + &explanation, host.text("開始移動", "Start move", "移動を開始"))
     }
 }
@@ -463,7 +463,7 @@ fn handle(app: &AppHandle, host: &Arc<Host>, request: Request) -> Result<Value, 
                 Some((base, revision)) => host.text(&format!("{base}（Windows 修正版 {revision}）"), &format!("{base} (Windows revision {revision})"), &format!("{base}（Windows 修正版 {revision}）")),
                 None => version,
             };
-            app.dialog().message(format!("Rclone Browser Next {version}\n\nJason Chen\n\n{}\n\nhttps://github.com/jason840709/RcloneBrowserNext", host.text("延續 Rclone Browser 的設計，使用 rclone 傳輸檔案。", "Builds on the design of Rclone Browser, using rclone for file transfers.", "Rclone Browser の設計を引き継ぎ、rclone でファイルを転送します。"))).title(host.text("關於", "About", "このアプリについて")).blocking_show();
+            app.dialog().message(format!("Rclone Browser Next {version}\n\nJason Chen\n\n{}\n\nhttps://github.com/jason840709/RcloneBrowserNext", host.text("雙面板 rclone 檔案傳輸工具。", "Builds on the design of Rclone Browser, using rclone for file transfers.", "Rclone Browser の設計を引き継ぎ、rclone でファイルを転送します。"))).title(host.text("關於", "About", "このアプリについて")).blocking_show();
             Ok(Value::Null)
         }
         "copyText" => { let value = args.first().and_then(Value::as_str).filter(|s| s.len() <= 1024 * 1024 && !s.contains('\0')).ok_or_else(|| host.text("請選取 1 MiB 以內的文字。", "Choose text no larger than 1 MiB.", "1 MiB 以下のテキストを選択してください。"))?; app.clipboard().write_text(value).map_err(|e| e.to_string())?; Ok(Value::Null) }
@@ -479,7 +479,7 @@ fn handle(app: &AppHandle, host: &Arc<Host>, request: Request) -> Result<Value, 
             let path = base["path"].as_str().unwrap_or_default();
             let separator = if path.is_empty() || path.ends_with('/') || (base["remote"].is_null() && path.ends_with('\\')) { "" } else { "/" };
             let target = format!("{}{separator}{name}", endpoint(base));
-            let detail = target + &host.text("\n\n取得連結的人可能不需登入就能讀取內容。連結的期限與權限由雲端服務決定。", "\n\nPeople with the link may be able to read the content without signing in. The provider controls the link's permissions and expiry.", "\n\nリンクを知っている人が、ログインせずに内容を読める場合があります。有効期限と権限はクラウドサービスが決定します。");
+            let detail = target + &host.text("\n\n任何擁有此連結的人都可能直接讀取內容；連結效期與權限依雲端服務而定。", "\n\nPeople with the link may be able to read the content without signing in. The provider controls the link's permissions and expiry.", "\n\nリンクを知っている人が、ログインせずに内容を読める場合があります。有効期限と権限はクラウドサービスが決定します。");
             if !confirmed(app, host, host.text("建立公開連結？", "Create a public link?", "公開リンクを作成しますか？"), detail, host.text("建立連結", "Create link", "リンクを作成")) { return Ok(Value::Null); }
             host.call("publicLink", args)
         }
@@ -537,8 +537,8 @@ fn start_quit(app: AppHandle, host: Arc<Host>) {
             } else { Value::Null };
             if state["configuring"].as_bool() == Some(true) { return Err(host.text("請先關閉帳號設定視窗。", "Close the account setup terminal first.", "先にアカウント設定の端末を閉じてください。")); }
             let active = state["activeJobs"].as_bool() == Some(true) || state["activeTools"].as_bool() == Some(true);
-            let detail = if active { host.text("結束會停止傳輸與播放。已完成的檔案變更會保留；未完成的傳輸工作會留在紀錄中，下次可重新執行。", "Quitting stops transfers and streams. Completed file changes are kept. Unfinished transfer jobs remain in history so you can run them again next time.", "終了すると転送と再生を停止します。完了したファイルの変更は保持します。未完了の転送ジョブは履歴に残り、次回もう一度実行できます。") }
-                else { host.text("還有失敗或未完成的工作。工作紀錄會保留，下次可重試。", "Some jobs failed or are unfinished. Their history is kept so you can retry them next time.", "失敗または未完了のジョブがあります。履歴は保持され、次回再試行できます。") };
+            let detail = if active { host.text("結束程式會停止目前的傳輸與播放。已完成的檔案變更不會復原；未完成的工作會留在紀錄中，下次可重試。", "Quitting stops transfers and streams. Completed file changes are kept. Unfinished transfer jobs remain in history so you can run them again next time.", "終了すると転送と再生を停止します。完了したファイルの変更は保持します。未完了の転送ジョブは履歴に残り、次回もう一度実行できます。") }
+                else { host.text("尚有失敗或未完成的工作；紀錄會保留，下次可重試。", "Some jobs failed or are unfinished. Their history is kept so you can retry them next time.", "失敗または未完了のジョブがあります。履歴は保持され、次回再試行できます。") };
             if quit_needs_confirmation(&state) && !confirmed(&app, &host, host.text("確定結束 Rclone Browser Next？", "Quit Rclone Browser Next?", "Rclone Browser Next を終了しますか？"), detail, host.text("結束", "Quit", "終了")) { return Ok(false); }
             if host.alive.load(Ordering::SeqCst) {
                 if let Err(error) = host.call("_shutdown", vec![]) {

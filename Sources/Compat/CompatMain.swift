@@ -56,7 +56,7 @@ final class CompatEngineHost {
         // Its renderer allowlist never forwards a leading underscore.
         switch method {
         case "accountConfig":
-            guard !tools.hasActiveSessions, !controlLock.holding({ configuring || closing }) else { throw EngineError("請先結束終端機設定或播放，再開啟圖形帳號設定。") }
+            guard !tools.hasActiveSessions, !controlLock.holding({ configuring || closing }) else { throw EngineError("請先結束終端機設定或串流播放，再開啟帳號設定。") }
             return try engine.invoke(method, arguments: arguments)
         case "_accountAuthorization": return try engine.accounts.authorizationURL().absoluteString
         case "_cancelListings": engine.cancelListings(); return true

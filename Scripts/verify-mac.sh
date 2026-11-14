@@ -55,7 +55,7 @@ case "$RBN_BINARY_MINIMUM" in 13.0|13.0.0) ;; *) rbn_fail "主程式的最低 ma
 # A newer recorded SDK makes macOS 26+ draw glass circles around every toolbar
 # item (see RBN_DESIGN_SDK in common-mac.sh).
 RBN_BINARY_SDK="$(printf '%s\n' "$RBN_LOAD_COMMANDS" | /usr/bin/awk '$1 == "cmd" && $2 == "LC_BUILD_VERSION" { modern = 1; next } modern && $1 == "sdk" { print $2; exit }')"
-case "$RBN_BINARY_SDK" in "$RBN_DESIGN_SDK"|"$RBN_DESIGN_SDK.0") ;; *) rbn_fail "主程式記錄的 SDK 版本是 $RBN_BINARY_SDK，應為 $RBN_DESIGN_SDK；工具列會被新版 macOS 畫成玻璃圓圈。" 2 ;; esac
+case "$RBN_BINARY_SDK" in "$RBN_DESIGN_SDK"|"$RBN_DESIGN_SDK.0") ;; *) rbn_fail "主程式記錄的 SDK 版本為 $RBN_BINARY_SDK（應為 $RBN_DESIGN_SDK），在新版 macOS 上工具列會出現多餘的玻璃圓圈。" 2 ;; esac
 
 RBN_LINKED_LIBRARIES="$(/usr/bin/xcrun --no-cache otool -L "$RBN_VERIFY_BINARY")"
 while IFS= read -r RBN_LIBRARY; do
@@ -80,6 +80,6 @@ done < <(printf '%s\n' "$RBN_LOAD_COMMANDS" | /usr/bin/awk '
 RBN_SIGNATURE_DETAILS="$(/usr/bin/codesign -d --verbose=4 "$RBN_VERIFY_APP" 2>&1)"
 printf '%s\n' "$RBN_SIGNATURE_DETAILS" | /usr/bin/grep -q 'Sealed Resources version=2' || rbn_fail 'App 的資源封存未完成。' 2
 printf '\n驗證通過：版本 %s；架構 %s；最低 macOS %s。\n' "$RBN_VERSION" "$RBN_ACTUAL_ARCH" "$RBN_BINARY_MINIMUM"
-printf '%s\n' '主程式、Info.plist、Web 資源與本機簽章完整。這項檢查不等同 Developer ID 簽章或 Apple 公證。'
+printf '%s\n' '主程式、Info.plist、網頁資源與本機簽章皆完整（此檢查不等同 Developer ID 簽章或 Apple 公證）。'
 printf '主程式 SHA-256：'
 /usr/bin/shasum -a 256 "$RBN_VERIFY_BINARY" | /usr/bin/awk '{print $1}'

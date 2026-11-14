@@ -531,7 +531,7 @@ final class RcloneEngine {
         if let id = id { notify(id, immediate: true) }
     }
     private static let cancelledMessage = "工作已停止。"
-    private static let forcedStopMessage = "rclone 未回應停止要求，已強制停止。請檢查目標端的未完成檔案。"
+    private static let forcedStopMessage = "rclone 未回應停止要求，已強制終止。請檢查目標端是否留有未完成檔案或上傳資料。"
     private static func processError(_ stderr: Data, code: Int32) -> String {
         let lines = String(decoding: stderr, as: UTF8.self).split(separator: "\n").suffix(8).map { line -> String in
             if let object = try? EngineJSON.object(Data(line.utf8)) as? [String: Any] { return object["msg"] as? String ?? object["error"] as? String ?? String(line) }
@@ -828,9 +828,9 @@ final class RcloneEngine {
                 + ["--ignore-existing", "--ask-password=false", "--use-json-log", "--log-level=INFO", "--", from.argument, to.argument]
             _ = try runProcess(arguments)
             if (try listRaw(endpoint)).contains(where: { $0["Name"] as? String == name }) {
-                guard isDir else { throw EngineError("來源檔案仍存在，目的地可能出現同名項目。請重新整理確認。") }
+                guard isDir else { throw EngineError("來源項目仍存在，目標端可能已有同名項目，請重新整理確認。") }
                 do { _ = try runProcess(["rmdir", "--ask-password=false", "--use-json-log", "--", from.argument]) }
-                catch { throw EngineError("部分內容仍留在原資料夾，請檢查兩個資料夾。") }
+                catch { throw EngineError("部分內容仍留在原資料夾，請一併檢查新舊兩個資料夾。") }
             }
         }
     }
@@ -893,7 +893,7 @@ final class RcloneEngine {
     /// later default-setting change cannot alter the operation being approved.
     func normalizedRequest(_ value: Any) throws -> EngineTransferRequest {
         var raw = try EngineJSON.dictionary(value, "傳輸設定格式不正確。")
-        let supplied = try EngineJSON.dictionary(raw["options"], "傳輸选項格式不正確。")
+        let supplied = try EngineJSON.dictionary(raw["options"], "傳輸選項格式不正確。")
         let defaults = settingsSnapshot()["defaultTransferOptions"] as? [String: Any] ?? EngineTransferOptions.defaults
         raw["options"] = defaults.merging(supplied) { _, new in new }
         return try EngineTransferRequest(raw)
@@ -914,30 +914,30 @@ final class RcloneEngine {
         if let index = arguments.firstIndex(of: "--") { arguments.insert("--combined=-", at: index) }
         if request.mode == "sync" {
             let limit = request.options.integer("maxDelete")
-            warnings.append(limit < 0 ? "同步會刪除目的地中來源沒有的檔案；本次未設定刪除數量上限。"
-                : "同步會刪除目的地中來源沒有的檔案；本次最多刪除 \(limit) 個。超過上限前已刪除的檔案不會復原。")
-            if !request.selection.isEmpty { warnings.append("只同步來源選取的資料夾至目的地同名子資料夾；未選取的目的地內容不會變更。") }
+            warnings.append(limit < 0 ? "同步會刪除目標端多出的檔案（本次不限刪除數量）。"
+                : "同步會刪除目標端多出的檔案（本次最多刪除 \(limit) 個；達上限前已刪除的檔案不會復原）。")
+            if !request.selection.isEmpty { warnings.append("只將勾選的來源資料夾同步至目標同名子資料夾，未勾選的目標資料夾不會更動。") }
         }
-        if request.mode == "move" { warnings.append("移動會在傳送成功後刪除來源檔案。") }
-        if request.mode == "sync", request.options.flag("deleteExcluded") { warnings.append("已啟用刪除排除項目：目的地中符合排除規則的檔案也會刪除。") }
-        if request.mode == "sync", request.options.text("deleteMode") == "before" { warnings.append("目的地多餘檔案會在傳輸開始前刪除，後續傳輸失敗不會還原這些刪除。") }
-        if request.options.text("comparison") == "none" { warnings.append("本次會重新傳送所有範圍內的檔案，即使目的地已有相同內容。") }
+        if request.mode == "move" { warnings.append("移動會在檔案傳送成功後刪除來源檔案。") }
+        if request.mode == "sync", request.options.flag("deleteExcluded") { warnings.append("已開啟「刪除目標中符合排除規則的檔案」：目標端符合排除規則的檔案也會被刪除。") }
+        if request.mode == "sync", request.options.text("deleteMode") == "before" { warnings.append("目標端多出的檔案會在傳輸開始前先刪除；若後續傳輸失敗，已刪除的檔案不會復原。") }
+        if request.options.text("comparison") == "none" { warnings.append("本次會重傳範圍內的所有檔案（即使目標已有相同檔案）。") }
         if let precision = EngineLocalTimePrecision.detect(for: request) { warnings.append(precision.message) }
         if EngineLocalCopyPolicy.applies(to: request) { warnings.append(EngineLocalCopyPolicy.message) }
         if request.options.text("localHashPolicy") == "none", request.source.remote == nil || request.destination.remote == nil {
             switch request.options.text("comparison") {
-            case "default": warnings.append("本機比對使用檔案大小與修改時間，不讀取內容計算雜湊。")
-            case "modtime": warnings.append("本機比對只使用修改時間，不讀取內容計算雜湊。")
-            case "size": warnings.append("本機比對只使用檔案大小，不讀取內容計算雜湊。")
+            case "default": warnings.append("本機比對僅檢查檔案大小與修改時間，不讀取檔案內容算雜湊。")
+            case "modtime": warnings.append("本機比對僅檢查修改時間，不讀取檔案內容算雜湊。")
+            case "size": warnings.append("本機比對僅檢查檔案大小，不讀取檔案內容算雜湊。")
             default: break
             }
         }
-        else if request.options.flag("ignoreChecksum") { warnings.append("已關閉傳送後的雜湊驗證；傳送前的雜湊比對仍依比對方式執行。") }
-        if request.dryRun { warnings.append("預演不會變更檔案，傳輸統計為模擬結果。") }
+        else if request.options.flag("ignoreChecksum") { warnings.append("已略過傳完後的雜湊驗證（傳送前的比對仍依所選比對方式執行）。") }
+        if request.dryRun { warnings.append("預演不會實際改動檔案，以下為模擬統計結果。") }
         if complex {
             warnings.append(request.mode == "sync"
-                ? "只處理勾選資料夾內、符合包含規則的檔案。開始前會先列出兩側檔名；此範圍內只有目標存在的檔案也會納入同步刪除。"
-                : "只處理勾選範圍內、符合包含規則的檔案；開始前會先掃描來源。")
+                ? "只同步勾選資料夾內符合包含規則的檔案（開始前會先掃描兩端檔名；該範圍內目標多出的檔案也會一併刪除）。"
+                : "只處理勾選範圍內且符合篩選規則的檔案（開始前會先掃描來源）。")
         }
         if retryScope() == .failed { arguments = EngineRetryPlan.singlePass(arguments) }
         return ["command": Self.displayCommand(try resolvedRclonePath(), configuredArguments(arguments)), "warnings": warnings]
@@ -1094,7 +1094,7 @@ final class RcloneEngine {
                     // not retried remain; keep rclone's own text for the explanation.
                     if let first = result.outstanding.first {
                         if result.outstanding.allSatisfy({ $0.message.hasPrefix("error reading source directory:") }) {
-                            job.error = "來源資料夾無法讀取，該部分尚未同步。請查看逐檔報告。"
+                            job.error = "來源資料夾無法讀取，該部分尚未同步。請查看逐檔紀錄。"
                         } else { job.error = first.message }
                     }
                     job.error = job.error ?? "rclone 結束代碼：\(result.exitCode)。請查看記錄。"
@@ -1116,7 +1116,7 @@ final class RcloneEngine {
                 try report.flush()
             } catch {
                 stateLock.holding {
-                    job.error = "逐檔報告無法完整保存：\(error.localizedDescription)"
+                    job.error = "無法完整保存逐檔紀錄：\(error.localizedDescription)"
                     if finalStatus == "completed" { finalStatus = "failed" }
                 }
             }
@@ -1324,7 +1324,7 @@ final class RcloneEngine {
     }
 
     private func reportFailure(_ error: Error, job: EngineJob, running: EngineActiveJob) {
-        outputFailure("逐檔報告無法完整保存：\(error.localizedDescription)", job: job, running: running)
+        outputFailure("無法完整保存逐檔紀錄：\(error.localizedDescription)", job: job, running: running)
     }
 
     private func outputFailure(_ message: String, job: EngineJob, running: EngineActiveJob) {
@@ -1399,7 +1399,7 @@ final class RcloneEngine {
         if let child = result.1 { requestStop(child) }
         if let running = result.0, running.done.wait(timeout: .now() + Self.stopWaitLimit) == .timedOut {
             try persist()
-            throw EngineError("rclone 尚未停止，工作仍保留。請查看工作狀態。")
+            throw EngineError("rclone 尚未停止，已保留此工作。請查看工作狀態。")
         }
         try persist()
     }
@@ -1438,7 +1438,7 @@ final class RcloneEngine {
         guard let rawIDs = raw["ids"] as? [String], rawIDs.count <= 10000,
               rawIDs.allSatisfy(EngineJSON.validID), let mode = raw["mode"] as? String,
               ["finished", "stop-and-clear"].contains(mode), Set(raw.keys).isSubset(of: ["ids", "mode"]) else {
-            throw EngineError("無法清除工作紀錄：傳輸清單或清除方式已失效。請重新整理後再試。")
+            throw EngineError("無法清除紀錄，傳輸清單或清除設定已失效。請重新整理後再試。")
         }
         var seen = Set<String>()
         let ids = rawIDs.map { $0.lowercased() }.filter { seen.insert($0).inserted }
@@ -1591,7 +1591,7 @@ final class RcloneEngine {
         output["defaultTransferOptions"] = try EngineTransferOptions(existingOptions.merging(optionPatch) { _, new in new }).json
         let extraArguments = try EngineTransferOptions.validateExtraArguments(merged["defaultRcloneOptions"])
         guard !extraArguments.contains(where: { EngineNetworkOptions.globalOwnedFlags.contains(String($0.split(separator: "=", maxSplits: 1)[0])) }) else {
-            throw EngineError("請在「rclone 連線」設定每秒請求上限與 HTTP/2，並移除「所有工作的額外參數」中的重複設定。")
+            throw EngineError("每秒請求上限與停用 HTTP/2 請直接在「rclone 連線」設定，並從「所有傳輸都加上的參數」移除重複項目。")
         }
         output["defaultRcloneOptions"] = extraArguments
         let existingNetwork = defaults["networkOptions"] as? [String: Any] ?? EngineNetworkOptions.defaults
@@ -1647,7 +1647,7 @@ final class RcloneEngine {
                       ["http", "https", "socks5", "socks5h"].contains(scheme), let host = url.host, !host.isEmpty,
                       url.user == nil, url.password == nil, url.query == nil, url.fragment == nil,
                       url.path.isEmpty || url.path == "/", url.port == nil || (1...65535).contains(url.port!) else {
-                    throw EngineError("代理伺服器請填入 http://127.0.0.1:7890 等網址，不能包含帳號或密碼。")
+                    throw EngineError("代理伺服器請填入如 http://127.0.0.1:7890 的網址，不可包含帳號密碼。")
                 }
             }
             output[key] = text

@@ -100,13 +100,13 @@ enum EngineStorage {
         }
         if source.remote == nil && destination.remote == nil {
             guard !overlaps(try canonicalLocal(source.path), try canonicalLocal(destination.path)) else {
-                throw EngineError("來源與目的地不能相同，也不能互為上層／子目錄（包含符號連結）。")
+                throw EngineError("來源與目標不可相同，也不可互為上下層目錄（含符號連結）。")
             }
         } else if source.remote != nil && source.remote == destination.remote {
             let first = source.path.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
             let second = destination.path.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
             guard !first.isEmpty, !second.isEmpty, !overlaps(first, second) else {
-                throw EngineError("同一遠端的來源與目的地不能相同，也不能互為上層／子目錄。")
+                throw EngineError("同一遠端的來源與目標不可相同，也不可互為上下層目錄。")
             }
         }
     }
@@ -217,7 +217,7 @@ final class EngineLogWriter {
                         try FileManager.default.moveItem(at: from, to: URL(fileURLWithPath: file.path + ".\(index + 1)"))
                     }
                 }
-                let marker = try EngineJSON.data(["time": EngineJSON.now(), "level": "notice", "msg": "記錄輪替；每項工作保留最近 100 MiB。", "appLogRotation": true])
+                let marker = try EngineJSON.data(["time": EngineJSON.now(), "level": "notice", "msg": "紀錄檔已自動輪替（每項工作最多保留最近 100 MiB）。", "appLogRotation": true])
                 guard FileManager.default.createFile(atPath: file.path, contents: nil, attributes: EnginePlatform.permissions(0o600)) else { throw EngineError("無法輪替工作記錄。") }
                 handle = try FileHandle(forWritingTo: file)
                 try handle!.write(contentsOf: marker + Data([10])); bytes = marker.count + 1

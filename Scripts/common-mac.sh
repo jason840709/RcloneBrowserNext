@@ -7,7 +7,7 @@ RBN_CACHE_ROOT="$RBN_PROJECT_ROOT/.build-cache"
 RBN_APP_PATH="$RBN_PROJECT_ROOT/Rclone Browser Next.app"
 RBN_BUNDLE_ID="org.rclone.browser.next.lite"
 RBN_EXECUTABLE="RcloneBrowserNext"
-RBN_VERSION="0.10.6"
+RBN_VERSION="0.11.0"
 RBN_MINIMUM_MACOS="13.0"
 # The interface is designed for the macOS 15 look. macOS 26 and later redraw
 # the toolbar of an App linked against their own SDK with glass circles around
@@ -64,10 +64,10 @@ rbn_prepare_local_environment() {
 
 rbn_require_apple_tools() {
   [[ -x /usr/bin/xcode-select && -x /usr/bin/xcrun ]] || \
-    rbn_fail '找不到 Apple Command Line Tools。請先備妥既有的 Xcode 或 Command Line Tools，再重新執行；這個腳本不會安裝或升級它們。' 4
+    rbn_fail '找不到 Apple Command Line Tools。請確認已備妥 Xcode 或 Command Line Tools，再重新執行（本腳本不會自動安裝）。' 4
   local developer_path
   developer_path="$(/usr/bin/xcode-select -p 2>/dev/null)" || \
-    rbn_fail '這台 Mac 尚未設定 Apple Command Line Tools。請先備妥 Xcode 或 Command Line Tools，再重新執行；這個腳本不會代為安裝。' 4
+    rbn_fail '尚未設定 Apple Command Line Tools。請確認已備妥 Xcode 或 Command Line Tools，並完成選用設定後再執行。' 4
   [[ -d "$developer_path" ]] || rbn_fail "Apple 開發工具路徑不存在：$developer_path" 4
   RBN_SWIFTC="$(/usr/bin/xcrun --no-cache --sdk macosx --find swiftc 2>/dev/null)" || \
     rbn_fail '找不到可用的 Apple Swift 編譯器。請檢查目前選用的 Xcode／Command Line Tools。' 4

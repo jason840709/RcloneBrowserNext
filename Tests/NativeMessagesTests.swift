@@ -36,18 +36,18 @@ import Glibc
         test("Settings, transfer, tools, updater and Finder errors have English and Japanese") {
             let cases: [(String, String, String)] = [
                 ("設定已在其他操作中更新，請重新整理後再試。", "Another operation updated the settings. Refresh and try again.", "別の操作で設定が更新されました。再読み込みしてからお試しください。"),
-                ("同步需要列出目標目錄。請關閉「不先列出目標目錄（複製、移動）」。", "Sync needs a destination listing. Turn off Skip listing the destination (copy and move).", "同期には転送先一覧が必要です。「転送先一覧を先に取得しない（コピー・移動）」をオフにしてください。"),
+                ("同步需要列出目標目錄，請關閉「不先列出目標目錄（複製、移動）」。", "Sync needs a destination listing. Turn off Skip listing the destination (copy and move).", "同期には転送先一覧が必要です。「転送先一覧を先に取得しない（コピー・移動）」をオフにしてください。"),
                 ("公開連結只適用於支援分享功能的雲端位置。", "Public links are available only for cloud locations that support sharing.", "公開リンクは、共有に対応するクラウドでのみ作成できます。"),
                 ("下載檔的 SHA-256 不符，已停止安裝。", "The download SHA-256 does not match. Installation stopped.", "ダウンロードしたファイルの SHA-256 が一致しないため、インストールを停止しました。"),
-                ("更新檢查目前不支援 https:// 代理位址。請改用 http:// 或 socks5://；rclone 傳輸仍可使用 https:// 代理。", "Update checks do not currently support https:// proxy addresses. Use http:// or socks5:// for updates; rclone transfers can still use an https:// proxy.", "更新確認では現在 https:// のプロキシアドレスに対応していません。更新には http:// または socks5:// を使用してください。rclone の転送では引き続き https:// プロキシを使用できます。"),
-                ("請拖入原始檔案或資料夾；拖放不會跟隨符號連結。", "Drag the original file or folder. Drag and drop does not follow symbolic links.", "元のファイルまたはフォルダをドラッグしてください。ドラッグ＆ドロップではシンボリックリンクをたどりません。"),
-                ("同步會刪除目的地中來源沒有的檔案；本次未設定刪除數量上限。", "Sync deletes destination files absent from the source. No deletion limit is set for this run.", "同期では転送元に存在しない転送先のファイルを削除します。今回は削除数の上限を設定していません。"),
+                ("App 更新檢查目前不支援 https:// 代理伺服器，請改用 http:// 或 socks5://（rclone 傳輸仍可使用 https:// 代理）。", "Update checks do not currently support https:// proxy addresses. Use http:// or socks5:// for updates; rclone transfers can still use an https:// proxy.", "更新確認では現在 https:// のプロキシアドレスに対応していません。更新には http:// または socks5:// を使用してください。rclone の転送では引き続き https:// プロキシを使用できます。"),
+                ("請直接拖入原始檔案或資料夾（拖放不支援符號連結）。", "Drag the original file or folder. Drag and drop does not follow symbolic links.", "元のファイルまたはフォルダをドラッグしてください。ドラッグ＆ドロップではシンボリックリンクをたどりません。"),
+                ("同步會刪除目標端多出的檔案（本次不限刪除數量）。", "Sync deletes destination files absent from the source. No deletion limit is set for this run.", "同期では転送元に存在しない転送先のファイルを削除します。今回は削除数の上限を設定していません。"),
                 ("工作已停止。", "The job stopped.", "処理を停止しました。"),
                 ("缺少 Mac 程序啟動元件，請重新安裝。", "A Mac process launch component is missing. Reinstall the app.", "Mac のプロセス起動コンポーネントがありません。アプリを再インストールしてください。"),
-                ("依本次比對與略過設定，無需更新。", "No update is needed under this job's comparison and skip settings.", "この処理の比較・スキップ設定では更新不要です。"),
+                ("依本次比對與略過設定，不需更新。", "No update is needed under this job's comparison and skip settings.", "この処理の比較・スキップ設定では更新不要です。"),
                 ("檔案有變更，已列入傳輸清單。", "This file has changed and is listed for transfer.", "このファイルに変更があるため、転送対象に追加しました。"),
-                ("第 2 輪：只重試上一輪出錯的 3 個檔案，其他檔案不重新檢查。", "Pass 2: retrying only the 3 files that failed in the previous pass. Other files are not checked again.", "2 回目：前回失敗した 3 件のファイルだけを再試行します。ほかのファイルは確認し直しません。"),
-                ("有 52 個錯誤重試也會一樣（例如找不到、沒有權限、檔名不支援），不重試，也不重新檢查其他檔案。", "52 errors would fail the same way again (for example not found, no permission or an unsupported name). They are not retried, and other files are not checked again.", "52 件のエラーは再試行しても同じ結果になるため（見つからない、権限がない、使えない名前など）、再試行せず、ほかのファイルも確認し直しません。")
+                ("第 2 輪：只重試上一輪失敗的 3 個檔案，不重掃其他檔案。", "Pass 2: retrying only the 3 files that failed in the previous pass. Other files are not checked again.", "2 回目：前回失敗した 3 件のファイルだけを再試行します。ほかのファイルは確認し直しません。"),
+                ("有 52 個固定錯誤（如找不到檔案、無權限、檔名不支援）重試也無法解決，不再重試。", "52 errors would fail the same way again (for example not found, no permission or an unsupported name). They are not retried, and other files are not checked again.", "52 件のエラーは再試行しても同じ結果になるため（見つからない、権限がない、使えない名前など）、再試行せず、ほかのファイルも確認し直しません。")
             ]
             for (source, english, japanese) in cases {
                 try expect(RBNNativeStrings.translate(source, language: "en"), english)
@@ -87,8 +87,8 @@ import Glibc
             let archive = "rclone-v1.75.2-osx-arm64-更新.zip"
             try expect(RBNNativeStrings.translate("rclone 官方下載站回傳 HTTP 429（\(archive)）。請稍後重試。", language: "en"), "The official rclone server returned HTTP 429 (\(archive)). Try again later.")
             try expect(RBNNativeStrings.translate("rclone 官方下載站回傳 HTTP 503（\(archive)）。請稍後重試。", language: "ja"), "rclone 公式サーバーから HTTP 503（\(archive)）が返されました。しばらくしてから再試行してください。")
-            try expect(RBNNativeStrings.translate("下載回應超過允許大小（536870913 bytes；上限 536870912 bytes）。已停止下載。", language: "en"), "Download exceeds the size limit (536870913 bytes; limit 536870912 bytes). Download stopped.")
-            try expect(RBNNativeStrings.translate("這個官方 rclone 執行檔需要 macOS 15.4.1，高於目前系統。原本的 rclone 保持不變；你可以選擇另一個相容版本。", language: "ja"), "この公式 rclone 実行ファイルには、現在のシステムより新しい macOS 15.4.1 が必要です。既存の rclone は変更していません。対応する別のバージョンを選択できます。")
+            try expect(RBNNativeStrings.translate("下載大小超過上限（536870913 bytes，上限 536870912 bytes），已停止下載。", language: "en"), "Download exceeds the size limit (536870913 bytes; limit 536870912 bytes). Download stopped.")
+            try expect(RBNNativeStrings.translate("這份官方 rclone 需要 macOS 15.4.1 以上（高於目前系統版本）。已保留原有的 rclone，請改選其他相容版本。", language: "ja"), "この公式 rclone 実行ファイルには、現在のシステムより新しい macOS 15.4.1 が必要です。既存の rclone は変更していません。対応する別のバージョンを選択できます。")
         }
 
         test("Unknown provider diagnostics keep embedded file names and JSON verbatim") {
@@ -126,7 +126,7 @@ import Glibc
         test("Deletion confirmation preserves every selected filename") {
             let location = "NAS:/日本語/好"
             let names = "取消\n見本 \"01\".txt\n更新"
-            let message = "位置：\(location)\n\n\(names)\n\n將刪除 3 個選取項目。這項操作不會移到垃圾桶。"
+            let message = "位置：\(location)\n\n\(names)\n\n確定永久刪除這 3 個選取項目？（不會移到垃圾桶）"
             try expect(RBNNativeStrings.translate(message, language: "en"), "Location: \(location)\n\n\(names)\n\nDelete 3 selected items. Items are not moved to Trash.")
             try expect(RBNNativeStrings.translate(message, language: "ja"), "場所：\(location)\n\n\(names)\n\n選択した 3 個の項目を削除します。ゴミ箱には移動しません。")
         }

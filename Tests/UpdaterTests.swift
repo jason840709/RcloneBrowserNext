@@ -136,7 +136,7 @@ struct UpdaterTests {
             try assert(result.output.contains("TMPDIR=" + folder.path), "update temporary files stay in work directory")
         }
         test("native updates reject TLS-to-proxy without weakening rclone or HTTP CONNECT and SOCKS settings") {
-            let message = "更新檢查目前不支援 https:// 代理位址。請改用 http:// 或 socks5://；rclone 傳輸仍可使用 https:// 代理。"
+            let message = "App 更新檢查目前不支援 https:// 代理伺服器，請改用 http:// 或 socks5://（rclone 傳輸仍可使用 https:// 代理）。"
             for address in ["https://127.0.0.1:443", "HTTPS://proxy.example:8443"] {
                 let settings: [String: Any] = ["proxyMode": "manual", "httpsProxy": address]
                 do {

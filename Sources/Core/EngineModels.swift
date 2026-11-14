@@ -184,9 +184,9 @@ struct EngineWorkspace {
         ["left": left.json, "right": right.json, "direction": direction, "mode": mode, "options": options.json]
     }
     init(_ value: Any?) throws {
-        let raw = try EngineJSON.dictionary(value, "記住的環境格式不正確。")
+        let raw = try EngineJSON.dictionary(value, "工作區設定格式不正確。")
         guard Set(raw.keys) == Set(["left", "right", "direction", "mode", "options"]) else {
-            throw EngineError("記住的環境必須包含左右位置、方向、操作與傳輸選項。")
+            throw EngineError("工作區設定需包含左右位置、方向、操作方式與傳輸選項。")
         }
         left = try EngineEndpoint(raw["left"]); right = try EngineEndpoint(raw["right"])
         direction = try EngineJSON.text(raw["direction"], "傳輸方向")
@@ -217,7 +217,7 @@ struct EngineNetworkOptions {
         guard ["auto", "ipv4", "ipv6", "address"].contains(mode) else { throw EngineError("連線位址模式不正確。") }
         let address = try EngineJSON.text(output["bindAddress"], "本機 IP 位址", maximum: 128).trimmingCharacters(in: .whitespaces)
         guard (mode != "address" || !address.isEmpty), address.isEmpty || Self.isIPAddress(address) else {
-            throw EngineError("本機 IP 位址請填入有效的 IPv4 或 IPv6，不要填入網卡名稱、網址或連接埠。")
+            throw EngineError("本機 IP 位址請填入有效的 IPv4 或 IPv6 位址（請勿填網卡名稱、網址或連接埠）。")
         }
         output["bindMode"] = mode; output["bindAddress"] = address
         for (key, label) in [("connectTimeout", "連線逾時"), ("ioTimeout", "傳輸閒置逾時")] {
@@ -306,7 +306,7 @@ struct EngineTransferOptions {
             throw EngineError("檔案比較方式不正確。")
         }
         guard comparison != "none" || (output["skipExisting"] as? Bool != true && output["updateOnly"] as? Bool != true) else {
-            throw EngineError("全部重新傳送不能同時略過已存在或較新的檔案。請選擇一種比對方式。")
+            throw EngineError("「全部重新傳輸」不可同時勾選略過已存在或較新的檔案，請改選其他比對方式。")
         }
         output["comparison"] = comparison
         let deletion = try EngineJSON.text(output["deleteMode"], "刪除時機")
@@ -367,7 +367,7 @@ struct EngineTransferOptions {
             let item = try EngineJSON.text(value, "其他選項", maximum: 4096).trimmingCharacters(in: .whitespaces)
             let components = item.split(separator: "=", maxSplits: 1, omittingEmptySubsequences: false)
             guard let key = components.first.map(String.init), key.range(of: "^--[a-z][a-z0-9-]*$", options: .regularExpression) != nil,
-                  seen.insert(key).inserted else { throw EngineError("其他選項不能包含命令、路徑、短旗標或重複選項。每行請使用 --選項=值。") }
+                  seen.insert(key).inserted else { throw EngineError("其他選項不可包含子命令、路徑、單字元短參數或重複項目，每行請用 --選項=值 格式。") }
             let argument = components.count == 2 ? String(components[1]) : nil
             if extraBooleanFlags.contains(key) {
                 guard argument == nil || ["true", "false"].contains(argument!) else { throw EngineError("\(key) 只接受 true 或 false。") }
@@ -384,7 +384,7 @@ struct EngineTransferOptions {
                     guard ["HARD", "SOFT", "CAUTIOUS"].contains(argument.uppercased()) else { throw EngineError("cutoff-mode 請填入 HARD、SOFT 或 CAUTIOUS。") }
                 } else if key == "--order-by" {
                     guard argument.range(of: "^(size|name|modtime)(,(ascending|asc|descending|desc|mixed))?$", options: .regularExpression) != nil else { throw EngineError("order-by 格式不正確。") }
-                } else { throw EngineError("\(key) 不在支援的其他選項中。請使用畫面上的對應設定；帳號與憑證請在 Config 設定。") }
+                } else { throw EngineError("\(key) 不在支援的額外參數中。請改用畫面上的設定；帳號與憑證請至「帳號設定」或 Config 設定。") }
             }
             return item
         }
@@ -392,7 +392,7 @@ struct EngineTransferOptions {
 
     private static func sizeValue(_ value: Any?, label: String) throws -> String {
         let text = try EngineJSON.text(value, label, maximum: 64)
-        guard text.isEmpty || bytes(text) != nil else { throw EngineError("\(label)請填入 10M、512K 等大小；留白表示不限。") }
+        guard text.isEmpty || bytes(text) != nil else { throw EngineError("\(label)請填入 10M、512K 等大小；留空代表不限。") }
         return text
     }
 
@@ -460,17 +460,17 @@ struct EngineTransferRequest {
     }
     func validateOperation() throws {
         guard mode != "sync" || selection.allSatisfy(\.isDir) else {
-            throw EngineError("同步時只能選取資料夾。請取消選取檔案，或改用複製／移動。")
+            throw EngineError("同步只能勾選資料夾；請取消勾選個別檔案，或改用複製／移動。")
         }
         // rclone applies ordinary filters to both sides. --delete-excluded
         // deliberately bypasses destination filters, which would also bypass
         // the selected-folder boundary and delete unselected destination data.
         guard mode != "sync" || selection.isEmpty || !options.flag("deleteExcluded") else {
-            throw EngineError("選取資料夾同步時，請關閉「刪除目標中符合排除規則的檔案」。這個選項會將未選取的目標內容也納入刪除範圍。")
+            throw EngineError("只同步勾選的資料夾時，請關閉「刪除目標中符合排除規則的檔案」，以免刪到未勾選的目標檔案。")
         }
-        guard mode != "sync" || !options.flag("noTraverse") else { throw EngineError("同步需要列出目標目錄。請關閉「不先列出目標目錄（複製、移動）」。") }
+        guard mode != "sync" || !options.flag("noTraverse") else { throw EngineError("同步需要列出目標目錄，請關閉「不先列出目標目錄（複製、移動）」。") }
         guard mode != "move" || !options.flag("updateOnly") else {
-            throw EngineError("移動時，因目標較新而略過傳送的來源檔案也會被刪除。請關閉「略過目標較新的檔案」或改用複製。")
+            throw EngineError("移動時若開啟「略過目標較新的檔案」，被略過的來源檔案仍可能被刪除；請關閉此選項或改用複製。")
         }
         guard mode == "sync" || !options.flag("deleteExcluded") else { throw EngineError("「刪除目標中符合排除規則的檔案」只適用於同步。") }
     }
@@ -550,7 +550,7 @@ struct EngineLocalTimePrecision {
     let fileSystems: [String]
 
     var message: String {
-        "偵測到 \(fileSystems.joined(separator: ", "))，修改時間容許誤差自動設為 \(duration)，避免檔案系統的時間精度造成重傳。"
+        "偵測到 \(fileSystems.joined(separator: ", "))，時間容許差已自動設為 \(duration)，避免因磁碟時間精度差異而重傳。"
     }
 
     static func precision(for fileSystem: String) -> (seconds: Double, duration: String)? {

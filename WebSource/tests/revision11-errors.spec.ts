@@ -13,7 +13,7 @@ const url = pathToFileURL(path.resolve(path.dirname(fileURLToPath(import.meta.ur
 const rateLimit = "couldn't list directory: googleapi: Error 403: Quota exceeded for quota metric 'Queries' of service 'drive.googleapis.com' for consumer 'project_number:202264815644'. rateLimitExceeded";
 
 test('source directory lookup failure is explained as a folder problem requiring attention', () => {
-  for (const message of ['error reading source directory: directory not found', '來源資料夾無法讀取，該部分尚未同步。請查看逐檔報告。']) {
+  for (const message of ['error reading source directory: directory not found', "來源資料夾無法讀取，該部分尚未同步。請查看逐檔紀錄。"]) {
     const result = explainError(message, t);
     expect(result?.severity).toBe('action');
     expect(result?.title).toBe('來源資料夾無法讀取');

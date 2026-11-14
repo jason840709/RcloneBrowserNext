@@ -46,7 +46,7 @@ export function installNativeBridge(): void {
         void call('cancelList', (args[1] as ListOptions).requestId).catch(() => {});
       }
       const language = document.documentElement.lang;
-      reject(new Error(language === 'ja' ? 'アプリの応答がありません。処理が続いている可能性があります。再試行する前に状態を確認してください。' : language === 'en' ? 'The app did not respond in time. The operation may still be running; check its status before trying again.' : '程式回應逾時。操作可能仍在進行，請先查看狀態再重試。'));
+      reject(new Error(language === 'ja' ? 'アプリの応答がありません。処理が続いている可能性があります。再試行する前に状態を確認してください。' : language === 'en' ? 'The app did not respond in time. The operation may still be running; check its status before trying again.' : "等待回應逾時。操作可能仍在背景執行，請先確認狀態再重試。"));
     }, limits[method] ?? 90_000);
     pending.set(id, { resolve: value => resolve(value as T), reject, timer });
     try { handler.postMessage({ id, method, args }); }

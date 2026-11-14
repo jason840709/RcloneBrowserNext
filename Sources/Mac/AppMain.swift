@@ -270,7 +270,7 @@ final class BrowserAppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegat
         }
         guard reserved else {
             presentMessage(local("請先停止傳輸再修復", "Stop transfers before recovery", "転送を停止してから復元してください"),
-                           detail: local("請等傳輸、掛載、播放及目前操作結束，再核對暫存檔。", "Wait for transfers, mounts, streams and the current operation to finish before verifying temporary files.", "転送、マウント、再生、進行中の操作が完了してから一時ファイルを照合してください。"))
+                           detail: local("請等目前的傳輸、掛載、播放及其他操作結束，再核對暫存檔。", "Wait for transfers, mounts, streams and the current operation to finish before verifying temporary files.", "転送、マウント、再生、進行中の操作が完了してから一時ファイルを照合してください。"))
             return
         }
         let folder = stateDirectory.appendingPathComponent("Recovery").appendingPathComponent(UUID().uuidString)
@@ -414,7 +414,7 @@ final class BrowserAppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegat
                     case .available:
                         let latest = result.latest ?? ""
                         alert.messageText = self.local("Rclone Next 有新版本 \(latest)", "Rclone Next \(latest) is available", "Rclone Next \(latest) が利用できます")
-                        alert.informativeText = self.local("目前版本：\(result.current)\n開啟 GitHub 下載頁，下載新版後依隨附說明更新。", "Installed: \(result.current)\nOpen the GitHub release page and follow the included update instructions.", "現在のバージョン：\(result.current)\nGitHub のリリースページから新しいバージョンをダウンロードし、同梱の手順で更新してください。")
+                        alert.informativeText = self.local("目前版本：\(result.current)\n請前往 GitHub 下載頁取得新版並替換 App。", "Installed: \(result.current)\nOpen the GitHub release page and follow the included update instructions.", "現在のバージョン：\(result.current)\nGitHub のリリースページから新しいバージョンをダウンロードし、同梱の手順で更新してください。")
                     case .current:
                         alert.messageText = self.local("Rclone Next 已是最新版本", "Rclone Next is up to date", "Rclone Next は最新です")
                         alert.informativeText = self.local("目前版本：\(result.current)\n最新正式版：\(result.latest ?? result.current)", "Installed: \(result.current)\nLatest release: \(result.latest ?? result.current)", "現在のバージョン：\(result.current)\n最新の正式版：\(result.latest ?? result.current)")
@@ -487,8 +487,8 @@ final class BrowserAppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegat
         let approved = !needsConfirmation || confirm(
             title: hasWork ? local("停止工作並結束？", "Stop jobs and quit?", "処理を停止して終了しますか？") : local("確定結束 Rclone Browser Next？", "Quit Rclone Browser Next?", "Rclone Browser Next を終了しますか？"),
             detail: hasWork
-                ? local("結束會停止傳輸、掛載與播放。未完成的工作會保留在紀錄中，下次可以重試。", "Quitting stops transfers, mounts and streams. Unfinished jobs remain in the history so you can retry them next time.", "終了すると転送、マウント、再生を停止します。未完了の処理は履歴に残り、次回再試行できます。")
-                : local("還有失敗或未完成的工作。工作紀錄會保留，下次可重試。", "There are failed or unfinished jobs. Their history will be kept so you can retry them next time.", "失敗または未完了の処理があります。履歴は保存され、次回再試行できます。"),
+                ? local("結束程式會停止目前的傳輸、掛載與播放。未完成的工作會留在紀錄中，下次可重試。", "Quitting stops transfers, mounts and streams. Unfinished jobs remain in the history so you can retry them next time.", "終了すると転送、マウント、再生を停止します。未完了の処理は履歴に残り、次回再試行できます。")
+                : local("尚有失敗或未完成的工作；紀錄會保留，下次可重試。", "There are failed or unfinished jobs. Their history will be kept so you can retry them next time.", "失敗または未完了の処理があります。履歴は保存され、次回再試行できます。"),
             action: hasWork ? local("停止並結束", "Stop and quit", "停止して終了") : local("結束", "Quit", "終了"))
         guard approved else { terminationStarted = false; return .terminateCancel }
         engine.cancelListings()
@@ -711,7 +711,7 @@ final class BrowserAppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegat
             let selection = try EngineSelection.parse(argument(1))
             guard !selection.isEmpty else { throw EngineError("請先選取要刪除的項目。") }
             let names = selection.prefix(8).map(\.name).joined(separator: "\n")
-            let detail = local("位置：\(endpoint.argument)\n\n\(names)\n\n將刪除 \(selection.count) 個選取項目。這項操作不會移到垃圾桶。",
+            let detail = local("位置：\(endpoint.argument)\n\n\(names)\n\n確定永久刪除這 \(selection.count) 個選取項目？（不會移到垃圾桶）",
                                "Location: \(endpoint.argument)\n\n\(names)\n\nDelete \(selection.count) selected items. Items are not moved to Trash.")
             guard confirm(title: local("刪除選取項目？", "Delete selected items?"), detail: detail,
                           action: local("刪除", "Delete")) else { return false }
@@ -750,7 +750,7 @@ final class BrowserAppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegat
             let object = try JSONSerialization.jsonObject(with: Data(contentsOf: source))
             return try engine.invoke("importTasks", arguments: [object])
         case "accountConfig":
-            guard !toolsManager.hasActiveSessions, !activityLock.holding({ configuringRemotes || updateInstalling || terminationValue }) else { throw EngineError("請先結束終端機設定或播放，再開啟圖形帳號設定。") }
+            guard !toolsManager.hasActiveSessions, !activityLock.holding({ configuringRemotes || updateInstalling || terminationValue }) else { throw EngineError("請先結束終端機設定或串流播放，再開啟帳號設定。") }
             let result = try engine.invoke(method, arguments: arguments)
             if let state = result as? [String: Any], state["authorizationStarted"] as? Bool == true,
                let phase = state["phase"] as? String, ["question", "ready", "committed", "error"].contains(phase),
@@ -817,7 +817,7 @@ final class BrowserAppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegat
             let target = try endpoint.child(name)
             guard endpoint.remote != nil else { throw EngineError(local("請選擇支援分享功能的雲端位置。", "Choose a cloud location that supports public links.", "公開リンクに対応するクラウドを選択してください。")) }
             guard confirm(title: local("建立公開連結？", "Create a public link?", "公開リンクを作成しますか？"),
-                          detail: local("\(target.argument)\n\n取得連結的人可能不需登入就能讀取內容。連結的期限與權限由雲端服務決定。", "\(target.argument)\n\nAnyone with the link may be able to read the content without signing in. Expiration and permissions depend on the provider.", "\(target.argument)\n\nリンクを知っている人は、ログインせずに内容を閲覧できる場合があります。有効期限と権限はクラウドサービスによって異なります。"),
+                          detail: local("\(target.argument)\n\n任何擁有此連結的人都可能直接讀取內容；連結效期與權限依雲端服務而定。", "\(target.argument)\n\nAnyone with the link may be able to read the content without signing in. Expiration and permissions depend on the provider.", "\(target.argument)\n\nリンクを知っている人は、ログインせずに内容を閲覧できる場合があります。有効期限と権限はクラウドサービスによって異なります。"),
                           action: local("建立公開連結", "Create public link", "公開リンクを作成")) else { return NSNull() }
             return try withToolsContext { try RcloneTools.publicLink(context: $0, endpoint: endpoint, name: name, isDir: isDir).absoluteString }
         case "startMount":
@@ -909,19 +909,19 @@ final class BrowserAppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegat
         if request.mode == "sync" {
             let limit = request.options.integer("maxDelete")
             let scope = request.selection.isEmpty
-                ? local("\n\n範圍：整個資料夾，依本次篩選規則處理。", "\n\nScope: the whole folder, using this job's filters.", "\n\n対象：フォルダ全体。この転送のフィルターを適用します。")
-                : local("\n\n範圍：以下選取資料夾，依本次篩選規則處理。\n", "\n\nScope: these selected folders, using this job's filters.\n", "\n\n対象：次の選択フォルダ。この転送のフィルターを適用します。\n") + request.selection.prefix(10).map(\.name).joined(separator: "\n") + (request.selection.count > 10 ? local("\n另有 \(request.selection.count - 10) 個資料夾。", "\nAnd \(request.selection.count - 10) more folders.", "\nほか \(request.selection.count - 10) フォルダ。") : "")
+                ? local("\n\n範圍：整個目前資料夾（套用本次篩選規則）。", "\n\nScope: the whole folder, using this job's filters.", "\n\n対象：フォルダ全体。この転送のフィルターを適用します。")
+                : local("\n\n範圍：以下勾選的資料夾（套用本次篩選規則）。\n", "\n\nScope: these selected folders, using this job's filters.\n", "\n\n対象：次の選択フォルダ。この転送のフィルターを適用します。\n") + request.selection.prefix(10).map(\.name).joined(separator: "\n") + (request.selection.count > 10 ? local("\n另有 \(request.selection.count - 10) 個資料夾。", "\nAnd \(request.selection.count - 10) more folders.", "\nほか \(request.selection.count - 10) フォルダ。") : "")
             let deletionNotice = limit < 0
-                ? local("\n\n上述範圍內，目標中來源沒有的檔案會被刪除。這次未設定刪除數量上限。", "\n\nWithin this scope, destination files absent from the source will be deleted. No deletion-count limit is set.", "\n\nこの範囲内で、転送元にない転送先のファイルを削除します。削除数の上限は設定されていません。")
-                : local("\n\n上述範圍內，目標中來源沒有的檔案會被刪除。這次最多刪除 \(limit) 個項目。", "\n\nWithin this scope, destination files absent from the source will be deleted. Maximum deletions: \(limit).", "\n\nこの範囲内で、転送元にない転送先のファイルを削除します。削除数の上限は \(limit) 件です。")
+                ? local("\n\n上述範圍內，目標端多出的檔案會被刪除（本次不限刪除數量）。", "\n\nWithin this scope, destination files absent from the source will be deleted. No deletion-count limit is set.", "\n\nこの範囲内で、転送元にない転送先のファイルを削除します。削除数の上限は設定されていません。")
+                : local("\n\n上述範圍內，目標端多出的檔案會被刪除（本次最多刪除 \(limit) 個項目）。", "\n\nWithin this scope, destination files absent from the source will be deleted. Maximum deletions: \(limit).", "\n\nこの範囲内で、転送元にない転送先のファイルを削除します。削除数の上限は \(limit) 件です。")
             let excludedNotice = request.options.flag("deleteExcluded")
-                ? local("\n目標中符合排除規則的檔案也會刪除。", "\nExcluded destination files will also be deleted.", "\n転送先で除外ルールに一致するファイルも削除します。") : ""
+                ? local("\n目標端符合排除規則的檔案也會一併刪除。", "\nExcluded destination files will also be deleted.", "\n転送先で除外ルールに一致するファイルも削除します。") : ""
             return confirm(title: local("同步到目標？", "Sync to destination?"),
                            detail: locations + scope + deletionNotice + excludedNotice,
                            action: local("開始同步", "Start sync"))
         }
         return confirm(title: local("移動到目標？", "Move to destination?"),
-                       detail: locations + local("\n\n檔案傳送成功，或目標已有依本次設定無需更新的副本時，都會刪除來源檔案。", "\n\nSource files are deleted after a successful transfer, or when the existing destination copy needs no update under this job's settings.", "\n\n転送に成功した場合、または今回の設定で転送先の既存コピーが更新不要と判定された場合、転送元のファイルを削除します。"),
+                       detail: locations + local("\n\n檔案傳送成功，或目標已有依本次比對設定不需更新的副本後，會刪除來源檔案。", "\n\nSource files are deleted after a successful transfer, or when the existing destination copy needs no update under this job's settings.", "\n\n転送に成功した場合、または今回の設定で転送先の既存コピーが更新不要と判定された場合、転送元のファイルを削除します。"),
                        action: local("開始移動", "Start move"))
     }
 
