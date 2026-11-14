@@ -1,7 +1,7 @@
 {
   "version": "0.11.0",
   "file_count_excluding_manifest": 296,
-  "total_bytes_excluding_manifest": 9273780,
+  "total_bytes_excluding_manifest": 9273884,
   "files": {
     ".github/workflows/mac-local-recovery.yml": {
       "bytes": 1565,
@@ -172,8 +172,8 @@
       "sha256": "401a52547c510b5c231c69f9077b192e2759d282e68f74d13339922f9d9e8552"
     },
     "Resources/Web/app.js": {
-      "bytes": 794796,
-      "sha256": "40c046aaa1cc6a157b65d14c2f51147957f789e1ed2afbc8990f69936fe5f32a"
+      "bytes": 794740,
+      "sha256": "03713feeff5890d02a4bcbf05733e97f4b0a115354e33c0673ca23ed122b1c98"
     },
     "Resources/Web/appearance-bootstrap.js": {
       "bytes": 499,
@@ -292,8 +292,8 @@
       "sha256": "6d1565981d218631bda177c0c5d473bb3cf1a22df1f3407efb066b1f61be4b17"
     },
     "Scripts/verify-version.py": {
-      "bytes": 8221,
-      "sha256": "86d69f925526287a423d0e12b56381bb4e427e19aba4a741eb15eac013e3127a"
+      "bytes": 8381,
+      "sha256": "c115f29f8758f48930896c991ec8d22afaa56d770eddcefbc0d030f96bce18df"
     },
     "Scripts/windows/prepare-baseline.py": {
       "bytes": 12688,

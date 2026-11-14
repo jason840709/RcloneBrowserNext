@@ -23,7 +23,9 @@ def before_reviewed_wording(path):
     Baseline filesystem code remains pinned in full; a general source edit or
     a change to this exact substitution inventory must still fail the check.
     """
-    raw=(ROOT/'Scripts/reviewed-wording-0.11.0.json').read_bytes()
+    # Windows checkouts may use CRLF. Pin the UTF-8 text after the same newline
+    # normalization used for source comparisons, not checkout-specific bytes.
+    raw=text('Scripts/reviewed-wording-0.11.0.json').encode('utf-8')
     require(hashlib.sha256(raw).hexdigest()=='b95afe3c37b65a4f13d4801bad9a4a07cb34e3bbda9d61f4d48c6e3e2d91268d',
             'Reviewed wording inventory changed')
     value=text(path)
