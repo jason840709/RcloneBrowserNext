@@ -234,7 +234,7 @@ struct UpdaterTests {
                 throw RBNUpdateError("failed rollback must throw")
             } catch {
                 try assert(!backupPath.isEmpty && error.localizedDescription.contains(backupPath), "backup location is visible")
-                try assert(error.localizedDescription.contains("自動還原也未完成"), "failed restoration reported accurately")
+                try assert(error.localizedDescription.contains("自動還原失敗"), "failed restoration reported accurately")
             }
             try assert(try Data(contentsOf: target) == bytes("new"), "unrestored target matches reported state")
         }
