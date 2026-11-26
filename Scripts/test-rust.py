@@ -8,10 +8,20 @@ import os
 import re
 import shutil
 import subprocess
+import sys
 
 ROOT = Path(__file__).resolve().parents[1]
 
+def configure_output():
+    # Rust renders source excerpts as UTF-8. A redirected Windows Python
+    # stream otherwise uses the system code page and can abort the runner
+    # before Cargo finishes reporting a compiler diagnostic.
+    for stream in (sys.stdout, sys.stderr):
+        if hasattr(stream, 'reconfigure'):
+            stream.reconfigure(encoding='utf-8')
+
 def main():
+    configure_output()
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument('--rclone', type=Path, required=True)
     p.add_argument('--output', type=Path, required=True)

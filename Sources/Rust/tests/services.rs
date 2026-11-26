@@ -952,7 +952,36 @@ fn official_archive_install_verifies_checksum_architecture_version_and_preserves
     };
     let archive_name = format!("rclone-{version}-{system}-{architecture}.zip");
     let member = format!("rclone-{version}-{system}-{architecture}/{executable}");
-    let binary = fs::read(&f.context.binary).unwrap();
+    // The pinned official macOS fixture may require a newer system than the
+    // runner. Its actual minimum-OS rejection is tested separately above. This
+    // synthetic HTTPS archive needs a compatible native program to exercise the
+    // successful install and checksum-failure paths on every supported macOS.
+    #[cfg(target_os = "macos")]
+    let packaged_binary = {
+        let source = f.root.join("native-update-fixture.c");
+        let target = f.root.join("native-update-fixture");
+        assert!(updater::Release::parse(&version).is_some());
+        fs::write(
+            &source,
+            format!("#include <stdio.h>\nint main(void) {{ puts(\"rclone {version}\"); return 0; }}\n"),
+        )
+        .unwrap();
+        let arch = if architecture == "amd64" { "x86_64" } else { &architecture };
+        let output = Command::new("/usr/bin/cc")
+            .args(["-mmacosx-version-min=13.0", "-arch", arch])
+            .arg(&source)
+            .arg("-o")
+            .arg(&target)
+            .output()
+            .unwrap();
+        assert!(output.status.success(), "Native fixture compile failed: {}", String::from_utf8_lossy(&output.stderr));
+        assert_eq!(updater::verify_native(&target, &architecture, [13, 0, 0]).unwrap(), "13.0.0");
+        assert_eq!(probe.version_of(&target).unwrap(), version);
+        target
+    };
+    #[cfg(not(target_os = "macos"))]
+    let packaged_binary = f.context.binary.clone();
+    let binary = fs::read(&packaged_binary).unwrap();
     let mut zip = zip::ZipWriter::new(std::io::Cursor::new(Vec::new()));
     zip.start_file(
         member,

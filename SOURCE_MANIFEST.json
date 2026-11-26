@@ -1,15 +1,15 @@
 {
   "version": "0.12.0",
   "file_count_excluding_manifest": 334,
-  "total_bytes_excluding_manifest": 16935394,
+  "total_bytes_excluding_manifest": 16937565,
   "files": {
     ".github/workflows/mac-local-recovery.yml": {
       "bytes": 1856,
       "sha256": "363fad0de80a365145b276eed488ae8bb1652d0006a61fabd8eaaddc87459c95"
     },
     ".github/workflows/macos.yml": {
-      "bytes": 19807,
-      "sha256": "227b7e515232b2e09d4d2740b8035e39a4fdf8704b664a3a57ade93b42180fbc"
+      "bytes": 19924,
+      "sha256": "1c9ab68b85e54c02ad2a28e172f830d7f2afba4998547d5f9ffbbb18e807ffd8"
     },
     ".gitignore": {
       "bytes": 278,
@@ -280,8 +280,8 @@
       "sha256": "6502e327194f552b11a8e30291fc7b71597ed268168848dcb1f6528d9412bb7b"
     },
     "Scripts/test-rust.py": {
-      "bytes": 5286,
-      "sha256": "4901014bfbdd2a7e54dc5dd4f8c3e1e1f583db94d3a434f240eae276d0147b1f"
+      "bytes": 5689,
+      "sha256": "930a0b2d2f84b0e2df927bb6d7d8842dfed84a92f7d689cd171cd3e421f24354"
     },
     "Scripts/update-source-manifest.py": {
       "bytes": 949,
@@ -548,8 +548,8 @@
       "sha256": "20e46562d33fadd0b579de0470d338ed1fefd1b66abbe20f4e385687bad0fbc2"
     },
     "Sources/Rust/tests/services.rs": {
-      "bytes": 55118,
-      "sha256": "26b71ca8c2262d67c98d4a5aec369db94aed5608c26c35d8c5550ea569b22468"
+      "bytes": 56561,
+      "sha256": "235b0f9c2538cf9b6fadbdce4b67c6b12074eb37112d841984bae16fe9b42cc3"
     },
     "Sources/Rust/tests/support/core_fixture.rs": {
       "bytes": 2940,
@@ -1092,8 +1092,8 @@
       "sha256": "aaff9468d7d74a4116db31c218666374d15f43af66d981082cd2e69990bd9bfe"
     },
     "docs/CHANGELOG.zh-TW.md": {
-      "bytes": 8069,
-      "sha256": "2441ed093c00344e8bd9360db945d53b60c469f2c46423bfc2e01d18046f4acb"
+      "bytes": 8277,
+      "sha256": "ff58576b0099eebff348e5a252525d869803b55ac9eca4eae65e4ae317bf2ba3"
     },
     "docs/DEBUG_0.9.5.zh-TW.md": {
       "bytes": 2816,

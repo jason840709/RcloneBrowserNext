@@ -238,6 +238,8 @@ jobs:
     timeout-minutes: 75
     env:
       CARGO_TERM_COLOR: never
+      PYTHONUTF8: '1'
+      PYTHONIOENCODING: 'utf-8'
       RUSTUP_TOOLCHAIN: '1.90.0'
       CARGO_HOME: ${{ github.workspace }}/.build-cache/compat/cargo
       CARGO_TARGET_DIR: ${{ github.workspace }}/.build-cache/compat/target
@@ -308,6 +310,9 @@ jobs:
     needs: compat-windows
     runs-on: windows-2025
     timeout-minutes: 35
+    env:
+      PYTHONUTF8: '1'
+      PYTHONIOENCODING: 'utf-8'
     steps:
       - uses: actions/checkout@v7
         with:
