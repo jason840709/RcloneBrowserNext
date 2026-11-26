@@ -1,0 +1,83 @@
+{
+  "baseline" : "0.11.0 FinderDrop URL.resourceValues",
+  "cases" : [
+    {
+      "error" : null,
+      "flags" : [
+        false,
+        false,
+        true
+      ],
+      "name" : "regular.txt"
+    },
+    {
+      "error" : null,
+      "flags" : [
+        true,
+        false,
+        false
+      ],
+      "name" : "folder"
+    },
+    {
+      "error" : null,
+      "flags" : [
+        false,
+        true,
+        false
+      ],
+      "name" : "file-link"
+    },
+    {
+      "error" : null,
+      "flags" : [
+        false,
+        true,
+        false
+      ],
+      "name" : "folder-link"
+    },
+    {
+      "error" : null,
+      "flags" : [
+        false,
+        true,
+        false
+      ],
+      "name" : "broken-link"
+    },
+    {
+      "error" : null,
+      "flags" : [
+        false,
+        false,
+        false
+      ],
+      "name" : "fifo"
+    },
+    {
+      "error" : null,
+      "flags" : [
+        false,
+        false,
+        true
+      ],
+      "name" : "new\nline.txt"
+    },
+    {
+      "error" : null,
+      "flags" : [
+        false,
+        false,
+        true
+      ],
+      "name" : "café-é-が-'\".txt"
+    },
+    {
+      "error" : "The file “missing.txt” couldn’t be opened because there is no such file.",
+      "flags" : null,
+      "name" : "missing.txt"
+    }
+  ],
+  "locale" : "zh_TW"
+}

@@ -49,11 +49,6 @@ impl Host {
         command.args(["--state-dir", &state_path.to_string_lossy(), "--engine-dir", &state_path.join("rclone").to_string_lossy()]);
         command.current_dir(&runtime).stdin(Stdio::piped()).stdout(Stdio::piped()).stderr(Stdio::null());
         command.env("TMPDIR", state_path.join("tmp")).env("TMP", state_path.join("tmp")).env("TEMP", state_path.join("tmp"));
-        #[cfg(unix)] {
-            let old = std::env::var_os("LD_LIBRARY_PATH").unwrap_or_default();
-            let mut paths = vec![runtime.join("lib")]; paths.extend(std::env::split_paths(&old));
-            command.env("LD_LIBRARY_PATH", std::env::join_paths(paths).map_err(|e| e.to_string())?);
-        }
         #[cfg(windows)] {
             use std::os::windows::process::CommandExt;
             command.creation_flags(0x08000000); // CREATE_NO_WINDOW; individual rclone jobs own their signal console.

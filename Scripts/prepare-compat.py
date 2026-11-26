@@ -44,7 +44,7 @@ def main() -> None:
     web.mkdir(parents=True, exist_ok=True)
     runtime.mkdir(parents=True, exist_ok=True)
     licenses = runtime / "licenses"
-    shutil.copytree(ROOT / "Compat/licenses", licenses, dirs_exist_ok=True)
+    licenses.mkdir(parents=True, exist_ok=True)
     shutil.copy2(ROOT / "LICENSE", licenses / "Rclone-Browser-Next-LICENSE.txt")
     shutil.copy2(ROOT / "Resources/Web/THIRD_PARTY_NOTICES.txt", licenses / "Web-THIRD-PARTY-NOTICES.txt")
     shutil.copy2(ROOT / "Compat/THIRD_PARTY_NOTICES.md", runtime / "THIRD_PARTY_NOTICES.md")

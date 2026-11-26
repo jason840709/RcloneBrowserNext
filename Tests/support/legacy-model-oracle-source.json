@@ -1,0 +1,13 @@
+{
+  "purpose": "Independent frozen expected-value support, never linked to product",
+  "sources": {
+    "Sources/Core/EngineModels.swift": "ad34cdcd20c91afa8255b6831ad7ef47a837d74271f5b8e11a90b5c8b3e26852",
+    "Sources/Core/EnginePlatform.swift": "611e8d27d882d7b38f7914969425ed6128fb46d8497e092420bfbf1632faf0cc",
+    "Sources/Core/EngineRetryPlan.swift": "7bb6ea559fc654bd5e99fd3972fddba53f8f22be4575c1c02c40d0bc9b76c4ad",
+    "Sources/Core/RcloneEngine.swift": "7bb7b3e7100ee82cec4b0fc77262287748faeec212cd5820a7481151535f2b3b"
+  },
+  "extractions": {
+    "LegacyModelOracle.swift": "EngineJSON through EngineLocalTimePrecision; EnginePlatform.absoluteLocalPath; EngineRetryScope; EngineJob.terminal",
+    "LegacyDefaultSettings.swift": "RcloneEngine.defaultSettings"
+  }
+}

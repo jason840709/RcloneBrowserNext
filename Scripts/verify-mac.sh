@@ -18,19 +18,19 @@ RBN_VERIFY_PARENT="$(/usr/bin/dirname "$RBN_VERIFY_APP")"
 [[ ! -L "$RBN_VERIFY_PARENT" ]] || rbn_fail 'App 的父資料夾不能是符號連結。' 6
 RBN_VERIFY_PHYSICAL_PARENT="$(cd -P "$RBN_VERIFY_PARENT" && pwd -P)"
 case "$RBN_VERIFY_PHYSICAL_PARENT" in
-  "$RBN_PROJECT_ROOT"|"$RBN_CACHE_ROOT/staging/build."*) ;;
+  "$RBN_CACHE_ROOT/products"|"$RBN_CACHE_ROOT/staging/build."*) ;;
   *) rbn_fail 'App 的實際位置不在這個專案內。' 6 ;;
 esac
 [[ -z "$(/usr/bin/find "$RBN_VERIFY_APP" -type l -print -quit)" ]] || rbn_fail '這份 App 含有非預期的符號連結。' 6
 RBN_VERIFY_PLIST="$RBN_VERIFY_APP/Contents/Info.plist"
 RBN_VERIFY_BINARY="$RBN_VERIFY_APP/Contents/MacOS/$RBN_EXECUTABLE"
 [[ -s "$RBN_VERIFY_PLIST" && -x "$RBN_VERIFY_BINARY" ]] || rbn_fail 'App 缺少 Info.plist 或可執行的主程式。' 2
-RBN_VERIFY_LAUNCHER="$RBN_VERIFY_APP/Contents/MacOS/rbn-process-launcher"
-[[ -x "$RBN_VERIFY_LAUNCHER" && ! -L "$RBN_VERIFY_LAUNCHER" ]] || rbn_fail 'App 缺少 Mac 程序啟動元件。' 2
-for RBN_VERIFY_RESOURCE in Resources/Web/index.html Resources/AppIcon.icns Resources/AppIcon-blue.icns Resources/AppIcon-green.icns; do
+RBN_VERIFY_ENGINE="$RBN_VERIFY_APP/Contents/MacOS/rbn-engine"
+[[ -x "$RBN_VERIFY_ENGINE" && ! -L "$RBN_VERIFY_ENGINE" ]] || rbn_fail 'App 缺少 Rust 引擎。' 2
+for RBN_VERIFY_RESOURCE in Resources/Web/index.html Resources/AppIcon.icns Resources/AppIcon-blue.icns Resources/AppIcon-green.icns Resources/Licenses/rust-packages.json; do
   [[ -s "$RBN_VERIFY_APP/Contents/$RBN_VERIFY_RESOURCE" ]] || rbn_fail "App 缺少資源：$RBN_VERIFY_RESOURCE" 2
 done
-for RBN_FORBIDDEN_RESOURCE in Frameworks Resources/rclone Resources/app.asar; do
+for RBN_FORBIDDEN_RESOURCE in Frameworks Resources/rclone Resources/app.asar MacOS/rbn-process-launcher; do
   [[ ! -e "$RBN_VERIFY_APP/Contents/$RBN_FORBIDDEN_RESOURCE" ]] || rbn_fail "App 不應附帶這項資源：$RBN_FORBIDDEN_RESOURCE" 2
 done
 
@@ -43,7 +43,18 @@ done
 RBN_ACTUAL_ARCH="$(/usr/bin/xcrun --no-cache lipo -archs "$RBN_VERIFY_BINARY")"
 case "$RBN_ACTUAL_ARCH" in arm64|x86_64) ;; *) rbn_fail "App 架構不符：$RBN_ACTUAL_ARCH" 2 ;; esac
 [[ -z "${RBN_EXPECTED_ARCH:-}" || "$RBN_ACTUAL_ARCH" == "$RBN_EXPECTED_ARCH" ]] || rbn_fail 'App 與這次指定的架構不同。' 2
-[[ "$(/usr/bin/xcrun --no-cache lipo -archs "$RBN_VERIFY_LAUNCHER")" == "$RBN_ACTUAL_ARCH" ]] || rbn_fail 'Mac 程序啟動元件架構不符。' 2
+[[ "$(/usr/bin/xcrun --no-cache lipo -archs "$RBN_VERIFY_ENGINE")" == "$RBN_ACTUAL_ARCH" ]] || rbn_fail 'Rust 引擎架構不符。' 2
+/usr/bin/codesign --verify --strict "$RBN_VERIFY_ENGINE"
+while IFS= read -r RBN_ENGINE_LIBRARY; do
+  [[ -n "$RBN_ENGINE_LIBRARY" ]] || continue
+  case "$RBN_ENGINE_LIBRARY" in
+    *libswift*) rbn_fail "Rust 引擎仍依賴 Swift 執行環境：$RBN_ENGINE_LIBRARY" 2 ;;
+    /System/Library/*|/usr/lib/*) ;;
+    *) rbn_fail "Rust 引擎依賴非系統程式庫：$RBN_ENGINE_LIBRARY" 2 ;;
+  esac
+done < <(/usr/bin/xcrun --no-cache otool -L "$RBN_VERIFY_ENGINE" | /usr/bin/awk 'NR > 1 { print $1 }')
+RBN_ENGINE_MINIMUM="$(/usr/bin/xcrun --no-cache otool -l "$RBN_VERIFY_ENGINE" | /usr/bin/awk '$1 == "cmd" && $2 == "LC_BUILD_VERSION" { modern=1; next } modern && $1 == "minos" {print $2; exit}')"
+case "$RBN_ENGINE_MINIMUM" in 13.0|13.0.0) ;; *) rbn_fail "Rust 引擎的最低 macOS 版本不符：$RBN_ENGINE_MINIMUM" 2 ;; esac
 RBN_LOAD_COMMANDS="$(/usr/bin/xcrun --no-cache otool -l "$RBN_VERIFY_BINARY")"
 RBN_BINARY_MINIMUM="$(printf '%s\n' "$RBN_LOAD_COMMANDS" | /usr/bin/awk '
   $1 == "cmd" && $2 == "LC_BUILD_VERSION" { modern = 1; next }
@@ -80,6 +91,8 @@ done < <(printf '%s\n' "$RBN_LOAD_COMMANDS" | /usr/bin/awk '
 RBN_SIGNATURE_DETAILS="$(/usr/bin/codesign -d --verbose=4 "$RBN_VERIFY_APP" 2>&1)"
 printf '%s\n' "$RBN_SIGNATURE_DETAILS" | /usr/bin/grep -q 'Sealed Resources version=2' || rbn_fail 'App 的資源封存未完成。' 2
 printf '\n驗證通過：版本 %s；架構 %s；最低 macOS %s。\n' "$RBN_VERSION" "$RBN_ACTUAL_ARCH" "$RBN_BINARY_MINIMUM"
-printf '%s\n' '主程式、Info.plist、網頁資源與本機簽章皆完整（此檢查不等同 Developer ID 簽章或 Apple 公證）。'
+printf '%s\n' 'Swift 外殼、Rust 引擎、Info.plist、網頁資源與本機簽章皆完整（此檢查不等同 Developer ID 簽章或 Apple 公證）。'
 printf '主程式 SHA-256：'
 /usr/bin/shasum -a 256 "$RBN_VERIFY_BINARY" | /usr/bin/awk '{print $1}'
+printf 'Rust 引擎 SHA-256：'
+/usr/bin/shasum -a 256 "$RBN_VERIFY_ENGINE" | /usr/bin/awk '{print $1}'

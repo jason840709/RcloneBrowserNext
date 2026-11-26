@@ -1,0 +1,202 @@
+{
+  "baseline": "0.11.0 AppMain.copyExport",
+  "cases": [
+    {
+      "destination": {
+        "contents": "Source contents",
+        "destinationAttribute": null,
+        "link": null,
+        "mode": 416,
+        "sourceAttribute": "source-value",
+        "symlink": false
+      },
+      "error": null,
+      "name": "new",
+      "source": {
+        "contents": "Source contents",
+        "destinationAttribute": null,
+        "link": null,
+        "mode": 416,
+        "sourceAttribute": "source-value",
+        "symlink": false
+      },
+      "stagingNames": [],
+      "target": {
+        "contents": "Target contents",
+        "destinationAttribute": null,
+        "link": null,
+        "mode": 384,
+        "sourceAttribute": null,
+        "symlink": false
+      }
+    },
+    {
+      "destination": {
+        "contents": "Source contents",
+        "destinationAttribute": "destination-value",
+        "link": null,
+        "mode": 388,
+        "sourceAttribute": "source-value",
+        "symlink": false
+      },
+      "error": null,
+      "name": "existing",
+      "source": {
+        "contents": "Source contents",
+        "destinationAttribute": null,
+        "link": null,
+        "mode": 416,
+        "sourceAttribute": "source-value",
+        "symlink": false
+      },
+      "stagingNames": [],
+      "target": {
+        "contents": "Target contents",
+        "destinationAttribute": null,
+        "link": null,
+        "mode": 384,
+        "sourceAttribute": null,
+        "symlink": false
+      }
+    },
+    {
+      "destination": {
+        "contents": "Source contents",
+        "destinationAttribute": null,
+        "link": null,
+        "mode": 416,
+        "sourceAttribute": "source-value",
+        "symlink": false
+      },
+      "error": null,
+      "name": "same",
+      "source": {
+        "contents": "Source contents",
+        "destinationAttribute": null,
+        "link": null,
+        "mode": 416,
+        "sourceAttribute": "source-value",
+        "symlink": false
+      },
+      "stagingNames": [],
+      "target": {
+        "contents": "Target contents",
+        "destinationAttribute": null,
+        "link": null,
+        "mode": 384,
+        "sourceAttribute": null,
+        "symlink": false
+      }
+    },
+    {
+      "destination": {
+        "contents": "Target contents",
+        "destinationAttribute": null,
+        "link": "target",
+        "mode": 493,
+        "sourceAttribute": null,
+        "symlink": true
+      },
+      "error": null,
+      "name": "source-link",
+      "source": {
+        "contents": "Target contents",
+        "destinationAttribute": null,
+        "link": "target",
+        "mode": 493,
+        "sourceAttribute": null,
+        "symlink": true
+      },
+      "stagingNames": [],
+      "target": {
+        "contents": "Target contents",
+        "destinationAttribute": null,
+        "link": null,
+        "mode": 384,
+        "sourceAttribute": null,
+        "symlink": false
+      }
+    },
+    {
+      "destination": {
+        "contents": "Target contents",
+        "destinationAttribute": null,
+        "link": "target",
+        "mode": 493,
+        "sourceAttribute": null,
+        "symlink": true
+      },
+      "error": "The file “destination” doesn’t exist.",
+      "name": "destination-link",
+      "source": {
+        "contents": "Source contents",
+        "destinationAttribute": null,
+        "link": null,
+        "mode": 416,
+        "sourceAttribute": "source-value",
+        "symlink": false
+      },
+      "stagingNames": [],
+      "target": {
+        "contents": "Target contents",
+        "destinationAttribute": null,
+        "link": null,
+        "mode": 384,
+        "sourceAttribute": null,
+        "symlink": false
+      }
+    },
+    {
+      "destination": {
+        "contents": null,
+        "destinationAttribute": null,
+        "link": "absent",
+        "mode": 493,
+        "sourceAttribute": null,
+        "symlink": true
+      },
+      "error": "“.rbn-export-<UUID>” couldn’t be moved to “<ROOT>” because an item with the same name already exists.",
+      "name": "dangling-destination",
+      "source": {
+        "contents": "Source contents",
+        "destinationAttribute": null,
+        "link": null,
+        "mode": 416,
+        "sourceAttribute": "source-value",
+        "symlink": false
+      },
+      "stagingNames": [],
+      "target": {
+        "contents": "Target contents",
+        "destinationAttribute": null,
+        "link": null,
+        "mode": 384,
+        "sourceAttribute": null,
+        "symlink": false
+      }
+    },
+    {
+      "destination": {
+        "contents": "Old destination",
+        "destinationAttribute": "destination-value",
+        "link": null,
+        "mode": 388,
+        "sourceAttribute": null,
+        "symlink": false
+      },
+      "error": "The file “source” couldn’t be opened because there is no such file.",
+      "name": "missing-source",
+      "source": null,
+      "stagingNames": [],
+      "target": {
+        "contents": "Target contents",
+        "destinationAttribute": null,
+        "link": null,
+        "mode": 384,
+        "sourceAttribute": null,
+        "symlink": false
+      }
+    }
+  ],
+  "locale": "zh_TW"
+}

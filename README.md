@@ -137,5 +137,5 @@ Mac 版採用 Swift／AppKit 與系統內建 WebKit（支援 Apple 晶片與 Int
 - [mmozeiko／RcloneBrowser](https://github.com/mmozeiko/RcloneBrowser)：原始 Rclone Browser 專案。
 - [kapitainsky／RcloneBrowser](https://github.com/kapitainsky/RcloneBrowser)：延續原專案的維護分支，為本專案的功能與流程參考基礎。
 
-Next 是獨立實作的專案，並非原版的官方續作：前端以 React 編寫，Mac 版外框用 Swift／AppKit，Windows 與 Linux 版用 Tauri，並共用 Swift 傳輸核心。
+Next 是獨立實作的專案，並非原版的官方續作：前端以 React 編寫，Mac 版外框用 Swift／AppKit，Windows 與 Linux 版用 Tauri，並共用 Rust 傳輸核心。
 第三方前端套件聲明隨附於 [Web 資源](Resources/Web/THIRD_PARTY_NOTICES.txt)。

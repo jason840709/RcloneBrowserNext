@@ -140,5 +140,5 @@ Author: **Jason Chen**. Released under the [MIT License](LICENSE). Jason Chen su
 - [mmozeiko/RcloneBrowser](https://github.com/mmozeiko/RcloneBrowser) is the original Rclone Browser project and the foundation for its graphical workflows.
 - [kapitainsky/RcloneBrowser](https://github.com/kapitainsky/RcloneBrowser) continued maintenance and feature development, providing workflows and features studied for this project.
 
-Next is an independent project rather than an official release of the original: the interface is written in React, the Mac window in Swift/AppKit, the Windows and Linux windows in Tauri, and all editions share a Swift transfer core.
+Next is an independent project rather than an official release of the original: the interface is written in React, the Mac window in Swift/AppKit, the Windows and Linux windows in Tauri, and all editions share a Rust transfer core.
 Third-party frontend notices accompany the [web resources](Resources/Web/THIRD_PARTY_NOTICES.txt).

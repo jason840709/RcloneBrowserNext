@@ -359,7 +359,7 @@ def reject_lower_revision(candidate, directory, state, evidence):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--phase", choices=["fresh", "upgrade"], required=True)
-    parser.add_argument("--baseline", choices=["0.9.0", "0.9.0-r1", "0.9.2", "0.9.3", "0.9.4", "0.9.5", "0.9.6", "0.10.1", "0.10.2", "0.10.3", "0.10.4", "0.10.6"], default="0.9.0-r1")
+    parser.add_argument("--baseline", choices=["0.7.0", "0.8.0", "0.8.1", "0.9.0", "0.9.0-r1", "0.9.1", "0.9.2", "0.9.3", "0.9.4", "0.9.5", "0.9.6", "0.10.1", "0.10.2", "0.10.3", "0.10.4", "0.10.6", "0.11.0"], default="0.9.0-r1")
     parser.add_argument("--candidate", type=Path, required=True)
     parser.add_argument("--receipt", type=Path, required=True)
     parser.add_argument("--rclone", type=Path, required=True)
@@ -416,6 +416,14 @@ def main():
             baseline_core, _, baseline_revision = baseline_version.partition("+")
             baseline_numeric = [int(part) for part in baseline_core.split(".")] + [int(baseline_revision or "0")]
             old = validate_installed(directory, baseline_version, baseline_numeric)
+            listing_oracle_runtime = None
+            if args.baseline == "0.11.0":
+                # Retain the exact installed Swift helper and its adjacent DLLs
+                # before the candidate replaces them. Only this disposable CI
+                # installation is copied; no user profile or account is used.
+                listing_oracle_runtime = OWNED_CACHE / "listing-oracle-swift-runtime"
+                require(not listing_oracle_runtime.exists(), "Refusing to reuse a listing oracle runtime")
+                shutil.copytree(old["engine"].parent, listing_oracle_runtime)
             fixture = OWNED_CACHE / "upgrade-fixture"
             fixture.mkdir()
             (fixture / "empty-engine").mkdir()
@@ -429,7 +437,7 @@ def main():
             settings = {"rclonePath": str(rclone), "rcloneDirectory": str(rclone.parent), "configPath": str(config),
                         "autoCheckUpdates": False, "language": "ja", "theme": "blue-light", "interfaceScale": 125,
                         "initialLocations": {"left": {"remote": None, "path": source.as_posix()}, "right": {"remote": "upgrade-alias", "path": ""}}}
-            if args.baseline in {"0.9.2", "0.9.3", "0.9.4", "0.9.5", "0.9.6", "0.10.1", "0.10.2", "0.10.3", "0.10.4", "0.10.6"}:
+            if args.baseline in {"0.9.2", "0.9.3", "0.9.4", "0.9.5", "0.9.6", "0.10.1", "0.10.2", "0.10.3", "0.10.4", "0.10.6", "0.11.0"}:
                 settings["bounceDockOnCompletion"] = False
             transfer = {"source": {"remote": None, "path": source.as_posix()}, "destination": {"remote": "upgrade-alias", "path": ""},
                         "mode": "copy", "selection": [{"name": "keep.txt", "isDir": False}], "dryRun": True,
@@ -454,6 +462,18 @@ def main():
             require(before["stateFiles"] == after["stateFiles"] and before["configurationFile"] == after["configurationFile"], "The installer changed saved settings, tasks, history or rclone configuration")
             for name in ("app", "engine"):
                 require(after["installedExecutables"][name]["sha256"] == fresh["installedExecutables"][name]["sha256"], "Upgrade installed different bytes from the verified fresh candidate")
+            if listing_oracle_runtime is not None:
+                oracle = subprocess.run([sys.executable, "-X", "utf8", "-B", str(ROOT / "Tests/windows-local-list-oracle.py"),
+                                        "--swift", str(listing_oracle_runtime / old["engine"].name),
+                                        "--rust", str(paths["engine"]), "--scratch", str(fixture)],
+                                       stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
+                                       encoding="utf-8", timeout=120)
+                (evidence / "windows-listing-oracle.log").write_text(oracle.stdout + oracle.stderr, encoding="utf-8")
+                require(oracle.returncode == 0, "The installed Rust listing differs from the published 0.11.0 helper")
+                listing_oracle = json.loads(oracle.stdout)
+                require(listing_oracle.get("passed") is True and listing_oracle.get("entries") == 34,
+                        "The Windows Unicode listing oracle is incomplete")
+                report["originalListingOracle"] = listing_oracle
             client = StateClient(paths["engine"], state, fixture, evidence, "upgrade-new")
             try:
                 actual_boot, actual_tasks = client.call("bootstrap"), client.call("listTasks")
@@ -487,7 +507,7 @@ def main():
                 report["passed"] = False
                 report["cleanupError"] = str(error)
         report["finishedAt"] = utc_now()
-        prefixes = ("fresh-before", "fresh-after", "fresh-installer") if args.phase == "fresh" else ("upgrade-", "downgrade-", "fresh-uninstall")
+        prefixes = ("fresh-before", "fresh-after", "fresh-installer") if args.phase == "fresh" else ("upgrade-", "downgrade-", "fresh-uninstall", "windows-listing-oracle")
         report["evidence"] = [{"file": path.name, "bytes": path.stat().st_size, "sha256": digest(path)}
                               for path in sorted(evidence.iterdir()) if path.is_file() and path.name != f"{args.phase}-installation.json"
                               and path.name.startswith(prefixes)]

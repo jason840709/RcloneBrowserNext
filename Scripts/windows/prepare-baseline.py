@@ -21,8 +21,15 @@ import urllib.request
 
 ROOT = Path(__file__).resolve().parents[2]
 REPOSITORY = "jason840709/RcloneBrowserNext"
-# Public release receipts, independently downloaded and verified at release.
+# Public release receipts pinned by asset ID, byte count and SHA-256. GitHub's
+# release metadata is checked again before downloading and executing an asset.
 BASELINES = {
+    "0.11.0": {
+        "releaseID": 445662659,
+        "assetID": 749086419,
+        "bytes": 17179017,
+        "sha256": "c851552695465e93cb0ec88a96001f1fb7bb78b582775e781d6abf9721d8f01f",
+    },
     "0.10.6": {
         "releaseID": 443551196,
         "assetID": 741222154,
@@ -77,6 +84,18 @@ BASELINES = {
         "bytes": 16921145,
         "sha256": "4b71936b341c7030f12fbadafd5f74246fc7eaf1ad0c5fa6e69fe102bc4d7a63",
     },
+    "0.7.0": {
+        "releaseID": 418615379,
+        "assetID": 659837680,
+        "bytes": 16913260,
+        "sha256": "32bf56f20de64853f9628f29172f3ab9bb8c21aaf566f2ac0e58c94c583905bc",
+    },
+    "0.8.1": {
+        "releaseID": 418841276,
+        "assetID": 660402296,
+        "bytes": 16914815,
+        "sha256": "fee60e3c8fa83b1e267cfee2ce9028ec1ad65ac36e45085b1e5de8c40825e4f8",
+    },
     "0.9.0": {
         "releaseID": 419070823,
         "assetID": 661099568,
@@ -88,6 +107,12 @@ BASELINES = {
         "assetID": 665649118,
         "bytes": 17092733,
         "sha256": "ffd4f515ba9103f46c540274a086f0ebd9ea4c31eaa850725507d04b70ccaa85",
+    },
+    "0.9.1": {
+        "releaseID": 420324291,
+        "assetID": 664727843,
+        "bytes": 17062073,
+        "sha256": "3963553ac177af16bfb1d96d3f6de2812f82cebdeed1d5970c8a875e492d45dc",
     },
     "0.9.3": {
         "releaseID": 420953329,

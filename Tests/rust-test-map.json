@@ -1,0 +1,3540 @@
+{
+  "formatVersion": 1,
+  "baseline": {
+    "tag": "v0.11.0",
+    "commit": "300591613adb486e43171b9b943902ee8a51052b",
+    "sourceSHA256": {
+      "Tests/AccountsTests.swift": "b5ac1bdd3c411b681095922e2fedd9c9dde25a8ed4a21d040206edf656891b9f",
+      "Tests/AppReleaseTests.swift": "fcd785bbb2f38619904ada4be6dd8b4df7ccfac659d7e99ee1dc99ec451bf278",
+      "Tests/CoreTests.swift": "a8dd7f53f9e0057034b17d40f4e6ad65d474230f113fc46f31effc2dacaa0380",
+      "Tests/FinderDropTests.swift": "6ef88a57f8d807d3886e8c240338484f98bf3988f5ac1da4252b3708da97d314",
+      "Tests/ListingTests.swift": "bad64f9a729a911ba420026e4cfc7534e2a0402b13315336ba780df19c6e4c79",
+      "Tests/NativeMessagesTests.swift": "26fed8590b47efaa28c4284ddd839d478038e1cef085deb7a5381d147fb18dd8",
+      "Tests/PlatformTests.swift": "2b3d1b6d365ad01018f5289c7806dcec6d8dd7224f273dcc854c654a878bb9f6",
+      "Tests/SMBTests.swift": "33657d1026883b912721f82d7c3196bebe89ad2e99a4a16e4cf9b3c90dae6d65",
+      "Tests/SyncDirectoryTests.swift": "35e4685537b1d57e702ce3b07d098c286c0e5bf6830e5c8310b5e3bb2f688583",
+      "Tests/ToolsTests.swift": "1178f755426433aa47bc10f600e939d8105be510518806eec53e01b38db2ab98",
+      "Tests/TransferReportTests.swift": "ad78dc58d12a8b8688269fcaf8930a2871a51f131a785cb338b6f878bd8ee3a6",
+      "Tests/UpdaterTests.swift": "1ea11499e49ab63e8148d1533282c78bc945a9ce9b2a722c16a291977f6bb5af"
+    }
+  },
+  "cases": [
+    {
+      "swiftFile": "Tests/AccountsTests.swift",
+      "swiftName": "Google custom credentials share the form and remain native through OAuth",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "services",
+          "name": "real_oauth_profiles_reach_native_url_cancel_without_exposing_state_or_credentials"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/AccountsTests.swift",
+      "swiftName": "Google custom login without credentials pauses on the real required client ID",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "services",
+          "name": "real_oauth_profiles_reach_native_url_cancel_without_exposing_state_or_credentials"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/AccountsTests.swift",
+      "swiftName": "Google shared-client warning becomes a required client ID rather than an empty loop",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "services",
+          "name": "detailed_google_shared_client_and_onedrive_browser_choices_follow_live_questions"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/AccountsTests.swift",
+      "swiftName": "OneDrive browser decision comes from its current questionnaire",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "services",
+          "name": "detailed_google_shared_client_and_onedrive_browser_choices_follow_live_questions"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/AccountsTests.swift",
+      "swiftName": "OneDrive quick profile preserves account choice and uses real confirmation names",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "lib",
+          "name": "accounts::tests::quick_policy_never_guesses_unknown_or_multiple_accounts"
+        },
+        {
+          "target": "lib",
+          "name": "accounts::swift_golden_tests::automatic_questionnaire_and_scrubbing_match_swift_0_11_0"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/AccountsTests.swift",
+      "swiftName": "account removal requires explicit commit and retains other accounts",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "services",
+          "name": "real_account_schema_transaction_test_save_edit_delete_conflict_and_unicode"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/AccountsTests.swift",
+      "swiftName": "authorization URLs restricted to local rclone OAuth endpoint",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "lib",
+          "name": "accounts::tests::oauth_urls_are_native_loopback_endpoints"
+        },
+        {
+          "target": "lib",
+          "name": "accounts::swift_golden_tests::automatic_questionnaire_and_scrubbing_match_swift_0_11_0"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/AccountsTests.swift",
+      "swiftName": "cancellation preserves original bytes and removes owned staging",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "services",
+          "name": "real_account_schema_transaction_test_save_edit_delete_conflict_and_unicode"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/AccountsTests.swift",
+      "swiftName": "detailed form applies basic and advanced fields without repeated questions",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "services",
+          "name": "real_account_forms_validate_types_apply_advanced_defaults_and_conflict_check_autosave"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/AccountsTests.swift",
+      "swiftName": "edit retains defaults and unrelated accounts",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "services",
+          "name": "real_account_schema_transaction_test_save_edit_delete_conflict_and_unicode"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/AccountsTests.swift",
+      "swiftName": "encrypted configs request unlock only while locked and retain encryption on save",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "services",
+          "name": "real_encrypted_config_reports_lock_and_preserves_encryption_after_save"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/AccountsTests.swift",
+      "swiftName": "external edits cause conflict instead of being overwritten",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "services",
+          "name": "real_account_schema_transaction_test_save_edit_delete_conflict_and_unicode"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/AccountsTests.swift",
+      "swiftName": "invalid account names rejected before invoking rclone",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "lib",
+          "name": "accounts::tests::account_names_reject_option_and_path_syntax"
+        },
+        {
+          "target": "lib",
+          "name": "accounts::swift_golden_tests::automatic_questionnaire_and_scrubbing_match_swift_0_11_0"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/AccountsTests.swift",
+      "swiftName": "live provider schema and selected path without credential dump",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "services",
+          "name": "real_account_schema_transaction_test_save_edit_delete_conflict_and_unicode"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/AccountsTests.swift",
+      "swiftName": "new WebDAV password is obscured and rclone reveals it for authenticated access",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "services",
+          "name": "real_webdav_password_is_obscured_authenticates_and_is_not_encoded_twice"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/AccountsTests.swift",
+      "swiftName": "new account staged until explicit commit; real alias connection test",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "services",
+          "name": "real_account_schema_transaction_test_save_edit_delete_conflict_and_unicode"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/AccountsTests.swift",
+      "swiftName": "new config file and Unicode remote name are supported",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "services",
+          "name": "real_account_schema_transaction_test_save_edit_delete_conflict_and_unicode"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/AccountsTests.swift",
+      "swiftName": "quick drive reaches native browser OAuth without optional questions",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "services",
+          "name": "real_oauth_profiles_reach_native_url_cancel_without_exposing_state_or_credentials"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/AccountsTests.swift",
+      "swiftName": "quick dropbox reaches native browser OAuth without optional questions",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "services",
+          "name": "real_oauth_profiles_reach_native_url_cancel_without_exposing_state_or_credentials"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/AccountsTests.swift",
+      "swiftName": "quick form supports schema providers and auto-saves only new accounts",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "services",
+          "name": "real_account_forms_validate_types_apply_advanced_defaults_and_conflict_check_autosave"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/AccountsTests.swift",
+      "swiftName": "quick onedrive reaches native browser OAuth without optional questions",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "services",
+          "name": "real_oauth_profiles_reach_native_url_cancel_without_exposing_state_or_credentials"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/AccountsTests.swift",
+      "swiftName": "repeated cancellation never releases another maintenance owner",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "services",
+          "name": "repeated_account_cancel_does_not_release_update_or_other_session_guard"
+        },
+        {
+          "target": "services",
+          "name": "real_account_schema_transaction_test_save_edit_delete_conflict_and_unicode"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/AccountsTests.swift",
+      "swiftName": "required answers, stale steps, parallel setup and path changes rejected",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "services",
+          "name": "real_account_schema_transaction_test_save_edit_delete_conflict_and_unicode"
+        },
+        {
+          "target": "services",
+          "name": "config_path_change_is_rejected_during_account_transaction"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/AccountsTests.swift",
+      "swiftName": "stored passwords never reach the renderer; keeping default preserves secret",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "services",
+          "name": "stored_password_defaults_are_native_only_and_marked_saved_in_each_question"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/AccountsTests.swift",
+      "swiftName": "unknown dynamic questions and repeated states stop automatic progress",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "services",
+          "name": "repeated_questionnaire_states_pause_without_looping_or_losing_original_config"
+        },
+        {
+          "target": "lib",
+          "name": "accounts::additional_swift_goldens::field_limits_visibility_and_automatic_progress_match_swift"
+        },
+        {
+          "target": "lib",
+          "name": "accounts::swift_golden_tests::automatic_questionnaire_and_scrubbing_match_swift_0_11_0"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/AccountsTests.swift",
+      "swiftName": "unknown form keys and invalid rclone types cannot be persisted",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "services",
+          "name": "real_account_forms_validate_types_apply_advanced_defaults_and_conflict_check_autosave"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/AccountsTests.swift",
+      "swiftName": "unknown required input pauses safely; auto-save still checks original-file conflicts",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "services",
+          "name": "real_account_forms_validate_types_apply_advanced_defaults_and_conflict_check_autosave"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/AppReleaseTests.swift",
+      "swiftName": "HTTP errors, redirects and both declared and streamed size bounds remain distinct",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "lib",
+          "name": "updater::additional_parity_tests::app_http_limits_proxy_forwarding_and_manual_retry_are_distinct"
+        },
+        {
+          "target": "services",
+          "name": "updater_parsers_and_policy_match_recorded_swift_0_11_0"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/AppReleaseTests.swift",
+      "swiftName": "a new repository without releases returns an actionable unpublished state",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "lib",
+          "name": "updater::tests::unpublished_and_http_limits_are_actionable"
+        },
+        {
+          "target": "services",
+          "name": "updater_parsers_and_policy_match_recorded_swift_0_11_0"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/AppReleaseTests.swift",
+      "swiftName": "drafts, prereleases and incomplete release data are rejected",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "lib",
+          "name": "updater::tests::app_checks_require_full_stable_release_and_exact_project_link"
+        },
+        {
+          "target": "services",
+          "name": "updater_parsers_and_policy_match_recorded_swift_0_11_0"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/AppReleaseTests.swift",
+      "swiftName": "manual checks forward chosen proxy settings and recover after a failed attempt",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "lib",
+          "name": "updater::additional_parity_tests::app_http_limits_proxy_forwarding_and_manual_retry_are_distinct"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/AppReleaseTests.swift",
+      "swiftName": "native app update fetch rejects a TLS-to-proxy address before opening a connection",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "lib",
+          "name": "updater::additional_parity_tests::native_fetch_rejects_https_proxy_before_any_connection"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/AppReleaseTests.swift",
+      "swiftName": "numeric stable versions reject suffixes, whitespace and shell-like input",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "lib",
+          "name": "updater::tests::stable_versions_compare_numerically_and_reject_suffixes"
+        },
+        {
+          "target": "services",
+          "name": "updater_parsers_and_policy_match_recorded_swift_0_11_0"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/AppReleaseTests.swift",
+      "swiftName": "only a newer full release reports an update",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "services",
+          "name": "updater_parsers_and_policy_match_recorded_swift_0_11_0"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/AppReleaseTests.swift",
+      "swiftName": "release links cannot leave the selected project",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "lib",
+          "name": "updater::tests::app_checks_require_full_stable_release_and_exact_project_link"
+        },
+        {
+          "target": "lib",
+          "name": "updater::tests::unpublished_and_http_limits_are_actionable"
+        },
+        {
+          "target": "services",
+          "name": "updater_parsers_and_policy_match_recorded_swift_0_11_0"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/CoreTests.swift",
+      "swiftName": "0.4 migration removes the old default queue limit once and preserves explicit choices",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "core_engine_parity",
+          "name": "queue_limit_migration_runs_once_and_preserves_explicit_choices_on_disk"
+        },
+        {
+          "target": "core_models_parity",
+          "name": "settings_migrate_queue_network_sparse_snapshots_and_custom_defaults"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/CoreTests.swift",
+      "swiftName": "0.5 upgrades legacy global defaults once while retaining saved task and workspace snapshots",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "core_engine_parity",
+          "name": "global_default_migration_keeps_tasks_and_workspaces_and_explicit_restart_choices"
+        },
+        {
+          "target": "core_models_parity",
+          "name": "settings_migrate_queue_network_sparse_snapshots_and_custom_defaults"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/CoreTests.swift",
+      "swiftName": "0.6 interface scale and green themes persist independently and reject unsupported values atomically",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "core_engine_parity",
+          "name": "scale_and_green_themes_persist_independently_and_invalid_updates_are_atomic"
+        },
+        {
+          "target": "core_models_parity",
+          "name": "theme_scales_initial_locations_and_every_legacy_visual_size"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/CoreTests.swift",
+      "swiftName": "0.8 scale migration preserves every saved visual size and runs only once",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "core_engine_parity",
+          "name": "scale_migration_preserves_every_visual_size_persists_once_and_honors_new_choice"
+        },
+        {
+          "target": "core_models_parity",
+          "name": "theme_scales_initial_locations_and_every_legacy_visual_size"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/CoreTests.swift",
+      "swiftName": "Darwin local-copy policy owns only clone selection and preserves request, filtering and staging semantics",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "core_models_parity",
+          "name": "clone_policy_owns_only_one_flag_in_all_twenty_four_combinations"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/CoreTests.swift",
+      "swiftName": "ID-scoped history clearing is validated, repeatable and preserves history when disk replacement fails",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "core_engine_parity",
+          "name": "history_clear_is_id_scoped_repeatable_and_rolls_back_failed_disk_replacement"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/CoreTests.swift",
+      "swiftName": "JSON statistics keep unknown ETA and growing scan totals",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "core_models_parity",
+          "name": "json_statistics_retain_independent_scan_counts_and_unknown_eta"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/CoreTests.swift",
+      "swiftName": "NAS local-hash policy detects same-size newer changes and skips unchanged repeat without forcing size-only",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "core_engine_parity",
+          "name": "nas_hash_policy_detects_same_size_newer_content_and_skips_unchanged_repeat"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/CoreTests.swift",
+      "swiftName": "a confirmed full request keeps its deletion limit and filters after global defaults change",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "core_engine_parity",
+          "name": "confirmed_request_keeps_delete_limit_and_filters_after_global_defaults_change"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/CoreTests.swift",
+      "swiftName": "a running file that reports no bytes keeps a one-minute speed instead of dropping at once to zero",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "core_models_parity",
+          "name": "silent_native_file_keeps_then_loses_rate_across_a_full_minute"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/CoreTests.swift",
+      "swiftName": "a temporary file error is retried alone and the job completes",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "core_engine_parity",
+          "name": "temporary_file_error_retries_only_that_file_and_preserves_combined_statistics"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/CoreTests.swift",
+      "swiftName": "actual engine argv avoids NAS-content read with local-hashes none; ignore-checksum alone still reads",
+      "platforms": [
+        "linux"
+      ],
+      "rustCases": [
+        {
+          "target": "core_engine_parity",
+          "name": "nas_kernel_reads_distinguish_hash_policy_from_ignore_checksum"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/CoreTests.swift",
+      "swiftName": "all comparison modes and transfer controls produce bounded shell-free arguments",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "core_models_parity",
+          "name": "comparison_modes_all_enabled_arguments_and_forbidden_argv"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/CoreTests.swift",
+      "swiftName": "an empty session and saved tasks do not require quit confirmation",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "core_engine_parity",
+          "name": "empty_session_and_saved_tasks_never_request_quit_confirmation"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/CoreTests.swift",
+      "swiftName": "an unresponsive process stays cancelling until escalation confirms exit and retains a forced-stop diagnostic",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "core_engine_parity",
+          "name": "unresponsive_child_stays_cancelling_until_real_escalated_exit"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/CoreTests.swift",
+      "swiftName": "automatic modification tolerance uses known local volume precision and preserves explicit options and remote semantics",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "core_models_parity",
+          "name": "volume_precision_checks_both_ends_explicit_zero_and_missing_ancestor"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/CoreTests.swift",
+      "swiftName": "bulk stop uses confirmation IDs atomically and never starts cancelled queued jobs or erases newer jobs",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "core_engine_parity",
+          "name": "bulk_stop_is_atomic_to_confirmation_ids_and_never_starts_cancelled_queue_or_removes_newer_work"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/CoreTests.swift",
+      "swiftName": "choosing an engine waits for an in-flight operation and refreshes its environment in the same save",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "core_engine_parity",
+          "name": "engine_selection_waits_for_inflight_operation_and_returns_fresh_environment"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/CoreTests.swift",
+      "swiftName": "chunked uploads keep a steady speed between bursts while a real stall still reaches zero",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "core_models_parity",
+          "name": "eight_megabyte_bursts_every_eight_seconds_and_then_a_stall"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/CoreTests.swift",
+      "swiftName": "concurrent settings patches are serialized and failed persistence never publishes a partial change",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "core_engine_parity",
+          "name": "concurrent_settings_serialize_and_failed_persistence_never_publishes_partial_change"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/CoreTests.swift",
+      "swiftName": "config passwords stay in memory; inherited RCLONE flags cannot change transfer semantics",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "core_engine_parity",
+          "name": "passwords_stay_only_in_memory_and_inherited_rclone_flags_cannot_change_transfer"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/CoreTests.swift",
+      "swiftName": "editing saved tasks preserves identity and the full request including direction and selection",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "core_engine_parity",
+          "name": "editing_tasks_preserves_identity_creation_date_and_complete_request_snapshot"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/CoreTests.swift",
+      "swiftName": "five comparison choices and explicit retransfer make distinct real copy decisions",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "core_engine_parity",
+          "name": "real_comparison_choices_make_distinct_content_and_transfer_counter_decisions"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/CoreTests.swift",
+      "swiftName": "hidden built-in presets persist independently of transfers and reject unrecognized values",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "core_engine_parity",
+          "name": "hidden_builtin_presets_persist_independently_and_restore_after_restart"
+        },
+        {
+          "target": "core_models_parity",
+          "name": "hidden_preset_choices_preserve_options_and_refuse_each_invalid_shape"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/CoreTests.swift",
+      "swiftName": "independent per-file reports preserve early errors, all retries and paginated successes beyond the ordinary log tail",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "core_engine_parity",
+          "name": "independent_reports_keep_early_errors_retry_history_and_all_paginated_successes"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/CoreTests.swift",
+      "swiftName": "legacy move-update tasks remain visible with an error and retain their original choices after restart",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "core_engine_parity",
+          "name": "unsafe_legacy_move_update_task_stays_visible_after_restart_and_repairs_in_place"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/CoreTests.swift",
+      "swiftName": "local browsing and file operations work without rclone",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "core_engine_parity",
+          "name": "local_browsing_and_file_operations_without_rclone"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/CoreTests.swift",
+      "swiftName": "local-copy policy leaves other platforms and any remote endpoint byte-for-byte unchanged",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "core_models_parity",
+          "name": "clone_policy_leaves_all_other_platforms_and_remote_pairs_byte_identical"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/CoreTests.swift",
+      "swiftName": "location discovery exposes available folders and mounted-volume metadata without creating folders",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "core_engine_parity",
+          "name": "location_catalog_uses_only_supplied_existing_folders_and_preserves_volume_metadata"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/CoreTests.swift",
+      "swiftName": "maintenance excludes rclone calls but permits local browsing",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "core_engine_parity",
+          "name": "maintenance_excludes_rclone_but_allows_local_browsing_and_commits_selected_path"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/CoreTests.swift",
+      "swiftName": "manual proxy context, safe global options and persisted transfer defaults use the selected process context",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "core_engine_parity",
+          "name": "proxy_context_global_options_and_persisted_defaults_drive_real_operations"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/CoreTests.swift",
+      "swiftName": "more than 200 interrupted requests survive startup and shutdown independently of ended-history retention",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "core_engine_parity",
+          "name": "more_than_200_interrupted_requests_survive_startup_and_shutdown_beside_terminal_retention"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/CoreTests.swift",
+      "swiftName": "native-copy JSON with zero rclone speed retains rolling throughput independently of local-copy policy",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "core_models_parity",
+          "name": "zero_rclone_network_speed_keeps_native_logical_bytes_and_nas_argv"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/CoreTests.swift",
+      "swiftName": "only failed files are retried, and the full scope still repeats everything",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "core_engine_parity",
+          "name": "only_failed_files_retry_and_full_scope_repeats_everything"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/CoreTests.swift",
+      "swiftName": "quit becomes silent after successful work while retries keep original failures visible",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "core_engine_parity",
+          "name": "quit_after_success_keeps_original_failed_retry_history_until_explicit_clear"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/CoreTests.swift",
+      "swiftName": "rclone network settings validate real flags and preserve independent nested patches",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "core_engine_parity",
+          "name": "network_settings_nested_patches_persist_without_overwriting_other_network_values"
+        },
+        {
+          "target": "core_models_parity",
+          "name": "network_limits_user_agent_and_global_vs_per_transfer_flags"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/CoreTests.swift",
+      "swiftName": "real SIGINT removes its manual-copy partial while preserving completed files and any previous destination version",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "core_engine_parity",
+          "name": "real_sigint_removes_owned_partial_and_preserves_completed_and_previous_files"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/CoreTests.swift",
+      "swiftName": "real copies cover local/local, local/remote, remote/local and remote/remote endpoints",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "core_engine_parity",
+          "name": "real_local_and_alias_endpoint_matrix_preserves_exact_content_and_selection"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/CoreTests.swift",
+      "swiftName": "real dry run changes no files; literal special names copy precisely",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "core_engine_parity",
+          "name": "dry_run_does_not_mutate_and_literal_metacharacter_selections_copy_precisely"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/CoreTests.swift",
+      "swiftName": "real min/max size, age and depth filters restrict both local and alias-backed transfers",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "core_engine_parity",
+          "name": "real_size_age_and_depth_filters_restrict_alias_transfer_to_exact_file"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/CoreTests.swift",
+      "swiftName": "real move and remote alias rename preserve empty folders",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "core_engine_parity",
+          "name": "real_move_alias_rename_and_remote_remove_preserve_empty_folders"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/CoreTests.swift",
+      "swiftName": "real rate-limited jobs report speed/ETA; queue=2; cancel and maintenance are exclusive",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "core_engine_parity",
+          "name": "real_rate_limited_jobs_emit_progress_queue_at_two_and_exclude_maintenance"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/CoreTests.swift",
+      "swiftName": "real rclone networking honors loopback binding, user agent, TPS pacing and per-task overrides",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "core_engine_parity",
+          "name": "real_http_network_honors_bind_literal_user_agent_pacing_and_task_overrides"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/CoreTests.swift",
+      "swiftName": "real sync previews deletion, obeys max-delete and preserves exclusions",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "core_engine_parity",
+          "name": "sync_dry_run_max_delete_and_exclusions_preserve_original_files"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/CoreTests.swift",
+      "swiftName": "remembered workspace round-trips every option atomically without selecting files or starting jobs",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "core_engine_parity",
+          "name": "remembered_workspace_round_trips_all_options_atomically_without_reading_missing_source"
+        },
+        {
+          "target": "core_models_parity",
+          "name": "workspace_full_option_snapshot_and_invalid_boundaries"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/CoreTests.swift",
+      "swiftName": "repeated sync transfers zero unchanged bytes and tolerates explicit timestamp precision without using size-only",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "core_engine_parity",
+          "name": "repeated_sync_transfers_zero_unchanged_bytes_and_honors_timestamp_precision"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/CoreTests.swift",
+      "swiftName": "retry plan: errors that fail the same way are not retried, single files are retried by name, folders and unnamed errors repeat everything",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "core_models_parity",
+          "name": "retry_decisions_literals_paths_messages_arguments_and_accumulation"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/CoreTests.swift",
+      "swiftName": "rolling rate uses the last ten seconds, handles a full stall, and bounds memory under repeated updates",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "core_models_parity",
+          "name": "rolling_stall_and_ten_thousand_updates_keep_memory_and_ipc_bounded"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/CoreTests.swift",
+      "swiftName": "running a saved task as a dry run preserves the saved request and its direction",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "core_engine_parity",
+          "name": "saved_task_dry_run_preserves_saved_request_and_direction"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/CoreTests.swift",
+      "swiftName": "same, ancestor and symlink-overlapping local endpoints are rejected",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "core_engine_parity",
+          "name": "identical_ancestor_and_symlink_overlapping_local_endpoints_reject"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/CoreTests.swift",
+      "swiftName": "saved tasks import atomically with new identities; restart never starts jobs",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "core_engine_parity",
+          "name": "saved_tasks_import_atomically_with_new_identities_and_restart_never_starts_jobs"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/CoreTests.swift",
+      "swiftName": "selected folders intersect include/exclude rules without widening",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "core_engine_parity",
+          "name": "selected_folders_intersect_include_and_exclude_without_widening"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/CoreTests.swift",
+      "swiftName": "selected sync combines includes with both source and destination paths so stale matching files are deleted",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "core_engine_parity",
+          "name": "selected_sync_include_scope_uses_source_and_destination_and_deletes_stale_matches"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/CoreTests.swift",
+      "swiftName": "selected sync includes safely create a missing destination without treating other listing failures as empty",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "core_engine_parity",
+          "name": "selected_sync_creates_missing_target_and_never_treats_failed_listing_as_empty"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/CoreTests.swift",
+      "swiftName": "selected-folder sync mirrors same-name child folders and preserves every unselected destination scope",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "core_engine_parity",
+          "name": "selected_sync_preserves_unselected_scopes_excluded_bytes_and_empty_folder_boundaries"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/CoreTests.swift",
+      "swiftName": "settings migrate old themes and preserve language, path, skip and both pane widths across patches",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "core_engine_parity",
+          "name": "theme_path_skip_pane_width_and_default_patches_preserve_unrelated_disk_state"
+        },
+        {
+          "target": "core_models_parity",
+          "name": "theme_scales_initial_locations_and_every_legacy_visual_size"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/CoreTests.swift",
+      "swiftName": "skip existing preserves source moves; skip newer is copy-only; no-update-modtime preserves unchanged dates",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "core_engine_parity",
+          "name": "skip_existing_preserves_move_source_and_no_update_modtime_keeps_original_timestamp"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/CoreTests.swift",
+      "swiftName": "speed counts only time with files transferring; comparing and making folders keeps the last speed and reports checking",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "core_models_parity",
+          "name": "comparison_and_idle_time_do_not_dilute_active_transfer_speed"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/CoreTests.swift",
+      "swiftName": "stale selections fail instead of copying the whole source",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "core_engine_parity",
+          "name": "stale_selections_fail_without_copying_the_whole_source"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/CoreTests.swift",
+      "swiftName": "startup clears only successful history while preserving failed and unfinished requests and their logs",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "core_engine_parity",
+          "name": "startup_clears_only_successful_history_and_preserves_unfinished_requests_logs_and_errors"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/CoreTests.swift",
+      "swiftName": "statistics recover from counter resets and missing elapsed fields without negative rates or clock spikes",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "core_models_parity",
+          "name": "missing_and_reset_clocks_and_extreme_rates_remain_finite"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/CoreTests.swift",
+      "swiftName": "steady streaming reports the last ten seconds and follows a speed change within that window",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "core_models_parity",
+          "name": "steady_rate_tracks_each_ten_second_window_after_slowdown"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/CoreTests.swift",
+      "swiftName": "sync honors before, during and after deletion plus explicit delete-excluded",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "core_engine_parity",
+          "name": "sync_deletion_before_during_after_preserves_excluded_files_until_explicit_permission"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/CoreTests.swift",
+      "swiftName": "system language resolves Chinese variants and Japanese consistently with bootstrap",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "core_engine_parity",
+          "name": "system_language_matches_explicit_resolver_and_bootstrap"
+        },
+        {
+          "target": "core_models_parity",
+          "name": "system_language_honors_only_primary_preference_and_explicit_selection"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/CoreTests.swift",
+      "swiftName": "tiny-file ETA uses completed file counts and finished history retains an overall byte rate",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "core_models_parity",
+          "name": "file_count_eta_and_finished_averages_survive_legacy_history_decoding"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/CoreTests.swift",
+      "swiftName": "unlimited scheduling is immediate and 200 ended jobs never block or evict active jobs or saved tasks",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "core_engine_parity",
+          "name": "unlimited_scheduling_is_immediate_and_history_never_evicts_active_or_saved_work"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/CoreTests.swift",
+      "swiftName": "unsafe paths, flags and sync selections are rejected",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "core_models_parity",
+          "name": "unsafe_endpoints_options_selections_and_literal_filter_escaping"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/CoreTests.swift",
+      "swiftName": "updater commit and concurrent appearance patches cannot clear the selected engine or restore a skipped version",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "core_engine_parity",
+          "name": "update_commit_and_appearance_patches_preserve_path_and_clear_skipped_version"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/FinderDropTests.swift",
+      "swiftName": "Finder files preserve exact names and folder selection without transferring",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "finder_drop",
+          "name": "finder_files_preserve_exact_names_and_folder_without_transferring"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/FinderDropTests.swift",
+      "swiftName": "duplicate Finder URLs select each item once",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "finder_drop",
+          "name": "duplicate_finder_urls_select_each_item_once"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/FinderDropTests.swift",
+      "swiftName": "empty, missing, root, oversized and control-character drops fail clearly",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "finder_drop",
+          "name": "empty_missing_root_oversized_and_control_character_drops_reject"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/FinderDropTests.swift",
+      "swiftName": "mixed parents and non-file URLs are rejected before any transfer",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "finder_drop",
+          "name": "mixed_parents_and_non_file_urls_reject_before_transfer"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/FinderDropTests.swift",
+      "swiftName": "symbolic links are rejected rather than promising a default-skipped transfer",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "finder_drop",
+          "name": "symbolic_links_reject_and_leave_original_target_unchanged"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/ListingTests.swift",
+      "swiftName": "browse preserves legacy arrays and starts only one lsjson per ready remote listing",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "listing",
+          "name": "browse_preserves_legacy_arrays_and_one_lsjson_per_ready_remote_listing"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/ListingTests.swift",
+      "swiftName": "cancel covers environment discovery and allows a clean retry",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "listing",
+          "name": "cancellation_covers_environment_discovery_and_allows_clean_retry"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/ListingTests.swift",
+      "swiftName": "cancel during a replacement environment probe never waits for or stops the unrelated probe",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "listing",
+          "name": "cancellation_during_replacement_probe_does_not_wait_or_stop_unrelated_probe"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/ListingTests.swift",
+      "swiftName": "cancel reaps only its child while same-folder other pane and newer request continue",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "listing",
+          "name": "cancel_reaps_only_its_child_while_other_pane_and_newer_request_continue"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/ListingTests.swift",
+      "swiftName": "cancellation before dispatch prevents spawn and rejects reused active request IDs",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "listing",
+          "name": "pre_dispatch_cancellation_prevents_spawn_and_rejects_reused_active_request_ids"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/ListingTests.swift",
+      "swiftName": "connection change cancels old reading and queued requests before publishing new settings",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "listing",
+          "name": "connection_change_cancels_old_reading_and_queued_before_publishing_settings"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/ListingTests.swift",
+      "swiftName": "context reset cancels a reserved worker before it starts",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "listing",
+          "name": "context_reset_cancels_a_reserved_worker_before_it_starts"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/ListingTests.swift",
+      "swiftName": "local adapter keeps original errors and pre-cancel performs no filesystem read",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "listing",
+          "name": "local_adapter_preserves_errors_and_pre_cancel_performs_no_filesystem_read"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/ListingTests.swift",
+      "swiftName": "native deadline stops its listing process and reports an error rather than empty success",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "listing",
+          "name": "native_deadline_stops_process_and_reports_error_instead_of_empty_success"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/ListingTests.swift",
+      "swiftName": "real rclone keeps Unicode names sizes modification times and missing-remote errors",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "listing",
+          "name": "real_rclone_preserves_unicode_sizes_times_order_and_missing_remote_error"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/ListingTests.swift",
+      "swiftName": "real throttled HTTP listing cancellation reaps rclone and preserves a running transfer",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "listing",
+          "name": "real_throttled_http_cancellation_reaps_rclone_and_preserves_running_transfer"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/ListingTests.swift",
+      "swiftName": "shutdown reaps both listing children and prevents reserved late workers",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "listing",
+          "name": "shutdown_reaps_both_listing_children_and_prevents_reserved_late_workers"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/ListingTests.swift",
+      "swiftName": "successful output arriving after cancellation never becomes a completed listing",
+      "platforms": [
+        "linux",
+        "macos"
+      ],
+      "rustCases": [
+        {
+          "target": "listing",
+          "name": "successful_output_after_cancellation_never_becomes_completed_listing"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/ListingTests.swift",
+      "swiftName": "unresponsive read-only child is force-stopped without transfer cleanup grace",
+      "platforms": [
+        "linux",
+        "macos"
+      ],
+      "rustCases": [
+        {
+          "target": "listing",
+          "name": "unresponsive_read_only_child_is_force_stopped_without_transfer_grace"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/NativeMessagesTests.swift",
+      "swiftName": "Absolute anchors do not partially translate trailing or prefixed diagnostics",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "native_messages",
+          "name": "absolute_anchors_reject_partial_diagnostic_translation"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/NativeMessagesTests.swift",
+      "swiftName": "Ambiguous path separators preserve the complete original message",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "native_messages",
+          "name": "ambiguous_separators_preserve_entire_original"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/NativeMessagesTests.swift",
+      "swiftName": "Captured file names never recursively become translated app labels",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "native_messages",
+          "name": "captured_file_names_never_recursively_translate"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/NativeMessagesTests.swift",
+      "swiftName": "Deletion confirmation preserves every selected filename",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "native_messages",
+          "name": "deletion_confirmation_preserves_selected_file_names"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/NativeMessagesTests.swift",
+      "swiftName": "Engine wrappers localize while multiline backend output remains literal",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "native_messages",
+          "name": "engine_wrappers_leave_multiline_backend_output_literal"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/NativeMessagesTests.swift",
+      "swiftName": "HTTP codes, download counts and macOS versions remain exact",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "native_messages",
+          "name": "http_counts_and_macos_versions_remain_exact"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/NativeMessagesTests.swift",
+      "swiftName": "Only explicit field labels and missing-version status translate inside captures",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "native_messages",
+          "name": "only_explicit_field_labels_and_missing_version_status_translate"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/NativeMessagesTests.swift",
+      "swiftName": "Settings, transfer, tools, updater and Finder errors have English and Japanese",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "native_messages",
+          "name": "settings_transfer_tools_updater_and_finder_have_english_and_japanese"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/NativeMessagesTests.swift",
+      "swiftName": "Source and destination preserve Japanese, quotes, braces and newlines",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "native_messages",
+          "name": "source_and_destination_preserve_japanese_quotes_braces_and_newlines"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/NativeMessagesTests.swift",
+      "swiftName": "Specific tool wrappers win over code-only variants without changing stderr",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "native_messages",
+          "name": "specific_tool_wrappers_win_without_changing_stderr"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/NativeMessagesTests.swift",
+      "swiftName": "Traditional Chinese and unsupported language preserve original bytes",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "native_messages",
+          "name": "traditional_chinese_and_unsupported_language_preserve_original_bytes"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/NativeMessagesTests.swift",
+      "swiftName": "Unknown and oversized messages use stable fallback",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "native_messages",
+          "name": "unknown_oversized_and_japanese_fallback_are_stable"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/NativeMessagesTests.swift",
+      "swiftName": "Unknown provider diagnostics keep embedded file names and JSON verbatim",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "native_messages",
+          "name": "unknown_provider_diagnostics_remain_literal"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/PlatformTests.swift",
+      "swiftName": "JSON booleans stay distinct from numeric values",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "lib",
+          "name": "models::platform_tests::json_bools_stay_distinct_from_numbers"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/PlatformTests.swift",
+      "swiftName": "Mac Unicode launch cancellation reaches the tracked child PID",
+      "platforms": [
+        "macos"
+      ],
+      "rustCases": [
+        {
+          "target": "process_parity",
+          "name": "mac_unicode_launch_cancellation_reaches_tracked_child_pid"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/PlatformTests.swift",
+      "swiftName": "Mac Unicode launch retains standard streams environment and exit status",
+      "platforms": [
+        "macos"
+      ],
+      "rustCases": [
+        {
+          "target": "process_parity",
+          "name": "mac_unicode_launch_retains_streams_environment_and_exit_status"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/PlatformTests.swift",
+      "swiftName": "Mac child arguments preserve composed and decomposed Unicode byte for byte",
+      "platforms": [
+        "macos"
+      ],
+      "rustCases": [
+        {
+          "target": "process_parity",
+          "name": "mac_child_arguments_preserve_composed_decomposed_unicode_byte_for_byte"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/PlatformTests.swift",
+      "swiftName": "POSIX paths retain colon and backslash filename semantics",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "lib",
+          "name": "models::platform_tests::absolute_drive_unc_and_posix_spelling"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/PlatformTests.swift",
+      "swiftName": "Windows paths require an absolute drive or complete UNC share",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "lib",
+          "name": "models::platform_tests::absolute_drive_unc_and_posix_spelling"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/PlatformTests.swift",
+      "swiftName": "atomic replacement commits complete bytes over an existing file",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "lib",
+          "name": "storage::platform_file_tests::atomic_replacement_commits_complete_bytes_and_removes_staging"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/PlatformTests.swift",
+      "swiftName": "destination roots include drive and UNC share roots",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "lib",
+          "name": "models::platform_tests::absolute_drive_unc_and_posix_spelling"
+        },
+        {
+          "target": "contracts",
+          "name": "destination_roots_and_remote_overlap"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/PlatformTests.swift",
+      "swiftName": "exclusive UTF-8 file creation preserves an existing file",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "lib",
+          "name": "storage::platform_file_tests::exclusive_unicode_create_preserves_existing_bytes"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/PlatformTests.swift",
+      "swiftName": "real rclone format and declared OS requirements are validated",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "services",
+          "name": "real_updater_version_skip_manual_override_and_native_verification"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/PlatformTests.swift",
+      "swiftName": "regular file reader handles missing and existing files",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "lib",
+          "name": "storage::platform_file_tests::regular_reader_handles_missing_files_bytes_and_directories"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/PlatformTests.swift",
+      "swiftName": "removing a missing file is harmless and removing a directory is rejected",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "lib",
+          "name": "storage::platform_file_tests::missing_unlink_is_harmless_directory_unlink_is_rejected"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/PlatformTests.swift",
+      "swiftName": "report readers reject symlinks and unlink never follows their target",
+      "platforms": [
+        "linux",
+        "macos"
+      ],
+      "rustCases": [
+        {
+          "target": "lib",
+          "name": "storage::platform_file_tests::report_reader_rejects_symlink_and_unlink_preserves_target"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/SMBTests.swift",
+      "swiftName": "Cloud commands keep their existing encoding policy",
+      "platforms": [
+        "linux",
+        "macos"
+      ],
+      "rustCases": [
+        {
+          "target": "local_transfers",
+          "name": "smb_preview_browsing_and_raw_copy"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/SMBTests.swift",
+      "swiftName": "Only OS-mounted network locations receive a mount label",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "lib",
+          "name": "local::smb_platform_tests::only_os_mounted_network_locations_receive_mount_label"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/SMBTests.swift",
+      "swiftName": "SMB browsing retains literal names used by selections",
+      "platforms": [
+        "linux",
+        "macos"
+      ],
+      "rustCases": [
+        {
+          "target": "local_transfers",
+          "name": "smb_preview_browsing_and_raw_copy"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/SMBTests.swift",
+      "swiftName": "SMB copy keeps quoted and decomposed paths and their exact bytes",
+      "platforms": [
+        "linux",
+        "macos"
+      ],
+      "rustCases": [
+        {
+          "target": "local_transfers",
+          "name": "smb_preview_browsing_and_raw_copy"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/SMBTests.swift",
+      "swiftName": "SMB selected sync handles canonical name differences with include=false",
+      "platforms": [
+        "macos"
+      ],
+      "rustCases": [
+        {
+          "target": "local_transfers",
+          "name": "smb_selected_sync_respects_canonical_names_with_and_without_includes"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/SMBTests.swift",
+      "swiftName": "SMB selected sync handles canonical name differences with include=true",
+      "platforms": [
+        "macos"
+      ],
+      "rustCases": [
+        {
+          "target": "local_transfers",
+          "name": "smb_selected_sync_respects_canonical_names_with_and_without_includes"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/SMBTests.swift",
+      "swiftName": "SMB to local preview owns literal SMB and local filename flags",
+      "platforms": [
+        "linux",
+        "macos"
+      ],
+      "rustCases": [
+        {
+          "target": "local_transfers",
+          "name": "smb_preview_browsing_and_raw_copy"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/SMBTests.swift",
+      "swiftName": "Windows commands retain the existing encoding behavior",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "lib",
+          "name": "local::smb_platform_tests::windows_commands_retain_existing_encoding_behavior"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/SyncDirectoryTests.swift",
+      "swiftName": "directory-prune-never-follows-target-symlinks",
+      "platforms": [
+        "linux",
+        "macos"
+      ],
+      "rustCases": [
+        {
+          "target": "contracts",
+          "name": "original_prune_validation_limits_and_plans_preserve_exact_paths"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/SyncDirectoryTests.swift",
+      "swiftName": "dry-run-plans-nested-orphans-without-changing-them",
+      "platforms": [
+        "linux",
+        "macos"
+      ],
+      "rustCases": [
+        {
+          "target": "contracts",
+          "name": "original_prune_validation_limits_and_plans_preserve_exact_paths"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/SyncDirectoryTests.swift",
+      "swiftName": "file-arriving-during-prune-is-not-deleted",
+      "platforms": [
+        "linux",
+        "macos"
+      ],
+      "rustCases": [
+        {
+          "target": "lib",
+          "name": "local::tests::file_arrival_and_source_replacement_during_prune"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/SyncDirectoryTests.swift",
+      "swiftName": "listed-but-unopenable-source-protects-destination",
+      "platforms": [
+        "linux",
+        "macos"
+      ],
+      "rustCases": [
+        {
+          "target": "contracts",
+          "name": "original_prune_validation_limits_and_plans_preserve_exact_paths"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/SyncDirectoryTests.swift",
+      "swiftName": "literal-local-names",
+      "platforms": [
+        "linux",
+        "macos"
+      ],
+      "rustCases": [
+        {
+          "target": "local_transfers",
+          "name": "literal_local_names"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/SyncDirectoryTests.swift",
+      "swiftName": "prune-limit-and-cancellation-are-enforced",
+      "platforms": [
+        "linux",
+        "macos"
+      ],
+      "rustCases": [
+        {
+          "target": "contracts",
+          "name": "original_prune_validation_limits_and_plans_preserve_exact_paths"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/SyncDirectoryTests.swift",
+      "swiftName": "prune-only-orphan-empty-directories-after-error",
+      "platforms": [
+        "linux",
+        "macos"
+      ],
+      "rustCases": [
+        {
+          "target": "local_transfers",
+          "name": "prune_only_orphan_empty_directories_after_error"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/SyncDirectoryTests.swift",
+      "swiftName": "prune-validates-all-paths-before-removal",
+      "platforms": [
+        "linux",
+        "macos"
+      ],
+      "rustCases": [
+        {
+          "target": "contracts",
+          "name": "original_prune_validation_limits_and_plans_preserve_exact_paths"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/SyncDirectoryTests.swift",
+      "swiftName": "pruning-never-runs-for-copy-or-dry-run-or-zero-delete-limit",
+      "platforms": [
+        "linux",
+        "macos"
+      ],
+      "rustCases": [
+        {
+          "target": "local_transfers",
+          "name": "pruning_never_mutates_for_copy_dry_run_or_zero_limit"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/SyncDirectoryTests.swift",
+      "swiftName": "pruning-respects-exclusions",
+      "platforms": [
+        "linux",
+        "macos"
+      ],
+      "rustCases": [
+        {
+          "target": "local_transfers",
+          "name": "pruning_respects_exclusions_and_selected_folders"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/SyncDirectoryTests.swift",
+      "swiftName": "pruning-respects-selected-folder",
+      "platforms": [
+        "linux",
+        "macos"
+      ],
+      "rustCases": [
+        {
+          "target": "local_transfers",
+          "name": "pruning_respects_exclusions_and_selected_folders"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/SyncDirectoryTests.swift",
+      "swiftName": "replacement-source-root-stops-cleanup",
+      "platforms": [
+        "linux",
+        "macos"
+      ],
+      "rustCases": [
+        {
+          "target": "lib",
+          "name": "local::tests::file_arrival_and_source_replacement_during_prune"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/SyncDirectoryTests.swift",
+      "swiftName": "selected-literal-name-with-includes",
+      "platforms": [
+        "linux",
+        "macos"
+      ],
+      "rustCases": [
+        {
+          "target": "local_transfers",
+          "name": "selected_literal_name_with_includes"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/ToolsTests.swift",
+      "swiftName": "CSV exports true names, size, date and quoted newlines",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "services",
+          "name": "real_tree_and_exports_preserve_filenames_csv_and_exclude_own_staging"
+        },
+        {
+          "target": "services",
+          "name": "tool_fixtures_cover_large_tree_public_links_and_transactional_export_failure"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/ToolsTests.swift",
+      "swiftName": "Explicit stream stop is stopped, never completed",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "services",
+          "name": "stream_cancel_failures_shutdown_and_invalid_players_leave_no_running_session"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/ToolsTests.swift",
+      "swiftName": "Export rejects symlink without changing target",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "services",
+          "name": "tool_fixtures_cover_large_tree_public_links_and_transactional_export_failure"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/ToolsTests.swift",
+      "swiftName": "Failed export preserves existing report and cleans staging",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "services",
+          "name": "tool_fixtures_cover_large_tree_public_links_and_transactional_export_failure"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/ToolsTests.swift",
+      "swiftName": "Mount option contract cannot enable daemon or unsafe flags",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "lib",
+          "name": "tools::tests::mount_flags_cannot_enable_daemon_or_hooks"
+        },
+        {
+          "target": "services",
+          "name": "custom_rclone_version_reports_unavailable_and_mount_validation_starts_nothing"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/ToolsTests.swift",
+      "swiftName": "Producer and player failures clean up both child processes",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "services",
+          "name": "stream_cancel_failures_shutdown_and_invalid_players_leave_no_running_session"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/ToolsTests.swift",
+      "swiftName": "Public link parses final HTTPS line and rejects unsafe output",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "services",
+          "name": "tool_fixtures_cover_large_tree_public_links_and_transactional_export_failure"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/ToolsTests.swift",
+      "swiftName": "Real rclone cat streams complete bytes to external process",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "services",
+          "name": "real_cat_stream_preserves_complete_media_and_does_not_forward_cloud_credentials"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/ToolsTests.swift",
+      "swiftName": "Shutdown stops active streams; invalid player starts nothing",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "services",
+          "name": "stream_cancel_failures_shutdown_and_invalid_players_leave_no_running_session"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/ToolsTests.swift",
+      "swiftName": "Text export and export inside listed directory",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "services",
+          "name": "real_tree_and_exports_preserve_filenames_csv_and_exclude_own_staging"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/ToolsTests.swift",
+      "swiftName": "Tree output truncation and input bounds",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "services",
+          "name": "tool_fixtures_cover_large_tree_public_links_and_transactional_export_failure"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/ToolsTests.swift",
+      "swiftName": "Tree uses real rclone, directories only, bounded depth",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "services",
+          "name": "real_tree_and_exports_preserve_filenames_csv_and_exclude_own_staging"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/TransferReportTests.swift",
+      "swiftName": "A large valid selection is split into bounded, reconstructable configuration records",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "transfer_report",
+          "name": "large_valid_selection_splits_into_bounded_reconstructable_configuration"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/TransferReportTests.swift",
+      "swiftName": "A successful retry stays out of the error list and missing copy sizes stay explicit",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "transfer_report",
+          "name": "successful_retry_stays_out_of_errors_and_missing_copy_sizes_stay_explicit"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/TransferReportTests.swift",
+      "swiftName": "Both export formats are immutable snapshots while the live job grows",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "transfer_report",
+          "name": "both_export_formats_are_immutable_while_live_job_grows"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/TransferReportTests.swift",
+      "swiftName": "Cleanup failures are visible even when rclone logs them at info level",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "transfer_report",
+          "name": "cleanup_failures_are_visible_even_at_info_level"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/TransferReportTests.swift",
+      "swiftName": "Cleanup removes only owned reports and snapshots; readers reject symlinks",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "transfer_report",
+          "name": "cleanup_removes_only_owned_reports_snapshots_and_readers_reject_symlinks"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/TransferReportTests.swift",
+      "swiftName": "Comparison candidates never count as completed transfers",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "transfer_report",
+          "name": "comparison_candidates_never_count_as_completed_transfers"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/TransferReportTests.swift",
+      "swiftName": "Denied local partial renames retain the original error and do not claim completed copies",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "transfer_report",
+          "name": "denied_local_partial_rename_retains_original_error_without_completed_copy"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/TransferReportTests.swift",
+      "swiftName": "Dry Run actions are planned and statistics never create file rows",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "transfer_report",
+          "name": "dry_run_is_planned_and_statistics_never_create_file_rows"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/TransferReportTests.swift",
+      "swiftName": "Exports retain the actual comparison settings and engine version without environment data",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "transfer_report",
+          "name": "exports_retain_actual_comparison_settings_and_version_without_environment"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/TransferReportTests.swift",
+      "swiftName": "Filesystem and global errors remain visible without a fake filename",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "transfer_report",
+          "name": "filesystem_and_global_errors_have_no_fake_filename"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/TransferReportTests.swift",
+      "swiftName": "Growing-file retries separate completed bytes from failed size-verification bytes",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "transfer_report",
+          "name": "growing_file_retries_separate_completed_and_failed_size_verification_bytes"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/TransferReportTests.swift",
+      "swiftName": "Ignored links and special files are discoverable in skipped records",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "transfer_report",
+          "name": "ignored_links_and_special_files_remain_discoverable_in_skipped_records"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/TransferReportTests.swift",
+      "swiftName": "JSONL preserves quotes, Unicode and literal newlines in reported filenames",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "transfer_report",
+          "name": "jsonl_preserves_quotes_unicode_and_literal_newlines_in_filenames"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/TransferReportTests.swift",
+      "swiftName": "Legacy or queued jobs without a ledger return an unavailable empty page",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "transfer_report",
+          "name": "legacy_or_queued_jobs_without_ledger_return_unavailable_empty_page"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/TransferReportTests.swift",
+      "swiftName": "Page cursors retain stable row boundaries and enforce small pages",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "transfer_report",
+          "name": "cursors_keep_stable_boundaries_and_enforce_small_pages"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/TransferReportTests.swift",
+      "swiftName": "Real rclone copy, repeat sync and delete produce honest checks and separate outcomes",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "transfer_report",
+          "name": "real_rclone_copy_repeat_sync_and_delete_keep_honest_checks_and_outcomes"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/TransferReportTests.swift",
+      "swiftName": "Real rclone preserves symbolic links locally and round-trips cloud-style link files",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "transfer_report",
+          "name": "real_rclone_preserves_links_locally_and_round_trips_cloud_style_link_files"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/TransferReportTests.swift",
+      "swiftName": "Reported paths cannot trigger file operations",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "transfer_report",
+          "name": "reported_paths_cannot_trigger_file_operations"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/TransferReportTests.swift",
+      "swiftName": "Retries retain error evidence and do not pretend events are unique files",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "transfer_report",
+          "name": "retries_retain_error_evidence_and_event_counts_are_not_unique_files"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/TransferReportTests.swift",
+      "swiftName": "Saved summaries allow known finite counters and keep uncertain counts unknown",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "transfer_report",
+          "name": "saved_summaries_allow_finite_counters_and_keep_uncertain_counts_unknown"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/TransferReportTests.swift",
+      "swiftName": "Size diagnostics reject malformed numbers and never reconstruct truncated names",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "transfer_report",
+          "name": "size_diagnostics_reject_malformed_numbers_and_truncated_names"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/TransferReportTests.swift",
+      "swiftName": "Size-failure history remains bounded during large error sets",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "transfer_report",
+          "name": "size_failure_history_is_bounded_during_large_error_sets"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/TransferReportTests.swift",
+      "swiftName": "Static JSON export omits a crash-truncated final JSON record",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "transfer_report",
+          "name": "static_json_export_omits_crash_truncated_final_record"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/TransferReportTests.swift",
+      "swiftName": "Successful copy and later move-source deletion failure remain separate",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "transfer_report",
+          "name": "successful_copy_and_failed_move_source_deletion_remain_separate"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/TransferReportTests.swift",
+      "swiftName": "Symbolic links are skipped by default and preserved only by explicit choice",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "transfer_report",
+          "name": "symbolic_links_skip_by_default_and_preserve_only_by_explicit_choice"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/TransferReportTests.swift",
+      "swiftName": "Unknown comparison lines and an incomplete tail are visible without invented paths",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "transfer_report",
+          "name": "malformed_comparison_and_incomplete_tail_are_visible_without_invented_paths"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/UpdaterTests.swift",
+      "swiftName": "HTTP errors remain distinct from download limits and unsafe redirects",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "lib",
+          "name": "updater::tests::http_errors_and_bounds_remain_distinct"
+        },
+        {
+          "target": "lib",
+          "name": "updater::additional_parity_tests::transient_status_progress_reaches_idle_and_tls_errors_never_retry"
+        },
+        {
+          "target": "services",
+          "name": "updater_parsers_and_policy_match_recorded_swift_0_11_0"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/UpdaterTests.swift",
+      "swiftName": "SHA-256 independent published vectors",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "lib",
+          "name": "updater::tests::sha256_matches_published_vectors"
+        },
+        {
+          "target": "lib",
+          "name": "updater::additional_parity_tests::published_multi_block_sha_and_current_macos_requirement_are_verified"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/UpdaterTests.swift",
+      "swiftName": "atomic replacement retains exact previous bytes",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "lib",
+          "name": "updater::tests::atomic_commit_keeps_exact_previous_bytes_and_rolls_back"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/UpdaterTests.swift",
+      "swiftName": "backup retention keeps two owned backups and unrelated files",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "lib",
+          "name": "updater::tests::failed_first_install_removes_candidate_and_retention_keeps_two"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/UpdaterTests.swift",
+      "swiftName": "backup symlink cannot redirect writes out of folder",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "lib",
+          "name": "updater::tests::backup_symlink_cannot_redirect_writes"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/UpdaterTests.swift",
+      "swiftName": "check, skip, manual override and future-version comparison",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "services",
+          "name": "real_updater_version_skip_manual_override_and_native_verification"
+        },
+        {
+          "target": "services",
+          "name": "updater_never_suggests_downgrade_and_invalid_official_version_response_is_rejected"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/UpdaterTests.swift",
+      "swiftName": "exact archive checksum lookup and duplicate rejection",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "lib",
+          "name": "updater::tests::checksums_match_exact_archive_once"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/UpdaterTests.swift",
+      "swiftName": "failed post-install check restores old version",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "lib",
+          "name": "updater::tests::atomic_commit_keeps_exact_previous_bytes_and_rolls_back"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/UpdaterTests.swift",
+      "swiftName": "first-install validation failure leaves no executable",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "lib",
+          "name": "updater::tests::failed_first_install_removes_candidate_and_retention_keeps_two"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/UpdaterTests.swift",
+      "swiftName": "managed-path and symbolic-link update rejection",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "lib",
+          "name": "updater::tests::managed_paths_and_symlinks_cannot_be_updated"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/UpdaterTests.swift",
+      "swiftName": "native updates reject TLS-to-proxy without weakening rclone or HTTP CONNECT and SOCKS settings",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "lib",
+          "name": "updater::additional_parity_tests::native_fetch_rejects_https_proxy_before_any_connection"
+        },
+        {
+          "target": "lib",
+          "name": "updater::tests::manual_proxy_policy_keeps_rclone_support_and_rejects_native_tls_proxy"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/UpdaterTests.swift",
+      "swiftName": "permanent update failure does not poison the next check",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "lib",
+          "name": "updater::tests::failed_fetch_does_not_poison_next_check"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/UpdaterTests.swift",
+      "swiftName": "real rclone version process and invalid release response",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "services",
+          "name": "updater_never_suggests_downgrade_and_invalid_official_version_response_is_rejected"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/UpdaterTests.swift",
+      "swiftName": "rollback failure reports the backup location without claiming restoration",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "lib",
+          "name": "updater::additional_parity_tests::rollback_failure_reports_backup_path_without_claiming_restoration"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/UpdaterTests.swift",
+      "swiftName": "selected executable and folder define one update destination",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "lib",
+          "name": "updater::additional_parity_tests::selected_executable_and_folder_define_one_destination"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/UpdaterTests.swift",
+      "swiftName": "semantic version ordering and strict stable input",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "lib",
+          "name": "updater::tests::stable_versions_compare_numerically_and_reject_suffixes"
+        },
+        {
+          "target": "services",
+          "name": "updater_parsers_and_policy_match_recorded_swift_0_11_0"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/UpdaterTests.swift",
+      "swiftName": "temporary update failure recovers in the same app session",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "lib",
+          "name": "updater::tests::transient_fetch_failure_retries_but_verification_does_not"
+        },
+        {
+          "target": "lib",
+          "name": "updater::additional_parity_tests::transient_status_progress_reaches_idle_and_tls_errors_never_retry"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/UpdaterTests.swift",
+      "swiftName": "thin Mach-O architecture and minimum OS gate",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "lib",
+          "name": "updater::tests::mac_architecture_and_minimum_os_gate"
+        },
+        {
+          "target": "lib",
+          "name": "updater::additional_parity_tests::published_multi_block_sha_and_current_macos_requirement_are_verified"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/UpdaterTests.swift",
+      "swiftName": "universal Mach-O slice selection and truncation",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "lib",
+          "name": "updater::tests::universal_macho_slice_bounds_are_checked"
+        },
+        {
+          "target": "lib",
+          "name": "updater::additional_parity_tests::published_multi_block_sha_and_current_macos_requirement_are_verified"
+        }
+      ]
+    },
+    {
+      "swiftFile": "Tests/UpdaterTests.swift",
+      "swiftName": "update subprocess uses the same manual proxy policy without rclone credentials",
+      "platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "rustCases": [
+        {
+          "target": "lib",
+          "name": "updater::additional_parity_tests::proxy_environment_drops_inherited_secrets_and_manual_empty_values"
+        },
+        {
+          "target": "lib",
+          "name": "updater::additional_parity_tests::update_subprocess_uses_selected_proxy_and_private_temp"
+        },
+        {
+          "target": "lib",
+          "name": "updater::tests::manual_proxy_policy_keeps_rclone_support_and_rejects_native_tls_proxy"
+        }
+      ]
+    }
+  ]
+}

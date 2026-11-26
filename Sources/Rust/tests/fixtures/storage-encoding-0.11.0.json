@@ -1,0 +1,479 @@
+{
+  "swiftRecorder": "Released 0.11.0 EngineStorage.readJSON, through RcloneEngine initialization; readable inputs retain their path, unreadable inputs back up original bytes.",
+  "cases": [
+    {
+      "name": "utf-8-plain",
+      "bytesHex": "5b7b22e6aa94e5908d223a2241f09f8cb165cc81227d5d",
+      "accepted": true,
+      "decoded": [
+        {
+          "檔名": "A🌱é"
+        }
+      ]
+    },
+    {
+      "name": "utf-8-bom",
+      "bytesHex": "efbbbf5b7b22e6aa94e5908d223a2241f09f8cb165cc81227d5d",
+      "accepted": true,
+      "decoded": [
+        {
+          "檔名": "A🌱é"
+        }
+      ]
+    },
+    {
+      "name": "utf-16-le-plain",
+      "bytesHex": "5b007b002200946a0d5422003a00220041003cd831df6500010322007d005d00",
+      "accepted": true,
+      "decoded": [
+        {
+          "檔名": "A🌱é"
+        }
+      ]
+    },
+    {
+      "name": "utf-16-le-bom",
+      "bytesHex": "fffe5b007b002200946a0d5422003a00220041003cd831df6500010322007d005d00",
+      "accepted": true,
+      "decoded": [
+        {
+          "檔名": "A🌱é"
+        }
+      ]
+    },
+    {
+      "name": "utf-16-be-plain",
+      "bytesHex": "005b007b00226a94540d0022003a00220041d83cdf31006503010022007d005d",
+      "accepted": true,
+      "decoded": [
+        {
+          "檔名": "A🌱é"
+        }
+      ]
+    },
+    {
+      "name": "utf-16-be-bom",
+      "bytesHex": "feff005b007b00226a94540d0022003a00220041d83cdf31006503010022007d005d",
+      "accepted": true,
+      "decoded": [
+        {
+          "檔名": "A🌱é"
+        }
+      ]
+    },
+    {
+      "name": "utf-32-le-plain",
+      "bytesHex": "5b0000007b00000022000000946a00000d540000220000003a000000220000004100000031f301006500000001030000220000007d0000005d000000",
+      "accepted": true,
+      "decoded": [
+        {
+          "檔名": "A🌱é"
+        }
+      ]
+    },
+    {
+      "name": "utf-32-le-bom",
+      "bytesHex": "fffe00005b0000007b00000022000000946a00000d540000220000003a000000220000004100000031f301006500000001030000220000007d0000005d000000",
+      "accepted": false,
+      "decoded": null
+    },
+    {
+      "name": "utf-32-be-plain",
+      "bytesHex": "0000005b0000007b0000002200006a940000540d000000220000003a00000022000000410001f3310000006500000301000000220000007d0000005d",
+      "accepted": true,
+      "decoded": [
+        {
+          "檔名": "A🌱é"
+        }
+      ]
+    },
+    {
+      "name": "utf-32-be-bom",
+      "bytesHex": "0000feff0000005b0000007b0000002200006a940000540d000000220000003a00000022000000410001f3310000006500000301000000220000007d0000005d",
+      "accepted": true,
+      "decoded": [
+        {
+          "檔名": "A🌱é"
+        }
+      ]
+    },
+    {
+      "name": "utf-16-le-plain-empty-array",
+      "bytesHex": "5b005d00",
+      "accepted": false,
+      "decoded": null
+    },
+    {
+      "name": "utf-16-le-plain-empty-object",
+      "bytesHex": "7b007d00",
+      "accepted": false,
+      "decoded": null
+    },
+    {
+      "name": "utf-16-le-plain-initial-bmp",
+      "bytesHex": "22000a822200",
+      "accepted": false,
+      "decoded": null
+    },
+    {
+      "name": "utf-16-le-plain-initial-astral",
+      "bytesHex": "22003cd831df2200",
+      "accepted": false,
+      "decoded": null
+    },
+    {
+      "name": "utf-16-be-plain-empty-array",
+      "bytesHex": "005b005d",
+      "accepted": false,
+      "decoded": null
+    },
+    {
+      "name": "utf-16-be-plain-empty-object",
+      "bytesHex": "007b007d",
+      "accepted": false,
+      "decoded": null
+    },
+    {
+      "name": "utf-16-be-plain-initial-bmp",
+      "bytesHex": "0022820a0022",
+      "accepted": false,
+      "decoded": null
+    },
+    {
+      "name": "utf-16-be-plain-initial-astral",
+      "bytesHex": "0022d83cdf310022",
+      "accepted": false,
+      "decoded": null
+    },
+    {
+      "name": "utf-32-le-plain-empty-array",
+      "bytesHex": "5b0000005d000000",
+      "accepted": true,
+      "decoded": []
+    },
+    {
+      "name": "utf-32-le-plain-empty-object",
+      "bytesHex": "7b0000007d000000",
+      "accepted": true,
+      "decoded": {}
+    },
+    {
+      "name": "utf-32-le-plain-initial-bmp",
+      "bytesHex": "220000000a82000022000000",
+      "accepted": true,
+      "decoded": "舊"
+    },
+    {
+      "name": "utf-32-le-plain-initial-astral",
+      "bytesHex": "2200000031f3010022000000",
+      "accepted": true,
+      "decoded": "🌱"
+    },
+    {
+      "name": "utf-32-be-plain-empty-array",
+      "bytesHex": "0000005b0000005d",
+      "accepted": true,
+      "decoded": []
+    },
+    {
+      "name": "utf-32-be-plain-empty-object",
+      "bytesHex": "0000007b0000007d",
+      "accepted": true,
+      "decoded": {}
+    },
+    {
+      "name": "utf-32-be-plain-initial-bmp",
+      "bytesHex": "000000220000820a00000022",
+      "accepted": true,
+      "decoded": "舊"
+    },
+    {
+      "name": "utf-32-be-plain-initial-astral",
+      "bytesHex": "000000220001f33100000022",
+      "accepted": true,
+      "decoded": "🌱"
+    },
+    {
+      "name": "empty",
+      "bytesHex": "",
+      "accepted": false,
+      "decoded": null
+    },
+    {
+      "name": "utf8-invalid",
+      "bytesHex": "5b22ff225d",
+      "accepted": false,
+      "decoded": null
+    },
+    {
+      "name": "utf8-overlong",
+      "bytesHex": "5b22c0af225d",
+      "accepted": false,
+      "decoded": null
+    },
+    {
+      "name": "utf8-bom-only",
+      "bytesHex": "efbbbf",
+      "accepted": false,
+      "decoded": null
+    },
+    {
+      "name": "utf16le-bom-only",
+      "bytesHex": "fffe",
+      "accepted": false,
+      "decoded": null
+    },
+    {
+      "name": "utf32be-bom-only",
+      "bytesHex": "0000feff",
+      "accepted": false,
+      "decoded": null
+    },
+    {
+      "name": "double-utf8-bom",
+      "bytesHex": "efbbbfefbbbf5b5d",
+      "accepted": false,
+      "decoded": null
+    },
+    {
+      "name": "utf16le-odd-byte",
+      "bytesHex": "fffe5b005d0000",
+      "accepted": true,
+      "decoded": []
+    },
+    {
+      "name": "utf32be-trailing-byte",
+      "bytesHex": "0000feff0000005b0000005d00",
+      "accepted": true,
+      "decoded": []
+    },
+    {
+      "name": "utf16le-unpaired-high",
+      "bytesHex": "fffe5b00220000d822005d00",
+      "accepted": false,
+      "decoded": null
+    },
+    {
+      "name": "utf16be-unpaired-low",
+      "bytesHex": "feff005b0022dc000022005d",
+      "accepted": false,
+      "decoded": null
+    },
+    {
+      "name": "utf32le-surrogate",
+      "bytesHex": "fffe00005b0000002200000000d80000220000005d000000",
+      "accepted": false,
+      "decoded": null
+    },
+    {
+      "name": "utf32be-out-of-range",
+      "bytesHex": "0000feff0000005b0000002200110000000000220000005d",
+      "accepted": false,
+      "decoded": null
+    },
+    {
+      "name": "single-utf16le-zero",
+      "bytesHex": "3000",
+      "accepted": false,
+      "decoded": null
+    },
+    {
+      "name": "single-utf16be-zero",
+      "bytesHex": "0030",
+      "accepted": false,
+      "decoded": null
+    },
+    {
+      "name": "single-utf32le-zero",
+      "bytesHex": "30000000",
+      "accepted": false,
+      "decoded": null
+    },
+    {
+      "name": "single-utf32be-zero",
+      "bytesHex": "00000030",
+      "accepted": false,
+      "decoded": null
+    },
+    {
+      "name": "utf8-null",
+      "bytesHex": "6e756c6c",
+      "accepted": true,
+      "decoded": null
+    },
+    {
+      "name": "utf8-true",
+      "bytesHex": "74727565",
+      "accepted": true,
+      "decoded": true
+    },
+    {
+      "name": "whitespace-utf16be",
+      "bytesHex": "0020000a005b005d",
+      "accepted": true,
+      "decoded": []
+    },
+    {
+      "name": "whitespace-utf32le",
+      "bytesHex": "0a000000200000005b0000005d000000",
+      "accepted": true,
+      "decoded": []
+    },
+    {
+      "name": "single-utf8-zero",
+      "bytesHex": "30",
+      "accepted": true,
+      "decoded": 0
+    },
+    {
+      "name": "utf16le-single-ASCII-BOM",
+      "bytesHex": "fffe3000",
+      "accepted": true,
+      "decoded": 0
+    },
+    {
+      "name": "utf32be-single-ASCII-BOM",
+      "bytesHex": "0000feff00000030",
+      "accepted": true,
+      "decoded": 0
+    },
+    {
+      "name": "utf16le-single-trailing-space",
+      "bytesHex": "30002000",
+      "accepted": false,
+      "decoded": null
+    },
+    {
+      "name": "utf32be-single-trailing-space",
+      "bytesHex": "0000003000000020",
+      "accepted": true,
+      "decoded": 0
+    },
+    {
+      "name": "utf16be-trailing-ff",
+      "bytesHex": "005b005dff",
+      "accepted": true,
+      "decoded": []
+    },
+    {
+      "name": "utf32le-trailing-ff-3",
+      "bytesHex": "5b0000005d000000ffffff",
+      "accepted": true,
+      "decoded": []
+    },
+    {
+      "name": "utf16le-extra-complete-invalid",
+      "bytesHex": "fffe5b005d0000d8",
+      "accepted": false,
+      "decoded": null
+    },
+    {
+      "name": "two-byte-mixed",
+      "bytesHex": "0000",
+      "accepted": false,
+      "decoded": null
+    },
+    {
+      "name": "utf16le-truncated",
+      "bytesHex": "5b005d",
+      "accepted": false,
+      "decoded": null
+    }
+  ],
+  "oldStates": [
+    {
+      "encoding": "utf-8",
+      "bom": false,
+      "language": "ja",
+      "theme": "green-dark",
+      "taskName": "舊作業 🌱",
+      "jobStatus": "failed",
+      "unreadableFiles": []
+    },
+    {
+      "encoding": "utf-8",
+      "bom": true,
+      "language": "ja",
+      "theme": "green-dark",
+      "taskName": "舊作業 🌱",
+      "jobStatus": "failed",
+      "unreadableFiles": []
+    },
+    {
+      "encoding": "utf-16-le",
+      "bom": false,
+      "language": "ja",
+      "theme": "green-dark",
+      "taskName": "舊作業 🌱",
+      "jobStatus": "failed",
+      "unreadableFiles": []
+    },
+    {
+      "encoding": "utf-16-le",
+      "bom": true,
+      "language": "ja",
+      "theme": "green-dark",
+      "taskName": "舊作業 🌱",
+      "jobStatus": "failed",
+      "unreadableFiles": []
+    },
+    {
+      "encoding": "utf-16-be",
+      "bom": false,
+      "language": "ja",
+      "theme": "green-dark",
+      "taskName": "舊作業 🌱",
+      "jobStatus": "failed",
+      "unreadableFiles": []
+    },
+    {
+      "encoding": "utf-16-be",
+      "bom": true,
+      "language": "ja",
+      "theme": "green-dark",
+      "taskName": "舊作業 🌱",
+      "jobStatus": "failed",
+      "unreadableFiles": []
+    },
+    {
+      "encoding": "utf-32-le",
+      "bom": false,
+      "language": "ja",
+      "theme": "green-dark",
+      "taskName": "舊作業 🌱",
+      "jobStatus": "failed",
+      "unreadableFiles": []
+    },
+    {
+      "encoding": "utf-32-le",
+      "bom": true,
+      "language": "system",
+      "theme": "purple-auto",
+      "taskName": null,
+      "jobStatus": null,
+      "unreadableFiles": [
+        "jobs.json",
+        "settings.json",
+        "tasks.json"
+      ]
+    },
+    {
+      "encoding": "utf-32-be",
+      "bom": false,
+      "language": "ja",
+      "theme": "green-dark",
+      "taskName": "舊作業 🌱",
+      "jobStatus": "failed",
+      "unreadableFiles": []
+    },
+    {
+      "encoding": "utf-32-be",
+      "bom": true,
+      "language": "ja",
+      "theme": "green-dark",
+      "taskName": "舊作業 🌱",
+      "jobStatus": "failed",
+      "unreadableFiles": []
+    }
+  ]
+}

@@ -1,0 +1,47 @@
+{
+  "baselineVersion": "0.11.0",
+  "allowedChanges": "Only the navigation engine submit/wait adapter; every other byte is checked",
+  "files": {
+    "Tests/MacInterfaceTests.swift": {
+      "baselineSHA256": "15b87b8aa9560e7a8af19817c1545e2c2be2ee10231caa93c72a2f1cc70e119f",
+      "normalizations": []
+    },
+    "Tests/MacStartupTests.swift": {
+      "baselineSHA256": "1d62fa9d772b98266cf260f0792dc12afd7f4bb6eb89d661fae6b790ddc74daf",
+      "normalizations": []
+    },
+    "Tests/MacIconTests.swift": {
+      "baselineSHA256": "bb7d7178d919e7b1f27160717153f78aea66306e92b6efcf3ee81769efef4574",
+      "normalizations": []
+    },
+    "Tests/MacNavigationIntegrationTests.swift": {
+      "baselineSHA256": "66820ec5751ee7f93e3a877bd93509b4505ee91396ab4454854698eee7c17e7a",
+      "normalizations": [
+        {
+          "new": "            // Submit list/cancelList to the Rust wire in WebKit receipt order,\n            // matching AppMain before background workers may be reordered.\n            let preparation = Result<RBNEngineClient.Request?, Error> {\n                if method == \"list\" {\n                    guard let endpoint = arguments.first as? [String: Any], let path = endpoint[\"path\"] as? String else {\n                        throw Failure(description: \"A listing request had no endpoint path\")\n                    }\n                    requestedPaths.append(path)\n                }\n                return [\"list\", \"cancelList\"].contains(method) ? try engine.submit(method, arguments: arguments) : nil\n            }\n",
+          "baseline": "            // Reserve listing IDs before enqueueing, as AppMain does, so a\n            // later cancelList can also stop a worker that has not started.\n            let preparation = Result<Void, Error> {\n                if method == \"list\" {\n                    try engine.prepareListing(options: arguments.count > 1 ? arguments[1] : nil)\n                    guard let endpoint = arguments.first as? [String: Any], let path = endpoint[\"path\"] as? String else {\n                        throw Failure(description: \"A listing request had no endpoint path\")\n                    }\n                    requestedPaths.append(path)\n                }\n            }\n"
+        },
+        {
+          "new": "                    let prepared = try preparation.get()\n                    switch method {\n                    case \"bootstrap\": reply[\"result\"] = try engine.invoke(method, arguments: arguments)\n                    case \"cancelList\": reply[\"result\"] = try engine.wait(prepared!)\n                    case \"list\":\n                        let value = try engine.wait(prepared!)\n",
+          "baseline": "                    try preparation.get()\n                    switch method {\n                    case \"bootstrap\", \"cancelList\": reply[\"result\"] = try engine.invoke(method, arguments: arguments)\n                    case \"list\":\n                        let value = try engine.invoke(method, arguments: arguments)\n"
+        }
+      ]
+    },
+    "Tests/MacCompletionTests.swift": {
+      "baselineSHA256": "f585955e758e89c74c3109a07d0037111ae7c5c3b91b3ef4df55505100c51d46",
+      "normalizations": []
+    },
+    "Tests/MacWindowInteractionTests.swift": {
+      "baselineSHA256": "5fac9a9dc3c89db1523c1e0412b3440bd171fdb8d8e5b50814e6a86562ff3c8a",
+      "normalizations": []
+    },
+    "Tests/MacLocalCopyTests.swift": {
+      "baselineSHA256": "a03008988811348003b3961e38ecb0147f670c4784892ca2cde682016631097e",
+      "normalizations": []
+    },
+    "Tests/MacPartialRecoveryTests.swift": {
+      "baselineSHA256": "657a4cb4d853526b8da69c4856c45fc97c18b84059124f546bec399bdfa2e423",
+      "normalizations": []
+    }
+  }
+}

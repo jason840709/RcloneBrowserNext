@@ -8,13 +8,14 @@ import UniformTypeIdentifiers
 final class RBNPartialRecoveryController {
     typealias Localize = (String, String, String) -> String
     private let window: NSWindow
+    private let engine: RBNEngineClient
     private let directory: URL
     private let local: Localize
     private let finished: () -> Void
     private var progress: NSPanel?
 
-    init(window: NSWindow, directory: URL, localize: @escaping Localize, finished: @escaping () -> Void) {
-        self.window = window; self.directory = directory; self.local = localize; self.finished = finished
+    init(window: NSWindow, directory: URL, engine: RBNEngineClient, localize: @escaping Localize, finished: @escaping () -> Void) {
+        self.window = window; self.directory = directory; self.engine = engine; self.local = localize; self.finished = finished
     }
 
     func start() {
@@ -35,10 +36,8 @@ final class RBNPartialRecoveryController {
         showProgress(local("正在比對來源與暫存檔內容…", "Comparing source and temporary file contents…", "元のファイルと一時ファイルの内容を照合しています…"))
         DispatchQueue.global(qos: .userInitiated).async { [self] in
             do {
-                try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true,
-                                                        attributes: [.posixPermissions: 0o700])
                 let plan = directory.appendingPathComponent("recovery-plan.json")
-                let result = try EnginePartialRecovery.preview(report: report, plan: plan)
+                guard let result = try engine.call("_partialPreview", arguments: [report.path, plan.path], timeout: nil) as? [String: Any] else { throw EngineError("引擎回覆格式不正確。") }
                 DispatchQueue.main.async { [self] in hideProgress(); confirm(result, plan: plan) }
             } catch {
                 DispatchQueue.main.async { [self] in hideProgress(); showError(error) }
@@ -76,7 +75,7 @@ final class RBNPartialRecoveryController {
         DispatchQueue.global(qos: .userInitiated).async { [self] in
             do {
                 let receipt = directory.appendingPathComponent("recovery-result.json")
-                let result = try EnginePartialRecovery.apply(plan: plan, receipt: receipt)
+                guard let result = try engine.call("_partialApply", arguments: [plan.path, receipt.path], timeout: nil) as? [String: Any] else { throw EngineError("引擎回覆格式不正確。") }
                 DispatchQueue.main.async { [self] in
                     hideProgress()
                     showRecoveryResult(result, receipt: receipt)
@@ -155,7 +154,7 @@ final class RBNPartialRecoveryController {
         DispatchQueue.global(qos: .userInitiated).async { [self] in
             do {
                 let output = directory.appendingPathComponent("recovery-cleanup.json")
-                let result = try EnginePartialRecovery.cleanup(receipt: receipt, result: output)
+                guard let result = try engine.call("_partialCleanup", arguments: [receipt.path, output.path], timeout: nil) as? [String: Any] else { throw EngineError("引擎回覆格式不正確。") }
                 DispatchQueue.main.async { [self] in
                     hideProgress()
                     let counts = result["counts"] as? [String: Any] ?? [:]
@@ -219,36 +218,7 @@ final class RBNPartialRecoveryController {
 /// No shell interpolation or file mutation occurs before the selected action.
 enum RBNPartialRecoveryCLI {
     static func runIfRequested(_ arguments: [String]) -> Int32? {
-        guard arguments.first == "--repair-local-partials" else { return nil }
-        do {
-            guard arguments.count == 6, ["preview", "apply", "cleanup"].contains(arguments[1]) else {
-                throw EngineError("用法：--repair-local-partials preview --report <JSONL> --plan <新檔案>，apply --plan <計畫> --receipt <新檔案>，或 cleanup --receipt <已完成收據> --result <新檔案>。命令列的 apply／cleanup 會直接執行而不跳確認視窗；執行前請先停止 App 傳輸與其他程式對來源、目標的寫入。")
-            }
-            var values: [String: URL] = [:]
-            for index in stride(from: 2, to: arguments.count, by: 2) {
-                guard values[arguments[index]] == nil, arguments[index + 1].hasPrefix("/") else {
-                    throw EngineError("請使用不重複的參數與絕對路徑。")
-                }
-                values[arguments[index]] = URL(fileURLWithPath: arguments[index + 1])
-            }
-            let result: [String: Any]
-            if arguments[1] == "preview", let report = values["--report"], let plan = values["--plan"], values.count == 2 {
-                result = try EnginePartialRecovery.preview(report: report, plan: plan)
-            } else if arguments[1] == "apply", let plan = values["--plan"], let receipt = values["--receipt"], values.count == 2 {
-                result = try EnginePartialRecovery.apply(plan: plan, receipt: receipt)
-            } else if arguments[1] == "cleanup", let receipt = values["--receipt"], let output = values["--result"], values.count == 2 {
-                result = try EnginePartialRecovery.cleanup(receipt: receipt, result: output)
-            } else { throw EngineError("修復參數不正確。") }
-            var data = try JSONSerialization.data(withJSONObject: result, options: [.prettyPrinted, .sortedKeys])
-            data.append(10); try FileHandle.standardOutput.write(contentsOf: data)
-            let failed = ((result["counts"] as? [String: Any])?["failed"] as? NSNumber)?.intValue ?? 0
-            return failed == 0 ? 0 : 1
-        } catch {
-            if var data = try? JSONSerialization.data(withJSONObject: ["error": error.localizedDescription], options: [.sortedKeys]) {
-                data.append(10); try? FileHandle.standardError.write(contentsOf: data)
-            }
-            return 2
-        }
+        RBNEngineClient.runRepairCLI(arguments)
     }
 }
 #endif

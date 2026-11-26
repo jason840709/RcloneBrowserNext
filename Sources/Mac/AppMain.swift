@@ -15,10 +15,7 @@ final class BrowserAppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegat
     private var webView: WKWebView!
     private var startupSurface: RBNStartupSurface?
     private var startupNavigation: WKNavigation?
-    private var engine: RcloneEngine!
-    private var updater: RcloneUpdater!
-    private var appReleaseChecker: RBNAppReleaseChecker!
-    private var toolsManager: RcloneTools!
+    private var engine: RBNEngineClient!
     private var statusItem: NSStatusItem?
     private var themeIcons = [String: NSImage]()
     private var mainToolbar: RBNMainToolbar?
@@ -36,7 +33,6 @@ final class BrowserAppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegat
     private var appUpdateBusy = false
     private var updateInstalling = false
     private var configuringRemotes = false
-    private var nativeConnectionChanging = false
     private var auxiliaryOperations = 0
     private var operationStarts = 0
     private var repairingPartials = false
@@ -71,27 +67,30 @@ final class BrowserAppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegat
         UserDefaults.standard.register(defaults: ["NSInitialToolTipDelay": 400])
         do {
             let fm = FileManager.default
-            let support = try fm.url(for: .applicationSupportDirectory, in: .userDomainMask,
-                                     appropriateFor: nil, create: true)
-            stateDirectory = support.appendingPathComponent("Rclone Browser Next Lite", isDirectory: true)
+            let isolatedState = try RBNMacLaunchState.isolatedDirectory()
+            if let isolatedState = isolatedState { stateDirectory = isolatedState }
+            else {
+                let support = try fm.url(for: .applicationSupportDirectory, in: .userDomainMask,
+                                         appropriateFor: nil, create: true)
+                stateDirectory = support.appendingPathComponent("Rclone Browser Next Lite", isDirectory: true)
+            }
             try fm.createDirectory(at: stateDirectory, withIntermediateDirectories: true, attributes: [.posixPermissions: 0o700])
             temporaryDirectory = stateDirectory.appendingPathComponent("tmp", isDirectory: true)
             try fm.createDirectory(at: temporaryDirectory, withIntermediateDirectories: true, attributes: [.posixPermissions: 0o700])
             setenv("TMPDIR", temporaryDirectory.path + "/", 1)
 
             let appParent = Bundle.main.bundleURL.deletingLastPathComponent()
-            let defaultTools = appParent.appendingPathComponent("Tools/rclone", isDirectory: true)
-            engine = try RcloneEngine(stateDirectory: stateDirectory, defaultRcloneDirectory: defaultTools)
-            updater = try RcloneUpdater(workDirectory: temporaryDirectory.appendingPathComponent("updates", isDirectory: true))
-            toolsManager = try RcloneTools(workDirectory: temporaryDirectory.appendingPathComponent("tools", isDirectory: true))
-            toolsManager.onSessionUpdate = { [weak self] session in self?.sendEvent(type: "toolSessionUpdate", data: session) }
-            engine.onJobUpdate = { [weak self] job in
-                self?.sendEvent(type: "jobUpdate", data: job)
-                self?.notifyFinishedJob(job)
+            let defaultTools = isolatedState.map { $0.appendingPathComponent("Tools/rclone", isDirectory: true) }
+                ?? appParent.appendingPathComponent("Tools/rclone", isDirectory: true)
+            engine = try RBNEngineClient(stateDirectory: stateDirectory, defaultRcloneDirectory: defaultTools,
+                                         nativeMetadataProvider: { RBNMacMetadata.locations(isolatedRoot: isolatedState) },
+                                         isolated: isolatedState != nil)
+            engine.onEvent = { [weak self] event in
+                guard let self = self, let type = event["type"] as? String,
+                      let data = event["data"] as? [String: Any] else { return }
+                self.sendEvent(type: type, data: data)
+                if type == "jobUpdate" { self.notifyFinishedJob(data) }
             }
-            updater.onStatus = { [weak self] status in self?.sendEvent(type: "updateStatus", data: status) }
-            updater.connectionSettings = { [weak self] in self?.engine.settingsSnapshot() ?? [:] }
-            appReleaseChecker = try RBNAppReleaseChecker(repository: RBNProject.repository)
 
             guard let resources = Bundle.main.resourceURL else { throw EngineError("App 缺少必要檔案。請重新下載並安裝 Rclone Browser Next。") }
             webRoot = resources.appendingPathComponent("Web", isDirectory: true).resolvingSymlinksInPath().standardizedFileURL
@@ -123,9 +122,9 @@ final class BrowserAppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegat
                 self?.requestQueue.async { [weak self] in
                     guard let self = self, !self.terminationStarted else { return }
                     do {
-                        let drop = try RBNFinderDrop(urls: urls)
-                        self.sendEvent(type: "finderDrop", data: ["source": drop.source.json,
-                            "selection": drop.selection.map(\.json), "x": point.x, "y": point.y])
+                        guard var drop = try self.engine.call("_finderDrop", arguments: [urls.map(\.path)]) as? [String: Any] else { return }
+                        drop["x"] = point.x; drop["y"] = point.y
+                        self.sendEvent(type: "finderDrop", data: drop)
                     } catch { self.presentError(error) }
                 }
             }
@@ -262,9 +261,8 @@ final class BrowserAppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegat
 
     @objc private func recoverPartialCopies() {
         let reserved = activityLock.holding { () -> Bool in
-            guard !repairingPartials, !terminationValue, !updateInstalling, !nativeConnectionChanging,
-                  !configuringRemotes, operationStarts == 0, auxiliaryOperations == 0, recoveryConflictingOperations == 0,
-                  !engine.hasActiveJobs, !toolsManager.hasActiveSessions else { return false }
+            guard !repairingPartials, !terminationValue, !updateInstalling,
+                  !configuringRemotes, operationStarts == 0, auxiliaryOperations == 0, recoveryConflictingOperations == 0 else { return false }
             repairingPartials = true; auxiliaryOperations += 1
             return true
         }
@@ -273,16 +271,34 @@ final class BrowserAppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegat
                            detail: local("請等目前的傳輸、掛載、播放及其他操作結束，再核對暫存檔。", "Wait for transfers, mounts, streams and the current operation to finish before verifying temporary files.", "転送、マウント、再生、進行中の操作が完了してから一時ファイルを照合してください。"))
             return
         }
-        let folder = stateDirectory.appendingPathComponent("Recovery").appendingPathComponent(UUID().uuidString)
-        let controller = RBNPartialRecoveryController(window: window, directory: folder,
-            localize: { [weak self] zh, en, ja in self?.local(zh, en, ja) ?? zh },
-            finished: { [weak self] in
-                guard let self = self else { return }
+        requestQueue.async { [weak self] in
+            guard let self = self else { return }
+            do {
+                let state = try self.engine.stateSnapshot()
+                guard state["activeJobs"] as? Bool == false, state["activeTools"] as? Bool == false,
+                      state["configuring"] as? Bool == false else {
+                    self.activityLock.holding { self.repairingPartials = false; self.auxiliaryOperations -= 1 }
+                    self.presentMessage(self.local("請先停止傳輸再修復", "Stop transfers before recovery", "転送を停止してから復元してください"),
+                                        detail: self.local("請等目前的傳輸、掛載、播放及其他操作結束，再核對暫存檔。", "Wait for transfers, mounts, streams and the current operation to finish before verifying temporary files.", "転送、マウント、再生、進行中の操作が完了してから一時ファイルを照合してください。"))
+                    return
+                }
+                self.onMain {
+                    let folder = self.stateDirectory.appendingPathComponent("Recovery").appendingPathComponent(UUID().uuidString)
+                    let controller = RBNPartialRecoveryController(window: self.window, directory: folder, engine: self.engine,
+                        localize: { [weak self] zh, en, ja in self?.local(zh, en, ja) ?? zh },
+                        finished: { [weak self] in
+                            guard let self = self else { return }
+                            self.activityLock.holding { self.repairingPartials = false; self.auxiliaryOperations -= 1 }
+                            self.partialRecoveryController = nil
+                        })
+                    self.partialRecoveryController = controller
+                    controller.start()
+                }
+            } catch {
                 self.activityLock.holding { self.repairingPartials = false; self.auxiliaryOperations -= 1 }
-                self.partialRecoveryController = nil
-            })
-        partialRecoveryController = controller
-        controller.start()
+                self.presentError(error)
+            }
+        }
     }
 
     @objc private func showAbout() {
@@ -399,7 +415,7 @@ final class BrowserAppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegat
             throw EngineError(local("已在檢查 App 更新，請稍候。", "An app update check is already in progress. Please wait.", "アプリの更新を確認中です。しばらくお待ちください。"))
         }
         defer { activityLock.holding { appUpdateBusy = false } }
-        return try appReleaseChecker.check(settings: engine.settingsSnapshot())
+        return try RBNAppReleaseResult(engine.invoke("checkAppUpdates", arguments: []))
     }
 
     @objc private func checkAppUpdatesFromMenu() {
@@ -458,7 +474,7 @@ final class BrowserAppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegat
     }
 
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
-        guard engine != nil, toolsManager != nil, window != nil else { return .terminateNow }
+        guard engine != nil, window != nil else { return .terminateNow }
         if terminationStarted { return .terminateLater }
         if activityLock.holding({ updateInstalling }) {
             let alert = NSAlert()
@@ -471,7 +487,7 @@ final class BrowserAppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegat
         // Reserve before the dialog: a newly submitted transfer or update must
         // not slip in after the user has read the quit confirmation.
         let reserved = activityLock.holding { () -> Bool in
-            guard !updateInstalling, !nativeConnectionChanging, !configuringRemotes,
+            guard !updateInstalling, !configuringRemotes,
                   auxiliaryOperations == 0, operationStarts == 0 else { return false }
             terminationValue = true
             return true
@@ -481,29 +497,48 @@ final class BrowserAppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegat
                            detail: local("請先完成帳號設定、目錄匯出或目前進行中的操作，再結束 App。", "Finish account setup, directory exports, and the current operation before quitting.", "アカウント設定、一覧の書き出し、または進行中の操作を完了してから終了してください。"))
             return .terminateCancel
         }
-        let quit = engine.quitSummary()
-        let hasWork = quit.activeJobs > 0 || toolsManager.hasActiveSessions
-        let needsConfirmation = quit.requiresConfirmation || toolsManager.hasActiveSessions
+        engine.reserveQuit(true)
+        let snapshot: [String: Any]
+        do { snapshot = try engine.stateSnapshot() }
+        catch {
+            if !engine.isRunning { return .terminateNow }
+            engine.reserveQuit(false); terminationStarted = false
+            presentError(error)
+            return .terminateCancel
+        }
+        guard let quit = snapshot["quit"] as? [String: Any],
+              let activeJobs = quit["activeJobCount"] as? Int,
+              let requiresConfirmation = quit["requiresConfirmation"] as? Bool,
+              let activeTools = snapshot["activeTools"] as? Bool else {
+            engine.reserveQuit(false); terminationStarted = false
+            presentError(EngineError("引擎回覆格式不正確。"))
+            return .terminateCancel
+        }
+        let hasWork = activeJobs > 0 || activeTools
+        let needsConfirmation = requiresConfirmation || activeTools
         let approved = !needsConfirmation || confirm(
             title: hasWork ? local("停止工作並結束？", "Stop jobs and quit?", "処理を停止して終了しますか？") : local("確定結束 Rclone Browser Next？", "Quit Rclone Browser Next?", "Rclone Browser Next を終了しますか？"),
             detail: hasWork
                 ? local("結束程式會停止目前的傳輸、掛載與播放。未完成的工作會留在紀錄中，下次可重試。", "Quitting stops transfers, mounts and streams. Unfinished jobs remain in the history so you can retry them next time.", "終了すると転送、マウント、再生を停止します。未完了の処理は履歴に残り、次回再試行できます。")
                 : local("尚有失敗或未完成的工作；紀錄會保留，下次可重試。", "There are failed or unfinished jobs. Their history will be kept so you can retry them next time.", "失敗または未完了の処理があります。履歴は保存され、次回再試行できます。"),
             action: hasWork ? local("停止並結束", "Stop and quit", "停止して終了") : local("結束", "Quit", "終了"))
-        guard approved else { terminationStarted = false; return .terminateCancel }
+        guard approved else { engine.reserveQuit(false); terminationStarted = false; return .terminateCancel }
         engine.cancelListings()
         requestQueue.async { [weak self] in
-            do { try self?.toolsManager.shutdown() }
+            guard let self = self else { return }
+            do { try self.engine.shutdown() }
             catch {
-                DispatchQueue.main.async {
-                    self?.terminationStarted = false
-                    NSApp.reply(toApplicationShouldTerminate: false)
-                    self?.presentError(error)
+                if self.engine.isRunning {
+                    DispatchQueue.main.async {
+                        self.engine.reserveQuit(false)
+                        self.terminationStarted = false
+                        NSApp.reply(toApplicationShouldTerminate: false)
+                        self.presentError(error)
+                    }
+                    return
                 }
-                return
             }
-            self?.engine.shutdown()
-            DispatchQueue.main.async { self?.terminalTimer?.cancel(); NSApp.reply(toApplicationShouldTerminate: true) }
+            DispatchQueue.main.async { self.terminalTimer?.cancel(); NSApp.reply(toApplicationShouldTerminate: true) }
         }
         return .terminateLater
     }
@@ -522,7 +557,7 @@ final class BrowserAppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegat
     }
 
     private var resolvedLanguage: String {
-        RBNLanguageResolver.resolve(engine?.settingsSnapshot()["language"] as? String ?? "system")
+        engine?.resolvedLanguage ?? RBNHostPresentationLanguage.system
     }
 
     /// While AppKit follows the system, its effective appearance is the
@@ -633,7 +668,7 @@ final class BrowserAppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegat
               !terminationStarted,
               isBundledDocument(message.frameInfo.request.url),
               let body = message.body as? [String: Any], let method = body["method"] as? String,
-              let args = body["args"] as? [Any], args.count <= 16,
+              let args = body["args"] as? [Any], args.count <= 8,
               let id = body["id"], let idKey = requestIdentifier(id),
               JSONSerialization.isValidJSONObject(body),
               let data = try? JSONSerialization.data(withJSONObject: body), data.count <= 8 * 1024 * 1024 else { return }
@@ -641,18 +676,13 @@ final class BrowserAppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegat
             sendReply(id: id, error: EngineError("不支援的操作。")); return
         }
         guard pendingIDs.count < 256, pendingIDs.insert(idKey).inserted else { return }
-        if method == "list" {
-            do { try engine.prepareListing(options: args.count > 1 ? args[1] : nil) }
-            catch {
-                pendingIDs.remove(idKey)
-                sendReply(id: id, error: error)
-                return
-            }
-        }
+        let prepared: RBNEngineClient.Request?
+        do { prepared = ["list", "cancelList"].contains(method) ? try engine.submit(method, arguments: args) : nil }
+        catch { pendingIDs.remove(idKey); sendReply(id: id, error: error); return }
         requestQueue.async { [weak self] in
             guard let self = self else { return }
             do {
-                let result = try self.handle(method: method, arguments: args)
+                let result = try self.handle(method: method, arguments: args, prepared: prepared)
                 self.sendReply(id: id, result: result)
                 if method == "bootstrap" { self.scheduleStartupUpdateCheck() }
             } catch { self.sendReply(id: id, error: error) }
@@ -661,14 +691,14 @@ final class BrowserAppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegat
     }
 
     private func requestIdentifier(_ value: Any) -> String? {
-        if let value = value as? String, !value.isEmpty, value.utf8.count <= 128 { return "s:" + value }
+        if let value = value as? String, !value.isEmpty, value.utf8.count <= 96 { return "s:" + value }
         if let value = value as? NSNumber, CFGetTypeID(value) != CFBooleanGetTypeID(),
            value.doubleValue.isFinite, value.doubleValue.rounded() == value.doubleValue,
            value.doubleValue >= 0, value.doubleValue <= 9_007_199_254_740_991 { return "n:" + value.stringValue }
         return nil
     }
 
-    private func handle(method: String, arguments: [Any]) throws -> Any {
+    private func handle(method: String, arguments: [Any], prepared: RBNEngineClient.Request? = nil) throws -> Any {
         guard !terminationStarted else { throw EngineError(local("程式正在關閉。", "The app is closing.", "アプリを終了しています。")) }
         let conflictsWithRecovery = !["bootstrap", "list", "cancelList", "listJobs", "getJobReport", "listToolSessions", "copyText", "setChrome"].contains(method)
         if conflictsWithRecovery {
@@ -681,12 +711,18 @@ final class BrowserAppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegat
         }
         defer { if conflictsWithRecovery { activityLock.holding { recoveryConflictingOperations -= 1 } } }
         func argument(_ index: Int) -> Any? { arguments.indices.contains(index) ? arguments[index] : nil }
+        if let prepared = prepared { return try engine.wait(prepared) }
+        func normalized(_ name: String = method) throws -> (value: [String: Any], args: [Any]) {
+            let value = try engine.nativeArguments(name, arguments: arguments)
+            guard let args = value["arguments"] as? [Any] else { throw EngineError("引擎回覆格式不正確。") }
+            return (value, args)
+        }
         switch method {
         case "chooseFolder":
             return chooseFolder(current: argument(0) as? String) as Any? ?? NSNull()
         case "chooseFile":
-            let kind = try EngineJSON.text(argument(0), "檔案類型")
-            guard ["rclone", "config", "player", "credential"].contains(kind) else { throw EngineError("檔案類型不正確。") }
+            let checked = try normalized()
+            guard let kind = checked.args.first as? String else { throw EngineError("引擎回覆格式不正確。") }
             return chooseFile(kind: kind) as Any? ?? NSNull()
         case "startTransfer":
             return try withOperationStartup {
@@ -699,58 +735,48 @@ final class BrowserAppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegat
             }
         case "retryJob":
             return try withOperationStartup {
-                let id = try EngineJSON.text(argument(0), "工作編號")
+                let checked = try normalized()
+                guard let id = checked.args.first as? String else { throw EngineError("引擎回覆格式不正確。") }
                 guard let jobs = try engine.invoke("listJobs", arguments: []) as? [[String: Any]],
                       let job = jobs.first(where: { $0["id"] as? String == id }) else { throw EngineError("找不到這個工作。") }
-                let request = try EngineTransferRequest(job["request"])
+                let request = try engine.normalizedRequest(job["request"] ?? NSNull())
                 guard confirmTransfer(request) else { return NSNull() as Any }
                 return try engine.invoke(method, arguments: arguments)
             }
         case "remove":
-            let endpoint = try EngineEndpoint(argument(0))
-            let selection = try EngineSelection.parse(argument(1))
-            guard !selection.isEmpty else { throw EngineError("請先選取要刪除的項目。") }
+            let checked = try normalized()
+            let endpoint = try RBNEndpointDisplay(checked.args.first)
+            guard checked.args.count > 1, let rawSelection = checked.args[1] as? [Any] else { throw EngineError("引擎回覆格式不正確。") }
+            let selection = try rawSelection.map(RBNSelectionDisplay.init)
             let names = selection.prefix(8).map(\.name).joined(separator: "\n")
             let detail = local("位置：\(endpoint.argument)\n\n\(names)\n\n確定永久刪除這 \(selection.count) 個選取項目？（不會移到垃圾桶）",
                                "Location: \(endpoint.argument)\n\n\(names)\n\nDelete \(selection.count) selected items. Items are not moved to Trash.")
             guard confirm(title: local("刪除選取項目？", "Delete selected items?"), detail: detail,
                           action: local("刪除", "Delete")) else { return false }
-            return try engine.invoke(method, arguments: arguments)
+            return try engine.invoke(method, arguments: checked.args)
         case "exportLog":
-            let id = try EngineJSON.text(argument(0), "工作編號")
-            guard let source = try engine.invoke("getLogPath", arguments: [id]) as? String else { throw EngineError("找不到工作記錄。") }
+            let checked = try normalized()
+            guard let id = checked.args.first as? String,
+                  let token = checked.value["exportToken"] as? String else { throw EngineError("引擎回覆格式不正確。") }
+            defer { _ = try? engine.call("_discardLogExport", arguments: [token]) }
             guard let destination = saveFile(defaultName: "rclone-\(id).jsonl") else { return NSNull() }
-            try copyExport(source: URL(fileURLWithPath: source), destination: destination)
-            return destination.path
+            return try engine.call("_exportTo", arguments: ["log", id, destination.path, "jsonl", token], timeout: nil)
         case "exportJobReport":
-            let id = try EngineJSON.text(argument(0), "工作編號")
-            let format = try EngineJSON.text(argument(1) ?? "jsonl", "匯出格式")
-            guard ["jsonl", "comparison"].contains(format) else { throw EngineError("匯出格式不正確。") }
+            let checked = try normalized()
+            guard checked.args.count >= 2, let id = checked.args[0] as? String, let format = checked.args[1] as? String else { throw EngineError("引擎回覆格式不正確。") }
             let filename = format == "comparison" ? "rclone-\(id)-comparison.txt" : "rclone-\(id)-report.jsonl"
             guard let destination = saveFile(defaultName: filename) else { return NSNull() }
-            guard let source = try engine.invoke("getJobReportPath", arguments: [id, format]) as? String else {
-                throw EngineError("找不到工作記錄。")
-            }
-            // The engine returns a closed, immutable export snapshot, never
-            // the live ledger. Release it after either a successful or failed
-            // copy; the original report remains with the job.
-            defer { try? FileManager.default.removeItem(atPath: source) }
-            try copyExport(source: URL(fileURLWithPath: source), destination: destination)
-            return destination.path
+            return try engine.call("_exportTo", arguments: ["report", id, destination.path, format], timeout: nil)
         case "exportTasks":
-            let tasks = try engine.invoke("exportTasks", arguments: [])
+            guard let token = try engine.call("_captureTasks", arguments: [], timeout: nil) as? String else { throw EngineError("引擎回覆格式不正確。") }
+            defer { _ = try? engine.call("_discardTaskExport", arguments: [token]) }
             guard let destination = saveFile(defaultName: "Rclone_Browser_Tasks.json") else { return NSNull() }
-            let data = try JSONSerialization.data(withJSONObject: tasks, options: [.prettyPrinted, .sortedKeys])
-            try data.write(to: destination, options: .atomic)
-            return destination.path
+            return try engine.call("_exportTasks", arguments: [destination.path, token], timeout: nil)
         case "importTasks":
             guard let source = openTaskFile() else { return NSNull() }
-            let attributes = try FileManager.default.attributesOfItem(atPath: source.path)
-            guard ((attributes[.size] as? NSNumber)?.intValue ?? Int.max) <= 8 * 1024 * 1024 else { throw EngineError("作業檔超過 8 MiB，請縮小後再匯入。") }
-            let object = try JSONSerialization.jsonObject(with: Data(contentsOf: source))
-            return try engine.invoke("importTasks", arguments: [object])
+            return try engine.call("_importTasks", arguments: [source.path], timeout: nil)
         case "accountConfig":
-            guard !toolsManager.hasActiveSessions, !activityLock.holding({ configuringRemotes || updateInstalling || terminationValue }) else { throw EngineError("請先結束終端機設定或串流播放，再開啟帳號設定。") }
+            guard !activityLock.holding({ configuringRemotes || updateInstalling || terminationValue }) else { throw EngineError("請先結束終端機設定或串流播放，再開啟帳號設定。") }
             let result = try engine.invoke(method, arguments: arguments)
             if let state = result as? [String: Any], state["authorizationStarted"] as? Bool == true,
                let phase = state["phase"] as? String, ["question", "ready", "committed", "error"].contains(phase),
@@ -763,24 +789,23 @@ final class BrowserAppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegat
             }
             return result
         case "openAccountAuthorization":
-            let url = try engine.accounts.authorizationURL()
+            guard let value = try engine.call("_accountAuthorization", arguments: []) as? String, let url = URL(string: value) else { throw EngineError("引擎回覆格式不正確。") }
             guard onMain({ NSWorkspace.shared.open(url) }) else { throw EngineError("無法開啟瀏覽器。") }
             return NSNull()
         case "configureRemotes":
             try configureRemotes()
             return NSNull()
         case "openExternal":
-            let value = try EngineJSON.text(argument(0), "網址", maximum: 2048)
-            guard let url = URL(string: value), permittedExternal(url) else { throw EngineError("只能開啟 rclone 官方網站與參考專案。") }
+            let checked = try normalized()
+            guard let value = checked.args.first as? String, let url = URL(string: value) else { throw EngineError("引擎回覆格式不正確。") }
             guard onMain({ NSWorkspace.shared.open(url) }) else { throw EngineError("無法開啟瀏覽器。") }
             return NSNull()
         case "checkForUpdates":
-            let manual: Bool
-            if arguments.isEmpty { manual = true }
-            else { manual = try EngineJSON.bool(argument(0), "更新檢查方式") }
+            let checked = try normalized()
+            guard let manual = checked.args.first as? Bool else { throw EngineError("引擎回覆格式不正確。") }
             return try checkForUpdates(manual: manual)
         case "checkAppUpdates":
-            guard arguments.isEmpty else { throw EngineError("更新檢查不需要額外參數。") }
+            _ = try normalized()
             return try checkAppUpdates().json
         case "setChrome":
             guard let state = argument(0) as? [String: Any] else { throw EngineError("工具列狀態格式不正確。") }
@@ -790,86 +815,52 @@ final class BrowserAppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegat
             }
             return NSNull()
         case "showAbout":
-            guard arguments.isEmpty else { throw EngineError("關於視窗不需要額外參數。") }
+            _ = try normalized()
             onMain { showAbout() }
             return NSNull()
         case "copyText":
-            let value = try EngineJSON.text(argument(0), "文字", maximum: 1024 * 1024)
+            let checked = try normalized()
+            guard let value = checked.args.first as? String else { throw EngineError("引擎回覆格式不正確。") }
             onMain { NSPasteboard.general.clearContents(); NSPasteboard.general.setString(value, forType: .string) }
             return NSNull()
         case "directoryTree":
-            let endpoint = try EngineEndpoint(argument(0))
-            let depth = try EngineJSON.integer(argument(1) ?? 4, "目錄深度", 1...64)
-            return try withToolsContext { try RcloneTools.tree(context: $0, endpoint: endpoint, maxDepth: depth) }
+            return try withToolOperation { try engine.invoke(method, arguments: arguments, timeout: nil) }
         case "exportFileList":
-            let endpoint = try EngineEndpoint(argument(0))
-            let format = argument(1) as? String ?? "csv"
-            guard ["csv", "txt"].contains(format) else { throw EngineError("匯出格式不正確。") }
+            let checked = try normalized()
+            guard checked.args.count >= 2, let format = checked.args[1] as? String else { throw EngineError("引擎回覆格式不正確。") }
             guard let destination = saveFile(defaultName: "Rclone_File_List." + format) else { return NSNull() }
-            return try withToolsContext {
-                let exported = try RcloneTools.exportList(context: $0, endpoint: endpoint, destination: destination, filenamesOnly: format == "txt")
-                return exported["path"] as? String ?? destination.path
+            return try withToolOperation {
+                let value = try engine.call("_exportFileList", arguments: [checked.args[0], format, destination.path], timeout: nil)
+                guard let exported = value as? [String: Any], let path = exported["path"] as? String else { throw EngineError("引擎回覆格式不正確。") }
+                return path
             }
         case "publicLink":
-            let endpoint = try EngineEndpoint(argument(0))
-            let name = try EngineJSON.text(argument(1), "檔案名稱")
-            let isDir = try EngineJSON.bool(argument(2), "資料夾")
-            let target = try endpoint.child(name)
-            guard endpoint.remote != nil else { throw EngineError(local("請選擇支援分享功能的雲端位置。", "Choose a cloud location that supports public links.", "公開リンクに対応するクラウドを選択してください。")) }
+            let checked = try normalized()
+            guard let target = checked.value["target"] as? String else { throw EngineError("引擎回覆格式不正確。") }
             guard confirm(title: local("建立公開連結？", "Create a public link?", "公開リンクを作成しますか？"),
-                          detail: local("\(target.argument)\n\n任何擁有此連結的人都可能直接讀取內容；連結效期與權限依雲端服務而定。", "\(target.argument)\n\nAnyone with the link may be able to read the content without signing in. Expiration and permissions depend on the provider.", "\(target.argument)\n\nリンクを知っている人は、ログインせずに内容を閲覧できる場合があります。有効期限と権限はクラウドサービスによって異なります。"),
+                          detail: local("\(target)\n\n任何擁有此連結的人都可能直接讀取內容；連結效期與權限依雲端服務而定。", "\(target)\n\nAnyone with the link may be able to read the content without signing in. Expiration and permissions depend on the provider.", "\(target)\n\nリンクを知っている人は、ログインせずに内容を閲覧できる場合があります。有効期限と権限はクラウドサービスによって異なります。"),
                           action: local("建立公開連結", "Create public link", "公開リンクを作成")) else { return NSNull() }
-            return try withToolsContext { try RcloneTools.publicLink(context: $0, endpoint: endpoint, name: name, isDir: isDir).absoluteString }
+            return try withToolOperation { try engine.invoke(method, arguments: checked.args) }
         case "startMount":
-            let endpoint = try EngineEndpoint(argument(0))
-            let options = argument(1) as? [String: Any] ?? [:]
-            let readOnly = try EngineJSON.bool(options["readOnly"] ?? true, "唯讀")
-            let cacheMode = options["cacheMode"] as? String ?? "writes"
-            guard ["off", "minimal", "writes", "full"].contains(cacheMode) else { throw EngineError("快取模式不正確。") }
+            let checked = try normalized()
+            guard checked.args.count >= 2 else { throw EngineError("引擎回覆格式不正確。") }
             guard let folder = chooseMountFolder() else { return NSNull() }
-            let flags = (readOnly ? ["--read-only"] : []) + ["--vfs-cache-mode", cacheMode]
             return try withOperationStartup {
-                try withToolsContext { try toolsManager.startMount(context: $0, endpoint: endpoint, mountPoint: URL(fileURLWithPath: folder), options: flags) }
+                try withToolOperation { try engine.call("_startMount", arguments: [checked.args[0], checked.args[1], folder]) }
             }
         case "startStream":
-            let endpoint = try EngineEndpoint(argument(0))
-            let name = try EngineJSON.text(argument(1), "檔案名稱")
-            var settings = engine.settingsSnapshot()
-            var player = settings["streamPlayerPath"] as? String ?? ""
-            if player.isEmpty || !FileManager.default.isExecutableFile(atPath: player) {
+            let checked = try normalized()
+            guard let needsPlayer = checked.value["needsPlayerChoice"] as? Bool else { throw EngineError("引擎回覆格式不正確。") }
+            if needsPlayer {
                 guard let selected = chooseFile(kind: "player") else { return NSNull() }
-                player = selected
-                _ = try engine.invoke("saveSettings", arguments: [["streamPlayerPath": player]])
-                settings = engine.settingsSnapshot()
+                _ = try engine.invoke("saveSettings", arguments: [["streamPlayerPath": selected]])
                 sendEvent(type: "configurationChanged", data: [:])
             }
-            let arguments = settings["streamPlayerArguments"] as? [String] ?? ["-"]
             return try withOperationStartup {
-                try withToolsContext { try toolsManager.startStream(context: $0, endpoint: endpoint, name: name, player: URL(fileURLWithPath: player), playerArgs: arguments) }
+                try withToolOperation { try engine.call("_startStream", arguments: checked.args) }
             }
-        case "listToolSessions": return toolsManager.listSessions()
-        case "stopToolSession":
-            let id = try EngineJSON.text(argument(0), "工作編號")
-            _ = try toolsManager.stopSession(id)
-            return NSNull()
+        case "listToolSessions", "stopToolSession": return try engine.invoke(method, arguments: arguments)
         case "saveSettings":
-            var connectionReserved = false
-            defer { if connectionReserved { activityLock.holding { nativeConnectionChanging = false } } }
-            if let patch = argument(0) as? [String: Any],
-               ["rclonePath", "rcloneDirectory", "configPath", "proxyMode", "httpProxy", "httpsProxy", "noProxy", "defaultRcloneOptions", "networkOptions"].contains(where: { patch[$0] != nil }) {
-                try activityLock.holding {
-                    guard !terminationValue else { throw EngineError("程式正在關閉。") }
-                    guard !configuringRemotes else {
-                        throw EngineError(local("請先結束帳號設定，再變更 rclone 位置與連線設定。", "Finish account setup before changing rclone or connection settings.", "rclone や接続設定を変更する前に、アカウント設定を終了してください。"))
-                    }
-                    guard !toolsManager.hasActiveSessions, operationStarts == 0 else {
-                        throw EngineError(local("請先停止掛載或播放，再更換 rclone 位置與連線設定。", "Stop mounts and streams before changing rclone or connection settings.", "rclone や接続設定を変更する前に、マウントと再生を停止してください。"))
-                    }
-                    guard !nativeConnectionChanging, !updateInstalling else { throw EngineError("rclone 更新或位置切換正在進行。") }
-                    nativeConnectionChanging = true
-                    connectionReserved = true
-                }
-            }
             let result = try engine.invoke(method, arguments: arguments)
             onMain { applyAppearance(); installMenus(); applyInterfacePreferences() }
             return result
@@ -878,23 +869,20 @@ final class BrowserAppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegat
         }
     }
 
-    private func withToolsContext<T>(_ operation: (RcloneTools.Context) throws -> T) throws -> T {
+    private func withToolOperation<T>(_ operation: () throws -> T) throws -> T {
         let reserved = activityLock.holding { () -> Bool in
-            guard !terminationValue, !nativeConnectionChanging, !updateInstalling, !repairingPartials else { return false }
+            guard !terminationValue, !updateInstalling, !repairingPartials else { return false }
             auxiliaryOperations += 1
             return true
         }
         guard reserved else { throw EngineError(local("請等目前的設定或更新完成，再執行工具。", "Wait for settings or the update to finish before running a tool.", "設定の適用または更新が完了してからツールを実行してください。")) }
         defer { activityLock.holding { auxiliaryOperations -= 1 } }
-        return try engine.withAuxiliaryOperation {
-            let snapshot = try engine.auxiliaryContext()
-            return try operation(RcloneTools.Context(binary: snapshot.binary, arguments: snapshot.arguments, environment: snapshot.environment))
-        }
+        return try operation()
     }
 
     private func withOperationStartup<T>(_ operation: () throws -> T) throws -> T {
         let reserved = activityLock.holding { () -> Bool in
-            guard !updateInstalling, !nativeConnectionChanging, !terminationValue, !repairingPartials else { return false }
+            guard !updateInstalling, !terminationValue, !repairingPartials else { return false }
             operationStarts += 1; return true
         }
         guard reserved else { throw EngineError(local("請等設定、更新或結束確認完成，再開始工作。", "Finish settings, updates or the quit confirmation before starting a job.", "設定、更新、終了の確認を完了してから処理を開始してください。")) }
@@ -902,19 +890,19 @@ final class BrowserAppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegat
         return try operation()
     }
 
-    private func confirmTransfer(_ request: EngineTransferRequest) -> Bool {
+    private func confirmTransfer(_ request: RBNTransferDisplay) -> Bool {
         if request.dryRun || request.mode == "copy" { return true }
         let locations = local("來源：\(request.source.argument)\n目標：\(request.destination.argument)",
                               "Source: \(request.source.argument)\nDestination: \(request.destination.argument)")
         if request.mode == "sync" {
-            let limit = request.options.integer("maxDelete")
+            let limit = request.maxDelete
             let scope = request.selection.isEmpty
                 ? local("\n\n範圍：整個目前資料夾（套用本次篩選規則）。", "\n\nScope: the whole folder, using this job's filters.", "\n\n対象：フォルダ全体。この転送のフィルターを適用します。")
                 : local("\n\n範圍：以下勾選的資料夾（套用本次篩選規則）。\n", "\n\nScope: these selected folders, using this job's filters.\n", "\n\n対象：次の選択フォルダ。この転送のフィルターを適用します。\n") + request.selection.prefix(10).map(\.name).joined(separator: "\n") + (request.selection.count > 10 ? local("\n另有 \(request.selection.count - 10) 個資料夾。", "\nAnd \(request.selection.count - 10) more folders.", "\nほか \(request.selection.count - 10) フォルダ。") : "")
             let deletionNotice = limit < 0
                 ? local("\n\n上述範圍內，目標端多出的檔案會被刪除（本次不限刪除數量）。", "\n\nWithin this scope, destination files absent from the source will be deleted. No deletion-count limit is set.", "\n\nこの範囲内で、転送元にない転送先のファイルを削除します。削除数の上限は設定されていません。")
                 : local("\n\n上述範圍內，目標端多出的檔案會被刪除（本次最多刪除 \(limit) 個項目）。", "\n\nWithin this scope, destination files absent from the source will be deleted. Maximum deletions: \(limit).", "\n\nこの範囲内で、転送元にない転送先のファイルを削除します。削除数の上限は \(limit) 件です。")
-            let excludedNotice = request.options.flag("deleteExcluded")
+            let excludedNotice = request.deleteExcluded
                 ? local("\n目標端符合排除規則的檔案也會一併刪除。", "\nExcluded destination files will also be deleted.", "\n転送先で除外ルールに一致するファイルも削除します。") : ""
             return confirm(title: local("同步到目標？", "Sync to destination?"),
                            detail: locations + scope + deletionNotice + excludedNotice,
@@ -1017,50 +1005,34 @@ final class BrowserAppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegat
         }
     }
 
-    private func copyExport(source: URL, destination: URL) throws {
-        let fm = FileManager.default
-        let staging = destination.deletingLastPathComponent().appendingPathComponent(".rbn-export-" + UUID().uuidString)
-        defer { try? fm.removeItem(at: staging) }
-        try fm.copyItem(at: source, to: staging)
-        if fm.fileExists(atPath: destination.path) {
-            _ = try fm.replaceItemAt(destination, withItemAt: staging)
-        } else { try fm.moveItem(at: staging, to: destination) }
-    }
-
-    private func permittedExternal(_ url: URL) -> Bool {
-        guard url.scheme?.lowercased() == "https", url.user == nil, url.password == nil,
-              url.port == nil || url.port == 443, let host = url.host?.lowercased() else { return false }
-        if host == "rclone.org" || host == "downloads.rclone.org" { return true }
-        guard host == "github.com" else { return false }
-        return ["/kapitainsky/RcloneBrowser", "/rclone/rclone", "/" + RBNProject.repository].contains {
-            url.path == $0 || url.path.hasPrefix($0 + "/")
-        }
-    }
-
     private func configureRemotes() throws {
         let acquired = activityLock.holding { () -> Bool in
-            if configuringRemotes || updateInstalling || nativeConnectionChanging || terminationValue || repairingPartials { return false }
+            if configuringRemotes || updateInstalling || terminationValue || repairingPartials { return false }
             configuringRemotes = true
             return true
         }
         guard acquired else { throw EngineError("請先完成 rclone 更新或目前開啟的設定工具。") }
+        var configurationHeld = false
         do {
-            let context = try engine.auxiliaryContext()
-            let binary = context.binary
-            let settings = engine.settingsSnapshot()
-            let connection = context.environment
+            let rawContext = try engine.call("_beginConfiguration", arguments: ["macTerminal"])
+            configurationHeld = true
+            guard let context = rawContext as? [String: Any],
+                  let binary = context["binary"] as? String,
+                  let contextArguments = context["arguments"] as? [String],
+                  let connection = context["terminalEnvironment"] as? [String: String],
+                  let clearProxy = context["clearProxyEnvironment"] as? Bool else { throw EngineError("引擎回覆格式不正確。") }
             var proxyCommands = ""
-            if settings["proxyMode"] as? String == "manual" {
+            if clearProxy {
                 proxyCommands = "unset HTTP_PROXY HTTPS_PROXY ALL_PROXY NO_PROXY http_proxy https_proxy all_proxy no_proxy\n"
                 for name in ["HTTP_PROXY", "HTTPS_PROXY", "NO_PROXY"] {
-                    if let value = connection[name], !value.isEmpty { proxyCommands += "export " + name + "=" + shellQuote(value) + "\n" }
+                    if let value = connection[name], !value.isEmpty { proxyCommands += "export " + shellQuote(name + "=" + value) + "\n" }
                 }
             }
             let folder = temporaryDirectory.appendingPathComponent("config-" + UUID().uuidString, isDirectory: true)
             try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: false, attributes: [.posixPermissions: 0o700])
             let scriptURL = folder.appendingPathComponent("Configure-rclone.command")
             let completionURL = folder.appendingPathComponent("finished")
-            let arguments = ([binary] + context.arguments + ["config"]).map(shellQuote).joined(separator: " ")
+            let arguments = ([binary] + contextArguments + ["config"]).map(shellQuote).joined(separator: " ")
             let script = """
             #!/bin/bash
             set -uo pipefail
@@ -1092,16 +1064,20 @@ final class BrowserAppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegat
             timer.schedule(deadline: .now() + 1, repeating: 1)
             timer.setEventHandler { [weak self] in
                 guard let self = self, FileManager.default.fileExists(atPath: completionURL.path) else { return }
+                do { _ = try self.engine.call("_endConfiguration", arguments: []) }
+                catch {
+                    if self.engine.isRunning { self.presentError(error); timer.cancel(); timer.setEventHandler {}; return }
+                }
                 self.activityLock.holding { self.configuringRemotes = false }
                 timer.cancel()
                 timer.setEventHandler {}
                 DispatchQueue.main.async { self.terminalTimer = nil }
-                self.sendEvent(type: "configurationChanged", data: [:])
                 try? FileManager.default.removeItem(at: folder)
             }
             onMain { terminalTimer = timer }
             timer.resume()
         } catch {
+            if configurationHeld { _ = try? engine.call("_endConfiguration", arguments: []) }
             activityLock.holding { configuringRemotes = false }
             throw error
         }
@@ -1130,8 +1106,6 @@ final class BrowserAppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegat
     }
 
     private func performUpdateCheck(manual: Bool) throws -> [String: Any] {
-        var settings = engine.settingsSnapshot()
-        if !manual && settings["autoCheckUpdates"] as? Bool == false { return ["status": "disabled"] }
         let acquired = activityLock.holding { () -> Bool in
             if updateBusy || terminationValue || (!manual && startupCheckPerformed) { return false }
             updateBusy = true
@@ -1142,19 +1116,7 @@ final class BrowserAppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegat
             return ["status": manual ? "busy" : "disabled", "message": local("正在檢查或更新 rclone，請稍候。", "A rclone check or update is already running.", "rclone の確認または更新を実行中です。しばらくお待ちください。")]
         }
         defer { activityLock.holding { updateBusy = false; updateInstalling = false } }
-        let resolved = try? engine.resolvedRclonePath()
-        var target = try RcloneUpdater.defaultTarget(settings: settings, resolvedPath: resolved)
-        // A manually selected empty folder should offer a download even when a
-        // separate Homebrew/PATH binary is already current.
-        let current = manual ? (FileManager.default.isExecutableFile(atPath: target) ? target : nil) : resolved
-        if !manual && current == nil { return ["status": "notInstalled"] }
-        var result = try updater.check(currentPath: current, skippedVersion: settings["skippedRcloneVersion"] as? String ?? "", manual: manual)
-        let latestSettings = engine.settingsSnapshot()
-        guard ["rclonePath", "rcloneDirectory", "configPath"].allSatisfy({
-            (settings[$0] as? String ?? "") == (latestSettings[$0] as? String ?? "")
-        }) else {
-            throw EngineError(local("rclone 位置剛剛變更。已停止這次檢查，請再按一次檢查更新。", "The rclone location changed during this check. Check again to use the new location.", "確認中に rclone の場所が変更されました。新しい場所で更新を確認してください。"))
-        }
+        guard var result = try engine.call("_checkRclone", arguments: [manual]) as? [String: Any] else { throw EngineError("引擎回覆格式不正確。") }
         let status = result["status"] as? String ?? ""
         guard status == "available" || (status == "notInstalled" && manual) else { return result }
         if onMain({ terminationStarted }) { result["status"] = "later"; return result }
@@ -1165,22 +1127,21 @@ final class BrowserAppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegat
             return result
         }
         let version = result["latestVersion"] as? String ?? ""
-        let initialDefault = Bundle.main.bundleURL.deletingLastPathComponent().appendingPathComponent("Tools/rclone/rclone").path
-        // Only the untouched suggestion beside an installed App needs a chooser.
-        // A user-selected /Applications/rclone folder is a valid external location
-        // when writable; never silently redirect it or clear the selected executable.
-        if current == nil && (settings["rclonePath"] as? String ?? "").isEmpty && target == initialDefault &&
-            target.hasPrefix("/Applications/") {
+        var target = result["targetPath"] as? String ?? ""
+        if result["requiresDirectoryChoice"] as? Bool == true {
             guard let folder = chooseFolder(current: FileManager.default.homeDirectoryForCurrentUser.path) else {
                 result["status"] = "later"; return result
             }
             let patch: [String: Any] = ["rcloneDirectory": folder, "rclonePath": ""]
-            target = URL(fileURLWithPath: folder, isDirectory: true).appendingPathComponent("rclone").path
             _ = try handle(method: "saveSettings", arguments: [patch])
-            settings = engine.settingsSnapshot()
+            guard let updatedTarget = try engine.call("_rcloneUpdateTarget", arguments: []) as? [String: Any],
+                  let path = updatedTarget["targetPath"] as? String,
+                  let revision = updatedTarget["settingsRevision"] as? Int else { throw EngineError("引擎回覆格式不正確。") }
+            target = path
+            result["targetPath"] = target
+            result["settingsRevision"] = revision
             sendEvent(type: "configurationChanged", data: [:])
         }
-        _ = try RcloneUpdater.validatedTarget(target)
         let choice: NSApplication.ModalResponse = onMain {
             guard !terminationStarted else { return .alertSecondButtonReturn }
             let alert = NSAlert()
@@ -1202,48 +1163,19 @@ final class BrowserAppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegat
             return result
         }
         guard choice == .alertFirstButtonReturn else { result["status"] = "later"; return result }
-        let confirmedSettings = engine.settingsSnapshot()
-        guard ["rclonePath", "rcloneDirectory", "configPath"].allSatisfy({
-            (settings[$0] as? String ?? "") == (confirmedSettings[$0] as? String ?? "")
-        }) else {
-            throw EngineError(local("rclone 位置已變更，已停止更新。請重新檢查。", "The rclone location changed. The update was stopped; check again.", "rclone の場所が変更されたため、更新を停止しました。もう一度確認してください。"))
-        }
-        guard !toolsManager.hasActiveSessions else {
-            throw EngineError(local("請先停止掛載與播放，再更新 rclone。", "Stop mounts and streams before updating rclone.", "rclone を更新する前に、マウントと再生を停止してください。"))
-        }
         let reserved = activityLock.holding { () -> Bool in
-            guard !configuringRemotes, !nativeConnectionChanging, !terminationValue,
-                  auxiliaryOperations == 0, operationStarts == 0, !toolsManager.hasActiveSessions else { return false }
+            guard !configuringRemotes, !terminationValue,
+                  auxiliaryOperations == 0, operationStarts == 0 else { return false }
             updateInstalling = true
             return true
         }
         guard reserved else { throw EngineError(local("請先完成目前的設定或工具操作，再更新 rclone。", "Finish the current settings or tool operation before updating rclone.", "設定またはツールの操作を完了してから rclone を更新してください。")) }
-        try engine.setMaintenance(true)
-        var maintenanceHeld = true
-        defer { if maintenanceHeld { try? engine.setMaintenance(false) } }
-        // A location save can finish between the dialog check and the native
-        // reservation. Recheck after both gates are held, before touching bytes.
-        let lockedSettings = engine.settingsSnapshot()
-        guard ["rclonePath", "rcloneDirectory", "configPath"].allSatisfy({
-            (settings[$0] as? String ?? "") == (lockedSettings[$0] as? String ?? "")
-        }) else {
-            throw EngineError(local("rclone 位置已變更，已停止更新。請重新檢查。", "The rclone location changed. The update was stopped; check again.", "rclone の場所が変更されたため、更新を停止しました。もう一度確認してください。"))
-        }
-        do {
-            let selectedCurrent = FileManager.default.isExecutableFile(atPath: target) ? target : nil
-            let updated = try updater.install(version: version, targetPath: target, currentPath: selectedCurrent)
-            // Persist the installed absolute path only after the update commits.
-            let path = updated["path"] as? String ?? target
-            try engine.commitRcloneUpdate(path: path)
-            // The renderer may refresh immediately upon this event. Release the
-            // maintenance gate before any success event or reply is observable.
-            try engine.setMaintenance(false)
-            maintenanceHeld = false
-            sendEvent(type: "updateStatus", data: ["status": "updated", "phase": "updated", "message": local("rclone 已更新為 \(version)。", "rclone updated to \(version).")])
-            return updated
-        } catch {
-            throw error
-        }
+        guard let revision = result["settingsRevision"] as? Int else { throw EngineError("引擎回覆格式不正確。") }
+        let updated = try engine.call("_installRclone", arguments: [version, revision])
+        _ = try engine.refreshPreferences()
+        sendEvent(type: "updateStatus", data: ["status": "updated", "phase": "updated", "message": local("rclone 已更新為 \(version)。", "rclone updated to \(version).")])
+        guard let object = updated as? [String: Any] else { throw EngineError("引擎回覆格式不正確。") }
+        return object
     }
 
     private func presentError(_ error: Error) {
@@ -1270,13 +1202,13 @@ final class BrowserAppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegat
     }
 
     private func sendReply(id: Any, result: Any = NSNull(), error: Error? = nil) {
-        var response: [String: Any] = ["id": id, "result": localizedResponse(result)]
+        var response: [String: Any] = ["id": id, "result": result]
         if let error = error { response["error"] = localizedError(error) }
         DispatchQueue.main.async { [weak self] in self?.evaluate(function: "__rbnReply", value: response) }
     }
 
     private func sendEvent(type: String, data: [String: Any]) {
-        let event: [String: Any] = ["type": type, "data": localizedResponse(data)]
+        let event: [String: Any] = ["type": type, "data": data]
         DispatchQueue.main.async { [weak self] in
             guard let self = self else { return }
             if self.pageReady { self.evaluate(function: "__rbnEvent", value: event) }
@@ -1288,16 +1220,8 @@ final class BrowserAppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegat
     }
 
     private func localizedError(_ error: Error) -> String {
-        RBNNativeStrings.translate(error.localizedDescription, language: resolvedLanguage)
-    }
-
-    private func localizedResponse(_ value: Any, key: String = "") -> Any {
-        if let object = value as? [String: Any] { return Dictionary(uniqueKeysWithValues: object.map { (key, item) in (key, localizedResponse(item, key: key)) }) }
-        if let array = value as? [Any] { return array.map { localizedResponse($0, key: key) } }
-        if ["message", "error", "warnings", "validationError"].contains(key), let text = value as? String {
-            return RBNNativeStrings.translate(text, language: resolvedLanguage)
-        }
-        return value
+        if error is RBNEngineReplyError { return error.localizedDescription }
+        return RBNNativeStrings.translate(error.localizedDescription, language: resolvedLanguage)
     }
 
     private func evaluate(function: String, value: [String: Any]) {

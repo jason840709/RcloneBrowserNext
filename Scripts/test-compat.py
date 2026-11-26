@@ -158,6 +158,9 @@ def process_snapshot():
         finally:
             api.CloseHandle(snapshot)
         return result
+    if platform.system() == "Darwin":
+        rows = subprocess.check_output(["/bin/ps", "-axo", "pid=,ppid="], text=True).splitlines()
+        return {int(pid): int(parent) for row in rows for pid, parent in [row.split()]}
     result = {}
     for path in Path("/proc").iterdir():
         if not path.name.isdigit():
@@ -221,7 +224,7 @@ with tempfile.TemporaryDirectory(prefix="fixture-", dir=cache) as value:
             environment = client.call("saveSettings", {"rclonePath": str(rclone_path), "rcloneDirectory": str(rclone_path.parent), "configPath": str(config), "autoCheckUpdates": False, "language": "en"})
             assert environment["available"] is True, environment
             boot = client.call("bootstrap")
-            assert boot["environment"]["platform"] == ("win32" if os.name == "nt" else "linux"), boot["environment"]
+            assert boot["environment"]["platform"] == ("win32" if os.name == "nt" else "darwin" if platform.system() == "Darwin" else "linux"), boot["environment"]
             assert boot["resolvedLanguage"] == "en"
             assert any(x["name"] == "資料夾" for x in client.call("list", endpoint(source)))
             assert client.call("_state")["quit"] == {"activeJobCount": 0, "failedJobCount": 0, "unfinishedJobCount": 0, "requiresConfirmation": False}

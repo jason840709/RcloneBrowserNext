@@ -48,16 +48,16 @@ import Foundation
             }
             methods.append(method); pendingRequests += 1
             let engine = engine, tools = tools
-            // Reserve listing IDs before enqueueing, as AppMain does, so a
-            // later cancelList can also stop a worker that has not started.
-            let preparation = Result<Void, Error> {
+            // Submit list/cancelList to the Rust wire in WebKit receipt order,
+            // matching AppMain before background workers may be reordered.
+            let preparation = Result<RBNEngineClient.Request?, Error> {
                 if method == "list" {
-                    try engine.prepareListing(options: arguments.count > 1 ? arguments[1] : nil)
                     guard let endpoint = arguments.first as? [String: Any], let path = endpoint["path"] as? String else {
                         throw Failure(description: "A listing request had no endpoint path")
                     }
                     requestedPaths.append(path)
                 }
+                return ["list", "cancelList"].contains(method) ? try engine.submit(method, arguments: arguments) : nil
             }
             queue.async {
                 // Match AppMain's asynchronous request boundary. Blocking
@@ -67,11 +67,12 @@ import Foundation
                 var requestError: String?
                 var listedNames: [String]?
                 do {
-                    try preparation.get()
+                    let prepared = try preparation.get()
                     switch method {
-                    case "bootstrap", "cancelList": reply["result"] = try engine.invoke(method, arguments: arguments)
+                    case "bootstrap": reply["result"] = try engine.invoke(method, arguments: arguments)
+                    case "cancelList": reply["result"] = try engine.wait(prepared!)
                     case "list":
-                        let value = try engine.invoke(method, arguments: arguments)
+                        let value = try engine.wait(prepared!)
                         reply["result"] = value
                         guard arguments.count > 1, let options = arguments[1] as? [String: Any],
                               let requestID = options["requestId"] as? String, !requestID.isEmpty,

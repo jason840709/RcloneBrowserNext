@@ -1,0 +1,48 @@
+[package]
+name = "rbn-core"
+version = "0.12.0"
+edition = "2024"
+rust-version = "1.90"
+license = "MIT"
+repository = "https://github.com/jason840709/RcloneBrowserNext"
+
+[lib]
+name = "rbn_core"
+path = "src/lib.rs"
+
+[[bin]]
+name = "rbn-engine"
+path = "src/main.rs"
+
+[[bin]]
+name = "rbn-service-fixture"
+path = "tests/support/service_fixture.rs"
+test = false
+bench = false
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = { version = "1", features = ["float_roundtrip"] }
+uuid = { version = "1", features = ["v4"] }
+regex = "1"
+libc = "0.2"
+sha2 = "0.10"
+unicode-normalization = "0.1"
+unicode-segmentation = "=1.13.3"
+chrono = { version = "0.4", default-features = false, features = ["clock", "std", "serde"] }
+url = "2"
+ureq = { version = "3", features = ["socks-proxy"] }
+zip = { version = "4", default-features = false, features = ["deflate"] }
+
+[target.'cfg(windows)'.dependencies]
+windows-sys = { version = "0.61", features = ["Win32_Foundation", "Win32_System_Console", "Win32_System_JobObjects", "Win32_System_Threading", "Win32_System_Pipes", "Win32_Security", "Win32_Storage_FileSystem", "Win32_Globalization", "Win32_System_Diagnostics_Debug", "Win32_System_Com", "Win32_System_WindowsProgramming", "Win32_UI_Shell"] }
+
+[profile.dev]
+debug = 0
+incremental = false
+
+[profile.release]
+opt-level = "s"
+lto = "thin"
+codegen-units = 1
+strip = true

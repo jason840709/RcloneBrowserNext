@@ -5,6 +5,7 @@ import argparse
 import hashlib
 import json
 import plistlib
+import os
 import shutil
 import subprocess
 
@@ -34,7 +35,7 @@ destination.with_suffix(destination.suffix + '.sha256').write_text(f'{digest}  {
 receipt = {'version': version, 'releaseTag': 'v' + version, 'platform': args.platform,
            'identifier': config['identifier'], 'productName': config['productName'],
            'peVersion': [int(part) for part in version.split('.')] + [0],
-           'sourceCommit': subprocess.check_output(['git','rev-parse','HEAD'], cwd=ROOT, text=True).strip(),
+           'sourceCommit': os.environ.get('GITHUB_SHA') or os.environ.get('RBN_SOURCE_COMMIT'),
            'file': destination.name, 'bytes': destination.stat().st_size, 'sha256': digest,
            'runtime': json.loads((args.cache / 'runtime/runtime-manifest.json').read_text(encoding='utf-8-sig'))}
 (args.cache / f'package-{args.platform}.json').write_text(json.dumps(receipt, indent=2) + '\n', encoding='utf-8')

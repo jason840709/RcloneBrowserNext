@@ -15,15 +15,23 @@ FALLBACK_NAMES = {"dlopen2_derive": "dlopen2", "webview2-com-sys": "webview2-com
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--target", default="x86_64-pc-windows-msvc" if os.name == "nt" else "x86_64-unknown-linux-gnu")
+    parser.add_argument("--core-only", action="store_true", help="Only the shared engine, for the native Mac bundle")
+    parser.add_argument("--output", type=Path)
     args = parser.parse_args()
-    destination = ROOT / ".build-cache/compat/runtime/licenses"
+    destination = args.output or ROOT / ".build-cache/compat/runtime/licenses"
     destination.mkdir(parents=True, exist_ok=True)
-    metadata = json.loads(subprocess.check_output(
-        ["cargo", "metadata", "--locked", "--offline", "--format-version", "1", "--filter-platform", args.target],
-        cwd=ROOT / "Compat/desktop", text=True, encoding="utf-8"))
+    packages = {}
+    projects = (ROOT / "Sources/Rust",) if args.core_only else (ROOT / "Compat/desktop", ROOT / "Sources/Rust")
+    for project in projects:
+        metadata = json.loads(subprocess.check_output(
+            ["cargo", "metadata", "--locked", "--offline", "--format-version", "1", "--filter-platform", args.target],
+            cwd=project, text=True, encoding="utf-8"))
+        for package in metadata["packages"]:
+            if package["source"] is not None:
+                packages[(package["name"], package["version"])] = package
     index = []
     missing = []
-    for package in sorted(metadata["packages"], key=lambda p: (p["name"], p["version"])):
+    for package in sorted(packages.values(), key=lambda p: (p["name"], p["version"])):
         if package["source"] is None:
             continue
         source = Path(package["manifest_path"]).parent

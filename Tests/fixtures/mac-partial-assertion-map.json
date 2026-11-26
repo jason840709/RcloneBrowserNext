@@ -1,0 +1,530 @@
+{
+  "schemaVersion": 1,
+  "source": "Tests/MacPartialRecoveryTests.swift",
+  "baselineVersion": "0.11.0",
+  "sourceSHA256": "657a4cb4d853526b8da69c4856c45fc97c18b84059124f546bec399bdfa2e423",
+  "execution": "The original Swift driver evaluates the original expressions at these 1-based source lines. PASS requires the complete case to return without throwing. The test-only facade forwards each method and synchronous injected hook to Rust libtest. The built app exercises its production route.",
+  "helperAssertionLines": [
+    22,
+    171,
+    172,
+    173,
+    253,
+    277,
+    301,
+    304,
+    309,
+    333,
+    335,
+    347,
+    350,
+    352,
+    355,
+    361,
+    373,
+    441,
+    461,
+    465,
+    470
+  ],
+  "caseCount": 29,
+  "directAssertionSites": 166,
+  "expandedCaseAssertionSites": 205,
+  "cases": [
+    {
+      "name": "Preview hashes a locked partial without changing flags, contents or names",
+      "sourceLine": 491,
+      "route": "test-bridge",
+      "rustTest": "partial::mac::tests::swift_assertion_bridge",
+      "assertionLines": [
+        496,
+        497,
+        498,
+        499,
+        500,
+        501,
+        502
+      ],
+      "status": "routed",
+      "verification": "requires unchanged Swift test driver PASS for this exact case on native macOS"
+    },
+    {
+      "name": "Apply restores the verified filename and preserves source and other flags",
+      "sourceLine": 504,
+      "route": "test-bridge",
+      "rustTest": "partial::mac::tests::swift_assertion_bridge",
+      "assertionLines": [
+        509,
+        510,
+        511,
+        512,
+        513,
+        514,
+        516
+      ],
+      "status": "routed",
+      "verification": "requires unchanged Swift test driver PASS for this exact case on native macOS"
+    },
+    {
+      "name": "Direct-local copy and move reports use the same verified recovery",
+      "sourceLine": 518,
+      "route": "test-bridge",
+      "rustTest": "partial::mac::tests::swift_assertion_bridge",
+      "assertionLines": [
+        521,
+        522,
+        523
+      ],
+      "status": "routed",
+      "verification": "requires unchanged Swift test driver PASS for this exact case on native macOS"
+    },
+    {
+      "name": "A directly selected file stays within its report scope",
+      "sourceLine": 526,
+      "route": "test-bridge",
+      "rustTest": "partial::mac::tests::swift_assertion_bridge",
+      "assertionLines": [
+        540,
+        541
+      ],
+      "status": "routed",
+      "verification": "requires unchanged Swift test driver PASS for this exact case on native macOS"
+    },
+    {
+      "name": "Same-size content mismatch is skipped without unlocking",
+      "sourceLine": 543,
+      "route": "test-bridge",
+      "rustTest": "partial::mac::tests::swift_assertion_bridge",
+      "assertionLines": [
+        549,
+        550,
+        551,
+        552
+      ],
+      "status": "routed",
+      "verification": "requires unchanged Swift test driver PASS for this exact case on native macOS"
+    },
+    {
+      "name": "Source changed after preview is refused",
+      "sourceLine": 554,
+      "route": "test-bridge",
+      "rustTest": "partial::mac::tests::swift_assertion_bridge",
+      "assertionLines": [
+        561,
+        562
+      ],
+      "status": "routed",
+      "verification": "requires unchanged Swift test driver PASS for this exact case on native macOS"
+    },
+    {
+      "name": "Partial changed after preview is refused",
+      "sourceLine": 564,
+      "route": "test-bridge",
+      "rustTest": "partial::mac::tests::swift_assertion_bridge",
+      "assertionLines": [
+        571,
+        572,
+        573
+      ],
+      "status": "routed",
+      "verification": "requires unchanged Swift test driver PASS for this exact case on native macOS"
+    },
+    {
+      "name": "Existing final name is never overwritten",
+      "sourceLine": 575,
+      "route": "test-bridge",
+      "rustTest": "partial::mac::tests::swift_assertion_bridge",
+      "assertionLines": [
+        579,
+        580,
+        581,
+        582
+      ],
+      "status": "routed",
+      "verification": "requires unchanged Swift test driver PASS for this exact case on native macOS"
+    },
+    {
+      "name": "A final file created after preview remains untouched",
+      "sourceLine": 584,
+      "route": "test-bridge",
+      "rustTest": "partial::mac::tests::swift_assertion_bridge",
+      "assertionLines": [
+        589,
+        590,
+        591
+      ],
+      "status": "routed",
+      "verification": "requires unchanged Swift test driver PASS for this exact case on native macOS"
+    },
+    {
+      "name": "Atomic rename collision restores original flags through the held descriptor",
+      "sourceLine": 593,
+      "route": "test-bridge",
+      "rustTest": "partial::mac::tests::swift_assertion_bridge",
+      "assertionLines": [
+        598,
+        603,
+        604,
+        605
+      ],
+      "status": "routed",
+      "verification": "requires unchanged Swift test driver PASS for this exact case on native macOS"
+    },
+    {
+      "name": "Unsupported exclusive rename rebuilds verified content while retaining partial flags and modification time",
+      "sourceLine": 607,
+      "route": "test-bridge",
+      "rustTest": "partial::mac::tests::swift_assertion_bridge",
+      "assertionLines": [
+        617,
+        621,
+        625,
+        628,
+        630,
+        631,
+        634,
+        636
+      ],
+      "status": "routed",
+      "verification": "requires unchanged Swift test driver PASS for this exact case on native macOS"
+    },
+    {
+      "name": "Exclusive rebuild collision never opens or overwrites an existing final",
+      "sourceLine": 639,
+      "route": "test-bridge",
+      "rustTest": "partial::mac::tests::swift_assertion_bridge",
+      "assertionLines": [
+        649,
+        652,
+        654,
+        675,
+        676,
+        678,
+        683
+      ],
+      "status": "routed",
+      "verification": "requires unchanged Swift test driver PASS for this exact case on native macOS"
+    },
+    {
+      "name": "A killed rebuild retains a durable incomplete-output journal and never reports recovery",
+      "sourceLine": 687,
+      "route": "test-bridge",
+      "rustTest": "partial::mac::tests::swift_assertion_bridge",
+      "assertionLines": [
+        719,
+        722,
+        726,
+        731,
+        733,
+        736
+      ],
+      "status": "routed",
+      "verification": "requires unchanged Swift test driver PASS for this exact case on native macOS"
+    },
+    {
+      "name": "Real ExFAT ENOSPC preserves original partial and reports a failed new output",
+      "sourceLine": 742,
+      "route": "test-bridge",
+      "rustTest": "partial::mac::tests::swift_assertion_bridge",
+      "assertionLines": [
+        761,
+        765,
+        771,
+        776,
+        779,
+        782,
+        785,
+        787
+      ],
+      "status": "routed",
+      "verification": "requires unchanged Swift test driver PASS for this exact case on native macOS"
+    },
+    {
+      "name": "Receipt-bound cleanup removes only the verified retained partial",
+      "sourceLine": 800,
+      "route": "test-bridge",
+      "rustTest": "partial::mac::tests::swift_assertion_bridge",
+      "assertionLines": [
+        810,
+        815,
+        817,
+        818,
+        822,
+        825
+      ],
+      "status": "routed",
+      "verification": "requires unchanged Swift test driver PASS for this exact case on native macOS"
+    },
+    {
+      "name": "Cleanup refuses changes to the source, retained partial or reconstructed final",
+      "sourceLine": 828,
+      "route": "test-bridge",
+      "rustTest": "partial::mac::tests::swift_assertion_bridge",
+      "assertionLines": [
+        834,
+        844,
+        846
+      ],
+      "status": "routed",
+      "verification": "requires unchanged Swift test driver PASS for this exact case on native macOS"
+    },
+    {
+      "name": "Cleanup rejects out-of-scope receipts and forged reconstructed-file identities",
+      "sourceLine": 850,
+      "route": "test-bridge",
+      "rustTest": "partial::mac::tests::swift_assertion_bridge",
+      "assertionLines": [
+        872,
+        876,
+        877
+      ],
+      "status": "routed",
+      "verification": "requires unchanged Swift test driver PASS for this exact case on native macOS"
+    },
+    {
+      "name": "A hard-linked partial is blocked",
+      "sourceLine": 880,
+      "route": "test-bridge",
+      "rustTest": "partial::mac::tests::swift_assertion_bridge",
+      "assertionLines": [
+        886,
+        887,
+        888
+      ],
+      "status": "routed",
+      "verification": "requires unchanged Swift test driver PASS for this exact case on native macOS"
+    },
+    {
+      "name": "Source file and intermediate directory symlinks are blocked",
+      "sourceLine": 890,
+      "route": "test-bridge",
+      "rustTest": "partial::mac::tests::swift_assertion_bridge",
+      "assertionLines": [
+        896,
+        897,
+        905,
+        906
+      ],
+      "status": "routed",
+      "verification": "requires unchanged Swift test driver PASS for this exact case on native macOS"
+    },
+    {
+      "name": "Partial and root symlinks are refused without following them",
+      "sourceLine": 909,
+      "route": "test-bridge",
+      "rustTest": "partial::mac::tests::swift_assertion_bridge",
+      "assertionLines": [
+        915,
+        916,
+        929,
+        930
+      ],
+      "status": "routed",
+      "verification": "requires unchanged Swift test driver PASS for this exact case on native macOS"
+    },
+    {
+      "name": "Only report-listed partials are touched",
+      "sourceLine": 933,
+      "route": "test-bridge",
+      "rustTest": "partial::mac::tests::swift_assertion_bridge",
+      "assertionLines": [
+        938,
+        940,
+        941
+      ],
+      "status": "routed",
+      "verification": "requires unchanged Swift test driver PASS for this exact case on native macOS"
+    },
+    {
+      "name": "Invalid JSON, traversal, out-of-scope and remote reports are refused",
+      "sourceLine": 943,
+      "route": "test-bridge",
+      "rustTest": "partial::mac::tests::swift_assertion_bridge",
+      "assertionLines": [
+        947,
+        948,
+        955,
+        956,
+        967,
+        968
+      ],
+      "status": "routed",
+      "verification": "requires unchanged Swift test driver PASS for this exact case on native macOS"
+    },
+    {
+      "name": "Overlapping roots and outputs inside card trees are refused",
+      "sourceLine": 971,
+      "route": "test-bridge",
+      "rustTest": "partial::mac::tests::swift_assertion_bridge",
+      "assertionLines": [
+        981,
+        982,
+        986,
+        990,
+        992
+      ],
+      "status": "routed",
+      "verification": "requires unchanged Swift test driver PASS for this exact case on native macOS"
+    },
+    {
+      "name": "Changed reports and plan-injected paths cannot authorize new targets",
+      "sourceLine": 995,
+      "route": "test-bridge",
+      "rustTest": "partial::mac::tests::swift_assertion_bridge",
+      "assertionLines": [
+        1003,
+        1004,
+        1016,
+        1017
+      ],
+      "status": "routed",
+      "verification": "requires unchanged Swift test driver PASS for this exact case on native macOS"
+    },
+    {
+      "name": "Incomplete or truncated-name mappings are excluded rather than guessed",
+      "sourceLine": 1020,
+      "route": "test-bridge",
+      "rustTest": "partial::mac::tests::swift_assertion_bridge",
+      "assertionLines": [
+        1028,
+        1029,
+        1030
+      ],
+      "status": "routed",
+      "verification": "requires unchanged Swift test driver PASS for this exact case on native macOS"
+    },
+    {
+      "name": "An existing plan or receipt is not overwritten",
+      "sourceLine": 1032,
+      "route": "test-bridge",
+      "rustTest": "partial::mac::tests::swift_assertion_bridge",
+      "assertionLines": [
+        1036,
+        1037,
+        1040,
+        1041,
+        1042
+      ],
+      "status": "routed",
+      "verification": "requires unchanged Swift test driver PASS for this exact case on native macOS"
+    },
+    {
+      "name": "Built Mac App CLI previews and applies without entering the GUI route",
+      "sourceLine": 1044,
+      "route": "built-app",
+      "rustTest": "rbn-engine --repair-local-partials",
+      "assertionLines": [
+        1056,
+        1057,
+        1058,
+        1062,
+        1064,
+        1065,
+        1066,
+        1067,
+        1069,
+        1073
+      ],
+      "status": "routed",
+      "verification": "requires unchanged Swift test driver PASS for this exact case on native macOS"
+    },
+    {
+      "name": "MS-DOS FAT32 real-image recovery verifies content and safely handles filesystem rename capability",
+      "sourceLine": 1079,
+      "route": "built-app-and-test-bridge",
+      "rustTest": "partial::mac::tests::swift_assertion_bridge",
+      "assertionLines": [
+        1080,
+        1100,
+        1103,
+        1104,
+        1109,
+        1113,
+        1116,
+        1118,
+        1120,
+        1122,
+        1126,
+        1127,
+        1129,
+        1133,
+        1135,
+        1145,
+        1147,
+        1170,
+        1179,
+        1191,
+        1197,
+        1211,
+        1213,
+        1242,
+        1245,
+        1250,
+        1257,
+        1261,
+        1264,
+        1272,
+        1273,
+        1293,
+        1301,
+        1306,
+        1307,
+        1317,
+        1319,
+        1320,
+        1339
+      ],
+      "status": "routed",
+      "verification": "requires unchanged Swift test driver PASS for this exact case on native macOS"
+    },
+    {
+      "name": "ExFAT real-image recovery verifies content and safely handles filesystem rename capability",
+      "sourceLine": 1079,
+      "route": "built-app-and-test-bridge",
+      "rustTest": "partial::mac::tests::swift_assertion_bridge",
+      "assertionLines": [
+        1080,
+        1100,
+        1103,
+        1104,
+        1109,
+        1113,
+        1116,
+        1118,
+        1120,
+        1122,
+        1126,
+        1127,
+        1129,
+        1133,
+        1135,
+        1145,
+        1147,
+        1170,
+        1179,
+        1191,
+        1197,
+        1211,
+        1213,
+        1242,
+        1245,
+        1250,
+        1257,
+        1261,
+        1264,
+        1272,
+        1273,
+        1293,
+        1301,
+        1306,
+        1307,
+        1317,
+        1319,
+        1320,
+        1339
+      ],
+      "status": "routed",
+      "verification": "requires unchanged Swift test driver PASS for this exact case on native macOS"
+    }
+  ]
+}

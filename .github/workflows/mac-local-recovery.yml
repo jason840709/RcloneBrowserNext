@@ -2,7 +2,7 @@ name: Mac local copy and recovery preflight
 
 on:
   push:
-    branches: ['work/0.9.6']
+    branches: ['work/0.9.6', 'work/0.12.0']
   workflow_dispatch:
 
 permissions:
@@ -32,11 +32,14 @@ jobs:
     timeout-minutes: 20
     env:
       RBN_BUILD_ARCH: ${{ matrix.arch }}
+      RUSTUP_TOOLCHAIN: '1.90.0'
     steps:
       - uses: actions/checkout@v7
         with:
           persist-credentials: false
           fetch-depth: 0
+      - name: Install the pinned minimum Rust toolchain
+        run: rustup toolchain install 1.90.0 --profile minimal
       - name: Download the pinned rclone fixture
         run: /bin/bash Scripts/ci-rclone.sh
       - name: Build the actual Mac application
@@ -48,6 +51,10 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: RcloneBrowserNext-Mac-local-recovery-preflight-${{ matrix.label }}
-          path: .build-cache/logs/*.log
+          path: |
+            .build/mac/logs/*.log
+            .build/mac/tests/*/*.json
+            .build/mac/tests/*/*.log
+          include-hidden-files: true
           if-no-files-found: error
           retention-days: 30

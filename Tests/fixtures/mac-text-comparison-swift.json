@@ -1,0 +1,112 @@
+{
+  "api" : "NSString.localizedStandardCompare:",
+  "cases" : [
+    {
+      "left" : "Disk 2",
+      "result" : -1,
+      "right" : "Disk 10"
+    },
+    {
+      "left" : "Disk 10",
+      "result" : 1,
+      "right" : "Disk 2"
+    },
+    {
+      "left" : "Disk 02",
+      "result" : 1,
+      "right" : "Disk 2"
+    },
+    {
+      "left" : "disk 2",
+      "result" : -1,
+      "right" : "Disk 2"
+    },
+    {
+      "left" : "ALPHA",
+      "result" : 1,
+      "right" : "alpha"
+    },
+    {
+      "left" : "File 9.txt",
+      "result" : -1,
+      "right" : "File 10.txt"
+    },
+    {
+      "left" : "café",
+      "result" : 1,
+      "right" : "café"
+    },
+    {
+      "left" : "が",
+      "result" : 1,
+      "right" : "が"
+    },
+    {
+      "left" : "Å",
+      "result" : 1,
+      "right" : "Å"
+    },
+    {
+      "left" : "磁碟 2",
+      "result" : -1,
+      "right" : "磁碟 10"
+    },
+    {
+      "left" : "資料 9",
+      "result" : -1,
+      "right" : "資料 10"
+    },
+    {
+      "left" : "ＡＢＣ",
+      "result" : 1,
+      "right" : "ABC"
+    },
+    {
+      "left" : "😀2",
+      "result" : -1,
+      "right" : "😀10"
+    },
+    {
+      "left" : "a-b",
+      "result" : -1,
+      "right" : "ab"
+    },
+    {
+      "left" : "foo 1.txt",
+      "result" : -1,
+      "right" : "foo 01.txt"
+    },
+    {
+      "left" : "xé2",
+      "result" : -1,
+      "right" : "xé10"
+    },
+    {
+      "left" : "a10",
+      "result" : 1,
+      "right" : "a2"
+    },
+    {
+      "left" : "",
+      "result" : -1,
+      "right" : "a"
+    },
+    {
+      "left" : "",
+      "result" : 0,
+      "right" : ""
+    },
+    {
+      "left" : "a\u0000b",
+      "result" : -1,
+      "right" : "a\u0000c"
+    },
+    {
+      "left" : "同名",
+      "result" : 0,
+      "right" : "同名"
+    }
+  ],
+  "locale" : "zh_TW",
+  "source" : "0.11.0 EngineLocationCatalog name.localizedStandardCompare"
+}

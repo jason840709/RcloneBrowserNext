@@ -9,6 +9,7 @@ from pathlib import Path
 import argparse
 from datetime import datetime, timezone
 import hashlib
+import importlib.util
 import json
 import os
 import plistlib
@@ -38,20 +39,9 @@ UI_CASES = {f"{size}-{side}-pointer-probe-{index:02d}" for size in ("normal", "c
      "endpoint-editor-startup-remote", "native-minimum-window-125-percent", "compact-endpoint-editor-startup-remote"}
 
 
-LISTING_CASES = {
-    'browse preserves legacy arrays and starts only one lsjson per ready remote listing',
-    'cancellation before dispatch prevents spawn and rejects reused active request IDs',
-    'context reset cancels a reserved worker before it starts',
-    'cancel reaps only its child while same-folder other pane and newer request continue',
-    'cancel covers environment discovery and allows a clean retry',
-    'native deadline stops its listing process and reports an error rather than empty success',
-    'connection change cancels old reading and queued requests before publishing new settings',
-    'cancel during a replacement environment probe never waits for or stops the unrelated probe',
-    'shutdown reaps both listing children and prevents reserved late workers',
-    'local adapter keeps original errors and pre-cancel performs no filesystem read',
-    'real rclone keeps Unicode names sizes modification times and missing-remote errors',
-    'real throttled HTTP listing cancellation reaps rclone and preserves a running transfer',
-}
+RUST_SPEC = importlib.util.spec_from_file_location("windows_rust_regressions", ROOT / "Scripts/windows/verify-rust-regressions.py")
+RUST_REGRESSIONS = importlib.util.module_from_spec(RUST_SPEC)
+RUST_SPEC.loader.exec_module(RUST_REGRESSIONS)
 
 
 def require(condition, message):
@@ -122,12 +112,22 @@ def main():
                 and sha256(installer) == package["sha256"], "The downloaded installer differs from the package receipt")
         checksum = installer.with_suffix(".exe.sha256")
         require(checksum.read_text(encoding="utf-8").strip() == f"{package['sha256']}  {installer.name}", "The package checksum file does not match")
+        runtime = package.get("runtime", {})
+        require(runtime.get("engine") == "Rust" and re.fullmatch(r"rustc 1\.90\.0(?:\s.+)?", runtime.get("rust", "")),
+                "The Windows package was not built with the Rust engine and pinned minimum toolchain")
+        require(isinstance(runtime.get("libraries"), list) and isinstance(runtime.get("systemLibraries"), list)
+                and not any(re.search(r"swift|foundation|dispatch", name, re.IGNORECASE)
+                            for name in [item.get("name", "") for item in runtime["libraries"]] + runtime["systemLibraries"]),
+                "The Rust candidate unexpectedly contains or imports Swift runtime libraries")
         guard = read(build / "source-check.json", "build/source-check.json")
         require(guard.get("passed") is True and guard.get("version") == VERSION
                 and guard.get("sourceCommit") == report["sourceCommit"]
-                and guard.get("windowsFilesystemUnchanged") is True,
-                "Unified version or Windows repair source check failed")
-        report["windowsFilesystemUnchanged"] = True
+                and guard.get("windowsFilesystemImplementation") == "Rust"
+                and guard.get("windowsLauncherUnchanged") is True
+                and guard.get("windowsLauncherBaseline") == {"ref": "windows-v0.9.0-r1", "blob": "d12569ca65804e8976d516980cdcacde934be122"},
+                "Unified version or unchanged Windows launcher source check failed")
+        report.update(windowsFilesystemImplementation="Rust", windowsLauncherUnchanged=True,
+                      windowsLauncherBaseline=guard["windowsLauncherBaseline"])
 
         build_log = text(build / "build.log", "build/build.log")
         rust = re.findall(r"test result: ok\. (\d+) passed; (\d+) failed; (\d+) ignored;", build_log)
@@ -135,34 +135,6 @@ def main():
         require(len(rust) == 1 and int(rust[0][0]) >= 5 and int(rust[0][0]) == len(rust_cases)
                 and rust[0][1:] == ("0", "0"), "Native Rust test results are missing, incomplete or failing")
         report["suites"].append({"name": "native-host-rust", "passed": int(rust[0][0]), "failed": 0, "skipped": 0})
-        platform_log = text(build / "platform.log", "build/platform.log")
-        platform_results = re.findall(r"^RESULT (\d+) passed, (\d+) failed\s*$", platform_log, re.MULTILINE)
-        require(len(platform_results) == 1 and int(platform_results[0][0]) == 9 and platform_results[0][1] == "0"
-                and len(re.findall(r"^PASS ", platform_log, re.MULTILINE)) == 9, "Existing Windows platform regressions did not all pass")
-        report["suites"].append({"name": "existing-platform", "passed": 9, "failed": 0, "skipped": None})
-        listing_log = text(build / "listings.log", "build/listings.log")
-        listing_results = re.findall(r"^RESULT (\d+) passed, (\d+) failed\s*$", listing_log, re.MULTILINE)
-        listing_cases = re.findall(r"^PASS ([^\r\n]+)\s*$", listing_log, re.MULTILINE)
-        require(listing_results == [(str(len(LISTING_CASES)), "0")]
-                and len(listing_cases) == len(LISTING_CASES) and set(listing_cases) == LISTING_CASES,
-                "Scoped directory listing regressions are missing, duplicated or failing")
-        listing_proofs = re.findall(r"^REAL_LISTING_CANCEL_EVIDENCE (.+)$", listing_log, re.MULTILINE)
-        require(len(listing_proofs) == 1, "Missing real rclone directory cancellation evidence")
-        listing_proof = json.loads(listing_proofs[0])
-        require(listing_proof.get("aliveAfterAck") is False
-                and listing_proof.get("transferStillRunning") is True
-                and listing_proof.get("loopbackOnly") is True
-                and 0 <= listing_proof.get("elapsedSeconds", -1) < 5,
-                "Real listing cancellation did not reap its process independently")
-        child_proofs = re.findall(r"^LISTING_CANCEL_EVIDENCE (.+)$", listing_log, re.MULTILINE)
-        require(len(child_proofs) == 1, "Missing directory cancellation child process evidence")
-        child_proof = json.loads(child_proofs[0])
-        require(child_proof.get("aliveAfterAck") is False
-                and len(set(child_proof.get("actualChildPIDs", []))) == 2
-                and child_proof.get("actualChildrenAliveAfterAck") == 1,
-                "Directory cancellation did not isolate its actual child from the other pane")
-        report["suites"].append({"name": "scoped-directory-listing", "passed": len(LISTING_CASES),
-                                 "failed": 0, "skipped": 0, "realRcloneCancellation": listing_proof})
         transfers = read(build / "transfer.json", "build/transfer.json")
         require(transfers.get("passed") == 11 and transfers.get("failed") == 0 and len(transfers.get("tests", [])) == 11
                 and all(item.get("status") == "passed" for item in transfers["tests"]), "Existing transfers/cancellation regressions did not all pass")
@@ -178,6 +150,21 @@ def main():
                 "Native listing cancellation did not bypass a queued state barrier and reap its real child")
         report["suites"].append({"name": "existing-transfers-and-cancellation", "passed": 11,
                                  "failed": 0, "skipped": None, "queuedBarrierCancellation": barrier_proof})
+        core = read(build / "core-rust.json", "build/core-rust.json")
+        test_map = read(ROOT / "Tests/rust-test-map.json", "source/rust-test-map.json")
+
+        def core_log(name):
+            path = (build / name).resolve(strict=True)
+            require(path.parent == build, "Core Rust log is outside its evidence directory")
+            record(path, "build/" + name)
+            return path.read_bytes()
+
+        verified_core = RUST_REGRESSIONS.verify_receipt(core, test_map, core_log,
+                        source_commit=report["sourceCommit"], run_id=report["runID"],
+                        rclone_sha256=transfers.get("rcloneSha256"))
+        report["coreRust"] = {"testsPassed": verified_core["testsPassed"], "testsIgnored": verified_core["testsIgnored"],
+                              "rustcVersion": core["rustcVersion"]}
+        report["suites"].extend(verified_core["suites"])
 
         installations = {}
         for phase in ("fresh", "upgrade"):
@@ -199,6 +186,19 @@ def main():
         require(all(upgrade.get(key) is True for key in ("settingsPreservedByteForByte", "tasksPreservedByteForByte",
                     "configurationPreservedByteForByte", "savedStateReloadedByInstalledHelper", "ownedStateRemoved"))
                 and upgrade.get("downgradeGuard", {}).get("passed") is True, "Upgrade/state preservation or downgrade protection failed")
+        if upgrade.get("upgradeFrom") == "0.11.0":
+            original_listing = upgrade.get("originalListingOracle", {})
+            require(original_listing.get("passed") is True and original_listing.get("entries") == 34
+                    and isinstance(original_listing.get("swift"), list) and len(original_listing["swift"]) == 34
+                    and original_listing.get("rust") == original_listing["swift"]
+                    and original_listing.get("fieldDifferences") == [],
+                    "The installed 0.11.0 and candidate Unicode listings did not match completely")
+            require("windows-listing-oracle.log" in {item["file"] for item in upgrade["evidence"]},
+                    "The original Windows listing oracle log is not retained in the upgrade receipt")
+            require(read(evidence / "windows-listing-oracle.log", "windows-listing-oracle.log") == original_listing,
+                    "The original Windows listing oracle differs from its retained raw output")
+            report["suites"].append({"name": "published-0.11.0-unicode-listing-oracle", "passed": 34,
+                                     "failed": 0, "skipped": 0, "unit": "complete ordered file and directory entries"})
         engine_hash = fresh["installedExecutables"]["engine"]["sha256"]
         app_hash = fresh["installedExecutables"]["app"]["sha256"]
         rclone_hash = fresh["rclone"]["sha256"]
@@ -241,9 +241,9 @@ def main():
         report["scope"] = ["Windows part of the unified desktop release, including scoped directory listing cancellation",
                            "Fresh Windows verification runner has no Swift setup; installed child PATH contains system directories only",
                            "Local filesystem and synthetic rclone alias remotes; no real cloud credentials or user data",
-                           "Upgrade uses a pinned published 0.9.0, Windows r1, 0.9.2, 0.9.3, 0.9.4, 0.9.5, 0.9.6, 0.10.1, 0.10.2, 0.10.3 or 0.10.4 installer and verifies preserved saved state",
+                           "Upgrade uses a published Windows stable baseline through 0.11.0 or the historical 0.9.0-r1 prerelease, pinned by asset ID and SHA-256, and verifies preserved saved state",
                            "NSIS downgrade check temporarily raises only the owned registry DisplayVersion to the next patch version",
-                           "Publication requires successful Web, Mac, Linux and all five Windows upgrade jobs from this same source commit"]
+                           "Publication requires successful Web, Mac, Linux and every Windows upgrade matrix job from this same source commit"]
         report["passed"] = True
     except Exception as error:
         report["error"] = {"type": type(error).__name__, "message": str(error), "traceback": traceback.format_exc()}

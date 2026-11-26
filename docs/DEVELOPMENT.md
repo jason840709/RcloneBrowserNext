@@ -1,21 +1,23 @@
 # Development
 
-Rclone Browser Next uses a Swift core, an AppKit host and a bundled React interface inside the system WKWebView. The host owns executable selection, filesystem dialogs, confirmations and process lifecycle. The renderer calls a narrow native bridge; it cannot run a shell or navigate to arbitrary pages.
+Rclone Browser Next uses one Rust engine on macOS, Windows and Linux. Each native window talks to `rbn-engine` over inherited JSON-line pipes. The Mac window remains Swift/AppKit with the system WKWebView; Windows and Linux keep their Tauri windows. The bundled React interface is shared by all editions.
+
+The engine owns validation, rclone arguments and processes, settings, jobs, saved tasks, reports, account configuration and updates. Native hosts own windows, system dialogs, confirmations and OS interaction. The renderer uses an allowlisted bridge and cannot run a shell or open an arbitrary page.
 
 ## Repository layout
 
 | Path | Responsibility |
 |---|---|
-| `Sources/Core/EngineModels.swift` | Validated endpoints, transfer options, network options and command arguments |
-| `Sources/Core/RcloneEngine.swift` | rclone subprocesses, directory operations, jobs, settings and tasks |
-| `Sources/Core/EngineThroughput.swift` | Transfer speed and remaining-time estimate from rclone's per-second counters (replaces the unused `EngineProgressWindow`, which stays in the pinned `EngineModels.swift`) |
-| `Sources/Core/TransferReport.swift` | Bounded transfer-report summaries, comparison events, file results and paged/exportable reports |
-| `Sources/Core/EngineStorage.swift` | Atomic settings, task and history persistence |
-| `Sources/Core/RcloneUpdater.swift` | External engine download, validation, replacement and rollback |
-| `Sources/Core/AppReleaseChecker.swift` | Public GitHub release checks for the app |
-| `Sources/Core/LanguageResolver.swift` | One native/system language policy shared with bootstrap |
-| `Sources/Core/RcloneTools.swift` | Tree, export, links, mount and stream sessions |
-| `Sources/Core/NativeMessages.swift` | Known native/error translations with paths and backend diagnostics preserved |
+| `Sources/Rust/src/models.rs` | Endpoints, options, settings migration, transfer validation and arguments |
+| `Sources/Rust/src/engine.rs`, `main.rs` | Jobs, scheduling, settings, operations and JSON-line request ordering |
+| `Sources/Rust/src/process.rs` | Child processes, bounded pipes, cancellation and exit tracking |
+| `Sources/Rust/src/stats.rs`, `retry.rs` | Transfer rates, remaining time and retry planning |
+| `Sources/Rust/src/report.rs`, `logging.rs`, `history.rs` | Compatible reports, rotated raw logs and saved job/task data |
+| `Sources/Rust/src/storage.rs`, `local.rs`, `windows_local.rs`, `partial.rs` | Atomic persistence, platform file operations, directory cleanup and partial-file recovery |
+| `Sources/Rust/src/accounts.rs`, `tools.rs`, `updater.rs` | Account transactions, auxiliary tools, rclone downloads and app release checks |
+| `Sources/Rust/src/native.rs`, `native_requests.rs`, `catalog.rs` | Translations, native action validation, Finder input and location catalogs |
+| `Sources/Rust/src/platform_text.rs`, `mac_exports.rs` | Foundation collation, file metadata and export semantics retained on macOS |
+| `Sources/Mac/EngineClient.swift` | Framed pipe requests, pending replies, events and engine-stop errors |
 | `Sources/Mac/AppMain.swift` | AppKit lifecycle, menus, WebKit bridge and native confirmations |
 | `Sources/Mac/MainToolbar.swift` | Native NSToolbar (page switcher, Accounts, Save menu, Settings), mirrored from the renderer through `setChrome` |
 | `Sources/Mac/RcloneWebView.swift` | Finder drops and window-scoped auxiliary mouse-button events, translated from native points to zoomed CSS coordinates |
@@ -35,7 +37,9 @@ Use an existing Xcode or Apple Command Line Tools installation on macOS 13+. The
 /bin/bash Test-on-Mac.command /absolute/path/to/rclone
 ```
 
-Run from the extracted project folder. On a checkout stored on a third-party NTFS driver, `swiftc` crashes (SIGTRAP) when its temporary files live there; set `RBN_TMPDIR` to an existing local folder and only temporary files go there (module caches, logs and outputs stay in the checkout). `RBN_BUILD_ARCH=arm64` or `RBN_BUILD_ARCH=x86_64` selects an architecture when cross-building with Apple's SDK. Tests require a rclone executable that the testing host can actually run.
+Run from the extracted project folder on a local filesystem supported by the build tools. Mac builds need existing Apple command-line tools, Rust 1.90 or later and Python 3.11 or later. Cargo uses the committed lockfile; its first build downloads missing crate sources. The prebuilt React resources avoid a Node.js requirement for a normal Mac build. `RBN_BUILD_ARCH=arm64` or `x86_64` selects the architecture; the matching Rust target must already be installed. The scripts do not install or update a toolchain. Tests require an explicitly supplied rclone executable that the host can run.
+
+Build outputs, Swift module caches and test fixtures use one `.build` directory; temporary files use `.tmp`. For the organized `01_原始碼` layout these are in its parent directory, and for an ordinary checkout they are in the checkout. Keep both on a suitable local filesystem. Do not reproduce a filesystem-driver crash to test compatibility.
 
 Mac build and test scripts also compile `Scripts/native/MacRcloneLauncher.c` next to each engine executable as `rbn-process-launcher`. Keep this signed helper in the App bundle and beside any manually compiled Mac engine/test. It preserves Unicode argument bytes across Foundation's filesystem normalization, then replaces itself with the requested executable, retaining the PID, pipes, environment and cancellation behavior.
 
@@ -155,11 +159,11 @@ Runtime icons are cached by purple, blue or green family. `RBNAppIconAppearance.
 
 The engine updater and app release checker are separate components. The app checker fetches only the configured public repository's `releases/latest` JSON endpoint. It validates full stable release metadata, caps the body size, rejects redirects and unexpected release links, and reports 404 as no available published release. It needs no GitHub credential. It opens a verified release page only after a user action and does not self-replace the app.
 
-Release tags use `vMAJOR.MINOR.PATCH`. Update `RBNProject.version`, `Resources/Info.plist` (marketing and build versions), `Scripts/common-mac.sh`, WebSource package and lockfile versions, the status-bar version, Compat CLI package and lockfile, Compat Cargo package and lockfile, `tauri.conf.json` and release documentation together. Change only the app's own package version in lockfiles. The workflow publishes a new version pushed to `main` after the platform and native-interface checks pass. A `work/0.9.5` push runs the same checks without publishing a release.
+Release tags use `vMAJOR.MINOR.PATCH`. Update the Rust core package version and lockfile, `Resources/Info.plist` (marketing and build versions), `Scripts/common-mac.sh`, WebSource package and lockfile versions, the status-bar version, Compat CLI package and lockfile, Compat Cargo package and lockfile, `tauri.conf.json` and release documentation together. Change only the app's own package version in lockfiles. The workflow publishes a new version pushed to `main` after the platform and native-interface checks pass. A `work/0.12.0` push runs the same checks without publishing a release.
 
 ## Verification
 
-Swift suites exercise models, settings migration, task roundtrips, queue/cancel behavior, real local/alias rclone transfers, updater validation/rollback, auxiliary process cleanup and app-release responses. `MacInterfaceTests` also loads a local document in the actual WKWebView, checks the standard and migrated zoom levels and native-to-DOM pane targeting, sends real `NSEvent` objects through the app's window handler into JavaScript, verifies theme injection before page scripts, and decodes all three ICNS files with AppKit. A pinned rclone integration fixture is separate from ordinary app installation.
+Rust suites exercise models, settings migration, task roundtrips, queue/cancel behavior, real local/alias rclone transfers, updater validation/rollback, auxiliary process cleanup and app-release responses. The versioned `Tests/rust-test-map.json` records the original 0.11.0 Swift case names and their named Rust counterparts; test totals alone are insufficient. `Scripts/test-rust.py` retains each executed binary hash, log hash and passed case name. Mac native and local-recovery suites remain Swift and launch the Rust engine. `MacInterfaceTests` also loads a local document in the actual WKWebView, checks the standard and migrated zoom levels and native-to-DOM pane targeting, sends real `NSEvent` objects through the app's window handler into JavaScript, verifies theme injection before page scripts, and decodes all three ICNS files with AppKit. A pinned rclone integration fixture is separate from ordinary app installation.
 
 Build the signed app before running the native suites. `MacStartupTests` combines the production Web bundle with the actual native cover and WebKit snapshots. `MacIconTests` applies each colour to the test application's `applicationIconImage`, checks its colour and transparency, and compares the full alpha masks of all eleven ICNS representations across the three families. A copied signed app must retain every `Contents` byte, its top-level entries, its fixed purple bundle icon and a valid `codesign --verify --deep --strict` result after each colour change and runtime reset. The test reads AppKit's runtime image and the bundle resources; it does not measure Finder's cached presentation or a physical Dock. `MacNavigationIntegrationTests` connects native events to the production React bundle and real rclone folders; it requires an explicit rclone executable.
 
@@ -179,9 +183,9 @@ The source is MIT licensed. Preserve third-party web license notices. The v2 app
 
 ## Unified 0.9.1 release
 
-The current Windows build uses `Scripts/package-compat.py`, inherits the shared Tauri version, and keeps r1 filesystem code in the main source tree. The old one-off Windows publication/frozen-Mac workflows and scripts are available at tag `windows-v0.9.0-r1`, not active in this version. `Scripts/verify-version.py` checks all current version entries and the unchanged Windows filesystem blobs. `Scripts/windows/verify-candidate.py` remains the strict installed-product gate, now used by the common workflow.
+The current Windows build uses `Scripts/package-compat.py`, inherits the shared Tauri version, and keeps r1 filesystem code in the main source tree. The old one-off Windows publication/frozen-Mac workflows and scripts are available at tag `windows-v0.9.0-r1`, not active in this version. `Scripts/verify-version.py` checks all current version entries and the unchanged Windows C launcher. Rust regressions and the installed filesystem/mutation probes guard Windows filesystem behavior; deleted Swift implementations are not described as unchanged. `Scripts/windows/verify-candidate.py` remains the strict installed-product gate, now used by the common workflow.
 
-After changing WebSource, regenerate `Resources/Web` with the pinned npm lockfile, stage the source and generated resources, then run `python3 Scripts/update-source-manifest.py`. The source ZIP includes these resources so a normal local Mac build still requires only Apple tools. Publish only when the CI for the exact source commit is green; do not reuse older platform binaries under a new version name.
+After changing WebSource, regenerate `Resources/Web` with the pinned npm lockfile, stage the source and generated resources, then run `python3 Scripts/update-source-manifest.py`. The source ZIP includes these resources so a normal local Mac build needs no frontend build tools. It requires Apple tools, Rust and Python as described above. Publish only when the CI for the exact source commit is green; do not reuse older platform binaries under a new version name.
 
 ## Window chrome and appearance (0.10.0)
 

@@ -1,0 +1,2680 @@
+{
+  "accountDecisions" : [
+    {
+      "expected" : {
+        "pause" : "additional-input"
+      },
+      "input" : {
+        "advanced" : false,
+        "fields" : {
+
+        },
+        "option" : {
+          "Name" : "future_required",
+          "Required" : true
+        },
+        "options" : {
+
+        },
+        "provider" : "drive",
+        "setup" : "quick",
+        "shared" : true
+      },
+      "label" : "unknown-oauth-question"
+    },
+    {
+      "expected" : {
+        "pause" : "additional-input"
+      },
+      "input" : {
+        "advanced" : false,
+        "fields" : {
+
+        },
+        "option" : {
+          "Name" : "future_required"
+        },
+        "options" : {
+
+        },
+        "provider" : "alias",
+        "setup" : "quick",
+        "shared" : true
+      },
+      "label" : "unknown-non-oauth"
+    },
+    {
+      "expected" : {
+        "answer" : "/synthetic"
+      },
+      "input" : {
+        "advanced" : false,
+        "fields" : {
+          "remote" : "/synthetic"
+        },
+        "option" : {
+          "Name" : "remote",
+          "Required" : true
+        },
+        "options" : {
+          "remote" : {
+
+          }
+        },
+        "provider" : "alias",
+        "setup" : "detailed",
+        "shared" : true
+      },
+      "label" : "schema-supplied"
+    },
+    {
+      "expected" : {
+        "pause" : "additional-input"
+      },
+      "input" : {
+        "advanced" : false,
+        "fields" : {
+
+        },
+        "option" : {
+          "Name" : "remote",
+          "Required" : true
+        },
+        "options" : {
+          "remote" : {
+
+          }
+        },
+        "provider" : "alias",
+        "setup" : "detailed",
+        "shared" : true
+      },
+      "label" : "schema-required-empty"
+    },
+    {
+      "expected" : {
+        "pause" : "additional-input"
+      },
+      "input" : {
+        "advanced" : false,
+        "fields" : {
+          "remote" : ""
+        },
+        "option" : {
+          "Name" : "remote",
+          "Required" : true
+        },
+        "options" : {
+          "remote" : {
+
+          }
+        },
+        "provider" : "alias",
+        "setup" : "detailed",
+        "shared" : true
+      },
+      "label" : "schema-supplied-required-empty"
+    },
+    {
+      "expected" : {
+        "answer" : "native-obscured"
+      },
+      "input" : {
+        "advanced" : false,
+        "fields" : {
+
+        },
+        "option" : {
+          "DefaultStr" : "native-obscured",
+          "IsPassword" : true,
+          "Name" : "pass"
+        },
+        "options" : {
+          "pass" : {
+            "IsPassword" : true
+          }
+        },
+        "provider" : "webdav",
+        "setup" : "detailed",
+        "shared" : true
+      },
+      "label" : "schema-retains-saved-password"
+    },
+    {
+      "expected" : {
+        "answer" : "true"
+      },
+      "input" : {
+        "advanced" : false,
+        "fields" : {
+
+        },
+        "option" : {
+          "Default" : true,
+          "Name" : "enabled"
+        },
+        "options" : {
+          "enabled" : {
+
+          }
+        },
+        "provider" : "sftp",
+        "setup" : "detailed",
+        "shared" : true
+      },
+      "label" : "schema-retains-boolean-default"
+    },
+    {
+      "expected" : {
+        "answer" : "22"
+      },
+      "input" : {
+        "advanced" : false,
+        "fields" : {
+
+        },
+        "option" : {
+          "Default" : 22,
+          "Name" : "port"
+        },
+        "options" : {
+          "port" : {
+
+          }
+        },
+        "provider" : "sftp",
+        "setup" : "detailed",
+        "shared" : true
+      },
+      "label" : "schema-retains-integer-default"
+    },
+    {
+      "expected" : {
+        "answer" : "readonly"
+      },
+      "input" : {
+        "advanced" : false,
+        "fields" : {
+          "scope" : "readonly"
+        },
+        "option" : {
+          "Examples" : [
+            {
+              "Value" : "drive"
+            },
+            {
+              "Value" : "readonly"
+            }
+          ],
+          "Exclusive" : true,
+          "Name" : "scope"
+        },
+        "options" : {
+          "scope" : {
+
+          }
+        },
+        "provider" : "drive",
+        "setup" : "detailed",
+        "shared" : true
+      },
+      "label" : "schema-exclusive-valid"
+    },
+    {
+      "expected" : {
+        "pause" : "provider-changed"
+      },
+      "input" : {
+        "advanced" : false,
+        "fields" : {
+          "scope" : "invalid"
+        },
+        "option" : {
+          "Examples" : [
+            {
+              "Value" : "drive"
+            }
+          ],
+          "Exclusive" : true,
+          "Name" : "scope"
+        },
+        "options" : {
+          "scope" : {
+
+          }
+        },
+        "provider" : "drive",
+        "setup" : "detailed",
+        "shared" : true
+      },
+      "label" : "schema-exclusive-invalid"
+    },
+    {
+      "expected" : {
+        "answer" : "anything"
+      },
+      "input" : {
+        "advanced" : false,
+        "fields" : {
+          "scope" : "anything"
+        },
+        "option" : {
+          "Examples" : [
+
+          ],
+          "Exclusive" : true,
+          "Name" : "scope"
+        },
+        "options" : {
+          "scope" : {
+
+          }
+        },
+        "provider" : "drive",
+        "setup" : "detailed",
+        "shared" : true
+      },
+      "label" : "schema-exclusive-empty-list"
+    },
+    {
+      "expected" : {
+        "answer" : "drive"
+      },
+      "input" : {
+        "advanced" : false,
+        "fields" : {
+
+        },
+        "option" : {
+          "DefaultStr" : "",
+          "Examples" : [
+            {
+              "Value" : "drive"
+            }
+          ],
+          "Name" : "scope"
+        },
+        "options" : {
+          "scope" : {
+
+          }
+        },
+        "provider" : "drive",
+        "setup" : "quick",
+        "shared" : true
+      },
+      "label" : "quick-drive-scope"
+    },
+    {
+      "expected" : {
+        "pause" : "provider-changed"
+      },
+      "input" : {
+        "advanced" : false,
+        "fields" : {
+
+        },
+        "option" : {
+          "DefaultStr" : "",
+          "Examples" : [
+            {
+              "Value" : "other"
+            }
+          ],
+          "Name" : "scope"
+        },
+        "options" : {
+          "scope" : {
+
+          }
+        },
+        "provider" : "drive",
+        "setup" : "quick",
+        "shared" : true
+      },
+      "label" : "quick-drive-scope-missing-choice"
+    },
+    {
+      "expected" : {
+        "answer" : ""
+      },
+      "input" : {
+        "advanced" : false,
+        "fields" : {
+
+        },
+        "option" : {
+          "DefaultStr" : "",
+          "Name" : "scope"
+        },
+        "options" : {
+          "scope" : {
+
+          }
+        },
+        "provider" : "drive",
+        "setup" : "detailed",
+        "shared" : true
+      },
+      "label" : "detailed-drive-scope"
+    },
+    {
+      "expected" : {
+        "pause" : "provider-changed"
+      },
+      "input" : {
+        "advanced" : false,
+        "fields" : {
+
+        },
+        "option" : {
+          "DefaultStr" : "old",
+          "Name" : "description"
+        },
+        "options" : {
+          "description" : {
+            "Advanced" : true
+          }
+        },
+        "provider" : "alias",
+        "setup" : "detailed",
+        "shared" : true
+      },
+      "label" : "advanced-schema-not-visited"
+    },
+    {
+      "expected" : {
+        "answer" : "old"
+      },
+      "input" : {
+        "advanced" : true,
+        "fields" : {
+
+        },
+        "option" : {
+          "DefaultStr" : "old",
+          "Name" : "description"
+        },
+        "options" : {
+          "description" : {
+            "Advanced" : true
+          }
+        },
+        "provider" : "alias",
+        "setup" : "detailed",
+        "shared" : true
+      },
+      "label" : "advanced-schema-visited"
+    },
+    {
+      "expected" : {
+        "pause" : "additional-input"
+      },
+      "input" : {
+        "advanced" : false,
+        "fields" : {
+
+        },
+        "option" : {
+          "Name" : "description",
+          "Required" : true
+        },
+        "options" : {
+          "description" : {
+            "Advanced" : true
+          }
+        },
+        "provider" : "alias",
+        "setup" : "detailed",
+        "shared" : true
+      },
+      "label" : "advanced-required-empty-first"
+    },
+    {
+      "expected" : {
+        "answer" : "true"
+      },
+      "input" : {
+        "advanced" : false,
+        "fields" : {
+          "description" : "text"
+        },
+        "option" : {
+          "Name" : "config_fs_advanced"
+        },
+        "options" : {
+          "description" : {
+            "Advanced" : true
+          }
+        },
+        "provider" : "alias",
+        "setup" : "detailed",
+        "shared" : true
+      },
+      "label" : "enter-advanced-once"
+    },
+    {
+      "expected" : {
+        "answer" : "false"
+      },
+      "input" : {
+        "advanced" : true,
+        "fields" : {
+          "description" : "text"
+        },
+        "option" : {
+          "Name" : "config_fs_advanced"
+        },
+        "options" : {
+          "description" : {
+            "Advanced" : true
+          }
+        },
+        "provider" : "alias",
+        "setup" : "detailed",
+        "shared" : true
+      },
+      "label" : "do-not-reenter-advanced"
+    },
+    {
+      "expected" : {
+        "answer" : "false"
+      },
+      "input" : {
+        "advanced" : false,
+        "fields" : {
+          "remote" : "/synthetic"
+        },
+        "option" : {
+          "Name" : "config_fs_advanced"
+        },
+        "options" : {
+          "remote" : {
+
+          }
+        },
+        "provider" : "alias",
+        "setup" : "detailed",
+        "shared" : true
+      },
+      "label" : "skip-advanced-unrequested"
+    },
+    {
+      "expected" : {
+        "answer" : "true"
+      },
+      "input" : {
+        "advanced" : false,
+        "fields" : {
+
+        },
+        "option" : {
+          "DefaultStr" : "false",
+          "Name" : "config_shared_client_id"
+        },
+        "options" : {
+
+        },
+        "provider" : "drive",
+        "setup" : "quick",
+        "shared" : true
+      },
+      "label" : "shared-drive-client"
+    },
+    {
+      "expected" : {
+        "answer" : "false"
+      },
+      "input" : {
+        "advanced" : false,
+        "fields" : {
+
+        },
+        "option" : {
+          "DefaultStr" : "false",
+          "Name" : "config_shared_client_id"
+        },
+        "options" : {
+
+        },
+        "provider" : "drive",
+        "setup" : "quick",
+        "shared" : false
+      },
+      "label" : "custom-drive-client"
+    },
+    {
+      "expected" : {
+        "pause" : "additional-input"
+      },
+      "input" : {
+        "advanced" : false,
+        "fields" : {
+
+        },
+        "option" : {
+          "Name" : "config_shared_client_id"
+        },
+        "options" : {
+
+        },
+        "provider" : "dropbox",
+        "setup" : "quick",
+        "shared" : true
+      },
+      "label" : "shared-client-other-provider"
+    },
+    {
+      "expected" : {
+        "answer" : "true"
+      },
+      "input" : {
+        "advanced" : false,
+        "fields" : {
+
+        },
+        "option" : {
+          "Name" : "config_is_local"
+        },
+        "options" : {
+
+        },
+        "provider" : "drive",
+        "setup" : "quick",
+        "shared" : true
+      },
+      "label" : "native-browser-drive"
+    },
+    {
+      "expected" : {
+        "answer" : "true"
+      },
+      "input" : {
+        "advanced" : false,
+        "fields" : {
+
+        },
+        "option" : {
+          "Name" : "config_is_local"
+        },
+        "options" : {
+
+        },
+        "provider" : "onedrive",
+        "setup" : "quick",
+        "shared" : true
+      },
+      "label" : "native-browser-onedrive"
+    },
+    {
+      "expected" : {
+        "answer" : "true"
+      },
+      "input" : {
+        "advanced" : false,
+        "fields" : {
+
+        },
+        "option" : {
+          "Name" : "config_is_local"
+        },
+        "options" : {
+
+        },
+        "provider" : "dropbox",
+        "setup" : "quick",
+        "shared" : true
+      },
+      "label" : "native-browser-dropbox"
+    },
+    {
+      "expected" : {
+        "pause" : "provider-changed"
+      },
+      "input" : {
+        "advanced" : false,
+        "fields" : {
+
+        },
+        "option" : {
+          "Examples" : [
+            {
+              "Value" : "false"
+            }
+          ],
+          "Exclusive" : true,
+          "Name" : "config_is_local"
+        },
+        "options" : {
+
+        },
+        "provider" : "drive",
+        "setup" : "quick",
+        "shared" : true
+      },
+      "label" : "native-browser-exclusive-changed"
+    },
+    {
+      "expected" : {
+        "answer" : "false"
+      },
+      "input" : {
+        "advanced" : false,
+        "fields" : {
+
+        },
+        "option" : {
+          "Name" : "config_change_team_drive"
+        },
+        "options" : {
+
+        },
+        "provider" : "drive",
+        "setup" : "quick",
+        "shared" : true
+      },
+      "label" : "drive-quick-no-team-drive"
+    },
+    {
+      "expected" : {
+        "pause" : "additional-input"
+      },
+      "input" : {
+        "advanced" : false,
+        "fields" : {
+
+        },
+        "option" : {
+          "Name" : "config_change_team_drive"
+        },
+        "options" : {
+
+        },
+        "provider" : "drive",
+        "setup" : "detailed",
+        "shared" : true
+      },
+      "label" : "drive-detailed-team-choice"
+    },
+    {
+      "expected" : {
+        "answer" : "onedrive"
+      },
+      "input" : {
+        "advanced" : false,
+        "fields" : {
+
+        },
+        "option" : {
+          "Examples" : [
+            {
+              "Value" : "onedrive"
+            },
+            {
+              "Value" : "sharepoint"
+            }
+          ],
+          "Name" : "config_type"
+        },
+        "options" : {
+
+        },
+        "provider" : "onedrive",
+        "setup" : "quick",
+        "shared" : true
+      },
+      "label" : "onedrive-normal-account"
+    },
+    {
+      "expected" : {
+        "pause" : "provider-changed"
+      },
+      "input" : {
+        "advanced" : false,
+        "fields" : {
+
+        },
+        "option" : {
+          "Examples" : [
+            {
+              "Value" : "sharepoint"
+            }
+          ],
+          "Name" : "config_type"
+        },
+        "options" : {
+
+        },
+        "provider" : "onedrive",
+        "setup" : "quick",
+        "shared" : true
+      },
+      "label" : "onedrive-missing-normal-account"
+    },
+    {
+      "expected" : {
+        "pause" : "additional-input"
+      },
+      "input" : {
+        "advanced" : false,
+        "fields" : {
+
+        },
+        "option" : {
+          "Examples" : [
+            {
+              "Value" : "onedrive"
+            }
+          ],
+          "Name" : "config_type"
+        },
+        "options" : {
+
+        },
+        "provider" : "onedrive",
+        "setup" : "detailed",
+        "shared" : true
+      },
+      "label" : "onedrive-detailed-account-choice"
+    },
+    {
+      "expected" : {
+        "answer" : "only"
+      },
+      "input" : {
+        "advanced" : false,
+        "fields" : {
+
+        },
+        "option" : {
+          "Examples" : [
+            {
+              "Value" : "only"
+            }
+          ],
+          "Name" : "config_driveid"
+        },
+        "options" : {
+
+        },
+        "provider" : "onedrive",
+        "setup" : "quick",
+        "shared" : true
+      },
+      "label" : "onedrive-single-drive"
+    },
+    {
+      "expected" : {
+        "pause" : "additional-input"
+      },
+      "input" : {
+        "advanced" : false,
+        "fields" : {
+
+        },
+        "option" : {
+          "Examples" : [
+            {
+              "Value" : "one"
+            },
+            {
+              "Value" : "two"
+            }
+          ],
+          "Name" : "config_driveid"
+        },
+        "options" : {
+
+        },
+        "provider" : "onedrive",
+        "setup" : "quick",
+        "shared" : true
+      },
+      "label" : "onedrive-multiple-drives"
+    },
+    {
+      "expected" : {
+        "pause" : "additional-input"
+      },
+      "input" : {
+        "advanced" : false,
+        "fields" : {
+
+        },
+        "option" : {
+          "Examples" : [
+
+          ],
+          "Name" : "config_driveid"
+        },
+        "options" : {
+
+        },
+        "provider" : "onedrive",
+        "setup" : "quick",
+        "shared" : true
+      },
+      "label" : "onedrive-no-drives"
+    },
+    {
+      "expected" : {
+        "pause" : "additional-input"
+      },
+      "input" : {
+        "advanced" : false,
+        "fields" : {
+
+        },
+        "option" : {
+          "Examples" : [
+            {
+              "Value" : "only"
+            }
+          ],
+          "Name" : "config_driveid"
+        },
+        "options" : {
+
+        },
+        "provider" : "onedrive",
+        "setup" : "detailed",
+        "shared" : true
+      },
+      "label" : "onedrive-detailed-drive-choice"
+    },
+    {
+      "expected" : {
+        "answer" : "true"
+      },
+      "input" : {
+        "advanced" : false,
+        "fields" : {
+
+        },
+        "option" : {
+          "Name" : "config_drive_ok"
+        },
+        "options" : {
+
+        },
+        "provider" : "onedrive",
+        "setup" : "quick",
+        "shared" : true
+      },
+      "label" : "onedrive-confirm-real-name"
+    },
+    {
+      "expected" : {
+        "pause" : "additional-input"
+      },
+      "input" : {
+        "advanced" : false,
+        "fields" : {
+
+        },
+        "option" : {
+          "Name" : "config_drive_ok"
+        },
+        "options" : {
+
+        },
+        "provider" : "onedrive",
+        "setup" : "detailed",
+        "shared" : true
+      },
+      "label" : "onedrive-confirm-detailed-pauses"
+    }
+  ],
+  "appReleases" : [
+    {
+      "expected" : {
+        "current" : "0.9.9",
+        "latest" : "0.10.0",
+        "releaseURL" : "https://github.com/example-owner/example-app/releases/tag/v0.10.0",
+        "status" : "available"
+      },
+      "input" : {
+        "body" : {
+          "draft" : false,
+          "html_url" : "https://github.com/example-owner/example-app/releases/tag/v0.10.0",
+          "prerelease" : false,
+          "published_at" : "2026-10-20T10:00:00Z",
+          "tag_name" : "v0.10.0"
+        },
+        "current" : "0.9.9",
+        "declared" : null,
+        "raw" : false,
+        "repository" : "example-owner/example-app",
+        "status" : 200,
+        "url" : "https://api.github.com/repos/example-owner/example-app/releases/latest"
+      },
+      "label" : "release-validation-0"
+    },
+    {
+      "expected" : {
+        "error" : "GitHub 回傳的正式版本資訊不完整。"
+      },
+      "input" : {
+        "body" : {
+          "draft" : true,
+          "html_url" : "https://github.com/example-owner/example-app/releases/tag/v0.10.0",
+          "prerelease" : false,
+          "published_at" : "2026-10-20T10:00:00Z",
+          "tag_name" : "v0.10.0"
+        },
+        "current" : "0.9.9",
+        "declared" : null,
+        "raw" : false,
+        "repository" : "example-owner/example-app",
+        "status" : 200,
+        "url" : "https://api.github.com/repos/example-owner/example-app/releases/latest"
+      },
+      "label" : "release-validation-1"
+    },
+    {
+      "expected" : {
+        "error" : "GitHub 回傳的正式版本資訊不完整。"
+      },
+      "input" : {
+        "body" : {
+          "draft" : 0,
+          "html_url" : "https://github.com/example-owner/example-app/releases/tag/v0.10.0",
+          "prerelease" : false,
+          "published_at" : "2026-10-20T10:00:00Z",
+          "tag_name" : "v0.10.0"
+        },
+        "current" : "0.9.9",
+        "declared" : null,
+        "raw" : false,
+        "repository" : "example-owner/example-app",
+        "status" : 200,
+        "url" : "https://api.github.com/repos/example-owner/example-app/releases/latest"
+      },
+      "label" : "release-validation-2"
+    },
+    {
+      "expected" : {
+        "error" : "GitHub 回傳的正式版本資訊不完整。"
+      },
+      "input" : {
+        "body" : {
+          "draft" : false,
+          "html_url" : "https://github.com/example-owner/example-app/releases/tag/v0.10.0",
+          "prerelease" : true,
+          "published_at" : "2026-10-20T10:00:00Z",
+          "tag_name" : "v0.10.0"
+        },
+        "current" : "0.9.9",
+        "declared" : null,
+        "raw" : false,
+        "repository" : "example-owner/example-app",
+        "status" : 200,
+        "url" : "https://api.github.com/repos/example-owner/example-app/releases/latest"
+      },
+      "label" : "release-validation-3"
+    },
+    {
+      "expected" : {
+        "error" : "GitHub 回傳的正式版本資訊不完整。"
+      },
+      "input" : {
+        "body" : {
+          "draft" : false,
+          "html_url" : "https://github.com/example-owner/example-app/releases/tag/v0.10.0",
+          "prerelease" : false,
+          "published_at" : null,
+          "tag_name" : "v0.10.0"
+        },
+        "current" : "0.9.9",
+        "declared" : null,
+        "raw" : false,
+        "repository" : "example-owner/example-app",
+        "status" : 200,
+        "url" : "https://api.github.com/repos/example-owner/example-app/releases/latest"
+      },
+      "label" : "release-validation-4"
+    },
+    {
+      "expected" : {
+        "error" : "GitHub 回傳的正式版本資訊不完整。"
+      },
+      "input" : {
+        "body" : {
+          "draft" : false,
+          "html_url" : "https://github.com/example-owner/example-app/releases/tag/v0.10.0",
+          "prerelease" : false,
+          "published_at" : "not a date",
+          "tag_name" : "v0.10.0"
+        },
+        "current" : "0.9.9",
+        "declared" : null,
+        "raw" : false,
+        "repository" : "example-owner/example-app",
+        "status" : 200,
+        "url" : "https://api.github.com/repos/example-owner/example-app/releases/latest"
+      },
+      "label" : "release-validation-5"
+    },
+    {
+      "expected" : {
+        "error" : "GitHub 回傳的正式版本資訊不完整。"
+      },
+      "input" : {
+        "body" : {
+          "draft" : false,
+          "html_url" : "https://github.com/example-owner/example-app/releases/tag/v0.10.0",
+          "prerelease" : false,
+          "published_at" : "2026-10-20T10:00:00.123Z",
+          "tag_name" : "v0.10.0"
+        },
+        "current" : "0.9.9",
+        "declared" : null,
+        "raw" : false,
+        "repository" : "example-owner/example-app",
+        "status" : 200,
+        "url" : "https://api.github.com/repos/example-owner/example-app/releases/latest"
+      },
+      "label" : "release-validation-6"
+    },
+    {
+      "expected" : {
+        "current" : "0.9.9",
+        "latest" : "0.10.0",
+        "releaseURL" : "https://github.com/example-owner/example-app/releases/tag/v0.10.0",
+        "status" : "available"
+      },
+      "input" : {
+        "body" : {
+          "draft" : false,
+          "html_url" : "https://github.com/example-owner/example-app/releases/tag/v0.10.0",
+          "prerelease" : false,
+          "published_at" : "2026-10-20T10:00:00+08:00",
+          "tag_name" : "v0.10.0"
+        },
+        "current" : "0.9.9",
+        "declared" : null,
+        "raw" : false,
+        "repository" : "example-owner/example-app",
+        "status" : 200,
+        "url" : "https://api.github.com/repos/example-owner/example-app/releases/latest"
+      },
+      "label" : "release-validation-7"
+    },
+    {
+      "expected" : {
+        "error" : "GitHub 回傳的正式版本資訊不完整。"
+      },
+      "input" : {
+        "body" : {
+          "draft" : false,
+          "html_url" : "https://github.com/example-owner/example-app/releases/tag/v0.10.0",
+          "prerelease" : false,
+          "published_at" : "2026-10-20T10:00Z",
+          "tag_name" : "v0.10.0"
+        },
+        "current" : "0.9.9",
+        "declared" : null,
+        "raw" : false,
+        "repository" : "example-owner/example-app",
+        "status" : 200,
+        "url" : "https://api.github.com/repos/example-owner/example-app/releases/latest"
+      },
+      "label" : "release-validation-8"
+    },
+    {
+      "expected" : {
+        "current" : "0.9.9",
+        "latest" : "0.10.0",
+        "releaseURL" : "https://github.com/example-owner/example-app/releases/tag/v0.10.0",
+        "status" : "available"
+      },
+      "input" : {
+        "body" : {
+          "draft" : false,
+          "html_url" : "https://github.com/example-owner/example-app/releases/tag/v0.10.0",
+          "prerelease" : false,
+          "published_at" : "2026-02-30T10:00:00Z",
+          "tag_name" : "v0.10.0"
+        },
+        "current" : "0.9.9",
+        "declared" : null,
+        "raw" : false,
+        "repository" : "example-owner/example-app",
+        "status" : 200,
+        "url" : "https://api.github.com/repos/example-owner/example-app/releases/latest"
+      },
+      "label" : "release-validation-9"
+    },
+    {
+      "expected" : {
+        "error" : "GitHub 回傳的正式版本資訊不完整。"
+      },
+      "input" : {
+        "body" : {
+          "draft" : false,
+          "html_url" : "https://github.com/example-owner/example-app/releases/tag/v0.10.0",
+          "prerelease" : false,
+          "published_at" : "2026-10-20T10:00:00.000000Z",
+          "tag_name" : "v0.10.0"
+        },
+        "current" : "0.9.9",
+        "declared" : null,
+        "raw" : false,
+        "repository" : "example-owner/example-app",
+        "status" : 200,
+        "url" : "https://api.github.com/repos/example-owner/example-app/releases/latest"
+      },
+      "label" : "release-validation-10"
+    },
+    {
+      "expected" : {
+        "error" : "GitHub 回傳的正式版本資訊不完整。"
+      },
+      "input" : {
+        "body" : {
+          "draft" : false,
+          "html_url" : "https://github.com/example-owner/example-app/releases/tag/v0.10.0",
+          "prerelease" : false,
+          "published_at" : "2026-10-20T10:00:00Z",
+          "tag_name" : "v0.5.0-beta"
+        },
+        "current" : "0.9.9",
+        "declared" : null,
+        "raw" : false,
+        "repository" : "example-owner/example-app",
+        "status" : 200,
+        "url" : "https://api.github.com/repos/example-owner/example-app/releases/latest"
+      },
+      "label" : "release-validation-11"
+    },
+    {
+      "expected" : {
+        "error" : "GitHub 回傳的正式版本資訊不完整。"
+      },
+      "input" : {
+        "body" : {
+          "draft" : false,
+          "html_url" : "http://github.com/example-owner/example-app/releases/tag/v0.10.0",
+          "prerelease" : false,
+          "published_at" : "2026-10-20T10:00:00Z",
+          "tag_name" : "v0.10.0"
+        },
+        "current" : "0.9.9",
+        "declared" : null,
+        "raw" : false,
+        "repository" : "example-owner/example-app",
+        "status" : 200,
+        "url" : "https://api.github.com/repos/example-owner/example-app/releases/latest"
+      },
+      "label" : "release-validation-12"
+    },
+    {
+      "expected" : {
+        "error" : "GitHub 回傳的正式版本資訊不完整。"
+      },
+      "input" : {
+        "body" : {
+          "draft" : false,
+          "html_url" : "https://github.com.evil.invalid/example-owner/example-app/releases/tag/v0.10.0",
+          "prerelease" : false,
+          "published_at" : "2026-10-20T10:00:00Z",
+          "tag_name" : "v0.10.0"
+        },
+        "current" : "0.9.9",
+        "declared" : null,
+        "raw" : false,
+        "repository" : "example-owner/example-app",
+        "status" : 200,
+        "url" : "https://api.github.com/repos/example-owner/example-app/releases/latest"
+      },
+      "label" : "release-validation-13"
+    },
+    {
+      "expected" : {
+        "error" : "GitHub 回傳的正式版本資訊不完整。"
+      },
+      "input" : {
+        "body" : {
+          "draft" : false,
+          "html_url" : "https://github.com/another/app/releases/tag/v0.10.0",
+          "prerelease" : false,
+          "published_at" : "2026-10-20T10:00:00Z",
+          "tag_name" : "v0.10.0"
+        },
+        "current" : "0.9.9",
+        "declared" : null,
+        "raw" : false,
+        "repository" : "example-owner/example-app",
+        "status" : 200,
+        "url" : "https://api.github.com/repos/example-owner/example-app/releases/latest"
+      },
+      "label" : "release-validation-14"
+    },
+    {
+      "expected" : {
+        "error" : "GitHub 回傳的正式版本資訊不完整。"
+      },
+      "input" : {
+        "body" : {
+          "draft" : false,
+          "html_url" : "https://github.com/example-owner/example-app/releases/tag/v0.10.0?next=x",
+          "prerelease" : false,
+          "published_at" : "2026-10-20T10:00:00Z",
+          "tag_name" : "v0.10.0"
+        },
+        "current" : "0.9.9",
+        "declared" : null,
+        "raw" : false,
+        "repository" : "example-owner/example-app",
+        "status" : 200,
+        "url" : "https://api.github.com/repos/example-owner/example-app/releases/latest"
+      },
+      "label" : "release-validation-15"
+    },
+    {
+      "expected" : {
+        "error" : "GitHub 回傳的正式版本資訊不完整。"
+      },
+      "input" : {
+        "body" : {
+          "draft" : false,
+          "html_url" : "https://name@github.com/example-owner/example-app/releases/tag/v0.10.0",
+          "prerelease" : false,
+          "published_at" : "2026-10-20T10:00:00Z",
+          "tag_name" : "v0.10.0"
+        },
+        "current" : "0.9.9",
+        "declared" : null,
+        "raw" : false,
+        "repository" : "example-owner/example-app",
+        "status" : 200,
+        "url" : "https://api.github.com/repos/example-owner/example-app/releases/latest"
+      },
+      "label" : "release-validation-16"
+    },
+    {
+      "expected" : {
+        "error" : "GitHub 回傳的正式版本資訊不完整。"
+      },
+      "input" : {
+        "body" : {
+          "draft" : false,
+          "html_url" : "https://github.com/example-owner/example-app/releases/tag/v0.11.0",
+          "prerelease" : false,
+          "published_at" : "2026-10-20T10:00:00Z",
+          "tag_name" : "v0.10.0"
+        },
+        "current" : "0.9.9",
+        "declared" : null,
+        "raw" : false,
+        "repository" : "example-owner/example-app",
+        "status" : 200,
+        "url" : "https://api.github.com/repos/example-owner/example-app/releases/latest"
+      },
+      "label" : "release-validation-17"
+    },
+    {
+      "expected" : {
+        "current" : "0.10.0",
+        "latest" : "0.10.0",
+        "releaseURL" : "https://github.com/example-owner/example-app/releases/tag/v0.10.0",
+        "status" : "current"
+      },
+      "input" : {
+        "body" : {
+          "draft" : false,
+          "html_url" : "https://github.com/example-owner/example-app/releases/tag/v0.10.0",
+          "prerelease" : false,
+          "published_at" : "2026-10-20T10:00:00Z",
+          "tag_name" : "v0.10.0"
+        },
+        "current" : "0.10.0",
+        "declared" : null,
+        "raw" : false,
+        "repository" : "example-owner/example-app",
+        "status" : 200,
+        "url" : "https://api.github.com/repos/example-owner/example-app/releases/latest"
+      },
+      "label" : "same-version"
+    },
+    {
+      "expected" : {
+        "current" : "0.11.0",
+        "latest" : "0.10.0",
+        "releaseURL" : "https://github.com/example-owner/example-app/releases/tag/v0.10.0",
+        "status" : "current"
+      },
+      "input" : {
+        "body" : {
+          "draft" : false,
+          "html_url" : "https://github.com/example-owner/example-app/releases/tag/v0.10.0",
+          "prerelease" : false,
+          "published_at" : "2026-10-20T10:00:00Z",
+          "tag_name" : "v0.10.0"
+        },
+        "current" : "0.11.0",
+        "declared" : null,
+        "raw" : false,
+        "repository" : "example-owner/example-app",
+        "status" : 200,
+        "url" : "https://api.github.com/repos/example-owner/example-app/releases/latest"
+      },
+      "label" : "newer-installed"
+    },
+    {
+      "expected" : {
+        "current" : "0.9.9",
+        "releaseURL" : "https://github.com/example-owner/example-app/releases",
+        "status" : "unpublished"
+      },
+      "input" : {
+        "body" : "{}",
+        "current" : "0.9.9",
+        "declared" : null,
+        "raw" : true,
+        "repository" : "example-owner/example-app",
+        "status" : 404,
+        "url" : "https://api.github.com/repos/example-owner/example-app/releases/latest"
+      },
+      "label" : "unpublished"
+    },
+    {
+      "expected" : {
+        "error" : "GitHub 回傳的正式版本資訊不完整。"
+      },
+      "input" : {
+        "body" : "not JSON",
+        "current" : "0.9.9",
+        "declared" : null,
+        "raw" : true,
+        "repository" : "example-owner/example-app",
+        "status" : 200,
+        "url" : "https://api.github.com/repos/example-owner/example-app/releases/latest"
+      },
+      "label" : "invalid-json"
+    },
+    {
+      "expected" : {
+        "error" : "GitHub 暫時限制更新檢查，請稍後再試。"
+      },
+      "input" : {
+        "body" : {
+          "draft" : false,
+          "html_url" : "https://github.com/example-owner/example-app/releases/tag/v0.10.0",
+          "prerelease" : false,
+          "published_at" : "2026-10-20T10:00:00Z",
+          "tag_name" : "v0.10.0"
+        },
+        "current" : "0.9.9",
+        "declared" : null,
+        "raw" : false,
+        "repository" : "example-owner/example-app",
+        "status" : 403,
+        "url" : "https://api.github.com/repos/example-owner/example-app/releases/latest"
+      },
+      "label" : "http-403"
+    },
+    {
+      "expected" : {
+        "error" : "GitHub 暫時限制更新檢查，請稍後再試。"
+      },
+      "input" : {
+        "body" : {
+          "draft" : false,
+          "html_url" : "https://github.com/example-owner/example-app/releases/tag/v0.10.0",
+          "prerelease" : false,
+          "published_at" : "2026-10-20T10:00:00Z",
+          "tag_name" : "v0.10.0"
+        },
+        "current" : "0.9.9",
+        "declared" : null,
+        "raw" : false,
+        "repository" : "example-owner/example-app",
+        "status" : 429,
+        "url" : "https://api.github.com/repos/example-owner/example-app/releases/latest"
+      },
+      "label" : "http-429"
+    },
+    {
+      "expected" : {
+        "error" : "GitHub 更新檢查失敗（HTTP 500）。"
+      },
+      "input" : {
+        "body" : {
+          "draft" : false,
+          "html_url" : "https://github.com/example-owner/example-app/releases/tag/v0.10.0",
+          "prerelease" : false,
+          "published_at" : "2026-10-20T10:00:00Z",
+          "tag_name" : "v0.10.0"
+        },
+        "current" : "0.9.9",
+        "declared" : null,
+        "raw" : false,
+        "repository" : "example-owner/example-app",
+        "status" : 500,
+        "url" : "https://api.github.com/repos/example-owner/example-app/releases/latest"
+      },
+      "label" : "http-500"
+    },
+    {
+      "expected" : {
+        "error" : "更新資訊轉址到其他位置，已停止檢查。"
+      },
+      "input" : {
+        "body" : {
+          "draft" : false,
+          "html_url" : "https://github.com/example-owner/example-app/releases/tag/v0.10.0",
+          "prerelease" : false,
+          "published_at" : "2026-10-20T10:00:00Z",
+          "tag_name" : "v0.10.0"
+        },
+        "current" : "0.9.9",
+        "declared" : null,
+        "raw" : false,
+        "repository" : "example-owner/example-app",
+        "status" : 200,
+        "url" : "https://example.invalid/releases/latest"
+      },
+      "label" : "off-site-reply"
+    },
+    {
+      "expected" : {
+        "error" : "GitHub 更新資訊超過允許大小。"
+      },
+      "input" : {
+        "body" : {
+          "draft" : false,
+          "html_url" : "https://github.com/example-owner/example-app/releases/tag/v0.10.0",
+          "prerelease" : false,
+          "published_at" : "2026-10-20T10:00:00Z",
+          "tag_name" : "v0.10.0"
+        },
+        "current" : "0.9.9",
+        "declared" : 524289,
+        "raw" : false,
+        "repository" : "example-owner/example-app",
+        "status" : 200,
+        "url" : "https://api.github.com/repos/example-owner/example-app/releases/latest"
+      },
+      "label" : "declared-limit"
+    },
+    {
+      "expected" : {
+        "current" : "0.9.9",
+        "latest" : "0.10.0",
+        "releaseURL" : "https://github.com/example-owner/example-app/releases/tag/v0.10.0",
+        "status" : "available"
+      },
+      "input" : {
+        "body" : {
+          "draft" : false,
+          "html_url" : "https://github.com/example-owner/example-app/releases/tag/v0.10.0",
+          "prerelease" : false,
+          "published_at" : "0000-01-01T00:00:00Z",
+          "tag_name" : "v0.10.0"
+        },
+        "current" : "0.9.9",
+        "declared" : null,
+        "raw" : false,
+        "repository" : "example-owner/example-app",
+        "status" : 200,
+        "url" : "https://api.github.com/repos/example-owner/example-app/releases/latest"
+      },
+      "label" : "date-matrix-0"
+    },
+    {
+      "expected" : {
+        "current" : "0.9.9",
+        "latest" : "0.10.0",
+        "releaseURL" : "https://github.com/example-owner/example-app/releases/tag/v0.10.0",
+        "status" : "available"
+      },
+      "input" : {
+        "body" : {
+          "draft" : false,
+          "html_url" : "https://github.com/example-owner/example-app/releases/tag/v0.10.0",
+          "prerelease" : false,
+          "published_at" : "10000-01-01T00:00:00Z",
+          "tag_name" : "v0.10.0"
+        },
+        "current" : "0.9.9",
+        "declared" : null,
+        "raw" : false,
+        "repository" : "example-owner/example-app",
+        "status" : 200,
+        "url" : "https://api.github.com/repos/example-owner/example-app/releases/latest"
+      },
+      "label" : "date-matrix-1"
+    },
+    {
+      "expected" : {
+        "error" : "GitHub 回傳的正式版本資訊不完整。"
+      },
+      "input" : {
+        "body" : {
+          "draft" : false,
+          "html_url" : "https://github.com/example-owner/example-app/releases/tag/v0.10.0",
+          "prerelease" : false,
+          "published_at" : "2026-00-01T00:00:00Z",
+          "tag_name" : "v0.10.0"
+        },
+        "current" : "0.9.9",
+        "declared" : null,
+        "raw" : false,
+        "repository" : "example-owner/example-app",
+        "status" : 200,
+        "url" : "https://api.github.com/repos/example-owner/example-app/releases/latest"
+      },
+      "label" : "date-matrix-2"
+    },
+    {
+      "expected" : {
+        "error" : "GitHub 回傳的正式版本資訊不完整。"
+      },
+      "input" : {
+        "body" : {
+          "draft" : false,
+          "html_url" : "https://github.com/example-owner/example-app/releases/tag/v0.10.0",
+          "prerelease" : false,
+          "published_at" : "2026-13-01T00:00:00Z",
+          "tag_name" : "v0.10.0"
+        },
+        "current" : "0.9.9",
+        "declared" : null,
+        "raw" : false,
+        "repository" : "example-owner/example-app",
+        "status" : 200,
+        "url" : "https://api.github.com/repos/example-owner/example-app/releases/latest"
+      },
+      "label" : "date-matrix-3"
+    },
+    {
+      "expected" : {
+        "error" : "GitHub 回傳的正式版本資訊不完整。"
+      },
+      "input" : {
+        "body" : {
+          "draft" : false,
+          "html_url" : "https://github.com/example-owner/example-app/releases/tag/v0.10.0",
+          "prerelease" : false,
+          "published_at" : "2026-01-00T00:00:00Z",
+          "tag_name" : "v0.10.0"
+        },
+        "current" : "0.9.9",
+        "declared" : null,
+        "raw" : false,
+        "repository" : "example-owner/example-app",
+        "status" : 200,
+        "url" : "https://api.github.com/repos/example-owner/example-app/releases/latest"
+      },
+      "label" : "date-matrix-4"
+    },
+    {
+      "expected" : {
+        "error" : "GitHub 回傳的正式版本資訊不完整。"
+      },
+      "input" : {
+        "body" : {
+          "draft" : false,
+          "html_url" : "https://github.com/example-owner/example-app/releases/tag/v0.10.0",
+          "prerelease" : false,
+          "published_at" : "2026-01-32T00:00:00Z",
+          "tag_name" : "v0.10.0"
+        },
+        "current" : "0.9.9",
+        "declared" : null,
+        "raw" : false,
+        "repository" : "example-owner/example-app",
+        "status" : 200,
+        "url" : "https://api.github.com/repos/example-owner/example-app/releases/latest"
+      },
+      "label" : "date-matrix-5"
+    },
+    {
+      "expected" : {
+        "current" : "0.9.9",
+        "latest" : "0.10.0",
+        "releaseURL" : "https://github.com/example-owner/example-app/releases/tag/v0.10.0",
+        "status" : "available"
+      },
+      "input" : {
+        "body" : {
+          "draft" : false,
+          "html_url" : "https://github.com/example-owner/example-app/releases/tag/v0.10.0",
+          "prerelease" : false,
+          "published_at" : "2026-02-29T00:00:00Z",
+          "tag_name" : "v0.10.0"
+        },
+        "current" : "0.9.9",
+        "declared" : null,
+        "raw" : false,
+        "repository" : "example-owner/example-app",
+        "status" : 200,
+        "url" : "https://api.github.com/repos/example-owner/example-app/releases/latest"
+      },
+      "label" : "date-matrix-6"
+    },
+    {
+      "expected" : {
+        "current" : "0.9.9",
+        "latest" : "0.10.0",
+        "releaseURL" : "https://github.com/example-owner/example-app/releases/tag/v0.10.0",
+        "status" : "available"
+      },
+      "input" : {
+        "body" : {
+          "draft" : false,
+          "html_url" : "https://github.com/example-owner/example-app/releases/tag/v0.10.0",
+          "prerelease" : false,
+          "published_at" : "2024-02-29T00:00:00Z",
+          "tag_name" : "v0.10.0"
+        },
+        "current" : "0.9.9",
+        "declared" : null,
+        "raw" : false,
+        "repository" : "example-owner/example-app",
+        "status" : 200,
+        "url" : "https://api.github.com/repos/example-owner/example-app/releases/latest"
+      },
+      "label" : "date-matrix-7"
+    },
+    {
+      "expected" : {
+        "current" : "0.9.9",
+        "latest" : "0.10.0",
+        "releaseURL" : "https://github.com/example-owner/example-app/releases/tag/v0.10.0",
+        "status" : "available"
+      },
+      "input" : {
+        "body" : {
+          "draft" : false,
+          "html_url" : "https://github.com/example-owner/example-app/releases/tag/v0.10.0",
+          "prerelease" : false,
+          "published_at" : "2026-01-01T24:00:00Z",
+          "tag_name" : "v0.10.0"
+        },
+        "current" : "0.9.9",
+        "declared" : null,
+        "raw" : false,
+        "repository" : "example-owner/example-app",
+        "status" : 200,
+        "url" : "https://api.github.com/repos/example-owner/example-app/releases/latest"
+      },
+      "label" : "date-matrix-8"
+    },
+    {
+      "expected" : {
+        "error" : "GitHub 回傳的正式版本資訊不完整。"
+      },
+      "input" : {
+        "body" : {
+          "draft" : false,
+          "html_url" : "https://github.com/example-owner/example-app/releases/tag/v0.10.0",
+          "prerelease" : false,
+          "published_at" : "2026-01-01T25:00:00Z",
+          "tag_name" : "v0.10.0"
+        },
+        "current" : "0.9.9",
+        "declared" : null,
+        "raw" : false,
+        "repository" : "example-owner/example-app",
+        "status" : 200,
+        "url" : "https://api.github.com/repos/example-owner/example-app/releases/latest"
+      },
+      "label" : "date-matrix-9"
+    },
+    {
+      "expected" : {
+        "error" : "GitHub 回傳的正式版本資訊不完整。"
+      },
+      "input" : {
+        "body" : {
+          "draft" : false,
+          "html_url" : "https://github.com/example-owner/example-app/releases/tag/v0.10.0",
+          "prerelease" : false,
+          "published_at" : "2026-01-01T23:60:00Z",
+          "tag_name" : "v0.10.0"
+        },
+        "current" : "0.9.9",
+        "declared" : null,
+        "raw" : false,
+        "repository" : "example-owner/example-app",
+        "status" : 200,
+        "url" : "https://api.github.com/repos/example-owner/example-app/releases/latest"
+      },
+      "label" : "date-matrix-10"
+    },
+    {
+      "expected" : {
+        "error" : "GitHub 回傳的正式版本資訊不完整。"
+      },
+      "input" : {
+        "body" : {
+          "draft" : false,
+          "html_url" : "https://github.com/example-owner/example-app/releases/tag/v0.10.0",
+          "prerelease" : false,
+          "published_at" : "2026-01-01T23:59:60Z",
+          "tag_name" : "v0.10.0"
+        },
+        "current" : "0.9.9",
+        "declared" : null,
+        "raw" : false,
+        "repository" : "example-owner/example-app",
+        "status" : 200,
+        "url" : "https://api.github.com/repos/example-owner/example-app/releases/latest"
+      },
+      "label" : "date-matrix-11"
+    },
+    {
+      "expected" : {
+        "error" : "GitHub 回傳的正式版本資訊不完整。"
+      },
+      "input" : {
+        "body" : {
+          "draft" : false,
+          "html_url" : "https://github.com/example-owner/example-app/releases/tag/v0.10.0",
+          "prerelease" : false,
+          "published_at" : "2026-01-01T23:59:61Z",
+          "tag_name" : "v0.10.0"
+        },
+        "current" : "0.9.9",
+        "declared" : null,
+        "raw" : false,
+        "repository" : "example-owner/example-app",
+        "status" : 200,
+        "url" : "https://api.github.com/repos/example-owner/example-app/releases/latest"
+      },
+      "label" : "date-matrix-12"
+    },
+    {
+      "expected" : {
+        "current" : "0.9.9",
+        "latest" : "0.10.0",
+        "releaseURL" : "https://github.com/example-owner/example-app/releases/tag/v0.10.0",
+        "status" : "available"
+      },
+      "input" : {
+        "body" : {
+          "draft" : false,
+          "html_url" : "https://github.com/example-owner/example-app/releases/tag/v0.10.0",
+          "prerelease" : false,
+          "published_at" : "2026-10-20T10:00:00+0800",
+          "tag_name" : "v0.10.0"
+        },
+        "current" : "0.9.9",
+        "declared" : null,
+        "raw" : false,
+        "repository" : "example-owner/example-app",
+        "status" : 200,
+        "url" : "https://api.github.com/repos/example-owner/example-app/releases/latest"
+      },
+      "label" : "date-matrix-13"
+    },
+    {
+      "expected" : {
+        "error" : "GitHub 回傳的正式版本資訊不完整。"
+      },
+      "input" : {
+        "body" : {
+          "draft" : false,
+          "html_url" : "https://github.com/example-owner/example-app/releases/tag/v0.10.0",
+          "prerelease" : false,
+          "published_at" : "2026-10-20t10:00:00z",
+          "tag_name" : "v0.10.0"
+        },
+        "current" : "0.9.9",
+        "declared" : null,
+        "raw" : false,
+        "repository" : "example-owner/example-app",
+        "status" : 200,
+        "url" : "https://api.github.com/repos/example-owner/example-app/releases/latest"
+      },
+      "label" : "date-matrix-14"
+    },
+    {
+      "expected" : {
+        "current" : "0.9.9",
+        "latest" : "0.10.0",
+        "releaseURL" : "https://github.com/example-owner/example-app/releases/tag/v0.10.0",
+        "status" : "available"
+      },
+      "input" : {
+        "body" : {
+          "draft" : false,
+          "html_url" : "https://github.com/example-owner/example-app/releases/tag/v0.10.0",
+          "prerelease" : false,
+          "published_at" : "2026-10-20T10:00:00Z ",
+          "tag_name" : "v0.10.0"
+        },
+        "current" : "0.9.9",
+        "declared" : null,
+        "raw" : false,
+        "repository" : "example-owner/example-app",
+        "status" : 200,
+        "url" : "https://api.github.com/repos/example-owner/example-app/releases/latest"
+      },
+      "label" : "date-matrix-15"
+    },
+    {
+      "expected" : {
+        "current" : "0.9.9",
+        "latest" : "0.10.0",
+        "releaseURL" : "https://github.com/example-owner/example-app/releases/tag/v0.10.0",
+        "status" : "available"
+      },
+      "input" : {
+        "body" : {
+          "draft" : false,
+          "html_url" : "https://github.com/example-owner/example-app/releases/tag/v0.10.0",
+          "prerelease" : false,
+          "published_at" : " 2026-10-20T10:00:00Z",
+          "tag_name" : "v0.10.0"
+        },
+        "current" : "0.9.9",
+        "declared" : null,
+        "raw" : false,
+        "repository" : "example-owner/example-app",
+        "status" : 200,
+        "url" : "https://api.github.com/repos/example-owner/example-app/releases/latest"
+      },
+      "label" : "date-matrix-16"
+    },
+    {
+      "expected" : {
+        "current" : "0.9.9",
+        "latest" : "0.10.0",
+        "releaseURL" : "https://github.com/example-owner/example-app/releases/tag/v0.10.0",
+        "status" : "available"
+      },
+      "input" : {
+        "body" : {
+          "draft" : false,
+          "html_url" : "https://github.com/example-owner/example-app/releases/tag/v0.10.0",
+          "prerelease" : false,
+          "published_at" : "2026-10-20T10:00:00Ztrailing",
+          "tag_name" : "v0.10.0"
+        },
+        "current" : "0.9.9",
+        "declared" : null,
+        "raw" : false,
+        "repository" : "example-owner/example-app",
+        "status" : 200,
+        "url" : "https://api.github.com/repos/example-owner/example-app/releases/latest"
+      },
+      "label" : "date-matrix-17"
+    },
+    {
+      "expected" : {
+        "current" : "0.9.9",
+        "latest" : "0.10.0",
+        "releaseURL" : "https://github.com/example-owner/example-app/releases/tag/v0.10.0",
+        "status" : "available"
+      },
+      "input" : {
+        "body" : {
+          "draft" : false,
+          "html_url" : "https://github.com/example-owner/example-app/releases/tag/v0.10.0",
+          "prerelease" : false,
+          "published_at" : "2026-10-20T10:00:00+24:00",
+          "tag_name" : "v0.10.0"
+        },
+        "current" : "0.9.9",
+        "declared" : null,
+        "raw" : false,
+        "repository" : "example-owner/example-app",
+        "status" : 200,
+        "url" : "https://api.github.com/repos/example-owner/example-app/releases/latest"
+      },
+      "label" : "date-matrix-18"
+    },
+    {
+      "expected" : {
+        "error" : "GitHub 回傳的正式版本資訊不完整。"
+      },
+      "input" : {
+        "body" : {
+          "draft" : false,
+          "html_url" : "https://github.com/example-owner/example-app/releases/tag/v0.10.0",
+          "prerelease" : false,
+          "published_at" : "2026-10-20T10:00:00",
+          "tag_name" : "v0.10.0"
+        },
+        "current" : "0.9.9",
+        "declared" : null,
+        "raw" : false,
+        "repository" : "example-owner/example-app",
+        "status" : 200,
+        "url" : "https://api.github.com/repos/example-owner/example-app/releases/latest"
+      },
+      "label" : "date-matrix-19"
+    },
+    {
+      "expected" : {
+        "error" : "GitHub 回傳的正式版本資訊不完整。"
+      },
+      "input" : {
+        "body" : {
+          "draft" : false,
+          "html_url" : "https://github.com/example-owner/example-app/releases/tag/v0.10.0",
+          "prerelease" : false,
+          "published_at" : "20261020T10:00:00Z",
+          "tag_name" : "v0.10.0"
+        },
+        "current" : "0.9.9",
+        "declared" : null,
+        "raw" : false,
+        "repository" : "example-owner/example-app",
+        "status" : 200,
+        "url" : "https://api.github.com/repos/example-owner/example-app/releases/latest"
+      },
+      "label" : "date-matrix-20"
+    },
+    {
+      "expected" : {
+        "error" : "GitHub 回傳的正式版本資訊不完整。"
+      },
+      "input" : {
+        "body" : {
+          "draft" : false,
+          "html_url" : "https://github.com/example-owner/example-app/releases/tag/v0.10.0",
+          "prerelease" : false,
+          "published_at" : "2026-10-20T100000Z",
+          "tag_name" : "v0.10.0"
+        },
+        "current" : "0.9.9",
+        "declared" : null,
+        "raw" : false,
+        "repository" : "example-owner/example-app",
+        "status" : 200,
+        "url" : "https://api.github.com/repos/example-owner/example-app/releases/latest"
+      },
+      "label" : "date-matrix-21"
+    },
+    {
+      "expected" : {
+        "current" : "0.9.9",
+        "latest" : "0.10.0",
+        "releaseURL" : "https://github.com/example-owner/example-app/releases/tag/v0.10.0",
+        "status" : "available"
+      },
+      "input" : {
+        "body" : {
+          "draft" : false,
+          "html_url" : "https://github.com/example-owner/example-app/releases/tag/v0.10.0",
+          "prerelease" : false,
+          "published_at" : "2026-10-20T10:00:00+08",
+          "tag_name" : "v0.10.0"
+        },
+        "current" : "0.9.9",
+        "declared" : null,
+        "raw" : false,
+        "repository" : "example-owner/example-app",
+        "status" : 200,
+        "url" : "https://api.github.com/repos/example-owner/example-app/releases/latest"
+      },
+      "label" : "date-matrix-22"
+    },
+    {
+      "expected" : {
+        "current" : "0.9.9",
+        "latest" : "0.10.0",
+        "releaseURL" : "https://github.com/example-owner/example-app/releases/tag/v0.10.0",
+        "status" : "available"
+      },
+      "input" : {
+        "body" : {
+          "draft" : false,
+          "html_url" : "https://github.com/example-owner/example-app/releases/tag/v0.10.0",
+          "prerelease" : false,
+          "published_at" : "2026-10-20T10:00:00+08:99",
+          "tag_name" : "v0.10.0"
+        },
+        "current" : "0.9.9",
+        "declared" : null,
+        "raw" : false,
+        "repository" : "example-owner/example-app",
+        "status" : 200,
+        "url" : "https://api.github.com/repos/example-owner/example-app/releases/latest"
+      },
+      "label" : "date-matrix-23"
+    },
+    {
+      "expected" : {
+        "error" : "GitHub 回傳的正式版本資訊不完整。"
+      },
+      "input" : {
+        "body" : {
+          "draft" : false,
+          "html_url" : "https://github.com/example-owner/example-app/releases/tag/v0.10.0",
+          "prerelease" : false,
+          "published_at" : "2026-10-20T10:00:00.0+08:00",
+          "tag_name" : "v0.10.0"
+        },
+        "current" : "0.9.9",
+        "declared" : null,
+        "raw" : false,
+        "repository" : "example-owner/example-app",
+        "status" : 200,
+        "url" : "https://api.github.com/repos/example-owner/example-app/releases/latest"
+      },
+      "label" : "date-matrix-24"
+    }
+  ],
+  "authorization" : [
+    {
+      "input" : "http://127.0.0.1:53682/auth?state=x",
+      "valid" : true
+    },
+    {
+      "input" : "http://localhost:5000/auth?state=123",
+      "valid" : true
+    },
+    {
+      "input" : "http://[::1]:5000/auth?state=x",
+      "valid" : true
+    },
+    {
+      "input" : "https://example.com/auth?state=x",
+      "valid" : false
+    },
+    {
+      "input" : "http://127.0.0.1:80/auth?state=x",
+      "valid" : false
+    },
+    {
+      "input" : "http://user@localhost:5000/auth?state=x",
+      "valid" : false
+    },
+    {
+      "input" : "http://localhost:5000/admin?state=x",
+      "valid" : false
+    },
+    {
+      "input" : "http://localhost:5000/auth",
+      "valid" : false
+    },
+    {
+      "input" : "file:///tmp/a",
+      "valid" : false
+    },
+    {
+      "input" : "http://localhost:5000/auth?state=",
+      "valid" : false
+    },
+    {
+      "input" : "http://localhost:5000/auth?state=x#fragment",
+      "valid" : true
+    }
+  ],
+  "automaticProgress" : [
+    {
+      "expected" : true,
+      "input" : {
+        "answer" : "true",
+        "limit" : 2,
+        "name" : "same",
+        "state" : "opaque"
+      }
+    },
+    {
+      "expected" : false,
+      "input" : {
+        "answer" : "true",
+        "limit" : 2,
+        "name" : "same",
+        "state" : "opaque"
+      }
+    },
+    {
+      "expected" : true,
+      "input" : {
+        "answer" : "true",
+        "limit" : 2,
+        "name" : "same",
+        "state" : "opaque-next"
+      }
+    },
+    {
+      "expected" : false,
+      "input" : {
+        "answer" : "true",
+        "limit" : 2,
+        "name" : "same",
+        "state" : "opaque-final"
+      }
+    },
+    {
+      "expected" : true,
+      "input" : {
+        "answer" : "true",
+        "limit" : 2,
+        "name" : "same",
+        "reset" : true,
+        "state" : "opaque"
+      }
+    }
+  ],
+  "baseline" : "0.11.0",
+  "downloads" : [
+    {
+      "expected" : {
+        "ok" : true
+      },
+      "input" : {
+        "maximum" : 1024,
+        "size" : 16,
+        "status" : 200,
+        "url" : "https://downloads.rclone.org/version.txt"
+      }
+    },
+    {
+      "expected" : {
+        "ok" : true
+      },
+      "input" : {
+        "maximum" : 1024,
+        "size" : -1,
+        "status" : 200,
+        "url" : "https://downloads.rclone.org/version.txt"
+      }
+    },
+    {
+      "expected" : {
+        "error" : "rclone 官方下載站回傳 HTTP 403（version.txt）。請稍後重試。",
+        "retryable" : false
+      },
+      "input" : {
+        "maximum" : 1024,
+        "size" : -1,
+        "status" : 403,
+        "url" : "https://downloads.rclone.org/version.txt"
+      }
+    },
+    {
+      "expected" : {
+        "error" : "rclone 官方下載站回傳 HTTP 404（version.txt）。請稍後重試。",
+        "retryable" : false
+      },
+      "input" : {
+        "maximum" : 1024,
+        "size" : -1,
+        "status" : 404,
+        "url" : "https://downloads.rclone.org/version.txt"
+      }
+    },
+    {
+      "expected" : {
+        "error" : "rclone 官方下載站回傳 HTTP 429（version.txt）。請稍後重試。",
+        "retryable" : true
+      },
+      "input" : {
+        "maximum" : 1024,
+        "size" : -1,
+        "status" : 429,
+        "url" : "https://downloads.rclone.org/version.txt"
+      }
+    },
+    {
+      "expected" : {
+        "error" : "rclone 官方下載站回傳 HTTP 503（version.txt）。請稍後重試。",
+        "retryable" : true
+      },
+      "input" : {
+        "maximum" : 1024,
+        "size" : -1,
+        "status" : 503,
+        "url" : "https://downloads.rclone.org/version.txt"
+      }
+    },
+    {
+      "expected" : {
+        "error" : "下載大小超過上限（2048 bytes，上限 1024 bytes），已停止下載。",
+        "retryable" : false
+      },
+      "input" : {
+        "maximum" : 1024,
+        "size" : 2048,
+        "status" : 200,
+        "url" : "https://downloads.rclone.org/version.txt"
+      }
+    },
+    {
+      "expected" : {
+        "error" : "更新回應並非來自 rclone 官方下載站。",
+        "retryable" : false
+      },
+      "input" : {
+        "maximum" : 1024,
+        "size" : 16,
+        "status" : 200,
+        "url" : "https://example.org/version.txt"
+      }
+    }
+  ],
+  "fieldValidation" : [
+    {
+      "expected" : {
+        "ok" : true
+      },
+      "input" : {
+        "fields" : {
+          "remote" : "/synthetic"
+        },
+        "label" : "valid-text",
+        "options" : {
+          "remote" : {
+            "Name" : "remote"
+          }
+        }
+      }
+    },
+    {
+      "expected" : {
+        "error" : "An account field is not supported by the selected rclone provider. Reload the account form."
+      },
+      "input" : {
+        "fields" : {
+          "unknown" : "value"
+        },
+        "label" : "unknown-key",
+        "options" : {
+
+        }
+      }
+    },
+    {
+      "expected" : {
+        "ok" : true
+      },
+      "input" : {
+        "fields" : {
+          "remote" : ""
+        },
+        "label" : "optional-empty",
+        "options" : {
+          "remote" : {
+            "Name" : "remote"
+          }
+        }
+      }
+    },
+    {
+      "expected" : {
+        "error" : "This password contains a line break. Use a credential file or the terminal config tool."
+      },
+      "input" : {
+        "fields" : {
+          "pass" : "a\nb"
+        },
+        "label" : "password-newline",
+        "options" : {
+          "pass" : {
+            "IsPassword" : true
+          }
+        }
+      }
+    },
+    {
+      "expected" : {
+        "error" : "This password contains a line break. Use a credential file or the terminal config tool."
+      },
+      "input" : {
+        "fields" : {
+          "pass" : "a\rb"
+        },
+        "label" : "password-return",
+        "options" : {
+          "pass" : {
+            "IsPassword" : true
+          }
+        }
+      }
+    },
+    {
+      "expected" : {
+        "ok" : true
+      },
+      "input" : {
+        "fields" : {
+          "text" : "a\nb"
+        },
+        "label" : "non-password-multiline",
+        "options" : {
+          "text" : {
+            "Name" : "text"
+          }
+        }
+      }
+    },
+    {
+      "expected" : {
+        "error" : "An account field is too long. Use a credential file for large credentials."
+      },
+      "input" : {
+        "fields" : {
+          "remote" : "a\u0000b"
+        },
+        "label" : "nul",
+        "options" : {
+          "remote" : {
+            "Name" : "remote"
+          }
+        }
+      }
+    },
+    {
+      "expected" : {
+        "error" : "An account field is too long. Use a credential file for large credentials."
+      },
+      "input" : {
+        "generator" : "oversize-field",
+        "label" : "oversize-field"
+      }
+    },
+    {
+      "expected" : {
+        "error" : "There are too many account fields. Use a credential file for large credentials."
+      },
+      "input" : {
+        "generator" : "too-many-fields",
+        "label" : "too-many-fields"
+      }
+    },
+    {
+      "expected" : {
+        "error" : "There are too many account fields. Use a credential file for large credentials."
+      },
+      "input" : {
+        "generator" : "total-byte-limit",
+        "label" : "total-byte-limit"
+      }
+    }
+  ],
+  "names" : [
+    {
+      "input" : "",
+      "valid" : false
+    },
+    {
+      "input" : "../evil",
+      "valid" : false
+    },
+    {
+      "input" : "bad:name",
+      "valid" : false
+    },
+    {
+      "input" : "-option",
+      "valid" : false
+    },
+    {
+      "input" : "line\nbreak",
+      "valid" : false
+    },
+    {
+      "input" : "[remote]",
+      "valid" : false
+    },
+    {
+      "input" : " leading",
+      "valid" : false
+    },
+    {
+      "input" : "..",
+      "valid" : false
+    },
+    {
+      "input" : "a\\b",
+      "valid" : false
+    },
+    {
+      "input" : "測試-日本語",
+      "valid" : true
+    },
+    {
+      "input" : "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "valid" : true
+    },
+    {
+      "input" : "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "valid" : false
+    },
+    {
+      "input" : "remote",
+      "valid" : true
+    },
+    {
+      "input" : "éééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééé",
+      "valid" : true
+    },
+    {
+      "input" : "ééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééé",
+      "valid" : false
+    },
+    {
+      "input" : "👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦",
+      "valid" : true
+    },
+    {
+      "input" : "👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦",
+      "valid" : false
+    },
+    {
+      "input" : "日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日",
+      "valid" : true
+    },
+    {
+      "input" : "日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日日",
+      "valid" : false
+    }
+  ],
+  "sanitizedOptions" : [
+    {
+      "expected" : {
+        "Default" : "",
+        "DefaultStr" : "",
+        "Name" : "client_secret",
+        "Sensitive" : true
+      },
+      "input" : {
+        "Default" : "native-secret",
+        "DefaultStr" : "native-secret",
+        "Name" : "client_secret",
+        "Value" : "native-secret",
+        "ValueStr" : "native-secret"
+      }
+    },
+    {
+      "expected" : {
+        "Default" : 22,
+        "DefaultStr" : "22",
+        "Name" : "port"
+      },
+      "input" : {
+        "Default" : 22,
+        "DefaultStr" : "22",
+        "Name" : "port",
+        "Value" : 22,
+        "ValueStr" : "22"
+      }
+    },
+    {
+      "expected" : {
+        "Default" : "",
+        "DefaultStr" : "",
+        "IsPassword" : true,
+        "Name" : "password",
+        "Sensitive" : true
+      },
+      "input" : {
+        "Default" : "obscured",
+        "IsPassword" : true,
+        "Name" : "password"
+      }
+    },
+    {
+      "expected" : {
+        "Default" : "",
+        "DefaultStr" : "",
+        "Name" : "access_token",
+        "Sensitive" : true
+      },
+      "input" : {
+        "Default" : "token",
+        "Name" : "access_token"
+      }
+    },
+    {
+      "expected" : {
+        "Default" : "",
+        "DefaultStr" : "",
+        "Name" : "private_key_file",
+        "Sensitive" : true
+      },
+      "input" : {
+        "Default" : "/private-key",
+        "Name" : "private_key_file"
+      }
+    },
+    {
+      "expected" : {
+        "Default" : "",
+        "DefaultStr" : "",
+        "Name" : "custom",
+        "Sensitive" : true
+      },
+      "input" : {
+        "Default" : "sensitive",
+        "Name" : "custom",
+        "Sensitive" : true
+      }
+    }
+  ],
+  "versions" : [
+    {
+      "app" : null,
+      "input" : "rclone v1.9.10",
+      "rclone" : "v1.9.10"
+    },
+    {
+      "app" : "v1.10.0",
+      "input" : "1.10.0",
+      "rclone" : "v1.10.0"
+    },
+    {
+      "app" : null,
+      "input" : " v1.2.3\n",
+      "rclone" : "v1.2.3"
+    },
+    {
+      "app" : null,
+      "input" : "v00001.02.3",
+      "rclone" : "v1.2.3"
+    },
+    {
+      "app" : null,
+      "input" : "",
+      "rclone" : null
+    },
+    {
+      "app" : null,
+      "input" : "1.2",
+      "rclone" : null
+    },
+    {
+      "app" : null,
+      "input" : "1.2.3-beta",
+      "rclone" : null
+    },
+    {
+      "app" : null,
+      "input" : "1.2.3; rm",
+      "rclone" : null
+    },
+    {
+      "app" : null,
+      "input" : "https://evil",
+      "rclone" : null
+    },
+    {
+      "app" : null,
+      "input" : "1.2.3\n9.9.9",
+      "rclone" : null
+    },
+    {
+      "app" : "v0.9.9",
+      "input" : "0.9.9",
+      "rclone" : "v0.9.9"
+    },
+    {
+      "app" : "v0.10.0",
+      "input" : "v0.10.0",
+      "rclone" : "v0.10.0"
+    },
+    {
+      "app" : null,
+      "input" : "01.2.3",
+      "rclone" : "v1.2.3"
+    },
+    {
+      "app" : null,
+      "input" : "0.4.0+build",
+      "rclone" : null
+    },
+    {
+      "app" : null,
+      "input" : "0.4.0\n",
+      "rclone" : "v0.4.0"
+    },
+    {
+      "app" : null,
+      "input" : " 0.4.0",
+      "rclone" : "v0.4.0"
+    },
+    {
+      "app" : null,
+      "input" : "1.2.100000",
+      "rclone" : null
+    }
+  ],
+  "visibleOptions" : [
+    {
+      "expected" : [
+        {
+          "Hide" : 0,
+          "Name" : "basic"
+        },
+        {
+          "Hide" : 1,
+          "Name" : "shown-command"
+        }
+      ],
+      "input" : {
+        "Options" : [
+          {
+            "Hide" : 0,
+            "Name" : "basic"
+          },
+          {
+            "Hide" : 1,
+            "Name" : "shown-command"
+          },
+          {
+            "Hide" : 2,
+            "Name" : "hidden"
+          },
+          {
+            "Hide" : 3,
+            "Name" : "hidden-both"
+          },
+          {
+            "Name" : ""
+          },
+          {
+            "Hide" : 0
+          }
+        ]
+      }
+    }
+  ]
+}
