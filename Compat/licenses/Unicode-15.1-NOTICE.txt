@@ -1,0 +1,45 @@
+UCD ReadMe
+https://www.unicode.org/Public/15.1.0/ucd/ReadMe.txt
+# Unicode Character Database
+# Date: 2023-08-28
+# © 2023 Unicode®, Inc.
+# Unicode and the Unicode Logo are registered trademarks of Unicode, Inc. in the U.S. and other countries.
+# For terms of use, see https://www.unicode.org/terms_of_use.html
+#
+# For documentation, see the following:
+# NamesList.html
+# UAX #38, "Unicode Han Database (Unihan)"
+# UAX #44, "Unicode Character Database"
+# UTS #51, "Unicode Emoji"
+#
+# The UAXes and UTS #51 can be accessed at https://www.unicode.org/versions/Unicode15.1.0/
+
+This directory contains final data files
+for the Unicode Character Database, for Version 15.1.0 of the Unicode Standard.
+
+DerivedCoreProperties
+https://www.unicode.org/Public/15.1.0/ucd/DerivedCoreProperties.txt
+# DerivedCoreProperties-15.1.0.txt
+# Date: 2023-08-07, 15:21:24 GMT
+# © 2023 Unicode®, Inc.
+# Unicode and the Unicode Logo are registered trademarks of Unicode, Inc. in the U.S. and other countries.
+# For terms of use, see https://www.unicode.org/terms_of_use.html
+#
+
+GraphemeBreakProperty
+https://www.unicode.org/Public/15.1.0/ucd/auxiliary/GraphemeBreakProperty.txt
+# GraphemeBreakProperty-15.1.0.txt
+# Date: 2023-01-05, 20:34:41 GMT
+# © 2023 Unicode®, Inc.
+# Unicode and the Unicode Logo are registered trademarks of Unicode, Inc. in the U.S. and other countries.
+# For terms of use, see https://www.unicode.org/terms_of_use.html
+#
+
+emoji-data
+https://www.unicode.org/Public/15.1.0/ucd/emoji/emoji-data.txt
+# emoji-data.txt
+# Date: 2023-02-01, 02:22:54 GMT
+# © 2023 Unicode®, Inc.
+# Unicode and the Unicode Logo are registered trademarks of Unicode, Inc. in the U.S. and other countries.
+# For terms of use, see https://www.unicode.org/terms_of_use.html
+#

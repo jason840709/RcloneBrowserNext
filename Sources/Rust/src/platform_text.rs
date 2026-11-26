@@ -1,4 +1,4 @@
-//! Platform text comparison used by the preserved Mac file/volume lists.
+//! Preserved platform comparison and stable sorting for file/volume lists.
 //!
 //! On macOS this calls the same Foundation selector as Swift's
 //! `String.localizedStandardCompare`. It deliberately does not approximate
@@ -6,22 +6,49 @@
 //! No AppKit object or main-thread access is involved.
 use std::cmp::Ordering;
 
-/// Compare using Foundation's current-locale Finder ordering on macOS.
-///
-/// Non-Mac targets use a deterministic literal fallback only; that fallback is
-/// **not** claimed equivalent to Swift/Foundation. Existing Windows/Linux
-/// sorters should remain in use. An allocation failure on Mac also returns the
-/// literal fallback rather than panicking or dereferencing a null CF object.
+#[path = "platform_text/stable_sort.rs"]
+mod stable_sort;
+#[cfg(any(not(target_os = "macos"), test))]
+#[path = "platform_text/comparison.rs"]
+mod comparison;
+#[cfg(any(not(target_os = "macos"), test))]
+#[path = "platform_text/native_icu.rs"]
+mod native_icu;
+
+pub(crate) use stable_sort::swift_sort_by as stable_sort_by;
+
+/// Each listing owns its immutable collators on the worker thread. Missing
+/// system dependencies are returned before sorting instead of silently choosing
+/// a different ordering policy.
+pub(crate) struct NameOrder {
+    #[cfg(not(target_os = "macos"))]
+    icu: native_icu::Icu,
+}
+impl NameOrder {
+    pub(crate) fn new() -> crate::Result<Self> {
+        Ok(Self {
+            #[cfg(not(target_os = "macos"))]
+            icu: native_icu::Icu::new()?,
+        })
+    }
+    pub(crate) fn compare(&self, a: &str, b: &str) -> Ordering {
+        if a.as_bytes() == b.as_bytes() { return Ordering::Equal; }
+        #[cfg(target_os = "macos")]
+        { mac::compare(a, b).unwrap_or_else(|| a.cmp(b)) }
+        #[cfg(not(target_os = "macos"))]
+        {
+            let a: Vec<u16> = a.encode_utf16().collect();
+            let b: Vec<u16> = b.encode_utf16().collect();
+            comparison::compare_utf16(&self.icu, &a, &b)
+        }
+    }
+}
+
+/// Foundation's current-locale Finder comparison on the native Mac target.
+#[cfg(target_os = "macos")]
 #[must_use]
 pub fn natural_compare(a: &str, b: &str) -> Ordering {
-    if a.as_bytes() == b.as_bytes() {
-        return Ordering::Equal;
-    }
-    #[cfg(target_os = "macos")]
-    if let Some(result) = mac::compare(a, b) {
-        return result;
-    }
-    a.cmp(b)
+    NameOrder::new().expect("native Foundation comparator").compare(a,b)
 }
 
 #[cfg(target_os = "macos")]
@@ -130,5 +157,72 @@ mod tests {
             };
             assert_eq!(actual, expected, "Foundation comparison {left:?} / {right:?}");
         }
+    }
+}
+
+
+#[cfg(test)]
+mod portable_tests {
+    use super::*;
+    use serde_json::Value;
+
+    #[test]
+    fn frozen_windows_0_11_order_is_strict_in_both_directions() {
+        let data: Value = serde_json::from_str(include_str!(
+            "../../../Tests/fixtures/windows-foundation-0.11.0-order.json"
+        )).expect("captured old Windows result");
+        assert_eq!(data["oldHelperSha256"], "7ec33a6b5e108d601e3d3c339be43e7502256624b48f5ed6a1a992bc135bd32f");
+        let entries = data["expectedOrderedEntries"].as_array().unwrap();
+        assert_eq!(entries.len(), 34);
+        let icu = native_icu::Icu::new().expect("native ICU C interface");
+        println!("native ICU test backend: {}", icu.versions());
+        let mut compared = 0;
+        for (i, a) in entries.iter().enumerate() {
+            let left: Vec<u16> = a["name"].as_str().unwrap().encode_utf16().collect();
+            assert_eq!(comparison::compare_utf16(&icu, &left, &left), Ordering::Equal);
+            for b in &entries[i + 1..] {
+                if a["isDirectory"] != b["isDirectory"] { continue; }
+                let right: Vec<u16> = b["name"].as_str().unwrap().encode_utf16().collect();
+                assert_eq!(comparison::compare_utf16(&icu, &left, &right), Ordering::Less,
+                           "old Windows order {:?} / {:?}", a["name"], b["name"]);
+                assert_eq!(comparison::compare_utf16(&icu, &right, &left), Ordering::Greater,
+                           "reverse old Windows order {:?} / {:?}", a["name"], b["name"]);
+                compared += 2;
+            }
+        }
+        assert_eq!(compared, 832);
+    }
+
+    #[test]
+    fn stable_sort_matches_all_54_captured_swift_permutations() {
+        let data: Value = serde_json::from_str(include_str!(
+            "../../../Tests/fixtures/swift-0.11.0-sort-permutations.json"
+        )).expect("actual old Swift sorting results");
+        assert_eq!(data["oldHelperSha256"], "f1acfcbcde43a1096dd3e75ec6687889d35db92dad473a6e74487b0ff679ad81");
+        let cases = data["cases"].as_array().unwrap();
+        assert_eq!(cases.len(), 54);
+        let comparator = NameOrder::new().expect("platform comparison");
+        for case in cases {
+            let names = case["inputNames"].as_array().unwrap();
+            let expected: Vec<usize> = case["expectedIndices"].as_array().unwrap()
+                .iter().map(|v| usize::try_from(v.as_u64().unwrap()).unwrap()).collect();
+            assert_eq!(names.len(), expected.len());
+            let mut index: Vec<usize> = (0..names.len()).collect();
+            stable_sort_by(&mut index, |a,b| comparator.compare(
+                names[*a].as_str().unwrap(), names[*b].as_str().unwrap()));
+            assert_eq!(index, expected, "old Swift permutation case {}", case["id"]);
+        }
+    }
+
+    #[test]
+    fn original_numeric_cycle_is_preserved_without_a_standard_sort_panic() {
+        let comparator = NameOrder::new().expect("platform comparison");
+        let names = ["x18446744073709551616", "x1", "X2"];
+        assert_eq!(comparator.compare(names[0], names[1]), Ordering::Less);
+        assert_eq!(comparator.compare(names[1], names[2]), Ordering::Less);
+        assert_eq!(comparator.compare(names[2], names[0]), Ordering::Less);
+        let mut values = names.to_vec();
+        stable_sort_by(&mut values, |a,b| comparator.compare(a,b));
+        assert_eq!(values, names);
     }
 }

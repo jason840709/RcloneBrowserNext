@@ -300,13 +300,8 @@ impl Updater {
             ),
             "--ask-password=false".into(),
         ];
-        let out = process::capture(
-            &context,
-            &args,
-            4 * 1024 * 1024,
-            Duration::from_secs(12),
-            None,
-        )?;
+        let out =
+            process::capture_updater(&context, &args, 4 * 1024 * 1024, Duration::from_secs(12))?;
         if out.exit_code != 0 {
             return Err(format!(
                 "無法執行這個 rclone：\n{}",
@@ -383,12 +378,11 @@ impl Updater {
                     format!("--config={}", stage.join(".selfupdate.conf").display()),
                     "--ask-password=false".into(),
                 ];
-                let out = process::capture(
+                let out = process::capture_updater(
                     &context,
                     &arguments,
                     4 * 1024 * 1024,
                     Duration::from_secs(300),
-                    None,
                 )?;
                 if out.exit_code != 0 {
                     return Err(format!(
@@ -1052,14 +1046,16 @@ fn protected_target_name(target: &str, roots: &[String], windows: bool) -> Resul
         let path = if windows {
             windows_path_spelling(raw)?
         } else {
-            raw.replace('\\', "/")
+            raw.to_owned()
         };
-        let lowered = path.trim_end_matches('/').to_lowercase();
-        Ok(if windows {
-            lowered.nfc().collect()
+        let path = path.trim_end_matches('/');
+        // Swift folds case only on Windows/macOS. Unix backslashes remain data.
+        let key = if windows || cfg!(target_os = "macos") {
+            path.to_lowercase()
         } else {
-            lowered
-        })
+            path.to_owned()
+        };
+        Ok(if windows { key.nfc().collect() } else { key })
     };
     let target = key(target)?;
     for root in roots {
@@ -2671,5 +2667,47 @@ mod review_regressions {
         assert!(error.contains("管理"));
         assert_eq!(fs::read_dir(&protected).unwrap().count(), 0);
         fs::remove_dir_all(root).unwrap();
+    }
+}
+
+#[cfg(test)]
+mod caller_output_regressions {
+    use super::*;
+    #[test]
+    #[cfg(not(windows))]
+    fn unix_backslash_remains_filename_data_in_protected_path_comparison() {
+        assert!(!protected_target_name("/usr\\archive/rclone", &["/usr".into()], false).unwrap());
+    }
+    #[test]
+    #[cfg(target_os = "linux")]
+    fn linux_protected_path_comparison_is_case_sensitive_like_swift() {
+        let roots = vec!["/usr".into(), "/System".into()];
+        assert!(protected_target_name("/usr/bin/rclone", &roots, false).unwrap());
+        assert!(!protected_target_name("/USR/bin/rclone", &roots, false).unwrap());
+        assert!(!protected_target_name("/system/rclone", &roots, false).unwrap());
+    }
+    #[test]
+    #[cfg(unix)]
+    fn version_probe_truncates_both_pipes_and_allows_child_to_finish() {
+        use std::os::unix::fs::PermissionsExt;
+        let base = std::env::var_os("RBN_TEST_ROOT")
+            .map(PathBuf::from)
+            .unwrap_or_else(|| {
+                PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../../.tmp/process-caller-tests")
+            });
+        let root = base.join(Uuid::new_v4().to_string());
+        fs::create_dir_all(&root).unwrap();
+        let script = root.join("rclone-fixture");
+        fs::write(&script,b"#!/bin/sh\necho 'rclone v1.76.0'\ndd if=/dev/zero bs=65536 count=80 2>/dev/null\ndd if=/dev/zero bs=65536 count=80 >&2 2>/dev/null\nprintf finished > child-completed\n").unwrap();
+        fs::set_permissions(&script, fs::Permissions::from_mode(0o700)).unwrap();
+        let updater = Updater::new(root.clone()).unwrap();
+        let actual = updater.version_of(&script);
+        let completed = root.join("child-completed").is_file();
+        fs::remove_dir_all(root).unwrap();
+        assert_eq!(actual.unwrap(), "v1.76.0");
+        assert!(
+            completed,
+            "truncation must keep draining rather than stop the child"
+        );
     }
 }

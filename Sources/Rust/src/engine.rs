@@ -769,7 +769,7 @@ impl Engine {
                     "--use-json-log".into(),
                 ],
                 64 * 1024 * 1024,
-                Duration::from_secs(30),
+                Duration::from_secs(120),
                 cancel,
             )?
             .json()?;
@@ -914,12 +914,13 @@ impl Engine {
                 entries.push(json!({"name":name,"path":row["Path"].as_str().unwrap_or(name),"size":if row["Size"].is_number(){row["Size"].clone()}else{json!(-1)},"modified":row["ModTime"].as_str().unwrap_or(""),"isDir":row["IsDir"]==true}));
             }
         }
-        entries.sort_by(|a, b| {
+        let name_order = crate::platform_text::NameOrder::new()?;
+        crate::platform_text::stable_sort_by(&mut entries, |a, b| {
             let dirs = (a["isDir"] == true, b["isDir"] == true);
             if dirs.0 != dirs.1 {
                 return dirs.1.cmp(&dirs.0);
             }
-            natural(
+            name_order.compare(
                 a["name"].as_str().unwrap_or(""),
                 b["name"].as_str().unwrap_or(""),
             )
@@ -3275,50 +3276,6 @@ fn selection_listing_limit(count: usize) -> Result<()> {
         Err("選取清單超過 250,000 個項目，請縮小來源範圍。".into())
     } else {
         Ok(())
-    }
-}
-pub(crate) fn natural(a: &str, b: &str) -> std::cmp::Ordering {
-    #[cfg(target_os = "macos")]
-    return crate::platform_text::natural_compare(a, b);
-    #[cfg(not(target_os = "macos"))]
-    {
-        let a = a.to_lowercase();
-        let b = b.to_lowercase();
-        let mut ai = a.chars().peekable();
-        let mut bi = b.chars().peekable();
-        loop {
-            match (ai.peek(), bi.peek()) {
-                (Some(x), Some(y)) if x.is_ascii_digit() && y.is_ascii_digit() => {
-                    let mut x = String::new();
-                    let mut y = String::new();
-                    while ai.peek().is_some_and(char::is_ascii_digit) {
-                        if let Some(c) = ai.next() {
-                            x.push(c);
-                        }
-                    }
-                    while bi.peek().is_some_and(char::is_ascii_digit) {
-                        if let Some(c) = bi.next() {
-                            y.push(c);
-                        }
-                    }
-                    let xn = x.trim_start_matches('0');
-                    let yn = y.trim_start_matches('0');
-                    let order = xn.len().cmp(&yn.len()).then_with(|| xn.cmp(yn));
-                    if order != std::cmp::Ordering::Equal {
-                        return order;
-                    }
-                }
-                (Some(_), Some(_)) => {
-                    let order = ai.next().cmp(&bi.next());
-                    if order != std::cmp::Ordering::Equal {
-                        return order;
-                    }
-                }
-                (None, None) => return std::cmp::Ordering::Equal,
-                (None, _) => return std::cmp::Ordering::Less,
-                (_, None) => return std::cmp::Ordering::Greater,
-            }
-        }
     }
 }
 fn executable(path: &Path) -> bool {

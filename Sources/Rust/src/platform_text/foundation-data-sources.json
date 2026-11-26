@@ -1,0 +1,12 @@
+{
+  "upstream": "https://raw.githubusercontent.com/swiftlang/swift-corelibs-foundation/swift-6.1.2-RELEASE/Sources/CoreFoundation/internalInclude/",
+  "files": {
+    "CFUniCharBitmapData.inc.h": "d24a9e5fb1124d1c532c2cd25f96ee4a430d74ef9d179e5b837bbed1e790a1bf",
+    "CFUniCharDecompositionData.inc.h": "f8929fa45c51db54cc5860f822801f8135ce2fedfb90463875367e5e2bf8994a",
+    "CFUniCharCompatibilityDecompositionData.inc.h": "1b82b69a99f6f2c9f8daa1481679ec76d2a70e4d73a10bb94222852c854faf70",
+    "CFUnicodeCaseMapping-L.inc.h": "78c4e87cfea2ade6d2a3ffb15b508334b6d6d09a490bf5fc8aca6a1eb44e67e2",
+    "CFUniCharPropertyDatabase.inc.h": "a441a3fa5a7883d629c9463784e19533e26b576c6ceb71cf725646c2ba7239ad"
+  },
+  "generatedSha256": "3d1af5a967439d2de4b4e084b768a07d241c89ea0a7fa59571be8836ab43480c",
+  "bytes": 106792
+}

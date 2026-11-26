@@ -42,6 +42,9 @@ UI_CASES = {f"{size}-{side}-pointer-probe-{index:02d}" for size in ("normal", "c
 RUST_SPEC = importlib.util.spec_from_file_location("windows_rust_regressions", ROOT / "Scripts/windows/verify-rust-regressions.py")
 RUST_REGRESSIONS = importlib.util.module_from_spec(RUST_SPEC)
 RUST_SPEC.loader.exec_module(RUST_REGRESSIONS)
+ORACLE_SPEC = importlib.util.spec_from_file_location("windows_listing_oracle", ROOT / "Tests/windows-local-list-oracle.py")
+LISTING_ORACLE = importlib.util.module_from_spec(ORACLE_SPEC)
+ORACLE_SPEC.loader.exec_module(LISTING_ORACLE)
 
 
 def require(condition, message):
@@ -197,7 +200,39 @@ def main():
                     "The original Windows listing oracle log is not retained in the upgrade receipt")
             require(read(evidence / "windows-listing-oracle.log", "windows-listing-oracle.log") == original_listing,
                     "The original Windows listing oracle differs from its retained raw output")
+            LISTING_ORACLE.verify_group_receipt(original_listing, LISTING_ORACLE.ORIGINAL_FILES,
+                                                LISTING_ORACLE.ORIGINAL_DIRECTORIES, "original-34")
+            expanded_listing = upgrade.get("expandedListingOracle", {})
+            expanded_count = LISTING_ORACLE.verify_group_receipt(expanded_listing, LISTING_ORACLE.EXTENDED_FILES,
+                                                LISTING_ORACLE.EXTENDED_DIRECTORIES, "expanded-unicode")
+            require("windows-listing-oracle-extended.json" in {item["file"] for item in upgrade["evidence"]}
+                    and read(evidence / "windows-listing-oracle-extended.json", "windows-listing-oracle-extended.json") == expanded_listing,
+                    "The expanded Windows listing oracle differs from its retained raw output")
+            provenance = upgrade.get("baselineRuntimeProvenance", {})
+            require("windows-listing-oracle-runtime.json" in {item["file"] for item in upgrade["evidence"]}
+                    and read(evidence / "windows-listing-oracle-runtime.json", "windows-listing-oracle-runtime.json") == provenance,
+                    "The baseline runtime inventory differs from its retained raw output")
+            require(provenance.get("stage") == "baseline-installed-before-candidate"
+                    and provenance.get("sourceCommit") == report["sourceCommit"]
+                    and provenance.get("runID") == report["runID"] and provenance.get("icuLibraries")
+                    and provenance.get("helper", {}).get("sha256")
+                        == original_listing.get("binaries", {}).get("swift", {}).get("sha256"),
+                    "The baseline runtime inventory is incomplete or does not identify the original helper")
+            if provenance.get("manifest", {}).get("present") is True:
+                manifest = provenance["manifest"]
+                require(manifest.get("evidenceFile") == "windows-listing-oracle-runtime-manifest.json"
+                        and manifest["evidenceFile"] in {item["file"] for item in upgrade["evidence"]}
+                        and sha256(evidence / manifest["evidenceFile"]) == manifest["sha256"],
+                        "The original baseline runtime manifest bytes are not retained")
+            for listing in (original_listing, expanded_listing):
+                require(listing.get("sourceCommit") == report["sourceCommit"] and listing.get("runID") == report["runID"]
+                        and listing.get("binaries") == original_listing.get("binaries")
+                        and listing.get("binaries", {}).get("rust", {}).get("sha256")
+                            == fresh["installedExecutables"]["engine"]["sha256"],
+                        "The Windows listing oracle did not compare this candidate and the original helper")
             report["suites"].append({"name": "published-0.11.0-unicode-listing-oracle", "passed": 34,
+                                     "failed": 0, "skipped": 0, "unit": "complete ordered file and directory entries"})
+            report["suites"].append({"name": "published-0.11.0-expanded-unicode-listing-oracle", "passed": expanded_count,
                                      "failed": 0, "skipped": 0, "unit": "complete ordered file and directory entries"})
         engine_hash = fresh["installedExecutables"]["engine"]["sha256"]
         app_hash = fresh["installedExecutables"]["app"]["sha256"]

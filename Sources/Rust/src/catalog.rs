@@ -259,8 +259,9 @@ pub fn supplied_locations(raw: &Value) -> crate::Result<Vec<Value>> {
     }
     if let Some(volumes) = raw["volumes"].as_array() {
         let mut volumes = volumes.iter().collect::<Vec<_>>();
-        volumes.sort_by(|a, b| {
-            crate::engine::natural(
+        let name_order = crate::platform_text::NameOrder::new()?;
+        crate::platform_text::stable_sort_by(&mut volumes, |a, b| {
+            name_order.compare(
                 a["name"].as_str().unwrap_or(""),
                 b["name"].as_str().unwrap_or(""),
             )

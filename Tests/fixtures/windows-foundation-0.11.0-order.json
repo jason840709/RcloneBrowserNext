@@ -1,0 +1,191 @@
+{
+  "schemaVersion": 1,
+  "oldVersion": "0.11.0",
+  "oldPlatform": "Windows",
+  "oldHelperSha256": "7ec33a6b5e108d601e3d3c339be43e7502256624b48f5ed6a1a992bc135bd32f",
+  "runID": "45905491915",
+  "candidateCommit": "48991d79c67423f67a02604e7241f4286d7b3b9a",
+  "inputSource": "Tests/windows-local-list-oracle.py",
+  "inputSourceSha256": "ea9b600294f3d9464466d251621d88b061987ed7189aeb3b1d4698622ff88a57",
+  "inputSourceCommit": "48991d79c67423f67a02604e7241f4286d7b3b9a",
+  "inputDataSha256": "4dd2769775e04d148121f41ff65cfcfd91781ada35abbad70648f5b137cf1887",
+  "sourceCaptureSha256": "6a7c7b7b18e419eb18ffffe3a186a7d9e5090ad0d0622637e3f4397aa71c7fa7",
+  "inputs": {
+    "files": [
+      "File 2.txt",
+      "file 02.txt",
+      "file 10.txt",
+      "file 100.txt",
+      "FILE-revised.txt",
+      ".hidden",
+      "_a",
+      "(a)",
+      "‐dash",
+      "dash-two",
+      "A..txt",
+      "B_.txt",
+      "A-1",
+      "A 1",
+      "Ångström",
+      "Ångström-2",
+      "Café",
+      "Café",
+      "資料 02",
+      "資料 2",
+      "资料 20",
+      "一",
+      "あ 02",
+      "ア 2",
+      "ｱ 2",
+      "ａ ３",
+      "a 04",
+      "👨‍👩‍👧 ספר",
+      "🙂"
+    ],
+    "directories": [
+      "Folder 2",
+      "Folder 10",
+      "資料夾",
+      "ä_dir",
+      "é directory"
+    ]
+  },
+  "expectedOrderedEntries": [
+    {
+      "name": "ä_dir",
+      "isDirectory": true
+    },
+    {
+      "name": "é directory",
+      "isDirectory": true
+    },
+    {
+      "name": "Folder 2",
+      "isDirectory": true
+    },
+    {
+      "name": "Folder 10",
+      "isDirectory": true
+    },
+    {
+      "name": "資料夾",
+      "isDirectory": true
+    },
+    {
+      "name": "_a",
+      "isDirectory": false
+    },
+    {
+      "name": "‐dash",
+      "isDirectory": false
+    },
+    {
+      "name": ".hidden",
+      "isDirectory": false
+    },
+    {
+      "name": "(a)",
+      "isDirectory": false
+    },
+    {
+      "name": "👨‍👩‍👧 ספר",
+      "isDirectory": false
+    },
+    {
+      "name": "🙂",
+      "isDirectory": false
+    },
+    {
+      "name": "A 1",
+      "isDirectory": false
+    },
+    {
+      "name": "ａ ３",
+      "isDirectory": false
+    },
+    {
+      "name": "a 04",
+      "isDirectory": false
+    },
+    {
+      "name": "A-1",
+      "isDirectory": false
+    },
+    {
+      "name": "A..txt",
+      "isDirectory": false
+    },
+    {
+      "name": "Ångström",
+      "isDirectory": false
+    },
+    {
+      "name": "Ångström-2",
+      "isDirectory": false
+    },
+    {
+      "name": "B_.txt",
+      "isDirectory": false
+    },
+    {
+      "name": "Café",
+      "isDirectory": false
+    },
+    {
+      "name": "Café",
+      "isDirectory": false
+    },
+    {
+      "name": "dash-two",
+      "isDirectory": false
+    },
+    {
+      "name": "file 02.txt",
+      "isDirectory": false
+    },
+    {
+      "name": "File 2.txt",
+      "isDirectory": false
+    },
+    {
+      "name": "file 10.txt",
+      "isDirectory": false
+    },
+    {
+      "name": "file 100.txt",
+      "isDirectory": false
+    },
+    {
+      "name": "FILE-revised.txt",
+      "isDirectory": false
+    },
+    {
+      "name": "あ 02",
+      "isDirectory": false
+    },
+    {
+      "name": "ア 2",
+      "isDirectory": false
+    },
+    {
+      "name": "ｱ 2",
+      "isDirectory": false
+    },
+    {
+      "name": "一",
+      "isDirectory": false
+    },
+    {
+      "name": "資料 2",
+      "isDirectory": false
+    },
+    {
+      "name": "資料 02",
+      "isDirectory": false
+    },
+    {
+      "name": "资料 20",
+      "isDirectory": false
+    }
+  ]
+}

@@ -11,6 +11,7 @@ from pathlib import Path
 import argparse
 import ctypes
 from ctypes import wintypes
+from copy import deepcopy
 from datetime import datetime, timezone
 import hashlib
 import importlib.util
@@ -36,6 +37,9 @@ NUMERIC_VERSION = [int(part) for part in VERSION.split(".")] + [0]
 HIGHER_VERSION = ".".join(map(str, [NUMERIC_VERSION[0], NUMERIC_VERSION[1], NUMERIC_VERSION[2] + 1]))
 UNINSTALL_KEY = r"Software\Microsoft\Windows\CurrentVersion\Uninstall\Rclone Browser Next"
 OWNED_CACHE = ROOT / ".build-cache/windows-candidate-install"
+ORACLE_SPEC = importlib.util.spec_from_file_location("windows_listing_oracle", ROOT / "Tests/windows-local-list-oracle.py")
+LISTING_ORACLE = importlib.util.module_from_spec(ORACLE_SPEC)
+ORACLE_SPEC.loader.exec_module(LISTING_ORACLE)
 
 
 def utc_now():
@@ -62,6 +66,23 @@ def metadata(path):
 def require(condition, message):
     if not condition:
         raise AssertionError(message)
+
+
+def expected_published_upgrade_settings(previous):
+    # These are bootstrap settings from an already-running published helper,
+    # not raw settings.json: its migrations before schema 6 have already run.
+    # 0.11.0 RcloneEngine.migratedSettings preserves the visual size by adding
+    # ten to the five pre-0.8 scale choices, then writes schema 7.
+    require(type(previous.get("settingsSchemaVersion")) is int
+            and previous["settingsSchemaVersion"] in (6, 7),
+            "Unsupported published baseline settings schema; add its reference migration")
+    expected = deepcopy({"bounceDockOnCompletion": True, "retryScope": "failed", **previous})
+    if previous["settingsSchemaVersion"] < 7:
+        scale = previous.get("interfaceScale")
+        if type(scale) is int and scale in (80, 90, 100, 110, 125):
+            expected["interfaceScale"] = scale + 10
+    expected["settingsSchemaVersion"] = 7
+    return expected
 
 
 def clean_environment():
@@ -418,6 +439,22 @@ def main():
             old = validate_installed(directory, baseline_version, baseline_numeric)
             listing_oracle_runtime = None
             if args.baseline == "0.11.0":
+                # Inventory/load probes run in their own short-lived process.
+                # subprocess.run waits for its exit before the installer can
+                # replace the baseline, so this verifier never locks old ICU.
+                provenance_path = evidence / "windows-listing-oracle-runtime.json"
+                provenance = subprocess.run([sys.executable, "-X", "utf8", "-B",
+                        str(ROOT / "Scripts/windows/probe-runtime-provenance.py"),
+                        "--runtime", str(old["engine"].parent), "--helper", str(old["engine"]),
+                        "--output", str(provenance_path),
+                        "--manifest-output", str(evidence / "windows-listing-oracle-runtime-manifest.json")],
+                        stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, encoding="utf-8", timeout=45)
+                (evidence / "windows-listing-oracle-runtime.log").write_text(
+                    provenance.stdout + provenance.stderr, encoding="utf-8")
+                require(provenance.returncode == 0, "The installed baseline runtime inventory failed")
+                report["baselineRuntimeProvenance"] = json.loads(provenance_path.read_text(encoding="utf-8"))
+                require(report["baselineRuntimeProvenance"]["helper"]["sha256"] == digest(old["engine"]),
+                        "The baseline runtime inventory refers to a different helper")
                 # Retain the exact installed Swift helper and its adjacent DLLs
                 # before the candidate replaces them. Only this disposable CI
                 # installation is copied; no user profile or account is used.
@@ -465,20 +502,27 @@ def main():
             if listing_oracle_runtime is not None:
                 oracle = subprocess.run([sys.executable, "-X", "utf8", "-B", str(ROOT / "Tests/windows-local-list-oracle.py"),
                                         "--swift", str(listing_oracle_runtime / old["engine"].name),
-                                        "--rust", str(paths["engine"]), "--scratch", str(fixture)],
+                                        "--rust", str(paths["engine"]), "--scratch", str(fixture),
+                                        "--extended-output", str(evidence / "windows-listing-oracle-extended.json")],
                                        stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
-                                       encoding="utf-8", timeout=120)
+                                       encoding="utf-8", timeout=180)
                 (evidence / "windows-listing-oracle.log").write_text(oracle.stdout + oracle.stderr, encoding="utf-8")
                 require(oracle.returncode == 0, "The installed Rust listing differs from the published 0.11.0 helper")
                 listing_oracle = json.loads(oracle.stdout)
                 require(listing_oracle.get("passed") is True and listing_oracle.get("entries") == 34,
                         "The Windows Unicode listing oracle is incomplete")
+                LISTING_ORACLE.verify_group_receipt(listing_oracle, LISTING_ORACLE.ORIGINAL_FILES,
+                                                    LISTING_ORACLE.ORIGINAL_DIRECTORIES, "original-34")
                 report["originalListingOracle"] = listing_oracle
+                expanded_oracle = json.loads((evidence / "windows-listing-oracle-extended.json").read_text(encoding="utf-8"))
+                LISTING_ORACLE.verify_group_receipt(expanded_oracle, LISTING_ORACLE.EXTENDED_FILES,
+                                                    LISTING_ORACLE.EXTENDED_DIRECTORIES, "expanded-unicode")
+                report["expandedListingOracle"] = expanded_oracle
             client = StateClient(paths["engine"], state, fixture, evidence, "upgrade-new")
             try:
                 actual_boot, actual_tasks = client.call("bootstrap"), client.call("listTasks")
                 default_settings = {"bounceDockOnCompletion": True, "retryScope": "failed"}
-                require(actual_boot["settings"] == {**default_settings, **expected_boot["settings"]}, "The upgraded helper changed existing settings or lost the new default")
+                require(actual_boot["settings"] == expected_published_upgrade_settings(expected_boot["settings"]), "The upgraded helper changed existing settings or lost the new default")
                 require(actual_tasks == expected_tasks and len(actual_tasks) == 1, "The upgraded helper did not reload the saved task")
                 require(actual_boot["environment"]["available"] is True and actual_boot["resolvedLanguage"] == "ja", "The upgraded helper lost the configured engine or language")
             finally:

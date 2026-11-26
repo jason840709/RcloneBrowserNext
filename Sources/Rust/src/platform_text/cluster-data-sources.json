@@ -1,0 +1,27 @@
+{
+  "dataVersion": "15.1.0",
+  "files": {
+    "letters": {
+      "url": "https://raw.githubusercontent.com/swiftlang/swift-corelibs-foundation/swift-6.1.2-RELEASE/Sources/CoreFoundation/internalInclude/CFUniCharBitmapData.inc.h",
+      "sha256": "d24a9e5fb1124d1c532c2cd25f96ee4a430d74ef9d179e5b837bbed1e790a1bf"
+    },
+    "grapheme": {
+      "url": "https://www.unicode.org/Public/15.1.0/ucd/DerivedCoreProperties.txt",
+      "sha256": "f55d0db69123431a7317868725b1fcbf1eab6b265d756d1bd7f0f6d9f9ee108b"
+    },
+    "emoji": {
+      "url": "https://www.unicode.org/Public/15.1.0/ucd/emoji/emoji-data.txt",
+      "sha256": "d7aef489c8fe4c14f09ea5695200277c6b93ac82ac60845cdd2161b0d6835cc1"
+    },
+    "boundaries": {
+      "url": "https://www.unicode.org/Public/15.1.0/ucd/auxiliary/GraphemeBreakProperty.txt",
+      "sha256": "a7e52eee647e52dc210b8719b4d7037276f4b353810293d69377fc46374cec3f"
+    },
+    "unicodeLicense": {
+      "url": "https://raw.githubusercontent.com/unicode-org/icu/release-74-2/LICENSE",
+      "sha256": "17510cf7a58b4879b887ec05a45d72cf1b73544dd9ec7e72f20110ed104229ee"
+    }
+  },
+  "bytes": 11520,
+  "generatedSha256": "c594a60bcc7f7bfb728352a920cc3bd925350f9541e25155ef5e77a52445be13"
+}

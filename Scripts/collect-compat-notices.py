@@ -60,6 +60,34 @@ def main() -> None:
                       "texts": [str((target / f.relative_to(source)).relative_to(destination)) for f in files]})
     if missing:
         raise RuntimeError("Add the original license texts for: " + ", ".join(missing))
+    # These are translated source algorithms and fixed Unicode data, not
+    # additional Cargo packages or a redistributed Swift runtime.
+    source_notices = [
+        ("swift-stable-sorting", "Swift-LICENSE.txt", "Swift source sorting algorithm translated to Rust",
+         "https://github.com/swiftlang/swift/blob/swift-6.1.2-RELEASE/stdlib/public/core/Sort.swift"),
+    ]
+    if "apple-darwin" not in args.target:
+        source_notices += [
+            ("foundation-string-comparison", "Foundation-LICENSE.txt", "CoreFoundation comparison and character data translated to Rust",
+             "https://github.com/swiftlang/swift-corelibs-foundation/tree/swift-6.1.2-RELEASE/Sources/CoreFoundation"),
+            ("unicode-character-data", "ICU-LICENSE.txt", "Unicode 15.1 character and grapheme data",
+             "https://www.unicode.org/Public/15.1.0/ucd/"),
+        ]
+    source_index = []
+    for name, license_name, description, upstream in source_notices:
+        source = ROOT / "Compat/licenses" / license_name
+        target = destination / "source" / name / "LICENSE.txt"
+        target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(source, target)
+        texts = [str(target.relative_to(destination))]
+        if name == "unicode-character-data":
+            notice = destination / "source" / name / "NOTICE.txt"
+            shutil.copyfile(ROOT / "Compat/licenses/Unicode-15.1-NOTICE.txt", notice)
+            texts.append(str(notice.relative_to(destination)))
+        source_index.append({"name": name, "description": description, "source": upstream,
+                             "texts": texts})
+    (destination / "ported-source-notices.json").write_text(
+        json.dumps(source_index, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     (destination / "rust-packages.json").write_text(json.dumps(index, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     print(f"Retained original license notices for {len(index)} pinned Rust packages")
 

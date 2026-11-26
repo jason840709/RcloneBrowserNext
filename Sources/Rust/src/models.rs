@@ -481,23 +481,18 @@ pub fn validate_options(raw: &Value) -> Result<Value> {
         return Err("停用本機雜湊讀取時，不能使用雜湊比對。".into());
     }
     choice(&o["symlinkMode"], &["skip", "preserve"], "符號連結")?;
-    for (min, max, p) in [
-        ("minSize", "maxSize", bytes as fn(&str) -> Option<f64>),
-        ("minAge", "maxAge", duration),
-    ] {
-        if let (Some(a), Some(b)) = (unit(&o[min], min, p)?, unit(&o[max], max, p)?) {
-            if a > b {
-                return Err(if min == "minSize" {
-                    "最小檔案大小不能大於最大檔案大小。"
-                } else {
-                    "最小檔案年齡不能大於最大檔案年齡。"
-                }
-                .into());
-            }
-        }
+    let minimum_size = unit(&o["minSize"], "minSize", bytes)?;
+    let maximum_size = unit(&o["maxSize"], "maxSize", bytes)?;
+    if matches!((minimum_size, maximum_size), (Some(a), Some(b)) if a > b) {
+        return Err("最小檔案大小不能大於最大檔案大小。".into());
     }
+    let minimum_age = unit(&o["minAge"], "minAge", duration)?;
+    let maximum_age = unit(&o["maxAge"], "maxAge", duration)?;
     for k in ["modifyWindow", "connectTimeout", "ioTimeout", "retrySleep"] {
         unit(&o[k], k, duration)?;
+    }
+    if matches!((minimum_age, maximum_age), (Some(a), Some(b)) if a > b) {
+        return Err("最小檔案年齡不能大於最大檔案年齡。".into());
     }
     for k in ["include", "exclude"] {
         o[k] = json!(
@@ -1329,5 +1324,37 @@ mod platform_tests {
         for child in ["C:/Backup", "//server/share/Backup"] {
             assert!(!filesystem_root(child, true), "{child}");
         }
+    }
+}
+
+#[cfg(test)]
+mod validation_order_regressions {
+    use super::*;
+    #[test]
+    fn duration_format_failure_precedes_age_range_failure_like_swift() {
+        for (key, label) in [
+            ("modifyWindow", "時間容許誤差"),
+            ("connectTimeout", "連線逾時"),
+            ("ioTimeout", "傳輸閒置逾時"),
+            ("retrySleep", "重試間隔"),
+        ] {
+            let mut value = json!({"minAge":"3d","maxAge":"1d"});
+            value[key] = json!("wrong");
+            assert_eq!(
+                validate_options(&value).unwrap_err(),
+                format!("{label}請填入 30s、5m、24h、7d 等時間。"),
+                "{key}"
+            );
+        }
+        assert_eq!(
+            validate_options(&json!({"minAge":"3d","maxAge":"1d","modifyWindow":"1s"}))
+                .unwrap_err(),
+            "最小檔案年齡不能大於最大檔案年齡。"
+        );
+        assert_eq!(
+            validate_options(&json!({"minSize":"2M","maxSize":"1M","modifyWindow":"wrong"}))
+                .unwrap_err(),
+            "最小檔案大小不能大於最大檔案大小。"
+        );
     }
 }

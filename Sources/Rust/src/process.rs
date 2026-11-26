@@ -9,6 +9,7 @@ use std::{
     sync::{
         Arc, Mutex,
         atomic::{AtomicBool, AtomicU32, AtomicUsize, Ordering},
+        mpsc,
     },
     thread,
     time::{Duration, Instant},
@@ -84,6 +85,21 @@ impl Output {
 }
 pub type LineHandler = Arc<dyn Fn(&str, bool, bool) -> Result<()> + Send + Sync>;
 pub type StopHandler = Arc<dyn Fn(i32) + Send + Sync>;
+const ENGINE_TIMEOUT: &str = "rclone 回應逾時，請檢查連線後重試。";
+const UPDATER_TIMEOUT: &str = "rclone 作業逾時，原本的版本保持不變。";
+const UPDATER_PIPE_TIMEOUT: &str = "rclone 已結束，但輸出尚未關閉，已停止更新。";
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum Caller {
+    Engine,
+    Cooperative,
+    Updater,
+}
+#[derive(Clone, Copy)]
+struct RunPolicy {
+    timeout: Option<Duration>,
+    caller: Caller,
+}
+
 fn failure(slot: &Mutex<Option<String>>, message: String) {
     if let Ok(mut s) = slot.lock() {
         if s.is_none() {
@@ -98,6 +114,7 @@ fn drain(
     total: Arc<AtomicUsize>,
     error: Arc<Mutex<Option<String>>>,
     handler: Option<LineHandler>,
+    truncate: bool,
 ) -> Vec<u8> {
     let mut kept = Vec::new();
     let mut pending = Vec::new();
@@ -107,14 +124,20 @@ fn drain(
             Ok(0) => break,
             Ok(n) => n,
             Err(e) => {
-                failure(&error, format!("讀取 rclone 記錄失敗：{e}"));
+                failure(&error, format!("無法讀取 rclone 輸出：{e}"));
                 break;
             }
         };
-        if handler.is_none() {
+        if truncate {
+            let remaining = maximum.saturating_sub(kept.len());
+            kept.extend_from_slice(&chunk[..length.min(remaining)]);
+        } else if handler.is_none() {
             let before = total.fetch_add(length, Ordering::Relaxed);
             if before.saturating_add(length) > maximum {
-                failure(&error, "rclone 回傳資料過大，已停止操作。".into());
+                failure(
+                    &error,
+                    "目錄資料超過單次可載入大小，請進入較小的資料夾。".into(),
+                );
             } else {
                 kept.extend_from_slice(&chunk[..length]);
             }
@@ -125,18 +148,20 @@ fn drain(
             }
         }
         if let Some(ref callback) = handler {
-            for byte in &chunk[..length] {
-                if *byte == b'\n' {
-                    let line = String::from_utf8_lossy(&pending);
-                    if let Err(e) = callback(&line, stderr, true) {
-                        failure(&error, e);
-                    }
-                    pending.clear();
-                } else if pending.len() < 2 * 1024 * 1024 {
-                    pending.push(*byte);
-                } else {
-                    failure(&error, "rclone 單筆記錄過大，已停止操作。".into());
+            // Match the reference's chunk/newline consumption, then clear an
+            // oversized unfinished fragment instead of delivering a truncated line.
+            pending.extend_from_slice(&chunk[..length]);
+            while let Some(newline) = pending.iter().position(|b| *b == b'\n') {
+                if let Err(e) =
+                    callback(&String::from_utf8_lossy(&pending[..newline]), stderr, true)
+                {
+                    failure(&error, e);
                 }
+                pending.drain(..=newline);
+            }
+            if pending.len() > 2 * 1024 * 1024 {
+                failure(&error, "rclone 單行輸出過大，工作已停止。".into());
+                pending.clear();
             }
         }
     }
@@ -157,7 +182,43 @@ pub fn capture(
     timeout: Duration,
     cancelled: Option<&AtomicBool>,
 ) -> Result<Output> {
-    run(context, arguments, maximum, Some(timeout), cancelled, None)
+    run_inner(
+        context,
+        arguments,
+        maximum,
+        RunPolicy {
+            timeout: Some(timeout),
+            caller: Caller::Engine,
+        },
+        cancelled,
+        None,
+        None,
+        None,
+        None,
+    )
+}
+/// The updater keeps each pipe's prefix and drains the remainder. Its timeout
+/// uses the reference updater's TERM/2-second/KILL sequence, never job SIGINT.
+pub fn capture_updater(
+    context: &Context,
+    arguments: &[String],
+    maximum: usize,
+    timeout: Duration,
+) -> Result<Output> {
+    run_inner(
+        context,
+        arguments,
+        maximum,
+        RunPolicy {
+            timeout: Some(timeout),
+            caller: Caller::Updater,
+        },
+        None,
+        None,
+        None,
+        None,
+        None,
+    )
 }
 pub fn capture_input(
     context: &Context,
@@ -174,7 +235,10 @@ pub fn capture_input(
         context,
         arguments,
         maximum,
-        Some(timeout),
+        RunPolicy {
+            timeout: Some(timeout),
+            caller: Caller::Cooperative,
+        },
         cancelled,
         None,
         Some(input),
@@ -191,7 +255,18 @@ pub fn run(
     handler: Option<LineHandler>,
 ) -> Result<Output> {
     run_inner(
-        context, arguments, maximum, timeout, cancelled, handler, None, None, None,
+        context,
+        arguments,
+        maximum,
+        RunPolicy {
+            timeout,
+            caller: Caller::Cooperative,
+        },
+        cancelled,
+        handler,
+        None,
+        None,
+        None,
     )
 }
 pub fn run_with_stop_observer(
@@ -207,7 +282,10 @@ pub fn run_with_stop_observer(
         context,
         arguments,
         maximum,
-        timeout,
+        RunPolicy {
+            timeout,
+            caller: Caller::Cooperative,
+        },
         cancelled,
         handler,
         None,
@@ -236,7 +314,10 @@ pub fn capture_listing(
         context,
         arguments,
         maximum,
-        Some(timeout),
+        RunPolicy {
+            timeout: Some(timeout),
+            caller: Caller::Engine,
+        },
         Some(cancelled),
         None,
         None,
@@ -256,7 +337,7 @@ fn run_inner(
     context: &Context,
     arguments: &[String],
     maximum: usize,
-    timeout: Option<Duration>,
+    policy: RunPolicy,
     cancelled: Option<&AtomicBool>,
     handler: Option<LineHandler>,
     input: Option<&[u8]>,
@@ -276,9 +357,18 @@ fn run_inner(
         })
         .stdout(Stdio::piped())
         .stderr(Stdio::piped());
-    let mut child = command
-        .spawn()
-        .map_err(|e| format!("無法啟動 rclone：{e}"))?;
+    let mut child = command.spawn().map_err(|e| {
+        if policy.caller == Caller::Updater {
+            let name = context
+                .binary
+                .file_name()
+                .unwrap_or(context.binary.as_os_str())
+                .to_string_lossy();
+            format!("無法執行 {name}：{e}")
+        } else {
+            format!("無法啟動 rclone：{e}")
+        }
+    })?;
     let pid = child.id();
     let _registration = ChildRegistration(listing.map(|(pid, _)| pid));
     if let Some((child, _)) = listing {
@@ -300,10 +390,19 @@ fn run_inner(
         let t = total.clone();
         let f = failure_slot.clone();
         let h = handler.clone();
-        let out = scope.spawn(move || drain(stdout, false, maximum, t, f, h));
+        let truncate = policy.caller == Caller::Updater;
+        let (out_sender, out_receiver) = mpsc::sync_channel(1);
+        let out = thread::spawn(move || {
+            let bytes = drain(stdout, false, maximum, t, f, h, truncate);
+            let _ = out_sender.send(bytes);
+        });
         let t = total.clone();
         let f = failure_slot.clone();
-        let err = scope.spawn(move || drain(stderr, true, maximum, t, f, handler));
+        let (err_sender, err_receiver) = mpsc::sync_channel(1);
+        let err = thread::spawn(move || {
+            let bytes = drain(stderr, true, maximum, t, f, handler, truncate);
+            let _ = err_sender.send(bytes);
+        });
         let began = Instant::now();
         let mut stopped: Option<Instant> = None;
         let mut stage = 0;
@@ -316,7 +415,7 @@ fn run_inner(
                     failure(&failure_slot, format!("無法確認 rclone 狀態：{e}"));
                 }
             }
-            let expired = timeout.is_some_and(|t| began.elapsed() >= t);
+            let expired = policy.timeout.is_some_and(|t| began.elapsed() >= t);
             let io_failed = failure_slot.lock().map(|v| v.is_some()).unwrap_or(true);
             if stopped.is_none()
                 && (expired || io_failed || cancelled.is_some_and(|c| c.load(Ordering::Acquire)))
@@ -328,10 +427,25 @@ fn run_inner(
                     }
                 }
                 stopped = Some(Instant::now());
-                stage = 1;
-                let _ = signal(pid, 2);
+                let first_signal =
+                    if timed_out && listing.is_none() && policy.caller == Caller::Engine {
+                        // The ordinary engine timer fails the output buffer and kills
+                        // immediately; cancellation/IO failures retain cooperative stop.
+                        failure(&failure_slot, ENGINE_TIMEOUT.into());
+                        9
+                    } else if timed_out && policy.caller == Caller::Updater {
+                        15
+                    } else {
+                        2
+                    };
+                stage = match first_signal {
+                    9 => 3,
+                    15 => 2,
+                    _ => 1,
+                };
+                let _ = signal(pid, first_signal);
                 if let Some(observer) = &observer {
-                    observer(2);
+                    observer(first_signal);
                 }
             }
             if let Some(at) = stopped {
@@ -353,6 +467,8 @@ fn run_inner(
                     && at.elapsed()
                         >= if listing.is_some() {
                             Duration::from_millis(1500)
+                        } else if timed_out && policy.caller == Caller::Updater {
+                            Duration::from_secs(2)
                         } else {
                             Duration::from_secs(12)
                         }
@@ -366,9 +482,46 @@ fn run_inner(
             }
             thread::sleep(Duration::from_millis(20));
         };
-        let _ = input_worker.join().map_err(|_| "rclone 輸入工作中斷。")?;
-        let stdout = out.join().map_err(|_| "rclone 輸出讀取工作中斷。")?;
-        let stderr = err.join().map_err(|_| "rclone 錯誤記錄讀取工作中斷。")?;
+        let input_result = input_worker.join();
+        let (stdout, stderr) = if policy.caller == Caller::Updater {
+            // A descendant can keep a pipe open after the owned child exits.
+            // Readers own their buffers/handles; a failed bounded wait never reads
+            // concurrently mutated state. Other callers still join to true EOF.
+            let deadline = Instant::now() + Duration::from_secs(5);
+            let message = if timed_out {
+                UPDATER_TIMEOUT
+            } else {
+                UPDATER_PIPE_TIMEOUT
+            };
+            let stdout = out_receiver
+                .recv_timeout(deadline.saturating_duration_since(Instant::now()))
+                .map_err(|_| message)?;
+            let stderr = err_receiver
+                .recv_timeout(deadline.saturating_duration_since(Instant::now()))
+                .map_err(|_| message)?;
+            out.join().map_err(|_| "rclone 輸出讀取工作中斷。")?;
+            err.join().map_err(|_| "rclone 錯誤記錄讀取工作中斷。")?;
+            (stdout, stderr)
+        } else {
+            // Join both even if one handler panics: cooperative operations
+            // still wait for their other owned pipe to reach true EOF.
+            let out_result = out.join();
+            let err_result = err.join();
+            out_result.map_err(|_| "rclone 輸出讀取工作中斷。")?;
+            err_result.map_err(|_| "rclone 錯誤記錄讀取工作中斷。")?;
+            (
+                out_receiver
+                    .recv()
+                    .map_err(|_| "rclone 輸出讀取工作中斷。")?,
+                err_receiver
+                    .recv()
+                    .map_err(|_| "rclone 錯誤記錄讀取工作中斷。")?,
+            )
+        };
+        let _ = input_result.map_err(|_| "rclone 輸入工作中斷。")?;
+        if timed_out && policy.caller == Caller::Updater {
+            return Err(UPDATER_TIMEOUT.into());
+        }
         if let Some(e) = failure_slot
             .lock()
             .map_err(|_| "rclone 記錄狀態無法讀取。")?
@@ -377,7 +530,7 @@ fn run_inner(
             return Err(e);
         }
         if timed_out {
-            return Err("操作逾時，rclone 已停止。".into());
+            return Err(ENGINE_TIMEOUT.into());
         }
         #[cfg(unix)]
         let exit_code = {
@@ -516,7 +669,10 @@ mod tests {
             Duration::from_secs(2),
             None,
         );
-        assert!(out.unwrap_err().contains("過大"));
+        assert_eq!(
+            out.unwrap_err(),
+            "目錄資料超過單次可載入大小，請進入較小的資料夾。"
+        );
     }
     #[test]
     #[cfg(unix)]
@@ -564,5 +720,376 @@ mod signal_exit_tests {
             .unwrap();
             assert_eq!(output.exit_code, expected, "{script}");
         }
+    }
+}
+
+#[cfg(test)]
+mod caller_parity_regressions {
+    use super::*;
+    use std::io::{self, Cursor};
+    #[test]
+    fn captured_output_limit_returns_original_swift_message_and_translations() {
+        let error = Arc::new(Mutex::new(None));
+        let bytes = drain(
+            Cursor::new(b"12345"),
+            false,
+            4,
+            Arc::new(AtomicUsize::new(0)),
+            error.clone(),
+            None,
+            false,
+        );
+        assert!(bytes.len() <= 4);
+        let actual = error.lock().unwrap().clone().unwrap();
+        assert_eq!(actual, "目錄資料超過單次可載入大小，請進入較小的資料夾。");
+        assert_eq!(
+            crate::native::translate(&actual, "en"),
+            "The directory listing is too large to load at once. Open a smaller folder."
+        );
+        assert_eq!(
+            crate::native::translate(&actual, "ja"),
+            "ディレクトリの一覧が大きすぎて一度に読み込めません。小さいフォルダを開いてください。"
+        );
+    }
+    #[test]
+    fn read_failure_keeps_original_prefix_and_native_template() {
+        struct Broken;
+        impl Read for Broken {
+            fn read(&mut self, _: &mut [u8]) -> io::Result<usize> {
+                Err(io::Error::other("synthetic pipe read"))
+            }
+        }
+        let error = Arc::new(Mutex::new(None));
+        let _ = drain(
+            Broken,
+            false,
+            4096,
+            Arc::new(AtomicUsize::new(0)),
+            error.clone(),
+            None,
+            false,
+        );
+        let actual = error.lock().unwrap().clone().unwrap();
+        assert_eq!(actual, "無法讀取 rclone 輸出：synthetic pipe read");
+        assert_eq!(
+            crate::native::translate(&actual, "en"),
+            "Could not read rclone output: synthetic pipe read"
+        );
+        assert_eq!(
+            crate::native::translate(&actual, "ja"),
+            "rclone の出力を読み取れません：synthetic pipe read"
+        );
+    }
+    #[test]
+    fn oversized_streamed_line_keeps_original_error_and_discards_overflow_fragment() {
+        let mut input = vec![b'x'; 2 * 1024 * 1024 + 16384];
+        input.extend_from_slice(b"tail\n");
+        let lines = Arc::new(Mutex::new(Vec::new()));
+        let result = lines.clone();
+        let handler: LineHandler = Arc::new(move |line, _, ended| {
+            result.lock().unwrap().push((line.to_owned(), ended));
+            Ok(())
+        });
+        let error = Arc::new(Mutex::new(None));
+        let _ = drain(
+            Cursor::new(input),
+            false,
+            4096,
+            Arc::new(AtomicUsize::new(0)),
+            error.clone(),
+            Some(handler),
+            false,
+        );
+        let actual = error.lock().unwrap().clone().unwrap();
+        assert_eq!(actual, "rclone 單行輸出過大，工作已停止。");
+        let lines = lines.lock().unwrap();
+        assert_eq!(lines.len(), 1);
+        assert_eq!(lines[0].0.len(), 4);
+        assert_eq!(lines[0], ("tail".to_owned(), true));
+        assert_eq!(
+            crate::native::translate(&actual, "en"),
+            "A rclone output line was too large. The job was stopped."
+        );
+        assert_eq!(
+            crate::native::translate(&actual, "ja"),
+            "rclone の出力行が大きすぎるため、処理を停止しました。"
+        );
+    }
+    #[cfg(unix)]
+    struct Fixture(PathBuf);
+    #[cfg(unix)]
+    impl Fixture {
+        fn new() -> Self {
+            let base = std::env::var_os("RBN_TEST_ROOT")
+                .map(PathBuf::from)
+                .unwrap_or_else(|| {
+                    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+                        .join("../../../.tmp/process-caller-tests")
+                });
+            let root = base.join(uuid::Uuid::new_v4().to_string());
+            std::fs::create_dir_all(&root).unwrap();
+            Self(root)
+        }
+        fn context(&self) -> Context {
+            Context {
+                binary: "/bin/sh".into(),
+                arguments: vec![],
+                environment: BTreeMap::from([("PATH".into(), "/usr/bin:/bin".into())]),
+                work_dir: self.0.clone(),
+            }
+        }
+    }
+    #[cfg(unix)]
+    impl Drop for Fixture {
+        fn drop(&mut self) {
+            let _ = std::fs::remove_dir_all(&self.0);
+        }
+    }
+    #[test]
+    #[cfg(unix)]
+    fn engine_timeout_sigkills_without_cooperative_signals_and_reaps_child() {
+        let fixture = Fixture::new();
+        let fifo = fixture.0.join("wait.fifo");
+        let c = std::ffi::CString::new(fifo.as_os_str().as_encoded_bytes()).unwrap();
+        assert_eq!(unsafe { libc::mkfifo(c.as_ptr(), 0o600) }, 0);
+        let script = "echo $$ > trace; trap 'echo INT >> trace; exit 0' INT; trap 'echo TERM >> trace; exit 0' TERM; echo READY >> trace; exec 3<> wait.fifo; while IFS= read -r ignored <&3; do :; done";
+        let began = Instant::now();
+        let result = capture(
+            &fixture.context(),
+            &["-c".into(), script.into()],
+            4096,
+            Duration::from_secs(1),
+            None,
+        );
+        assert_eq!(result.unwrap_err(), "rclone 回應逾時，請檢查連線後重試。");
+        assert!(
+            began.elapsed() < Duration::from_secs(5),
+            "ordinary timeout must not enter10/12s cancellation escalation"
+        );
+        let trace = std::fs::read_to_string(fixture.0.join("trace")).unwrap();
+        let mut lines = trace.lines();
+        let pid = lines.next().unwrap().parse::<i32>().unwrap();
+        assert_eq!(lines.collect::<Vec<_>>(), ["READY"]);
+        assert_eq!(
+            unsafe { libc::kill(pid, 0) },
+            -1,
+            "owned child must have been reaped before returning"
+        );
+        assert_eq!(
+            std::io::Error::last_os_error().raw_os_error(),
+            Some(libc::ESRCH)
+        );
+    }
+}
+
+#[cfg(all(test, unix))]
+mod updater_process_regressions {
+    use super::*;
+    use std::{ffi::CString, fs};
+    struct Fixture(PathBuf);
+    impl Fixture {
+        fn new() -> Self {
+            let base = std::env::var_os("RBN_TEST_ROOT")
+                .map(PathBuf::from)
+                .unwrap_or_else(|| {
+                    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+                        .join("../../../.tmp/process-caller-tests")
+                });
+            let root = base.join(uuid::Uuid::new_v4().to_string());
+            fs::create_dir_all(&root).unwrap();
+            Self(root)
+        }
+        fn context(&self) -> Context {
+            Context {
+                binary: "/bin/sh".into(),
+                arguments: vec![],
+                environment: BTreeMap::from([("PATH".into(), "/usr/bin:/bin".into())]),
+                work_dir: self.0.clone(),
+            }
+        }
+        fn fifo(&self) {
+            let p = self.0.join("wait.fifo");
+            let p = CString::new(p.as_os_str().as_encoded_bytes()).unwrap();
+            assert_eq!(unsafe { libc::mkfifo(p.as_ptr(), 0o600) }, 0);
+        }
+    }
+    impl Drop for Fixture {
+        fn drop(&mut self) {
+            let _ = fs::remove_dir_all(&self.0);
+        }
+    }
+    #[test]
+    fn updater_keeps_exact_four_mib_per_pipe_and_drains_child_to_completion() {
+        let f = Fixture::new();
+        let script = "printf OUT; dd if=/dev/zero bs=65536 count=80 2>/dev/null; printf ERR >&2; dd if=/dev/zero bs=65536 count=80 >&2 2>/dev/null; echo DONE > completed";
+        let out = capture_updater(
+            &f.context(),
+            &["-c".into(), script.into()],
+            4 * 1024 * 1024,
+            Duration::from_secs(8),
+        )
+        .unwrap();
+        assert_eq!(out.exit_code, 0);
+        assert_eq!(out.stdout.len(), 4 * 1024 * 1024);
+        assert_eq!(out.stderr.len(), 4 * 1024 * 1024);
+        assert_eq!(&out.stdout[..3], b"OUT");
+        assert_eq!(&out.stderr[..3], b"ERR");
+        assert!(out.stdout[3..].iter().all(|b| *b == 0));
+        assert!(out.stderr[3..].iter().all(|b| *b == 0));
+        assert_eq!(fs::read_to_string(f.0.join("completed")).unwrap(), "DONE\n");
+    }
+    #[test]
+    fn updater_timeout_term_then_two_second_kill_and_original_translations() {
+        let f = Fixture::new();
+        f.fifo();
+        let script = "echo $$ > trace; trap 'echo INT >> trace' INT; trap 'echo TERM >> trace' TERM; echo READY >> trace; exec 3<> wait.fifo; while :; do IFS= read -r ignored <&3 || :; done";
+        let signals = Arc::new(Mutex::new(Vec::new()));
+        let seen = signals.clone();
+        let observer: StopHandler =
+            Arc::new(move |signal| seen.lock().unwrap().push((signal, Instant::now())));
+        let began = Instant::now();
+        let actual = run_inner(
+            &f.context(),
+            &["-c".into(), script.into()],
+            4096,
+            RunPolicy {
+                timeout: Some(Duration::from_secs(1)),
+                caller: Caller::Updater,
+            },
+            None,
+            None,
+            None,
+            None,
+            Some(observer),
+        )
+        .unwrap_err();
+        assert_eq!(actual, "rclone 作業逾時，原本的版本保持不變。");
+        assert_eq!(
+            crate::native::translate(&actual, "en"),
+            "The rclone operation timed out. Your existing version is unchanged."
+        );
+        assert_eq!(
+            crate::native::translate(&actual, "ja"),
+            "rclone の操作がタイムアウトしました。既存のバージョンは変更していません。"
+        );
+        let signals = signals.lock().unwrap();
+        assert_eq!(signals.iter().map(|x| x.0).collect::<Vec<_>>(), [15, 9]);
+        assert!(signals[1].1.duration_since(signals[0].1) >= Duration::from_millis(1900));
+        assert!(began.elapsed() < Duration::from_secs(7));
+        let trace = fs::read_to_string(f.0.join("trace")).unwrap();
+        let mut lines = trace.lines();
+        let pid = lines.next().unwrap().parse::<i32>().unwrap();
+        assert_eq!(lines.collect::<Vec<_>>(), ["READY", "TERM"]);
+        assert_eq!(unsafe { libc::kill(pid, 0) }, -1);
+        assert_eq!(
+            std::io::Error::last_os_error().raw_os_error(),
+            Some(libc::ESRCH)
+        );
+    }
+    #[test]
+    fn updater_waits_for_real_late_eof_before_success() {
+        let f = Fixture::new();
+        let began = Instant::now();
+        let out = capture_updater(
+            &f.context(),
+            &[
+                "-c".into(),
+                "(sleep 0.25; printf late-out; printf late-err >&2) & exit 0".into(),
+            ],
+            4096,
+            Duration::from_secs(4),
+        )
+        .unwrap();
+        assert_eq!(out.exit_code, 0);
+        assert_eq!(out.stdout, b"late-out");
+        assert_eq!(out.stderr, b"late-err");
+        assert!(began.elapsed() >= Duration::from_millis(200));
+    }
+    #[test]
+    fn updater_rejects_unclosed_descendant_pipe_after_original_five_second_bound() {
+        let f = Fixture::new();
+        let began = Instant::now();
+        let error=capture_updater(&f.context(),&["-c".into(),"(sleep 6; printf late-out; printf late-err >&2; echo DONE > descendant-done) & exit 0".into()],4096,Duration::from_secs(3)).unwrap_err();
+        let elapsed = began.elapsed();
+        assert_eq!(error, "rclone 已結束，但輸出尚未關閉，已停止更新。");
+        assert!(
+            elapsed >= Duration::from_millis(4900) && elapsed < Duration::from_millis(5900),
+            "observed {elapsed:?}"
+        );
+        // Wait for this synthetic descendant to finish and close both pipes,
+        // without signalling any re-used PID or leaving a background fixture.
+        let until = Instant::now() + Duration::from_secs(4);
+        while !f.0.join("descendant-done").is_file() && Instant::now() < until {
+            thread::sleep(Duration::from_millis(20));
+        }
+        assert!(f.0.join("descendant-done").is_file());
+        thread::sleep(Duration::from_millis(50));
+    }
+    #[test]
+    fn ordinary_cancellation_keeps_sigint_and_waits_for_child_exit() {
+        let f = Fixture::new();
+        f.fifo();
+        let script = "echo $$ > trace; trap 'echo INT >> trace; exit 0' INT; echo READY >> trace; exec 3<> wait.fifo; while :; do IFS= read -r ignored <&3 || :; done";
+        let cancel = AtomicBool::new(false);
+        thread::scope(|scope| {
+            let root = f.0.clone();
+            let flag = &cancel;
+            let control = scope.spawn(move || {
+                let until = Instant::now() + Duration::from_secs(3);
+                while Instant::now() < until {
+                    if fs::read_to_string(root.join("trace")).is_ok_and(|s| s.contains("READY")) {
+                        flag.store(true, Ordering::Release);
+                        return;
+                    }
+                    thread::sleep(Duration::from_millis(10));
+                }
+                panic!("child never became ready");
+            });
+            let out = capture(
+                &f.context(),
+                &["-c".into(), script.into()],
+                4096,
+                Duration::from_secs(5),
+                Some(&cancel),
+            )
+            .unwrap();
+            control.join().unwrap();
+            assert_eq!(out.exit_code, 0);
+            assert_eq!(out.last_signal, Some(2));
+            assert!(!out.forced);
+            let trace = fs::read_to_string(f.0.join("trace")).unwrap();
+            assert!(trace.ends_with("READY\nINT\n"));
+        });
+    }
+}
+
+#[cfg(all(test, unix))]
+mod updater_startup_regression {
+    use super::*;
+    #[test]
+    fn missing_updater_executable_preserves_basename_and_native_error_template() {
+        let root = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join("../../../.tmp/process-caller-tests")
+            .join(uuid::Uuid::new_v4().to_string());
+        std::fs::create_dir_all(&root).unwrap();
+        let missing = root.join("missing-rclone");
+        let os_error = Command::new(&missing).spawn().unwrap_err().to_string();
+        let context = Context {
+            binary: missing,
+            arguments: vec![],
+            environment: BTreeMap::new(),
+            work_dir: root.clone(),
+        };
+        let error = capture_updater(&context, &[], 4096, Duration::from_secs(1)).unwrap_err();
+        std::fs::remove_dir_all(root).unwrap();
+        assert_eq!(error, format!("無法執行 missing-rclone：{os_error}"));
+        assert_eq!(
+            crate::native::translate(&error, "en"),
+            format!("Could not run missing-rclone: {os_error}")
+        );
+        assert_eq!(
+            crate::native::translate(&error, "ja"),
+            format!("missing-rclone を実行できません：{os_error}")
+        );
     }
 }

@@ -3,7 +3,6 @@ use crate::Result;
 use crate::models::{Endpoint, Selection, absolute_local};
 use serde_json::{Value, json};
 use std::{
-    cmp::Ordering,
     collections::{HashMap, HashSet},
     mem::size_of,
     ptr,
@@ -13,10 +12,6 @@ use windows_sys::{
         Foundation::{
             CloseHandle, ERROR_DIRECTORY, ERROR_FILE_NOT_FOUND, ERROR_NO_MORE_FILES,
             ERROR_PATH_NOT_FOUND, GetLastError, HANDLE, INVALID_HANDLE_VALUE,
-        },
-        Globalization::{
-            CSTR_EQUAL, CSTR_GREATER_THAN, CSTR_LESS_THAN, CompareStringEx, NORM_IGNORECASE,
-            NORM_IGNOREWIDTH, SORT_DIGITSASNUMBERS,
         },
         Storage::FileSystem::*,
         System::{
@@ -205,38 +200,13 @@ fn contents(path: &str) -> Result<Vec<Entry>> {
         }
     }
 }
-fn locale_cmp(a: &str, b: &str) -> Ordering {
-    let (x, y) = (wide(a), wide(b));
-    let compare = |flags| unsafe {
-        CompareStringEx(
-            ptr::null(),
-            flags,
-            x.as_ptr(),
-            -1,
-            y.as_ptr(),
-            -1,
-            ptr::null(),
-            ptr::null(),
-            0,
-        )
-    };
-    match compare(SORT_DIGITSASNUMBERS | NORM_IGNORECASE | NORM_IGNOREWIDTH) {
-        CSTR_LESS_THAN => Ordering::Less,
-        CSTR_GREATER_THAN => Ordering::Greater,
-        CSTR_EQUAL => match compare(0) {
-            CSTR_LESS_THAN => Ordering::Less,
-            CSTR_GREATER_THAN => Ordering::Greater,
-            _ => x.cmp(&y),
-        },
-        _ => x.cmp(&y),
-    }
-}
 pub fn list(endpoint: &Endpoint) -> Result<Vec<Value>> {
     let mut entries = contents(&endpoint.path)?;
-    entries.sort_by(|a, b| {
+    let name_order = crate::platform_text::NameOrder::new()?;
+    crate::platform_text::stable_sort_by(&mut entries, |a, b| {
         b.directory
             .cmp(&a.directory)
-            .then_with(|| locale_cmp(&a.name, &b.name))
+            .then_with(|| name_order.compare(&a.name, &b.name))
     });
     entries.iter().map(Entry::value).collect()
 }
