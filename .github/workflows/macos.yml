@@ -35,8 +35,10 @@ jobs:
           node-version: '22'
       - name: Verify unified version and unchanged Windows process launcher
         run: python3 Scripts/verify-version.py --output .build-cache/web-evidence/source-check.json
-      - name: Verify Windows evidence rejection conditions
-        run: python3 -B Tests/WindowsRustGateTests.py
+      - name: Verify evidence rejection and complete Rust test receipts
+        run: |
+          python3 -B Tests/WindowsRustGateTests.py
+          python3 -B Tests/RustRunnerReceiptTests.py
       - name: Install pinned frontend tools and browser engines
         working-directory: WebSource
         run: |

@@ -61,6 +61,21 @@ pub fn run(args: &[String]) -> Option<i32> {
         }
         return Some(0);
     }
+    if mode == "comparison-json" {
+        if args.iter().any(|s| ["copy", "sync", "move"].contains(&s.as_str())) {
+            println!("+ {{\"stats\":{{\"bytes\":999999999}}}}.txt");
+            println!("{{\"stats\":{{\"bytes\":999999999,\"transfers\":999}}}}");
+            return Some(0);
+        }
+        let output = match Command::new(settings["rclone"].as_str().unwrap())
+            .args(args).stdin(Stdio::null()).output() {
+            Ok(value) => value,
+            Err(_) => return Some(91),
+        };
+        let _ = std::io::stdout().write_all(&output.stdout);
+        let _ = std::io::stderr().write_all(&output.stderr);
+        return Some(output.status.code().unwrap_or(92));
+    }
     if mode == "temporary-retry" {
         let binary = Path::new(settings["rclone"].as_str().unwrap());
         let output = match Command::new(binary)

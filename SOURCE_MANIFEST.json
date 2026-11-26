@@ -1,15 +1,15 @@
 {
   "version": "0.12.0",
-  "file_count_excluding_manifest": 334,
-  "total_bytes_excluding_manifest": 16937565,
+  "file_count_excluding_manifest": 336,
+  "total_bytes_excluding_manifest": 16957926,
   "files": {
     ".github/workflows/mac-local-recovery.yml": {
       "bytes": 1856,
       "sha256": "363fad0de80a365145b276eed488ae8bb1652d0006a61fabd8eaaddc87459c95"
     },
     ".github/workflows/macos.yml": {
-      "bytes": 19924,
-      "sha256": "1c9ab68b85e54c02ad2a28e172f830d7f2afba4998547d5f9ffbbb18e807ffd8"
+      "bytes": 20002,
+      "sha256": "6fe050cec4d3f54daa4d195d5625b7a7a98600e5807c85b1c9d116221820d412"
     },
     ".gitignore": {
       "bytes": 278,
@@ -140,12 +140,16 @@
       "sha256": "f91c2bfcb1423973c04aab64fe1bddb1f40cd498562d4697b134c8b3a386544f"
     },
     "README.en.md": {
-      "bytes": 12735,
-      "sha256": "3384a06eadf4167a6735ff5571079acf8f47233167992e604bd8aaf3f54f0a00"
+      "bytes": 12973,
+      "sha256": "fd6f16bf74e555e2b129392fcee9fec97e663a683f32e5fc68ec5d5d98bc0e80"
+    },
+    "README.ja.md": {
+      "bytes": 4798,
+      "sha256": "8236c17ecef3fb8c63734ed2419eeb5cb2d8b2bd092d89fa637de995fa8c368e"
     },
     "README.md": {
-      "bytes": 10665,
-      "sha256": "8a3bf8b71c5b5251a7a366f6983d7f907d0d666829716e655d2bccd07f22ea9b"
+      "bytes": 10878,
+      "sha256": "b7d12756436af1f81c291dda26d328a0c257d972dca60a7695f838a0d81f3d86"
     },
     "README.zh-TW.md": {
       "bytes": 417,
@@ -280,8 +284,8 @@
       "sha256": "6502e327194f552b11a8e30291fc7b71597ed268168848dcb1f6528d9412bb7b"
     },
     "Scripts/test-rust.py": {
-      "bytes": 5689,
-      "sha256": "930a0b2d2f84b0e2df927bb6d7d8842dfed84a92f7d689cd171cd3e421f24354"
+      "bytes": 7887,
+      "sha256": "3dbb9c540f056386789c10099a84a9b38c17dce82742d72643e3589c8bf8408f"
     },
     "Scripts/update-source-manifest.py": {
       "bytes": 949,
@@ -468,8 +472,8 @@
       "sha256": "835804f043db55ed005d3c8b6065f23415ae3d8f5e87d272209d4acbd3b21c67"
     },
     "Sources/Rust/tests/core_engine_parity.rs": {
-      "bytes": 120186,
-      "sha256": "fbd38e90e19ec01fed7a94ac83c75de488869b12f9476f90a5bca9c48b55a14a"
+      "bytes": 123511,
+      "sha256": "a7b312aa3745de314b2730409570c6dc54c59a8fb47c5f0ddb084a82f6f5f74d"
     },
     "Sources/Rust/tests/core_models_parity.rs": {
       "bytes": 45954,
@@ -552,8 +556,8 @@
       "sha256": "235b0f9c2538cf9b6fadbdce4b67c6b12074eb37112d841984bae16fe9b42cc3"
     },
     "Sources/Rust/tests/support/core_fixture.rs": {
-      "bytes": 2940,
-      "sha256": "66cc1f8aa9271bccb3e11d92f358f1e23e280db1f5abe0a55da18a92b3342c1a"
+      "bytes": 3645,
+      "sha256": "1d893825874a07ccc5f49c405c9480ba770420bfb062dbff01ace1da1a779f46"
     },
     "Sources/Rust/tests/support/fixture_paths.rs": {
       "bytes": 822,
@@ -619,6 +623,10 @@
       "bytes": 8610,
       "sha256": "5fac9a9dc3c89db1523c1e0412b3440bd171fdb8d8e5b50814e6a86562ff3c8a"
     },
+    "Tests/RustRunnerReceiptTests.py": {
+      "bytes": 7370,
+      "sha256": "d21fa963bb7189e272cc3641593ed832603edd0573e97f9841076ea3bb41ecf6"
+    },
     "Tests/Web/README.md": {
       "bytes": 3177,
       "sha256": "d9c78a4cdcf54ef44d31b22c1df9665072c7a2eaa3c0462e0f97d9f506bca76c"
@@ -656,8 +664,8 @@
       "sha256": "48cd56f61354de97ef51003ab687cc16e548e29be24d02c88506aea4ca6e7fe8"
     },
     "Tests/rust-test-map.json": {
-      "bytes": 99440,
-      "sha256": "1a9bab7507d3ee60914e807b3437b551e1648583707353aa0c8268c83272e2be"
+      "bytes": 100876,
+      "sha256": "2fe4886a204bf31e62ac8b273a088d88c265fb4379e00197130fad2c7237f587"
     },
     "Tests/support/LegacyDefaultSettings.swift": {
       "bytes": 1204,

@@ -15,6 +15,7 @@
 <p align="center">
   <a href="https://github.com/jason840709/RcloneBrowserNext/releases/latest">下載</a> ·
   <a href="README.en.md">English</a> ·
+  <a href="README.ja.md">日本語</a> ·
   <a href="docs/USER_GUIDE.zh-TW.md">使用手冊</a> ·
   <a href="https://github.com/jason840709/RcloneBrowserNext/issues">回報問題</a>
 </p>
@@ -40,6 +41,7 @@ Windows 與 Linux 版共用相同的介面與傳輸核心，支援瀏覽、複�
 
 ## 最近版本
 
+- [0.12.0](docs/RELEASE_0.12.0.md)：介面與操作沿用原版；Windows 與 Linux 安裝內容不再附帶 Swift 執行環境，既有設定與紀錄可繼續使用。
 - [0.11.0](docs/RELEASE_0.11.0.md)：整理介面、錯誤提示與使用手冊，讓同步、檔案比對與重試的說明更容易理解。
 - [0.10.6](docs/RELEASE_0.10.6.md)：新增 SMB 直連、NAS 連線方式標示與 Mac 視窗雙擊縮放。
 

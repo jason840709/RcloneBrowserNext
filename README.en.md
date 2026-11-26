@@ -15,6 +15,7 @@
 <p align="center">
   <a href="https://github.com/jason840709/RcloneBrowserNext/releases/latest">Download</a> ·
   <a href="README.md">繁體中文</a> ·
+  <a href="README.ja.md">日本語</a> ·
   <a href="docs/USER_GUIDE.zh-TW.md">User guide (Traditional Chinese)</a> ·
   <a href="https://github.com/jason840709/RcloneBrowserNext/issues">Report an issue</a>
 </p>
@@ -40,6 +41,7 @@ The Windows and Linux editions share the Mac edition's interface and transfer co
 
 ## Recent versions
 
+- [0.12.0](docs/RELEASE_0.12.0.md): the interface and transfer controls stay the same. Windows and Linux packages no longer include the Swift runtime; existing settings and history remain usable.
 - [0.11.0](docs/RELEASE_0.11.0.md): clearer Traditional Chinese interface text, error messages and user guide, including sync deletion scope, comparison and retry conditions.
 - [0.10.6](docs/RELEASE_0.10.6.md): direct SMB connections, NAS connection labels and double-click window zoom on Mac.
 

@@ -787,6 +787,10 @@ impl HttpBackend {
             while !flag.load(Ordering::Acquire) {
                 match listener.accept() {
                     Ok((mut stream, peer)) => {
+                        // Darwin inherits the listener's nonblocking mode.
+                        // Match the original Swift fixture's blocking reads so
+                        // accepting before the first header byte is safe.
+                        stream.set_nonblocking(false).unwrap();
                         stream
                             .set_read_timeout(Some(Duration::from_secs(2)))
                             .unwrap();
@@ -870,6 +874,26 @@ impl Drop for HttpBackend {
             worker.join().unwrap();
         }
     }
+}
+#[test]
+fn loopback_http_fixture_waits_for_delayed_and_fragmented_request_headers() {
+    let server = HttpBackend::new();
+    let mut client = TcpStream::connect(("127.0.0.1", server.port)).unwrap();
+    client.set_read_timeout(Some(Duration::from_secs(2))).unwrap();
+    // A connection can be accepted before the client has sent its first byte.
+    // The original Swift fixture uses a blocking accepted socket.
+    thread::sleep(Duration::from_millis(100));
+    client.write_all(b"GET /one.bin HTTP/1.1\r\nHost: localhost\r\nUser-Agent: fragmented").unwrap();
+    thread::sleep(Duration::from_millis(100));
+    client.write_all(b"\r\n\r\n").unwrap();
+    let mut response = String::new();
+    client.read_to_string(&mut response).unwrap();
+    assert!(response.starts_with("HTTP/1.1 200 OK\r\n"), "{response}");
+    assert!(response.ends_with("\r\n\r\nsample"), "{response}");
+    let rows = server.requests.lock().unwrap();
+    assert_eq!(rows.len(), 1);
+    assert_eq!(rows[0].agent, "fragmented");
+    assert_eq!(rows[0].peer, "127.0.0.1");
 }
 #[test]
 fn real_http_network_honors_bind_literal_user_agent_pacing_and_task_overrides() {
@@ -1478,15 +1502,20 @@ fn dry_run_does_not_mutate_and_literal_metacharacter_selections_copy_precisely()
     let s = Suite::new();
     let from = s.folder("literal/source");
     let to = s.folder("literal/destination");
+    #[cfg(not(windows))]
     let names = [
         "report[1]*?{a}.txt",
         " leading and trailing ",
         "literal\\name.txt",
     ];
+    // Win32 cannot create * ? \ or a trailing-space leaf. Keep the same
+    // number of literal selections using representable metacharacters.
+    #[cfg(windows)]
+    let names = ["report[1]{a}.txt", " leading and trailing .txt", "literal'&name.txt"];
     for name in names {
         s.file(&from, name, b"rclone browser test\n");
     }
-    for name in ["report1other.txt", "unselected.txt", ".DS_Store"] {
+    for name in ["report1other.txt", "report1a.txt", "unselected.txt", ".DS_Store"] {
         s.file(&from, name, b"rclone browser test\n");
     }
     fs::create_dir_all(from.join("empty[1]")).unwrap();
@@ -1512,7 +1541,7 @@ fn dry_run_does_not_mutate_and_literal_metacharacter_selections_copy_precisely()
     for name in names.into_iter().chain(["empty[1]"]) {
         assert!(to.join(name).exists(), "literal missing {name}");
     }
-    assert!(!to.join("unselected.txt").exists() && !to.join("report1other.txt").exists());
+    assert!(!to.join("unselected.txt").exists() && !to.join("report1other.txt").exists() && !to.join("report1a.txt").exists());
     let path = e.invoke("getLogPath", vec![job["id"].clone()]).unwrap();
     let text = fs::read_to_string(path.as_str().unwrap()).unwrap();
     assert!(text.contains("\"stats\"") && text.contains("Copied"));
@@ -1561,7 +1590,10 @@ fn selected_sync_preserves_unselected_scopes_excluded_bytes_and_empty_folder_bou
     for timing in ["before", "during", "after"] {
         let from = s.folder(&format!("scoped/{timing}/source"));
         let to = s.folder(&format!("scoped/{timing}/destination"));
+        #[cfg(not(windows))]
         let selected = ["take[1]*?{a}", "資料夾 B"];
+        #[cfg(windows)]
+        let selected = ["take[1]{a}", "資料夾 B"];
         for name in selected {
             s.file(
                 &from,
@@ -1583,6 +1615,7 @@ fn selected_sync_preserves_unselected_scopes_excluded_bytes_and_empty_folder_bou
         let protected = [
             "other/keep.txt",
             "take1other/keep.txt",
+            "take1a/keep.txt",
             "root-only.txt",
             "outside-new.txt",
         ];
@@ -2479,14 +2512,11 @@ fn theme_path_skip_pane_width_and_default_patches_preserve_unrelated_disk_state(
     assert_eq!(snapshot["skippedRcloneVersion"], "v99.1.0");
     assert_eq!(
         snapshot["rclonePath"],
-        tools
-            .join(if cfg!(windows) {
-                "rclone.exe"
-            } else {
-                "rclone"
-            })
-            .to_str()
-            .unwrap()
+        fixture_paths::wire(&tools.join(if cfg!(windows) {
+            "rclone.exe"
+        } else {
+            "rclone"
+        }))
     );
     assert!(e.auxiliary_context().is_err());
     assert_eq!(snapshot["paneColumnWidths"]["left"]["name"], 280);
@@ -2624,6 +2654,27 @@ fn scale_migration_preserves_every_visual_size_persists_once_and_honors_new_choi
     }
 }
 #[test]
+fn json_looking_comparison_output_never_becomes_transfer_statistics_on_any_platform() {
+    let s = Suite::new();
+    let from = s.folder("json-output/source");
+    let to = s.folder("json-output/destination");
+    let e = s.engine("json-output-engine", true, &[]);
+    let fixture = s.fake("json-output-child", "comparison-json");
+    e.invoke("saveSettings", vec![json!({"rclonePath":fixture})]).unwrap();
+    let job = s.completed(&e, s.basic(&from, &to));
+    // No legitimate stats line is emitted, so a parser that incorrectly reads
+    // stdout JSON cannot hide the poisoned counters behind a later snapshot.
+    assert_eq!(number(&job["stats"]["bytes"]), 0.);
+    assert_eq!(number(&job["stats"]["transfers"]), 0.);
+    assert_eq!(number(&job["report"]["copiedEvents"]), 0.);
+    let path = e.invoke("getJobReportPath", vec![job["id"].clone(), json!("comparison")]).unwrap();
+    let raw = fs::read_to_string(path.as_str().unwrap()).unwrap();
+    assert!(raw.contains("+ {\"stats\":{\"bytes\":999999999}}.txt\n"));
+    assert!(raw.contains("{\"stats\":{\"bytes\":999999999,\"transfers\":999}}\n"));
+    assert!(fs::read_dir(&from).unwrap().next().is_none());
+    assert!(fs::read_dir(&to).unwrap().next().is_none());
+}
+#[test]
 fn independent_reports_keep_early_errors_retry_history_and_all_paginated_successes() {
     let s = Suite::new();
     let from = s.folder("report/source");
@@ -2642,7 +2693,13 @@ fn independent_reports_keep_early_errors_retry_history_and_all_paginated_success
     for i in 0..count {
         s.file(&from, &format!("z-good-{i:04}.txt"), format!("good {i}"));
     }
+    #[cfg(not(windows))]
     let json_name = r#"{"stats":{"bytes":999999999}}.txt"#;
+    // The original JSON-looking leaf has quotes/colons, forbidden by Win32.
+    // Keep all 281 real successes here; the exact JSON output is additionally
+    // exercised through the engine's real child pipes in a separate case.
+    #[cfg(windows)]
+    let json_name = "stats-bytes-999999999.txt";
     s.file(&from, json_name, b"a literal filename is not statistics");
     let e = s.engine("report-engine", true, &[]);
     e.invoke("saveSettings", vec![json!({"retryScope":"full"})])

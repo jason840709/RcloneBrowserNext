@@ -65,35 +65,77 @@ def main():
         for destination in destinations:
             shutil.copy2(launcher, destination)
     records = []
+    identity = {'sourceCommit': env.get('GITHUB_SHA') or env.get('RBN_SOURCE_COMMIT'),
+                'runID': env.get('GITHUB_RUN_ID'),
+                'rustcVersion': subprocess.check_output([env.get('RUSTC', 'rustc'), '--version'], env=env, text=True).strip(),
+                'rcloneSha256': hashlib.sha256(rclone.read_bytes()).hexdigest()}
+
+    def save_results(passed, *, stopped_early=False, error=None):
+        evidence = dict(identity, passed=passed,
+                        testsPassed=sum(r.get('passed', 0) for r in records),
+                        testsFailed=sum(r.get('failed', 0) for r in records),
+                        testsIgnored=sum(r.get('ignored', 0) for r in records),
+                        executables=records)
+        if stopped_early:
+            evidence['stoppedEarly'] = True
+        if error:
+            evidence['error'] = error
+        output.write_text(json.dumps(evidence, indent=2) + '\n', encoding='utf-8')
+        return evidence
+
+    failure_code = 0
     for exe, name in sorted(executables.items(), key=lambda item: item[1]):
         log = output.parent / f'{name}.log'
-        with log.open('w', encoding='utf-8') as handle:
-            # The ignored bridge is an RPC adapter for the unchanged Swift
-            # recovery assertions, executed by test-local-recovery-mac.sh.
-            run = subprocess.run([exe, '--include-ignored', '--skip', 'swift_assertion_bridge', '--test-threads=1', '--show-output'],
-                                 cwd=ROOT, env=env, stdout=handle, stderr=subprocess.STDOUT)
-        text = log.read_text(encoding='utf-8')
-        match = re.search(r'test result: (ok|FAILED)\. (\d+) passed; (\d+) failed; (\d+) ignored;', text)
-        record = {'name': name, 'returncode': run.returncode, 'log': log.name, 'logSha256': hashlib.sha256(log.read_bytes()).hexdigest(),
+        record = {'name': name, 'log': log.name,
                   'sha256': hashlib.sha256(Path(exe).read_bytes()).hexdigest()}
-        if match:
-            record.update(passed=int(match[2]), failed=int(match[3]), ignored=int(match[4]))
+        try:
+            with log.open('w', encoding='utf-8') as handle:
+                # The ignored bridge is an RPC adapter for the unchanged Swift
+                # recovery assertions, executed by test-local-recovery-mac.sh.
+                run = subprocess.run([exe, '--include-ignored', '--skip', 'swift_assertion_bridge', '--test-threads=1', '--show-output'],
+                                     cwd=ROOT, env=env, stdout=handle, stderr=subprocess.STDOUT)
+        except (subprocess.TimeoutExpired, OSError) as error:
+            if log.is_file():
+                record['logSha256'] = hashlib.sha256(log.read_bytes()).hexdigest()
+            record['executionError'] = {'type': type(error).__name__, 'message': str(error)}
+            records.append(record)
+            save_results(False, stopped_early=True, error=record['executionError'])
+            # A timeout or launch/cleanup failure is not an ordinary failed
+            # assertion. Preserve it and stop rather than starting more work.
+            raise
+        text = log.read_text(encoding='utf-8')
+        summaries = re.findall(r'^test result: (ok|FAILED)\. (\d+) passed; (\d+) failed; (\d+) ignored;', text, re.MULTILINE)
+        summary = summaries[0] if len(summaries) == 1 else None
+        record.update(returncode=run.returncode, logSha256=hashlib.sha256(log.read_bytes()).hexdigest())
+        if summary:
+            record.update(passed=int(summary[1]), failed=int(summary[2]), ignored=int(summary[3]))
         record['cases'] = re.findall(r'^test ([^\r\n]+) \.\.\. ok\s*$', text, re.MULTILINE)
+        record['failedCases'] = re.findall(r'^test ([^\r\n]+) \.\.\. FAILED\s*$', text, re.MULTILINE)
         records.append(record)
-        named_complete = bool(match and len(record['cases']) == record['passed']
-                              and len(set(record['cases'])) == len(record['cases']))
-        print(f'{name}: {match[0] if match else "no result"}', flush=True)
-        if run.returncode or not match or not named_complete:
-            if not named_complete:
-                print('Named test evidence is incomplete or duplicated.', flush=True)
+        names = record['cases'] + record['failedCases']
+        named_complete = bool(summary and len(record['cases']) == record['passed']
+                              and len(record['failedCases']) == record['failed']
+                              and len(set(names)) == len(names) and record['ignored'] == 0)
+        ordinary_success = bool(summary and summary[0] == 'ok' and record['failed'] == 0 and run.returncode == 0)
+        # libtest exits 101 after reporting failed assertions. A signal,
+        # unexpected exit, incomplete summary or missing names must still stop.
+        ordinary_failure = bool(summary and summary[0] == 'FAILED' and record['failed'] > 0 and run.returncode == 101)
+        summary_text = (f"test result: {summary[0]}. {record['passed']} passed; {record['failed']} failed; {record['ignored']} ignored;"
+                        if summary else 'no unique result')
+        print(f'{name}: {summary_text}', flush=True)
+        if not named_complete or not (ordinary_success or ordinary_failure):
+            print('Test execution or named evidence is incomplete, duplicated or inconsistent.', flush=True)
             print(text[-16000:])
-            output.write_text(json.dumps({'passed': False, 'executables': records}, indent=2) + '\n')
+            save_results(False, stopped_early=True)
             raise SystemExit(run.returncode or 1)
-    evidence = {'passed': True, 'sourceCommit': env.get('GITHUB_SHA') or env.get('RBN_SOURCE_COMMIT'), 'runID': env.get('GITHUB_RUN_ID'), 'rustcVersion': subprocess.check_output([env.get('RUSTC', 'rustc'), '--version'], env=env, text=True).strip(), 'rcloneSha256': hashlib.sha256(rclone.read_bytes()).hexdigest(),
-                'testsPassed': sum(r['passed'] for r in records), 'testsIgnored': sum(r['ignored'] for r in records),
-                'executables': records}
-    output.write_text(json.dumps(evidence, indent=2) + '\n', encoding='utf-8')
-    print(f"{evidence['testsPassed']} core tests passed; {output}")
+        if ordinary_failure:
+            failure_code = run.returncode
+            print(text[-16000:])
+            save_results(False)
+    evidence = save_results(failure_code == 0)
+    print(f"{evidence['testsPassed']} core tests passed; {evidence['testsFailed']} failed; {output}", flush=True)
+    if failure_code:
+        raise SystemExit(failure_code)
 
 if __name__ == '__main__':
     main()

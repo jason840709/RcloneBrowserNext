@@ -987,7 +987,10 @@
           "target": "core_engine_parity",
           "name": "independent_reports_keep_early_errors_retry_history_and_all_paginated_successes"
         }
-      ]
+      ],
+      "platformNotes": {
+        "windows": "Original Unix JSON-looking leaf is unchanged. Windows uses a legal numeric-looking leaf and keeps all 281 successes, retries, byte bounds and pagination assertions. The exact forbidden JSON-looking filename and valid JSON poison counters are additionally fed through actual child stdout in json_looking_comparison_output_never_becomes_transfer_statistics_on_any_platform; that case emits no legitimate stats capable of overwriting poisoned values."
+      }
     },
     {
       "swiftFile": "Tests/CoreTests.swift",
@@ -1201,7 +1204,10 @@
           "target": "core_engine_parity",
           "name": "dry_run_does_not_mutate_and_literal_metacharacter_selections_copy_precisely"
         }
-      ]
+      ],
+      "platformNotes": {
+        "windows": "Original Unix leaf names are unchanged. On Windows use three legal leaves retaining brackets/braces, leading/interior spaces, apostrophe and ampersand; * ? backslash and trailing-space leaves cannot be created through Win32. Exact file counts and nonselection assertions remain; report1a.txt adds a literal-glob decoy."
+      }
     },
     {
       "swiftFile": "Tests/CoreTests.swift",
@@ -1445,7 +1451,10 @@
           "target": "core_engine_parity",
           "name": "selected_sync_preserves_unselected_scopes_excluded_bytes_and_empty_folder_boundaries"
         }
-      ]
+      ],
+      "platformNotes": {
+        "windows": "Original Unix directory names are unchanged. Windows uses take[1]{a} instead of the forbidden *? variant; two selections and before/during/after cases remain. take1a/keep.txt is an extra untouched-scope decoy."
+      }
     },
     {
       "swiftFile": "Tests/CoreTests.swift",
@@ -1464,7 +1473,10 @@
           "target": "core_models_parity",
           "name": "theme_scales_initial_locations_and_every_legacy_visual_size"
         }
-      ]
+      ],
+      "platformNotes": {
+        "windows": "Expected Windows executable path uses the pre-existing fixture_paths::wire protocol spelling (forward slashes), with exact equality; native PathBuf separators are not accepted as an alternative. All settings/persistence assertions remain."
+      }
     },
     {
       "swiftFile": "Tests/CoreTests.swift",
