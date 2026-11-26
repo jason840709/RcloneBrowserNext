@@ -119,7 +119,12 @@ fn empty_missing_root_oversized_and_control_character_drops_reject() {
     assert!(finder_drop(&json!(["file:///"])).is_err());
     assert!(finder_drop(&Value::Array(vec![Fixture::url(&f.file); 10001])).is_err());
     let invalid = f.source.join("line\nbreak.txt");
+    #[cfg(not(windows))]
     fs::write(&invalid, b"test").unwrap();
+    // Win32 rejects a control-character leaf before a file can exist. Keep
+    // feeding the original newline URL to the drop parser on this platform.
+    #[cfg(windows)]
+    assert!(fs::write(&invalid, b"test").is_err());
     assert!(finder_drop(&json!([Fixture::url(&invalid)])).is_err());
 }
 #[test]

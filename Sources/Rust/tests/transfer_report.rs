@@ -614,7 +614,10 @@ fn real_rclone_copy_repeat_sync_and_delete_keep_honest_checks_and_outcomes() {
     fs::create_dir_all(&source).unwrap();
     fs::create_dir_all(&destination).unwrap();
     let timestamp = UNIX_EPOCH + Duration::from_secs(1_750_000_000);
-    for name in ["same.txt", "new.txt", "line\nbreak.txt"] {
+    let line_name = if cfg!(windows) { "line␊break.txt" } else { "line\nbreak.txt" };
+    // Literal newline JSONL preservation is independently asserted by
+    // jsonl_preserves_quotes_unicode_and_literal_newlines_in_filenames.
+    for name in ["same.txt", "new.txt", line_name] {
         let path = source.join(name);
         fs::write(&path, b"fixture").unwrap();
         File::options()

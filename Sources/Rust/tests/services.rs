@@ -580,9 +580,13 @@ fn real_tree_and_exports_preserve_filenames_csv_and_exclude_own_staging() {
     let f = Fixture::new(true);
     let source = f.root.join("source");
     fs::create_dir_all(source.join("level1/level2/level3")).unwrap();
+    #[cfg(not(windows))]
+    let comma_name = "name,\"中文\".txt";
+    #[cfg(windows)]
+    let comma_name = "name,'中文'.txt";
     for name in [
         "alpha.txt",
-        "name,\"中文\".txt",
+        comma_name,
         if cfg!(windows) {
             "line␊break.txt"
         } else {
@@ -614,9 +618,13 @@ fn real_tree_and_exports_preserve_filenames_csv_and_exclude_own_staging() {
             .is_match(&text),
         "CSV omitted size/date"
     );
+    #[cfg(not(windows))]
+    let expected_csv_name = "\"name,\"\"中文\"\".txt\"";
+    #[cfg(windows)]
+    let expected_csv_name = "\"name,'中文'.txt\"";
     assert!(
         text.starts_with("Path,Size,Modified\n")
-            && text.contains("\"name,\"\"中文\"\".txt\"")
+            && text.contains(expected_csv_name)
             && text.contains("line␊break.txt")
     );
     let plain = f.root.join("plain");
@@ -701,8 +709,12 @@ fn tool_fixtures_cover_large_tree_public_links_and_transactional_export_failure(
         assert_eq!(fs::read(&report).unwrap(), b"previous report");
     }
     let c = f.fixture_context("csv-multiline");
-    let result = Tools::export(&c, &root, &f.root.join("multi.csv"), false).unwrap();
+    let csv = f.root.join("multi.csv");
+    let result = Tools::export(&c, &root, &csv, false).unwrap();
     assert_eq!(result["count"], 2);
+    // Quotes and embedded LF are tested as exact child output even on a
+    // filesystem where their corresponding physical leaf is forbidden.
+    assert_eq!(fs::read_to_string(csv).unwrap(), "Path,Size,Modified\n\"line\nbreak.txt\",5,2026-10-20 00:00:00\n\"quotes\"\"x\",7,2026-10-20 00:00:00\n");
 }
 
 fn finished(manager: &Arc<Tools>, c: &Context, id: &Value) -> Value {

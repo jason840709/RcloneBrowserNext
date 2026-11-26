@@ -2220,8 +2220,9 @@ mod additional_parity_tests {
             PathBuf::from("/Applications/rclone/rclone")
         );
     }
+    #[cfg(target_os = "macos")]
     #[test]
-    fn mac_default_chooser_and_target_refresh_follow_original_policy() {
+    fn mac_default_chooser_follows_original_policy() {
         let settings = json!({"rclonePath":""});
         let target = "/Applications/Tools/rclone/rclone";
         assert!(requires_directory_choice(
@@ -2254,6 +2255,10 @@ mod additional_parity_tests {
             false,
             Some("/custom")
         ));
+    }
+
+    #[test]
+    fn target_refresh_returns_exact_selected_path_and_settings_revision() {
         let d = directory("update-target");
         let up = Updater::with_fetcher(
             d.join("work"),
@@ -2393,7 +2398,7 @@ mod additional_parity_tests {
         fs::create_dir(&stage).unwrap();
         let candidate = stage.join(rclone_name());
         fs::write(&candidate, b"new").unwrap();
-        let mut backup_path = String::new();
+        let mut removed_backup = None;
         let error = commit(&candidate, &target, |_| {
             let backup = fs::read_dir(d.join("Backups"))
                 .unwrap()
@@ -2402,13 +2407,25 @@ mod additional_parity_tests {
                 .unwrap()
                 .path()
                 .join(rclone_name());
-            backup_path = backup.to_string_lossy().into_owned();
+            removed_backup = Some(fs::canonicalize(&backup).unwrap());
             fs::remove_file(backup).unwrap();
             Err("post-install probe failed".into())
         })
         .unwrap_err();
-        assert!(!backup_path.is_empty() && error.contains(&backup_path));
-        assert!(error.contains("自動還原失敗"));
+        let expected = removed_backup.unwrap_or_else(|| panic!("validation never ran: {error}"));
+        assert!(error.contains("自動還原失敗"), "{error}");
+        let reported = error
+            .lines()
+            .find_map(|line| line.strip_prefix("舊版備份位置："))
+            .map(Path::new)
+            .unwrap_or_else(|| panic!("missing backup location: {error}"));
+        assert!(reported.is_absolute(), "{error}");
+        // The injected failure removed the file. Resolve its surviving parent,
+        // then compare the complete location, including the executable name.
+        let actual = fs::canonicalize(reported.parent().unwrap())
+            .unwrap()
+            .join(reported.file_name().unwrap());
+        assert_eq!(actual, expected);
         assert_eq!(fs::read(&target).unwrap(), b"new");
         fs::remove_dir_all(d).unwrap();
     }

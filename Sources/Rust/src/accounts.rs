@@ -205,7 +205,7 @@ impl Accounts {
             return self.information(context);
         }
         if action == "start" {
-            return self.start(request, context);
+            return self.start(request, context, Self::initialize);
         }
         self.handle_session(request)
     }
@@ -329,7 +329,9 @@ impl Accounts {
                     return Ok(s.snapshot());
                 }
                 s.cancelled.store(true, Ordering::Release);
-                if s.workers == 0 {
+                // A published question or ready state has already released its child.
+                // Only running work needs to stop before discarding the staged config.
+                if s.phase != "running" || s.workers == 0 {
                     s.finish_cancelled()?;
                 }
                 Ok(s.snapshot())
@@ -347,10 +349,12 @@ impl Accounts {
             let result = action(&this, &id);
             let _ = this.with(&id, |s| {
                 s.workers = s.workers.saturating_sub(1);
-                if s.cancelled.load(Ordering::Acquire) && s.workers == 0 {
-                    if let Err(e) = s.finish_cancelled() {
-                        s.phase = "error".into();
-                        s.error = e;
+                if !s.active() {
+                    return Ok(());
+                }
+                if s.cancelled.load(Ordering::Acquire) {
+                    if s.workers == 0 {
+                        s.finish_cancelled()?;
                     }
                 } else if let Err(e) = result {
                     s.error = s.redact(&e);
@@ -434,7 +438,12 @@ impl Accounts {
             "configPath":path,"binary":context.binary,"requiresUnlock":requires_unlock}),
         )
     }
-    fn start(self: &Arc<Self>, request: &Value, context: &Context) -> Result<Value> {
+    fn start(
+        self: &Arc<Self>,
+        request: &Value,
+        context: &Context,
+        initialize: impl FnOnce(&Arc<Self>, &str) -> Result<()> + Send + 'static,
+    ) -> Result<Value> {
         let name = request["name"].as_str().unwrap_or_default().to_owned();
         let mode = request["mode"].as_str().unwrap_or("create").to_owned();
         let provider = request["provider"].as_str().unwrap_or_default().to_owned();
@@ -507,7 +516,7 @@ impl Accounts {
                 tested: false,
             });
         }
-        self.launch(id.clone(), |this, id| this.initialize(id));
+        self.launch(id.clone(), initialize);
         self.with(&id, |s| Ok(s.snapshot()))
     }
     fn initialize(self: &Arc<Self>, id: &str) -> Result<()> {
@@ -1564,6 +1573,86 @@ mod privacy_regressions {
 #[cfg(test)]
 mod review_regressions {
     use super::*;
+    #[test]
+    fn cancel_during_worker_tail_matches_published_phase() {
+        use std::sync::mpsc;
+
+        let root = std::env::var_os("RBN_TEST_ROOT")
+            .map(PathBuf::from)
+            .unwrap_or_else(|| {
+                PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../../.tmp/services-tests")
+            })
+            .join(format!("account-cancel-{}", Uuid::new_v4()));
+        crate::storage::private_directory(&root).unwrap();
+        let accounts = Accounts::new(root.clone()).unwrap();
+        let context = Context {
+            binary: root.join("unused"),
+            arguments: vec![],
+            environment: BTreeMap::new(),
+            work_dir: root.clone(),
+        };
+        let timeout = Duration::from_secs(10);
+        for phase in ["question", "ready", "running"] {
+            let stage = root.join(format!("{phase}.conf"));
+            fs::write(&stage, b"private fixture").unwrap();
+            let worker_stage = stage.clone();
+            let (published, observe) = mpsc::channel();
+            let (release, resume) = mpsc::channel();
+            let session = accounts
+                .start(&json!({"name":"fixture"}), &context, move |this, id| {
+                    this.with(id, |s| {
+                        s.staged = Some(worker_stage);
+                        Ok(())
+                    })?;
+                    match phase {
+                        "question" => this
+                            .advance(id, json!({"State":"next", "Option":{"Name":"directory"}}))?,
+                        "ready" => this.advance(id, json!({"State":""}))?,
+                        _ => {}
+                    }
+                    published.send(()).unwrap();
+                    resume.recv_timeout(timeout).unwrap();
+                    Ok(())
+                })
+                .unwrap();
+            let id = session["id"].as_str().unwrap();
+            observe.recv_timeout(timeout).unwrap();
+            let (observed_phase, workers) = accounts
+                .with(id, |s| Ok((s.phase.clone(), s.workers)))
+                .unwrap();
+            assert_eq!(observed_phase, phase);
+            assert_eq!(workers, 1);
+
+            let response = accounts
+                .handle_session(&json!({"action":"cancel","id":id}))
+                .unwrap();
+            let running = phase == "running";
+            assert_eq!(
+                response["phase"],
+                if running { "running" } else { "cancelled" }
+            );
+            assert_eq!(accounts.has_active(), running);
+            assert_eq!(stage.exists(), running);
+
+            release.send(()).unwrap();
+            let (guard, _) = accounts
+                .finished
+                .wait_timeout_while(accounts.session.lock().unwrap(), timeout, |slot| {
+                    slot.as_ref().unwrap().workers != 0
+                })
+                .unwrap();
+            assert_eq!(guard.as_ref().unwrap().workers, 0);
+            drop(guard);
+            let final_state = accounts
+                .handle_session(&json!({"action":"poll","id":id}))
+                .unwrap();
+            assert_eq!(final_state["phase"], "cancelled");
+            assert!(!accounts.has_active());
+            assert!(!stage.exists());
+        }
+        fs::remove_dir_all(root).unwrap();
+    }
+
     #[test]
     fn constructor_does_not_create_unused_state_directories_or_change_parent_permissions() {
         let root = std::env::var_os("RBN_TEST_ROOT")

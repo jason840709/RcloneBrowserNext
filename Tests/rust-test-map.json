@@ -1705,7 +1705,10 @@
           "target": "finder_drop",
           "name": "empty_missing_root_oversized_and_control_character_drops_reject"
         }
-      ]
+      ],
+      "platformNotes": {
+        "windows": "Win32 refuses to create the original LF leaf. Windows asserts that creation fails and still submits the original newline-containing file URL to the parser and requires rejection; Unix retains the existing physical LF file."
+      }
     },
     {
       "swiftFile": "Tests/FinderDropTests.swift",
@@ -2251,10 +2254,6 @@
         {
           "target": "lib",
           "name": "models::platform_tests::absolute_drive_unc_and_posix_spelling"
-        },
-        {
-          "target": "contracts",
-          "name": "destination_roots_and_remote_overlap"
         }
       ]
     },
@@ -2643,7 +2642,10 @@
           "target": "services",
           "name": "tool_fixtures_cover_large_tree_public_links_and_transactional_export_failure"
         }
-      ]
+      ],
+      "platformNotes": {
+        "windows": "Windows uses a legal comma/apostrophe Unicode leaf because Win32 rejects the original double quotes. All three file/date/count/staging assertions remain. tool_fixtures_cover_large_tree_public_links_and_transactional_export_failure additionally compares the full exact exported CSV bytes from original quoted-newline/doubled-quote child output on every platform."
+      }
     },
     {
       "swiftFile": "Tests/ToolsTests.swift",
@@ -2782,7 +2784,10 @@
           "target": "services",
           "name": "real_tree_and_exports_preserve_filenames_csv_and_exclude_own_staging"
         }
-      ]
+      ],
+      "platformNotes": {
+        "windows": "Windows uses a legal comma/apostrophe Unicode leaf because Win32 rejects the original double quotes. All three file/date/count/staging assertions remain. tool_fixtures_cover_large_tree_public_links_and_transactional_export_failure additionally compares the full exact exported CSV bytes from original quoted-newline/doubled-quote child output on every platform."
+      }
     },
     {
       "swiftFile": "Tests/ToolsTests.swift",
@@ -2812,7 +2817,10 @@
           "target": "services",
           "name": "real_tree_and_exports_preserve_filenames_csv_and_exclude_own_staging"
         }
-      ]
+      ],
+      "platformNotes": {
+        "windows": "Windows uses a legal comma/apostrophe Unicode leaf because Win32 rejects the original double quotes. All three file/date/count/staging assertions remain. tool_fixtures_cover_large_tree_public_links_and_transactional_export_failure additionally compares the full exact exported CSV bytes from original quoted-newline/doubled-quote child output on every platform."
+      }
     },
     {
       "swiftFile": "Tests/TransferReportTests.swift",
@@ -3052,7 +3060,10 @@
           "target": "transfer_report",
           "name": "real_rclone_copy_repeat_sync_and_delete_keep_honest_checks_and_outcomes"
         }
-      ]
+      ],
+      "platformNotes": {
+        "windows": "Windows uses the representable LF display symbol in the real-file fixture, keeping original copied=2/matched=1, repeat matched=3/deleted=1/transfers=0 assertions. jsonl_preserves_quotes_unicode_and_literal_newlines_in_filenames separately feeds original literal LF/quote/Unicode into structured records and asserts exact path/raw JSONL preservation on every platform."
+      }
     },
     {
       "swiftFile": "Tests/TransferReportTests.swift",
