@@ -266,12 +266,17 @@ final class RBNEngineClient {
                     throw NSError(domain: NSPOSIXErrorDomain, code: Int(errno))
                 }
                 if length == 0 { break }
-                buffered.append(contentsOf: chunk.prefix(length))
-                while let newline = buffered.firstIndex(of: 10) {
-                    let line = buffered.prefix(upTo: newline)
-                    guard line.count < 32 * 1024 * 1024 else { engineStopped(); return }
-                    buffered.removeSubrange(...newline)
-                    guard let packet = try JSONSerialization.jsonObject(with: line) as? [String: Any] else { engineStopped(); return }
+                // Each byte is searched only in the newly read chunk. A large
+                // JSON line must not repeatedly rescan its accumulated prefix.
+                // The original Mac bridge imposed no reply/event size limit.
+                var start = 0
+                for newline in 0..<length where chunk[newline] == 10 {
+                    buffered.append(contentsOf: chunk[start..<newline])
+                    guard let packet = try JSONSerialization.jsonObject(with: buffered) as? [String: Any] else { engineStopped(); return }
+                    // Release a completed large frame instead of retaining its
+                    // high-water allocation for all subsequent small packets.
+                    buffered.removeAll(keepingCapacity: false)
+                    start = newline + 1
                     if let event = packet["event"] as? [String: Any] {
                         eventQueue.async { [weak self] in
                             guard let self = self else { return }
@@ -284,7 +289,7 @@ final class RBNEngineClient {
                         else { request.finish(.success(packet["result"] ?? NSNull())) }
                     }
                 }
-                guard buffered.count <= 32 * 1024 * 1024 else { engineStopped(); return }
+                buffered.append(contentsOf: chunk[start..<length])
             }
         } catch {}
         engineStopped()

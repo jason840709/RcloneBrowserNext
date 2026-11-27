@@ -1,0 +1,282 @@
+{
+  "baselineVersion": "0.11.0",
+  "operation": "AppMain.localizedResponse",
+  "cases": [
+    {
+      "expected": {
+        "name": "目錄讀取已取消。",
+        "path": "目錄讀取已取消。",
+        "validationError": "Folder loading was cancelled."
+      },
+      "input": {
+        "name": "目錄讀取已取消。",
+        "path": "目錄讀取已取消。",
+        "validationError": "目錄讀取已取消。"
+      },
+      "language": "en"
+    },
+    {
+      "expected": {
+        "tasks": [
+          {
+            "id": "retained",
+            "name": "目錄讀取已取消。",
+            "validationError": "Folder loading was cancelled."
+          },
+          {
+            "validationError": null
+          },
+          {
+            "validationError": 17
+          }
+        ]
+      },
+      "input": {
+        "tasks": [
+          {
+            "id": "retained",
+            "name": "目錄讀取已取消。",
+            "validationError": "目錄讀取已取消。"
+          },
+          {
+            "validationError": null
+          },
+          {
+            "validationError": 17
+          }
+        ]
+      },
+      "language": "en"
+    },
+    {
+      "expected": {
+        "nested": {
+          "path": "目錄讀取已取消。",
+          "validationError": "Folder loading was cancelled."
+        },
+        "validationError": [
+          "Folder loading was cancelled.",
+          "unknown backend 🤍"
+        ]
+      },
+      "input": {
+        "nested": {
+          "path": "目錄讀取已取消。",
+          "validationError": "目錄讀取已取消。"
+        },
+        "validationError": [
+          "目錄讀取已取消。",
+          "unknown backend 🤍"
+        ]
+      },
+      "language": "en"
+    },
+    {
+      "expected": {
+        "name": "目錄讀取已取消。",
+        "path": "目錄讀取已取消。",
+        "validationError": "フォルダの読み込みをキャンセルしました。"
+      },
+      "input": {
+        "name": "目錄讀取已取消。",
+        "path": "目錄讀取已取消。",
+        "validationError": "目錄讀取已取消。"
+      },
+      "language": "ja"
+    },
+    {
+      "expected": {
+        "tasks": [
+          {
+            "id": "retained",
+            "name": "目錄讀取已取消。",
+            "validationError": "フォルダの読み込みをキャンセルしました。"
+          },
+          {
+            "validationError": null
+          },
+          {
+            "validationError": 17
+          }
+        ]
+      },
+      "input": {
+        "tasks": [
+          {
+            "id": "retained",
+            "name": "目錄讀取已取消。",
+            "validationError": "目錄讀取已取消。"
+          },
+          {
+            "validationError": null
+          },
+          {
+            "validationError": 17
+          }
+        ]
+      },
+      "language": "ja"
+    },
+    {
+      "expected": {
+        "nested": {
+          "path": "目錄讀取已取消。",
+          "validationError": "フォルダの読み込みをキャンセルしました。"
+        },
+        "validationError": [
+          "フォルダの読み込みをキャンセルしました。",
+          "unknown backend 🤍"
+        ]
+      },
+      "input": {
+        "nested": {
+          "path": "目錄讀取已取消。",
+          "validationError": "目錄讀取已取消。"
+        },
+        "validationError": [
+          "目錄讀取已取消。",
+          "unknown backend 🤍"
+        ]
+      },
+      "language": "ja"
+    },
+    {
+      "expected": {
+        "name": "目錄讀取已取消。",
+        "path": "目錄讀取已取消。",
+        "validationError": "目錄讀取已取消。"
+      },
+      "input": {
+        "name": "目錄讀取已取消。",
+        "path": "目錄讀取已取消。",
+        "validationError": "目錄讀取已取消。"
+      },
+      "language": "zh-TW"
+    },
+    {
+      "expected": {
+        "tasks": [
+          {
+            "id": "retained",
+            "name": "目錄讀取已取消。",
+            "validationError": "目錄讀取已取消。"
+          },
+          {
+            "validationError": null
+          },
+          {
+            "validationError": 17
+          }
+        ]
+      },
+      "input": {
+        "tasks": [
+          {
+            "id": "retained",
+            "name": "目錄讀取已取消。",
+            "validationError": "目錄讀取已取消。"
+          },
+          {
+            "validationError": null
+          },
+          {
+            "validationError": 17
+          }
+        ]
+      },
+      "language": "zh-TW"
+    },
+    {
+      "expected": {
+        "nested": {
+          "path": "目錄讀取已取消。",
+          "validationError": "目錄讀取已取消。"
+        },
+        "validationError": [
+          "目錄讀取已取消。",
+          "unknown backend 🤍"
+        ]
+      },
+      "input": {
+        "nested": {
+          "path": "目錄讀取已取消。",
+          "validationError": "目錄讀取已取消。"
+        },
+        "validationError": [
+          "目錄讀取已取消。",
+          "unknown backend 🤍"
+        ]
+      },
+      "language": "zh-TW"
+    },
+    {
+      "expected": {
+        "name": "目錄讀取已取消。",
+        "path": "目錄讀取已取消。",
+        "validationError": "目錄讀取已取消。"
+      },
+      "input": {
+        "name": "目錄讀取已取消。",
+        "path": "目錄讀取已取消。",
+        "validationError": "目錄讀取已取消。"
+      },
+      "language": "unsupported"
+    },
+    {
+      "expected": {
+        "tasks": [
+          {
+            "id": "retained",
+            "name": "目錄讀取已取消。",
+            "validationError": "目錄讀取已取消。"
+          },
+          {
+            "validationError": null
+          },
+          {
+            "validationError": 17
+          }
+        ]
+      },
+      "input": {
+        "tasks": [
+          {
+            "id": "retained",
+            "name": "目錄讀取已取消。",
+            "validationError": "目錄讀取已取消。"
+          },
+          {
+            "validationError": null
+          },
+          {
+            "validationError": 17
+          }
+        ]
+      },
+      "language": "unsupported"
+    },
+    {
+      "expected": {
+        "nested": {
+          "path": "目錄讀取已取消。",
+          "validationError": "目錄讀取已取消。"
+        },
+        "validationError": [
+          "目錄讀取已取消。",
+          "unknown backend 🤍"
+        ]
+      },
+      "input": {
+        "nested": {
+          "path": "目錄讀取已取消。",
+          "validationError": "目錄讀取已取消。"
+        },
+        "validationError": [
+          "目錄讀取已取消。",
+          "unknown backend 🤍"
+        ]
+      },
+      "language": "unsupported"
+    }
+  ]
+}

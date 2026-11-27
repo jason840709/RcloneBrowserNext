@@ -1,7 +1,7 @@
 {
   "version": "0.12.0",
-  "file_count_excluding_manifest": 363,
-  "total_bytes_excluding_manifest": 17382938,
+  "file_count_excluding_manifest": 365,
+  "total_bytes_excluding_manifest": 17407356,
   "files": {
     ".github/workflows/mac-local-recovery.yml": {
       "bytes": 1856,
@@ -304,8 +304,8 @@
       "sha256": "a7265e161aaf799b2a6834cd617570f0f38d844e9c5313245fc5346680f8b929"
     },
     "Scripts/test-mac.sh": {
-      "bytes": 4635,
-      "sha256": "6502e327194f552b11a8e30291fc7b71597ed268168848dcb1f6528d9412bb7b"
+      "bytes": 4918,
+      "sha256": "eb56830eaa2fa5c9ee45c3326dbcc1dbaffaf3c8899bb6e4a5f852cf899a529e"
     },
     "Scripts/test-rust.py": {
       "bytes": 9319,
@@ -388,8 +388,8 @@
       "sha256": "920657ea949fc60e726b6e5c9d121854498a887578ed7220025a13c74d819e16"
     },
     "Sources/Mac/EngineClient.swift": {
-      "bytes": 125904,
-      "sha256": "56ddac2fc6d6b68eabf5b1edf2115f37fde3ac7cd538a48ba7f2facce6627f88"
+      "bytes": 126218,
+      "sha256": "4981054998cd610fb8433516135d96c032011ae9d0d4df3e698dfc9b725e015a"
     },
     "Sources/Mac/MainToolbar.swift": {
       "bytes": 25048,
@@ -460,8 +460,8 @@
       "sha256": "a42b6f1df21ee93bd39a2b0ef1939602c31c5cd8278cf7442f415cb92456d1cf"
     },
     "Sources/Rust/src/native.rs": {
-      "bytes": 6924,
-      "sha256": "65ccf31fa043f758237e16f7a32e3874586ed937cfd199e000749441481ddeba"
+      "bytes": 6971,
+      "sha256": "5adf854aaadbb14b8d85268c08501f01700381cc2be98981c62d4a984c8027ab"
     },
     "Sources/Rust/src/native_requests.rs": {
       "bytes": 11142,
@@ -571,6 +571,10 @@
       "bytes": 118302,
       "sha256": "bb4619659fd4f389dab0e6e99d684bf3c91db8d3ef0b79f57de60b05134eee2b"
     },
+    "Sources/Rust/tests/fixtures/mac-localized-response-0.11.0.json": {
+      "bytes": 6939,
+      "sha256": "fdb49a96946f47dade43afa5a851bb5607b2c02274465b3f09a0acdd54f393be"
+    },
     "Sources/Rust/tests/fixtures/models-0.11.0.json": {
       "bytes": 89791,
       "sha256": "221bf73ed25ca4418fe7b4a8175b4d000de49ccbb9d77b3a327b16b30efcf4bf"
@@ -620,8 +624,8 @@
       "sha256": "71770766a6f35a279eeeab58501158a26a42b247019fe4a5f96aa2b1c72d366e"
     },
     "Sources/Rust/tests/native_messages.rs": {
-      "bytes": 3113,
-      "sha256": "2ebfc4682969797ccba99975b21683931312c822f45518b3107abff5035fa3d3"
+      "bytes": 3762,
+      "sha256": "76ae23837c2659be2edaa72c2b8351a47d6bc47efb3e304fdfec50a47b7bf08d"
     },
     "Sources/Rust/tests/persistence_oracle.rs": {
       "bytes": 18305,
@@ -666,6 +670,10 @@
     "Tests/MacCompletionTests.swift": {
       "bytes": 5237,
       "sha256": "f585955e758e89c74c3109a07d0037111ae7c5c3b91b3ef4df55505100c51d46"
+    },
+    "Tests/MacEngineTransportTests.swift": {
+      "bytes": 16186,
+      "sha256": "90396e38e51782e849d4f5bc897afcc8ae5367ec8d41d7cef6c78acaf4bc0af5"
     },
     "Tests/MacExportOracle.swift": {
       "bytes": 5105,

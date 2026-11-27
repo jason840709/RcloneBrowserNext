@@ -42,7 +42,7 @@ fi
 # gate remains failed; no failed or unexecuted assertion is counted as passed.
 RBN_NATIVE_FAILURES=0
 RBN_TEST_SUPPORT=("$RBN_PROJECT_ROOT/Sources/Mac/EngineClient.swift" "$RBN_PROJECT_ROOT/Tests/support/LegacyModelOracle.swift" "$RBN_PROJECT_ROOT/Tests/support/LegacyDefaultSettings.swift" "$RBN_PROJECT_ROOT/Tests/support/RustNativeTestSupport.swift")
-for RBN_NATIVE_SUITE in MacInterfaceTests MacStartupTests MacIconTests MacNavigationIntegrationTests MacCompletionTests MacWindowInteractionTests; do
+for RBN_NATIVE_SUITE in MacInterfaceTests MacStartupTests MacIconTests MacNavigationIntegrationTests MacCompletionTests MacWindowInteractionTests MacEngineTransportTests; do
   RBN_NATIVE_SOURCE="$RBN_PROJECT_ROOT/Tests/$RBN_NATIVE_SUITE.swift"
   [[ -s "$RBN_NATIVE_SOURCE" && ! -L "$RBN_NATIVE_SOURCE" ]] || rbn_fail "缺少測試檔案：$RBN_NATIVE_SOURCE" 2
   RBN_NATIVE_SOURCES=("$RBN_PROJECT_ROOT/Sources/Mac/RcloneWebView.swift" "$RBN_PROJECT_ROOT/Sources/Mac/WindowTitlebar.swift")
@@ -53,6 +53,11 @@ for RBN_NATIVE_SUITE in MacInterfaceTests MacStartupTests MacIconTests MacNaviga
     MacIconTests)
       RBN_NATIVE_SOURCES=("$RBN_PROJECT_ROOT/Sources/Mac/AppIconAppearance.swift")
       RBN_NATIVE_ARGS+=("$RBN_APP_PATH") ;;
+    MacEngineTransportTests)
+      RBN_NATIVE_SOURCES=("$RBN_PROJECT_ROOT/Sources/Mac/EngineClient.swift")
+      RBN_NATIVE_WORK="$RBN_TEST_RUN/MacEngineTransportTests-work"
+      /bin/mkdir -p "$RBN_NATIVE_WORK"
+      RBN_NATIVE_ARGS=("$RBN_NATIVE_WORK") ;;
     MacNavigationIntegrationTests)
       RBN_NATIVE_SOURCES+=("${RBN_TEST_SUPPORT[@]}")
       RBN_NATIVE_WORK="$RBN_TEST_RUN/$RBN_NATIVE_SUITE-work"

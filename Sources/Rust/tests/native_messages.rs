@@ -80,3 +80,21 @@ fn absolute_anchors_reject_partial_diagnostic_translation() {
 fn unknown_oversized_and_japanese_fallback_are_stable() {
     check("Unknown and oversized messages use stable fallback");
 }
+
+#[test]
+fn mac_reply_validation_errors_match_original_swift() {
+    // Recorded by the unchanged 0.11.0 AppMain method and native catalog.
+    let fixture: Value =
+        serde_json::from_str(include_str!("fixtures/mac-localized-response-0.11.0.json")).unwrap();
+    let cases = fixture["cases"].as_array().unwrap();
+    assert_eq!(cases.len(), 12);
+    for row in cases {
+        let language = row["language"].as_str().unwrap();
+        assert_eq!(
+            native::response(&row["input"], language),
+            row["expected"],
+            "original Mac reply localization for {language}: {:?}",
+            row["input"]
+        );
+    }
+}

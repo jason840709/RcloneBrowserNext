@@ -147,7 +147,9 @@ pub fn japanese(source: &str, fallback: &str) -> String {
 pub fn response(value: &Value, language: &str) -> Value {
     fn walk(v: &Value, key: &str, l: &str) -> Value {
         match v {
-            Value::String(s) if ["error", "message", "warning"].contains(&key) => {
+            Value::String(s)
+                if ["error", "message", "warning", "validationError"].contains(&key) =>
+            {
                 Value::String(translate(s, l))
             }
             Value::Array(a) => Value::Array(
