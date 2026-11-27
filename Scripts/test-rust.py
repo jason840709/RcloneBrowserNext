@@ -3,6 +3,7 @@
 from pathlib import Path
 import argparse
 import hashlib
+import importlib.util
 import json
 import os
 import re
@@ -11,6 +12,26 @@ import subprocess
 import sys
 
 ROOT = Path(__file__).resolve().parents[1]
+UNICODE_SPEC = importlib.util.spec_from_file_location('windows_unicode_runtime', ROOT / 'Scripts/windows/unicode-runtime.py')
+UNICODE = importlib.util.module_from_spec(UNICODE_SPEC)
+UNICODE_SPEC.loader.exec_module(UNICODE)
+
+
+def place_windows_runtime(executables, release, launcher, library):
+    if not launcher.is_file():
+        raise FileNotFoundError('Build the unchanged Windows process launcher before running the core tests')
+    receipt = json.loads(library.with_name('unicode-runtime.json').read_text(encoding='utf-8'))
+    UNICODE.validate_receipt(receipt, library=library)
+    directories = {Path(exe).parent for exe in executables} | {release}
+    placements = []
+    for directory in sorted(directories):
+        shutil.copy2(launcher, directory / 'rbn-process-launcher.exe')
+        destination = directory / receipt['library']['name']
+        if destination.resolve() != library.resolve():
+            shutil.copy2(library, destination)
+        UNICODE.validate_receipt(receipt, library=destination)
+        placements.append({'path': str(destination), **receipt['library']})
+    return receipt, placements
 
 def configure_output():
     # Rust renders source excerpts as UTF-8. A redirected Windows Python
@@ -26,6 +47,7 @@ def main():
     p.add_argument('--rclone', type=Path, required=True)
     p.add_argument('--output', type=Path, required=True)
     p.add_argument('--launcher', type=Path)
+    p.add_argument('--unicode-runtime', type=Path)
     p.add_argument('--test', action='append', default=[])
     args = p.parse_args()
     rclone = args.rclone.resolve(strict=True)
@@ -52,23 +74,22 @@ def main():
         raise RuntimeError('Cargo did not report any test executables')
     output = args.output.resolve()
     output.parent.mkdir(parents=True, exist_ok=True)
+    unicode_receipt, unicode_placements = None, None
     if os.name == 'nt':
         launcher = args.launcher or ROOT / '.build-cache/compat/runtime/rbn-process-launcher.exe'
-        if not launcher.is_file():
-            raise FileNotFoundError('Build the unchanged Windows process launcher before running the core tests')
         # Each test executable launches rclone exactly as production does: its
         # own adjacent launcher. No test-only launcher search or override exists.
-        destinations = {Path(exe).parent / 'rbn-process-launcher.exe' for exe in executables}
         target = Path(env.get('CARGO_TARGET_DIR', ROOT / 'Sources/Rust/target')).resolve()
         release = target / env['CARGO_BUILD_TARGET'] / 'release' if env.get('CARGO_BUILD_TARGET') else target / 'release'
-        destinations.add(release / 'rbn-process-launcher.exe')
-        for destination in destinations:
-            shutil.copy2(launcher, destination)
+        library = args.unicode_runtime or ROOT / '.build-cache/compat/runtime/RBNUnicode.dll'
+        unicode_receipt, unicode_placements = place_windows_runtime(executables, release, launcher, library)
     records = []
     identity = {'sourceCommit': env.get('GITHUB_SHA') or env.get('RBN_SOURCE_COMMIT'),
                 'runID': env.get('GITHUB_RUN_ID'),
                 'rustcVersion': subprocess.check_output([env.get('RUSTC', 'rustc'), '--version'], env=env, text=True).strip(),
                 'rcloneSha256': hashlib.sha256(rclone.read_bytes()).hexdigest()}
+    if unicode_receipt is not None:
+        identity.update(unicodeRuntime=unicode_receipt, unicodeRuntimePlacements=unicode_placements)
 
     def save_results(passed, *, stopped_early=False, error=None):
         evidence = dict(identity, passed=passed,
@@ -88,6 +109,9 @@ def main():
         log = output.parent / f'{name}.log'
         record = {'name': name, 'log': log.name,
                   'sha256': hashlib.sha256(Path(exe).read_bytes()).hexdigest()}
+        if unicode_receipt is not None:
+            record['executablePath'] = str(Path(exe).resolve(strict=True))
+            record['unicodeRuntimePath'] = str(Path(record['executablePath']).parent / unicode_receipt['library']['name'])
         try:
             with log.open('w', encoding='utf-8') as handle:
                 # The ignored bridge is an RPC adapter for the unchanged Swift

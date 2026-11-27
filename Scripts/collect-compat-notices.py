@@ -89,6 +89,21 @@ def main() -> None:
     (destination / "ported-source-notices.json").write_text(
         json.dumps(source_index, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     (destination / "rust-packages.json").write_text(json.dumps(index, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    if "windows" in args.target:
+        pin = json.loads((ROOT / "Scripts/windows/icu-source.json").read_text(encoding="utf-8"))
+        native_texts = []
+        for name in ("ICU-74.1-PACKAGE-LICENSE.txt", "ICU-74.1-LICENSE.txt"):
+            target = destination / "native/icu-74.1" / name
+            target.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copyfile(ROOT / "Compat/licenses" / name, target)
+            native_texts.append(str(target.relative_to(destination)))
+        native = [{"name": "ICU", "version": "74.1", "library": pin["library"],
+                   "description": "Private C++ Unicode collation library; no Swift runtime",
+                   "source": "https://github.com/" + pin["repository"] + "/tree/" + pin["commit"],
+                   "tag": pin["tag"], "commit": pin["commit"],
+                   "sourceArchiveSHA256": pin["archiveSHA256"], "texts": native_texts}]
+        (destination / "native-packages.json").write_text(
+            json.dumps(native, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     print(f"Retained original license notices for {len(index)} pinned Rust packages")
 
 

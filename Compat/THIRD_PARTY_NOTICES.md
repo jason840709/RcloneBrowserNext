@@ -21,6 +21,7 @@ Project credits are in the repository README.
   original notices in `licenses/source/`. These algorithms use the Apache 2.0
   license with the Swift runtime library exception and the applicable Unicode
   data license. The engine runs without Swift or Foundation runtime libraries.
+- **Windows Unicode collation:** `RBNUnicode.dll` is built as a private C++ ICU 74.1 library from the pinned upstream source. It includes its matching collation data and does not use the Windows system ICU or a Swift runtime. `licenses/native-packages.json` records the source commit and original notices in `licenses/native/icu-74.1/`.
 - **Bundled web interface:** the original React and other dependency notices are
   in `licenses/Web-THIRD-PARTY-NOTICES.txt`.
 
@@ -34,11 +35,10 @@ Windows uses Microsoft Edge WebView2. If the Evergreen runtime is missing, the
 installer offers Microsoft's official bootstrapper. Its terms are available at
 <https://developer.microsoft.com/microsoft-edge/webview2/>.
 
-Windows and Linux use their system ICU C interface for Unicode collation. Linux
-also uses the distribution's WebKitGTK, GTK, GLib and other system libraries. The
-Debian package declares its required system packages. Those libraries remain
-managed by the operating system; their notices and source packages are supplied
-by that system or distribution.
+Linux uses the distribution's ICU 74, WebKitGTK, GTK, GLib and other system
+libraries. The Debian package declares its required system packages. Those
+libraries remain managed by the distribution; their notices and source packages
+are supplied by that distribution.
 
 rclone is selected or installed separately through the application settings.
 Nick Craig-Wood and the rclone contributors maintain it under the MIT license:

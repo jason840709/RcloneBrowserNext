@@ -9,6 +9,7 @@ import ctypes
 from ctypes import wintypes
 from datetime import datetime, timezone
 import hashlib
+import importlib.util
 import json
 import os
 from pathlib import Path
@@ -17,6 +18,10 @@ import re
 import struct
 import sys
 
+
+SPEC = importlib.util.spec_from_file_location("windows_unicode_runtime", Path(__file__).with_name("unicode-runtime.py"))
+UNICODE = importlib.util.module_from_spec(SPEC)
+SPEC.loader.exec_module(UNICODE)
 
 def metadata(path):
     value = hashlib.sha256()
@@ -177,7 +182,7 @@ def icu_probe(path, names):
     if open_collator is not None and close_collator is not None:
         error = ctypes.c_int32(0)
         collator = open_collator(b"", ctypes.byref(error))
-        output["probeCollator"] = {"requestedLocale": "", "errorCode": error.value}
+        output["probeCollator"] = {"requestedLocale": "", "errorCode": error.value, "opened": bool(collator)}
         if collator:
             try:
                 if error.value <= 0:
@@ -203,15 +208,44 @@ def library_record(path):
     return value
 
 
+def private_unicode_record(path):
+    pin = UNICODE.load_pin()
+    machine, names = pe_exports(path)
+    UNICODE.require(all(name in names for name in pin["requiredExports"]), "Missing pinned private ICU exports")
+    # Explicitly inspect the suffixed ABI. No unversioned/system alternative is
+    # considered if an export or version is missing.
+    measured = icu_probe(path, [name for name in names if name.endswith("_74")])
+    record = {"library": {"name": path.name, "bytes": path.stat().st_size, "sha256": UNICODE.digest(path)},
+              "machine": machine, "apiVersion": measured.get("icuVersion"),
+              "requiredExports": list(pin["requiredExports"]),
+              "collatorOpened": measured.get("probeCollator", {}).get("opened") is True
+                                  and measured.get("probeCollator", {}).get("errorCode", 1) <= 0,
+              "loadedPath": measured["loadedPath"], "probe": measured}
+    UNICODE.validate_probe(record, library=path, pin=pin)
+    return record
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--runtime", type=Path, required=True)
-    parser.add_argument("--helper", type=Path, required=True)
+    parser.add_argument("--runtime", type=Path)
+    parser.add_argument("--helper", type=Path)
     parser.add_argument("--output", type=Path, required=True)
-    parser.add_argument("--manifest-output", type=Path, required=True)
+    parser.add_argument("--manifest-output", type=Path)
+    parser.add_argument("--unicode-library", type=Path)
     args = parser.parse_args()
     if os.name != "nt":
         parser.error("This inventory requires native Windows")
+    if args.unicode_library is not None:
+        if any(value is not None for value in (args.runtime, args.helper, args.manifest_output)):
+            parser.error("A private DLL probe cannot be combined with a baseline inventory")
+        value = private_unicode_record(args.unicode_library.resolve(strict=True))
+        value.update(sourceCommit=os.environ.get("GITHUB_SHA"), runID=os.environ.get("GITHUB_RUN_ID"),
+                     stage="private-runtime-native-probe")
+        args.output.write_text(json.dumps(value, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+        print(json.dumps({"library": value["library"], "apiVersion": value["apiVersion"]}))
+        return 0
+    if any(value is None for value in (args.runtime, args.helper, args.manifest_output)):
+        parser.error("Baseline inventory needs --runtime, --helper and --manifest-output")
     runtime, helper = args.runtime.resolve(strict=True), args.helper.resolve(strict=True)
     if not helper.is_relative_to(runtime) or args.output.resolve().is_relative_to(runtime) or args.manifest_output.resolve().is_relative_to(runtime):
         parser.error("Only the separate evidence directory may be written")

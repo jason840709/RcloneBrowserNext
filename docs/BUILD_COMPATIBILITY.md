@@ -19,13 +19,13 @@ Use the candidate source, or `Rclone_Browser_Next_0.12.0_Source.zip` and tag `v0
 
 The release workflow pins Rust 1.90.0 on all three platforms and builds with `--locked`. Rust dependencies are pinned in `Sources/Rust/Cargo.lock` and `Compat/desktop/Cargo.lock`; JavaScript build tooling is pinned in `Compat/cli/package-lock.json`. Windows and Linux build products and caches stay in `.build-cache/compat`. Mac products and logs stay in `.build/mac`, with temporary files in `.tmp`.
 
-Windows builds require x64 MSVC, Rust, Python and Node.js. Run `Scripts/build-compat-windows.ps1` in the x64 developer environment. The unchanged C process launcher supports both cancellable transfer processes and interactive account configuration. A Swift toolchain is not required.
+Windows builds require x64 MSVC, a standalone LLVM `clang-cl`, CMake 3.24 or later, Ninja, Rust, Python and Node.js. The ICU dependency uses `clang-cl` with the MSVC ABI, linker and SDK; the existing C process launcher still uses `cl.exe`. The script requires an existing LLVM installation and does not install a compiler or use one from a Swift toolchain. Run `Scripts/build-compat-windows.ps1` in the x64 developer environment. The script downloads the SHA-256-pinned ICU 74.1 source archive into the project cache and builds a private C++ `RBNUnicode.dll`, including its matching Unicode collation data. This avoids sorting changes caused by different Windows system ICU versions. The build rejects an archive, exported API or ICU version that does not match its source pin. The unchanged C process launcher supports both cancellable transfer processes and interactive account configuration. A Swift toolchain is not required.
 
 Linux builds require Rust, Python, Node.js, pkg-config, patchelf and WebKitGTK/GTK development packages. Run `bash Scripts/build-compat-linux.sh`. The CI workflow lists the Ubuntu packages needed for compilation. A Swift toolchain is not required.
 
 Mac builds require the Apple command line tools, a macOS SDK, Rust and Python. Run `bash Scripts/build-mac.sh --no-launch`; it builds the Swift window and Rust engine into the same signed App bundle. The Swift window keeps the existing SDK 15.0 link setting for its toolbar appearance.
 
-The Windows and Linux scripts package only the required redistributable native runtime dependencies, retain their licenses and write a runtime manifest. Swift runtime libraries and their license files are excluded. See [third-party notices](../Compat/THIRD_PARTY_NOTICES.md).
+The Windows and Linux scripts package only the required redistributable native runtime dependencies, retain their licenses and write a runtime manifest. Unused Swift runtime libraries and their license files are excluded. The separately required ICU library and translated algorithms retain their original licenses. See [third-party notices](../Compat/THIRD_PARTY_NOTICES.md).
 
 ## Verification
 

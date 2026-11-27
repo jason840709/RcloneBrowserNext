@@ -40,6 +40,9 @@ OWNED_CACHE = ROOT / ".build-cache/windows-candidate-install"
 ORACLE_SPEC = importlib.util.spec_from_file_location("windows_listing_oracle", ROOT / "Tests/windows-local-list-oracle.py")
 LISTING_ORACLE = importlib.util.module_from_spec(ORACLE_SPEC)
 ORACLE_SPEC.loader.exec_module(LISTING_ORACLE)
+UNICODE_SPEC = importlib.util.spec_from_file_location("windows_unicode_runtime", ROOT / "Scripts/windows/unicode-runtime.py")
+UNICODE = importlib.util.module_from_spec(UNICODE_SPEC)
+UNICODE_SPEC.loader.exec_module(UNICODE)
 
 
 def utc_now():
@@ -203,11 +206,24 @@ def validate_installed(directory, version, numeric, package=None):
             "The registered installation is not the owned test directory")
     verify_version(paths["app"], version, numeric, application=True)
     if package:
+        UNICODE.validate_package(package["runtime"], directory=paths["engine"].parent)
         for library in package["runtime"]["libraries"]:
             candidate = paths["engine"].parent / library["name"]
             require(candidate.is_file() and candidate.stat().st_size == library["bytes"] and digest(candidate) == library["sha256"],
                     f"Installed runtime library differs from its build receipt: {library['name']}")
     return paths
+
+
+def probe_installed_unicode(engine, evidence, phase):
+    output = evidence / f"{phase}-unicode-runtime.json"
+    result = subprocess.run([sys.executable, "-X", "utf8", "-B", str(ROOT / "Scripts/windows/probe-runtime-provenance.py"),
+                             "--unicode-library", str(engine.parent / "RBNUnicode.dll"), "--output", str(output)],
+                            capture_output=True, text=True, encoding="utf-8", timeout=45)
+    (evidence / f"{phase}-unicode-runtime.log").write_text(result.stdout + result.stderr, encoding="utf-8")
+    require(result.returncode == 0, "The installed private ICU runtime did not pass its native probe")
+    probe = json.loads(output.read_text(encoding="utf-8"))
+    UNICODE.validate_probe(probe, library=engine.parent / "RBNUnicode.dll")
+    return probe
 
 
 def running_apps():
@@ -419,6 +435,7 @@ def main():
             require(not before["registration"], "A pre-existing installation registration is present")
             report["installerExitCode"] = run_installer(candidate, directory, evidence / "fresh-installer.log")
             paths = validate_installed(directory, VERSION, NUMERIC_VERSION, package)
+            report["unicodeRuntimeProbe"] = probe_installed_unicode(paths["engine"], evidence, "fresh")
             write_json(evidence / "fresh-after.json", snapshot(directory, state, installed=True))
             report["installedExecutables"] = {name: metadata(path) for name, path in paths.items()}
             report["installDirectory"] = str(directory)
@@ -493,6 +510,7 @@ def main():
             require({"settings.json", "tasks.json"}.issubset(before["stateFiles"]), "The published app did not persist settings and tasks")
             report["installerExitCode"] = run_installer(candidate, directory, evidence / "upgrade-installer.log")
             paths = validate_installed(directory, VERSION, NUMERIC_VERSION, package)
+            report["unicodeRuntimeProbe"] = probe_installed_unicode(paths["engine"], evidence, "upgrade")
             after = snapshot(directory, state, installed=True)
             after["configurationFile"] = {**metadata(config), "text": config.read_text(encoding="utf-8")}
             write_json(evidence / "upgrade-after.json", after)

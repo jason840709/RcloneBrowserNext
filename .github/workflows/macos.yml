@@ -280,16 +280,21 @@ jobs:
             .build-cache/compat/cargo/git
             .build-cache/compat/target
             .build-cache/compat/npm
-          key: windows-2025-rust1.90-core-${{ hashFiles('Sources/Rust/Cargo.lock', 'Compat/desktop/Cargo.lock', 'Compat/cli/package-lock.json') }}
-          restore-keys: windows-2025-rust1.90-core-
+            .build-cache/compat/icu-74.1
+          key: windows-2025-rust1.90-icu74-${{ hashFiles('Sources/Rust/Cargo.lock', 'Compat/desktop/Cargo.lock', 'Compat/cli/package-lock.json', 'Scripts/windows/icu-source.json', 'Scripts/windows/icu-wrapper/CMakeLists.txt') }}
+          restore-keys: |
+            windows-2025-rust1.90-icu74-
+            windows-2025-rust1.90-core-
       - name: Download the pinned rclone fixture
         run: python Scripts/ci-compat-rclone.py
       - name: Build the candidate and run the native host tests
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           & ./Scripts/build-compat-windows.ps1 2>&1 | Tee-Object -FilePath .build-cache/windows-candidate/build/build.log
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Run Rust core, platform, account and listing regressions with the unchanged launcher
-        run: python -B Scripts/test-rust.py --rclone .build-cache/ci-engine/rclone.exe --launcher .build-cache/compat/runtime/rbn-process-launcher.exe --output .build-cache/windows-candidate/build/core-rust.json
+        run: python -B Scripts/test-rust.py --rclone .build-cache/ci-engine/rclone.exe --launcher .build-cache/compat/runtime/rbn-process-launcher.exe --unicode-runtime .build-cache/compat/runtime/RBNUnicode.dll --output .build-cache/windows-candidate/build/core-rust.json
       - name: Run the existing transfer and cancellation regressions
         run: python Scripts/test-compat.py --engine .build-cache/compat/runtime/rbn-engine.exe --rclone .build-cache/ci-engine/rclone.exe --clean-runtime --output .build-cache/windows-candidate/build/transfer.json
       - name: Retain the exact candidate package

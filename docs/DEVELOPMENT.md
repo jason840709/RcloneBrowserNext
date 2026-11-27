@@ -64,6 +64,21 @@ npx --no-install playwright test --config tests/playwright.config.ts
 
 Use the exact lockfile dependencies. `vite build` writes the production bundle to `Resources/Web`. The native app never starts a development server and never loads the interface from the internet. The UI tests open the production `file://` bundle with a synthetic native bridge fixture. Do not use real account names, file listings, configuration files or user screenshots in fixtures.
 
+## Unicode name ordering
+
+macOS retains the system Foundation comparison. Windows and Linux use the Rust
+translation of the frozen CoreFoundation comparison and Swift stable sorting
+schedule. Character and grapheme tables are generated from pinned sources.
+Linux uses its declared ICU 74 system dependency. Windows loads only the private
+`RBNUnicode.dll` beside the engine, requires the `_74` C exports and ICU 74.1.0.0,
+and never falls back to the Windows system library. The C++ dependency is built
+from the exact source archive in `Scripts/windows/icu-source.json`; it contains
+its matching data and needs no Swift compiler or runtime. The Windows test runner
+copies that same DLL beside each actual test executable and records its hash.
+Both Windows runner generations compare the original 34-item listing and the
+expanded Unicode listing against the published 0.11.0 engine, including full row
+metadata and order. Version numbers alone do not establish collation parity.
+
 ## Settings and migration
 
 Settings schema 7 rebases the interface size: displayed 100 uses native zoom 0.90; displayed 110 uses 1.00. The host computes `(interfaceScale - 10) / 100`. The five standard choices remain 80, 90, 100, 110 and 125. On loading a pre-schema-7 settings file, an explicitly stored old scale is increased by 10 once, preserving its rendered size. Values 120 and 135 retain the old 110 and 125 choices; the appearance picker includes one of these only while it is the current value. Fresh settings and older files without an explicit scale use the new 100 default. The migration is persisted before the native host reads preferences. Schema 6 introduced whole-interface scale and green themes. `hiddenBuiltinPresets` accepts `local-local`, `local-nas`, `nas-cloud`, `local-cloud`, `cloud-cloud` and `cloud-local`; hiding a preset does not delete its definition. Fresh transfer comparison defaults are `comparison: default`, `localHashPolicy: none`, `deleteMode: during`, and `maxDelete: -1`. Legacy default values are migrated once; saved tasks and remembered workspaces retain their original transfer semantics, including sparse older snapshots that relied on old defaults.

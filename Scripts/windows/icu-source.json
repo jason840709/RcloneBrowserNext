@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "repository": "swiftlang/swift-foundation-icu",
+  "tag": "swift-6.1.2-RELEASE",
+  "commit": "7e255a994ec26a08214f8fea2fdaf60b296e1f22",
+  "archiveURL": "https://api.github.com/repos/swiftlang/swift-foundation-icu/tarball/7e255a994ec26a08214f8fea2fdaf60b296e1f22",
+  "archiveBytes": 26058201,
+  "archiveSHA256": "72993b303a16ce7b8b5dac801c60282965ab79eeab3f3aad9986bb70f9c164bb",
+  "sourceRoot": "swiftlang-swift-foundation-icu-7e255a9",
+  "library": "RBNUnicode.dll",
+  "icuVersion": [74, 1, 0, 0],
+  "requiredExports": [
+    "u_getVersion_74",
+    "ucol_open_74",
+    "ucol_close_74",
+    "ucol_setAttribute_74",
+    "ucol_strcoll_74"
+  ]
+}

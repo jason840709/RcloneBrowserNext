@@ -164,6 +164,12 @@ def main():
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     binaries = {"swift": binary_metadata(swift), "rust": binary_metadata(rust)}
+    unicode_spec = importlib.util.spec_from_file_location("windows_unicode_runtime", probe.with_name("unicode-runtime.py"))
+    unicode = importlib.util.module_from_spec(unicode_spec)
+    unicode_spec.loader.exec_module(unicode)
+    private = json.loads((rust.parent / "unicode-runtime.json").read_text(encoding="utf-8"))
+    unicode.validate_receipt(private, library=rust.parent / "RBNUnicode.dll")
+    binaries["rustUnicodeRuntime"] = private
     with tempfile.TemporaryDirectory(dir=args.scratch.resolve(strict=True), prefix="windows-local-oracle-") as temp:
         root = Path(temp)
         original = compare_group(module.Client, swift, rust, root / "original", ORIGINAL_FILES,

@@ -28,6 +28,10 @@ $env:XDG_CACHE_HOME = Join-Path $RbnCache 'xdg'
 
 python Scripts/prepare-compat.py
 if ($LASTEXITCODE -ne 0) { throw 'Compatibility resource preparation failed.' }
+python Scripts/windows/build-unicode-runtime.py --runtime $RbnRuntime
+if ($LASTEXITCODE -ne 0) { throw 'The pinned private ICU runtime did not build or verify.' }
+$RbnUnicode = Join-Path $RbnRuntime 'RBNUnicode.dll'
+$RbnUnicodeReceipt = Get-Content -LiteralPath (Join-Path $RbnRuntime 'unicode-runtime.json') -Raw | ConvertFrom-Json
 $RbnLauncher = Join-Path $RbnRuntime 'rbn-process-launcher.exe'
 $RbnObject = Join-Path $RbnCache 'WindowsRcloneLauncher.obj'
 & $RbnCl /nologo /O2 /MT /DUNICODE /D_UNICODE (Join-Path $RbnRoot 'Scripts/native/WindowsRcloneLauncher.c') "/Fe:$RbnLauncher" "/Fo:$RbnObject" /link user32.lib
@@ -38,6 +42,7 @@ $RbnRelease = Join-Path $env:CARGO_TARGET_DIR 'release'
 if (Test-Path Env:CARGO_BUILD_TARGET) { $RbnRelease = Join-Path (Join-Path $env:CARGO_TARGET_DIR $env:CARGO_BUILD_TARGET) 'release' }
 Copy-Item -LiteralPath (Join-Path $RbnRelease 'rbn-engine.exe') -Destination $RbnRuntime -Force
 Copy-Item -LiteralPath $RbnLauncher -Destination (Join-Path $RbnRelease 'rbn-process-launcher.exe') -Force
+Copy-Item -LiteralPath $RbnUnicode -Destination (Join-Path $RbnRelease 'RBNUnicode.dll') -Force
 # Resolve actual transitive PE imports. Only redistributable native runtime
 # libraries are copied. There is no Swift compiler, SDK or runtime dependency.
 $RbnRoots = [Collections.Generic.List[string]]::new()
@@ -55,6 +60,9 @@ if (Test-Path Env:VCToolsRedistDir) {
 }
 $RbnQueue = [Collections.Generic.Queue[string]]::new()
 $RbnQueue.Enqueue((Join-Path $RbnRuntime 'rbn-engine.exe'))
+# ICU is loaded by absolute path rather than a static PE import. Inspect its
+# transitive dependencies explicitly as well as the Rust engine's imports.
+$RbnQueue.Enqueue($RbnUnicode)
 $RbnCopied = [Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)
 $RbnSystem = [Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)
 $RbnSystemDir = [Environment]::SystemDirectory
@@ -82,8 +90,8 @@ while ($RbnQueue.Count -gt 0) {
 $RbnLibraries = @(Get-ChildItem -LiteralPath $RbnRuntime -Filter '*.dll' | Sort-Object Name | ForEach-Object {
     @{ name=$_.Name; bytes=$_.Length; sha256=(Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant() }
 })
-@{ rust=((& rustc.exe --version) -join "`n"); engine='Rust'; libraries=$RbnLibraries; systemLibraries=@($RbnSystem | Sort-Object) } |
-    ConvertTo-Json -Depth 6 | Set-Content -LiteralPath (Join-Path $RbnRuntime 'runtime-manifest.json') -Encoding UTF8
+@{ rust=((& rustc.exe --version) -join "`n"); engine='Rust'; libraries=$RbnLibraries; systemLibraries=@($RbnSystem | Sort-Object); unicodeRuntime=$RbnUnicodeReceipt } |
+    ConvertTo-Json -Depth 12 | Set-Content -LiteralPath (Join-Path $RbnRuntime 'runtime-manifest.json') -Encoding UTF8
 if ($HelperOnly) { Write-Host 'Windows Rust helper and native runtime are ready.'; exit 0 }
 
 Get-Command cargo.exe -ErrorAction Stop | Out-Null

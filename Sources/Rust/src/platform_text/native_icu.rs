@@ -11,6 +11,11 @@ use std::{
     sync::OnceLock,
 };
 
+#[cfg(windows)]
+const ICU_SOURCE: &str = "RBNUnicode.dll";
+#[cfg(not(windows))]
+const ICU_SOURCE: &str = "System ICU";
+
 type Open = unsafe extern "C" fn(*const c_char, *mut i32) -> *mut c_void;
 type Close = unsafe extern "C" fn(*mut c_void);
 type Attribute = unsafe extern "C" fn(*mut c_void, i32, i32, *mut i32);
@@ -60,7 +65,7 @@ impl Api {
         macro_rules! required {
             ($name:literal, $ty:ty) => {{
                 let address = libraries.symbol($name)
-                    .ok_or_else(|| format!("System ICU is missing {}", $name))?;
+                    .ok_or_else(|| format!("{ICU_SOURCE} is missing {}", $name))?;
                 // SAFETY: ICU's public C ABI specifies this exact signature.
                 // The concrete transmute also checks pointer sizes.
                 unsafe { std::mem::transmute::<usize, $ty>(address) }
@@ -87,6 +92,17 @@ impl Api {
             libraries: libraries.names.clone(),
             legacy_com: libraries.legacy_com,
         };
+        #[cfg(windows)]
+        {
+            let get_version = api.version.ok_or("RBNUnicode.dll is missing u_getVersion_74")?;
+            let mut version = [0u8; 4];
+            // SAFETY: u_getVersion_74 fills exactly four bytes. The library is
+            // still owned by this scope and is released on a version mismatch.
+            unsafe { get_version(version.as_mut_ptr()) };
+            if version != [74, 1, 0, 0] {
+                return Err(format!("RBNUnicode.dll returned ICU {version:?}, expected [74, 1, 0, 0]"));
+            }
+        }
         // Api is a process-lifetime OnceLock. Pin the successful loader
         // acquisitions so no collator or function pointer can outlive them.
         std::mem::forget(libraries);
@@ -118,7 +134,7 @@ impl Icu {
                     // SAFETY: This failed open still returned an owned handle.
                     unsafe { (api.close)(collator) };
                 }
-                return Err(format!("System ICU could not create a collator ({status})"));
+                return Err(format!("{ICU_SOURCE} could not create a collator ({status})"));
             }
             result.collators[level] = collator;
             // Primary, secondary and tertiary match __CompareTextDefault.
@@ -135,7 +151,7 @@ impl Icu {
                 // and values are the stable ICU C enum constants above.
                 unsafe { (api.attribute)(collator, key, value, &mut status) };
                 if status > 0 {
-                    return Err(format!("System ICU could not configure collation ({status})"));
+                    return Err(format!("{ICU_SOURCE} could not configure collation ({status})"));
                 }
             }
         }
@@ -245,64 +261,55 @@ mod platform {
 #[cfg(windows)]
 mod platform {
     use super::*;
-    #[link(name="kernel32")]
+    use std::{env, io, os::windows::ffi::OsStrExt};
+
+    #[link(name = "kernel32")]
     unsafe extern "system" {
-        fn LoadLibraryExW(path:*const u16, file:*mut c_void, flags:u32)->*mut c_void;
-        fn GetProcAddress(module:*mut c_void, name:*const c_char)->*mut c_void;
-        fn FreeLibrary(module:*mut c_void)->i32;
+        fn LoadLibraryExW(path: *const u16, file: *mut c_void, flags: u32) -> *mut c_void;
+        fn GetProcAddress(module: *mut c_void, name: *const c_char) -> *mut c_void;
+        fn FreeLibrary(module: *mut c_void) -> i32;
     }
-    #[link(name="ole32")]
-    unsafe extern "system" {
-        fn CoInitializeEx(reserved:*mut c_void, flags:u32)->i32;
-        fn CoUninitialize();
+
+    pub unsafe fn symbol(handle: usize, name: *const c_char) -> usize {
+        // SAFETY: Caller owns the module and the NUL-terminated export name.
+        unsafe { GetProcAddress(handle as *mut c_void, name) as usize }
     }
-    pub unsafe fn symbol(h:usize,name:*const c_char)->usize {
-        // SAFETY: Caller owns this live system module and NUL-terminated name.
-        unsafe { GetProcAddress(h as *mut c_void,name) as usize }
+
+    pub unsafe fn close(handle: usize) {
+        // SAFETY: Caller transfers one live LoadLibraryExW acquisition.
+        unsafe { FreeLibrary(handle as *mut c_void) };
     }
-    pub unsafe fn close(h:usize) {
-        // SAFETY: Caller transfers exactly one live module acquisition.
-        unsafe { FreeLibrary(h as *mut c_void) };
-    }
-    fn library(name:&str)->Option<usize> {
-        let name:Vec<u16> = name.encode_utf16().chain(Some(0)).collect();
-        // SAFETY: Only fixed OS library names are passed; SYSTEM32 prevents
-        // loading a same-named DLL from a directory being browsed by the user.
-        let handle=unsafe { LoadLibraryExW(name.as_ptr(),ptr::null_mut(),0x0000_0800) };
-        (!handle.is_null()).then_some(handle as usize)
-    }
-    pub fn open()->Result<Libraries,String> {
-        if let Some(handle)=library("icu.dll") {
-            return Ok(Libraries {handles:vec![handle],names:vec!["System32/icu.dll".into()],suffix:String::new(),legacy_com:false});
+
+    pub fn open() -> Result<Libraries, String> {
+        const LOAD_LIBRARY_SEARCH_DLL_LOAD_DIR: u32 = 0x0000_0100;
+        const LOAD_LIBRARY_SEARCH_DEFAULT_DIRS: u32 = 0x0000_1000;
+
+        let exe = env::current_exe().map_err(|e| format!("Could not locate the engine for {ICU_SOURCE}: {e}"))?;
+        let directory = exe.parent().filter(|dir| dir.is_absolute())
+            .ok_or("Could not locate the engine's absolute installation directory")?;
+        let path = directory.join(ICU_SOURCE);
+        let wide: Vec<u16> = path.as_os_str().encode_wide().chain(Some(0)).collect();
+        // SAFETY: The absolute UTF-16 path is NUL-terminated and stays valid
+        // through the call. Dependency search excludes the current directory and PATH.
+        let handle = unsafe {
+            LoadLibraryExW(wide.as_ptr(), ptr::null_mut(),
+                           LOAD_LIBRARY_SEARCH_DLL_LOAD_DIR | LOAD_LIBRARY_SEARCH_DEFAULT_DIRS)
+        };
+        if handle.is_null() {
+            let error = io::Error::last_os_error();
+            return Err(format!("Could not load {}: {error}", path.display()));
         }
-        let common=library("icuuc.dll").ok_or("System ICU common library could not be loaded")?;
-        if let Some(i18n)=library("icuin.dll") {
-            Ok(Libraries {handles:vec![common,i18n],names:vec!["System32/icuuc.dll".into(),"System32/icuin.dll".into()],suffix:String::new(),legacy_com:true})
-        } else {
-            // SAFETY: No API instance uses this otherwise-unused acquisition.
-            unsafe { close(common) };
-            Err("System ICU collation library could not be loaded".into())
-        }
+        Ok(Libraries {
+            handles: vec![handle as usize],
+            names: vec![path.display().to_string()],
+            suffix: "_74".into(),
+            legacy_com: false,
+        })
     }
-    pub struct Com(bool);
+
+    // The bundled ICU C library has no Windows system-ICU COM prerequisite.
+    pub struct Com;
     impl Com {
-        pub fn new(needed:bool)->Result<Self,String> {
-            if !needed { return Ok(Self(false)); }
-            // SAFETY: Null reserved argument, multi-threaded apartment. This
-            // thread-bound guard balances only its own successful acquisition.
-            let result=unsafe { CoInitializeEx(ptr::null_mut(),0) };
-            if result>=0 { Ok(Self(true)) }
-            else if result==0x8001_0106u32 as i32 { Ok(Self(false)) } // existing STA
-            else { Err(format!("System ICU COM initialization failed ({result})")) }
-        }
-    }
-    impl Drop for Com {
-        fn drop(&mut self) {
-            if self.0 {
-                // SAFETY: This guard cannot move across threads and balances
-                // exactly one S_OK/S_FALSE call to CoInitializeEx.
-                unsafe { CoUninitialize() };
-            }
-        }
+        pub fn new(_: bool) -> Result<Self, String> { Ok(Self) }
     }
 }

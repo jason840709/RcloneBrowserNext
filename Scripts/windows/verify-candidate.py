@@ -45,6 +45,9 @@ RUST_SPEC.loader.exec_module(RUST_REGRESSIONS)
 ORACLE_SPEC = importlib.util.spec_from_file_location("windows_listing_oracle", ROOT / "Tests/windows-local-list-oracle.py")
 LISTING_ORACLE = importlib.util.module_from_spec(ORACLE_SPEC)
 ORACLE_SPEC.loader.exec_module(LISTING_ORACLE)
+UNICODE_SPEC = importlib.util.spec_from_file_location("windows_unicode_runtime", ROOT / "Scripts/windows/unicode-runtime.py")
+UNICODE = importlib.util.module_from_spec(UNICODE_SPEC)
+UNICODE_SPEC.loader.exec_module(UNICODE)
 
 
 def require(condition, message):
@@ -122,6 +125,7 @@ def main():
                 and not any(re.search(r"swift|foundation|dispatch", name, re.IGNORECASE)
                             for name in [item.get("name", "") for item in runtime["libraries"]] + runtime["systemLibraries"]),
                 "The Rust candidate unexpectedly contains or imports Swift runtime libraries")
+        UNICODE.validate_package(runtime)
         guard = read(build / "source-check.json", "build/source-check.json")
         require(guard.get("passed") is True and guard.get("version") == VERSION
                 and guard.get("sourceCommit") == report["sourceCommit"]
@@ -162,6 +166,7 @@ def main():
             record(path, "build/" + name)
             return path.read_bytes()
 
+        UNICODE.validate_core(core, runtime)
         verified_core = RUST_REGRESSIONS.verify_receipt(core, test_map, core_log,
                         source_commit=report["sourceCommit"], run_id=report["runID"],
                         rclone_sha256=transfers.get("rcloneSha256"))
@@ -185,6 +190,16 @@ def main():
             for name in (f"{phase}-before.json", f"{phase}-after.json"):
                 require(name in {item["file"] for item in receipt["evidence"]}, f"{phase}: missing before/after snapshot")
             installations[phase] = receipt
+            probe_name = f"{phase}-unicode-runtime.json"
+            require(probe_name in {item["file"] for item in receipt["evidence"]},
+                    "The installed private ICU probe was not retained")
+            private_probe = read(evidence / probe_name, probe_name)
+            UNICODE.validate_probe(private_probe)
+            require(private_probe == receipt.get("unicodeRuntimeProbe")
+                    and private_probe["library"] == runtime["unicodeRuntime"]["library"]
+                    and private_probe.get("sourceCommit") == report["sourceCommit"]
+                    and private_probe.get("runID") == report["runID"],
+                    "The installed private ICU runtime differs from the package or raw probe")
         fresh, upgrade = installations["fresh"], installations["upgrade"]
         require(all(upgrade.get(key) is True for key in ("settingsPreservedByteForByte", "tasksPreservedByteForByte",
                     "configurationPreservedByteForByte", "savedStateReloadedByInstalledHelper", "ownedStateRemoved"))
@@ -228,7 +243,8 @@ def main():
                 require(listing.get("sourceCommit") == report["sourceCommit"] and listing.get("runID") == report["runID"]
                         and listing.get("binaries") == original_listing.get("binaries")
                         and listing.get("binaries", {}).get("rust", {}).get("sha256")
-                            == fresh["installedExecutables"]["engine"]["sha256"],
+                            == fresh["installedExecutables"]["engine"]["sha256"]
+                        and listing.get("binaries", {}).get("rustUnicodeRuntime") == runtime["unicodeRuntime"],
                         "The Windows listing oracle did not compare this candidate and the original helper")
             report["suites"].append({"name": "published-0.11.0-unicode-listing-oracle", "passed": 34,
                                      "failed": 0, "skipped": 0, "unit": "complete ordered file and directory entries"})

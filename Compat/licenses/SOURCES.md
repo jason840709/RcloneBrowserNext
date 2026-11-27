@@ -9,8 +9,16 @@ and the Cargo package notices in `rust-packages.json`.
 
 The two data generators in `Scripts/` verify the SHA-256 of every upstream input.
 Their generated data and source manifests are stored beside the Rust comparison
-module. System ICU supplies collation; its measured version is recorded separately
-in platform test evidence.
+module. Linux uses the distribution ICU 74. Windows bundles a private C++ ICU 74.1
+from `swiftlang/swift-foundation-icu` at commit
+`7e255a994ec26a08214f8fea2fdaf60b296e1f22`, tagged `swift-6.1.2-RELEASE`. The
+source archive and required exports are pinned in `Scripts/windows/icu-source.json`.
+The library is built without Swift and contains its original collation data.
+Its unmodified package license is [ICU-74.1-PACKAGE-LICENSE.txt](ICU-74.1-PACKAGE-LICENSE.txt),
+from the [pinned upstream package](https://github.com/swiftlang/swift-foundation-icu/blob/7e255a994ec26a08214f8fea2fdaf60b296e1f22/LICENSE.md).
+The [ICU 74.1 upstream license](https://github.com/unicode-org/icu/blob/release-74-1/LICENSE)
+is retained as [ICU-74.1-LICENSE.txt](ICU-74.1-LICENSE.txt). Actual library hashes and
+versions are recorded separately in platform build and test evidence.
 
 ## Historical 0.11.0 runtime references
 
