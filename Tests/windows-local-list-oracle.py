@@ -70,6 +70,10 @@ EXTENDED_FILE_GROUPS = {
         "Ä" + "\u0308" * 62 + "\u093eã",
         "A\u0308" + "\u0308" * 62 + "\u093ea\u0303",
     ),
+    "unicode_assignment_boundaries": (
+        "uca-a", "uca-一", "uca-🙂", "uca-\U0001fae0", "uca-\U0001fae1",
+        "uca-\U0001fae8", "uca-\U0001f979", "uca-\U0002ebf0", "uca-\U0002ebef", "uca-\U000f0000",
+    ),
 }
 EXTENDED_FILES = tuple(name for names in EXTENDED_FILE_GROUPS.values() for name in names)
 EXTENDED_DIRECTORIES = (

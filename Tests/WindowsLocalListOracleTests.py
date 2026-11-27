@@ -2,6 +2,7 @@
 """Check physical-fixture integrity and strict independent helper comparison."""
 from copy import deepcopy
 import importlib.util
+import os
 from pathlib import Path
 import struct
 import tempfile
@@ -28,7 +29,10 @@ ENTRIES = [{"name": "folder", "isDir": True, "size": 0},
 
 class WindowsLocalListOracleTests(unittest.TestCase):
     def setUp(self):
-        self.temp = tempfile.TemporaryDirectory(dir=ROOT.parent / ".tmp", prefix="oracle-receipt-test-")
+        scratch = (ROOT / ".build-cache/python-tests" if os.environ.get("GITHUB_ACTIONS", "").lower() == "true"
+                   else ROOT.parent / ".tmp")
+        scratch.mkdir(parents=True, exist_ok=True)
+        self.temp = tempfile.TemporaryDirectory(dir=scratch, prefix="oracle-receipt-test-")
         self.addCleanup(self.temp.cleanup)
         self.root = Path(self.temp.name)
         self.calls = []
@@ -67,11 +71,15 @@ class WindowsLocalListOracleTests(unittest.TestCase):
 
     def test_expanded_names_are_legal_distinct_windows_leaves(self):
         names = ORACLE.EXTENDED_FILES + ORACLE.EXTENDED_DIRECTORIES
-        self.assertEqual(len(names), 133)
+        self.assertEqual(len(names), 143)
         self.assertEqual(len({name.casefold() for name in names}), len(names))
         self.assertEqual(set(ORACLE.EXTENDED_FILE_GROUPS),
                          {"ascii_numbers", "punctuation", "case", "latin_and_combining", "width", "scripts",
-                          "unicode_numbers", "emoji", "long_combining_boundaries"})
+                          "unicode_numbers", "emoji", "long_combining_boundaries", "unicode_assignment_boundaries"})
+        self.assertEqual(ORACLE.EXTENDED_FILE_GROUPS["unicode_assignment_boundaries"], (
+            "uca-a", "uca-一", "uca-🙂", "uca-\U0001fae0", "uca-\U0001fae1",
+            "uca-\U0001fae8", "uca-\U0001f979", "uca-\U0002ebf0", "uca-\U0002ebef", "uca-\U000f0000",
+        ))
         for name in names:
             with self.subTest(name=name):
                 self.assertFalse(set(name) & set('<>:"/\\|?*'))

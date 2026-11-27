@@ -21,7 +21,10 @@ SPEC.loader.exec_module(LINUX)
 
 class LinuxPublishedListingTests(unittest.TestCase):
     def setUp(self):
-        self.temp = tempfile.TemporaryDirectory(dir=ROOT.parent / ".tmp", prefix="linux-oracle-test-")
+        scratch = (ROOT / ".build-cache/python-tests" if os.environ.get("GITHUB_ACTIONS", "").lower() == "true"
+                   else ROOT.parent / ".tmp")
+        scratch.mkdir(parents=True, exist_ok=True)
+        self.temp = tempfile.TemporaryDirectory(dir=scratch, prefix="linux-oracle-test-")
         self.addCleanup(self.temp.cleanup)
         self.root = Path(self.temp.name)
         self.asset = {"id": 749086416, "name": "Rclone_Browser_Next_0.11.0_Linux_amd64.deb",
@@ -180,7 +183,7 @@ class LinuxPublishedListingTests(unittest.TestCase):
 
     def test_linux_reuses_the_exact_original_and_expanded_fixture_bytes(self):
         self.assertEqual(len(LINUX.ORACLE.ORIGINAL_FILES) + len(LINUX.ORACLE.ORIGINAL_DIRECTORIES), 34)
-        self.assertEqual(len(LINUX.ORACLE.EXTENDED_FILES) + len(LINUX.ORACLE.EXTENDED_DIRECTORIES), 133)
+        self.assertEqual(len(LINUX.ORACLE.EXTENDED_FILES) + len(LINUX.ORACLE.EXTENDED_DIRECTORIES), 143)
         self.assertEqual(LINUX.ORACLE.fixture_sha256(LINUX.ORACLE.ORIGINAL_FILES, LINUX.ORACLE.ORIGINAL_DIRECTORIES),
                          "4dd2769775e04d148121f41ff65cfcfd91781ada35abbad70648f5b137cf1887")
 

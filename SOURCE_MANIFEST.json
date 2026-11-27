@@ -1,7 +1,7 @@
 {
   "version": "0.12.0",
   "file_count_excluding_manifest": 356,
-  "total_bytes_excluding_manifest": 17289117,
+  "total_bytes_excluding_manifest": 17290054,
   "files": {
     ".github/workflows/mac-local-recovery.yml": {
       "bytes": 1856,
@@ -636,8 +636,8 @@
       "sha256": "25fd55b230ddf1b385448bf91b3ae2411a2dd39cddb2e06f65e1590a2f50ed24"
     },
     "Tests/LinuxPublishedListingTests.py": {
-      "bytes": 10610,
-      "sha256": "8658ab985b1a6a37b3bec90f655fd25e346f845f239f38da699b6ff50769777c"
+      "bytes": 10806,
+      "sha256": "e193fbd9f995bcee09aef7b2e7c31de483cc63a105808b1a182b3f889e1ae22a"
     },
     "Tests/MacCompletionTests.swift": {
       "bytes": 5237,
@@ -696,8 +696,8 @@
       "sha256": "2ee516b471cf5afbca8283a60d68fc52746f6b36343a934fdb60186077327972"
     },
     "Tests/WindowsLocalListOracleTests.py": {
-      "bytes": 7360,
-      "sha256": "a645b56361b490f01111b7840bb1ce15efbe935ad854ce13b3a6a2f0c7b84d0b"
+      "bytes": 7881,
+      "sha256": "6aaacb901212bbb6fcb49ce53e93c0c60eff430a5b8d45f434972749fb1d062b"
     },
     "Tests/WindowsRustGateTests.py": {
       "bytes": 8821,
@@ -772,8 +772,8 @@
       "sha256": "bef6f727053420c6ebc075d122183bf2b57aa42433802c314f4a818af5e1289e"
     },
     "Tests/windows-local-list-oracle.py": {
-      "bytes": 9458,
-      "sha256": "9f776c9d16dd95026004f241fae7ef91c73afd95dcc738e33849a568972bc5e2"
+      "bytes": 9678,
+      "sha256": "637db4a00bdb5bb86d33ff0de603a2c12467928108b1d1c99130f33e948b802a"
     },
     "Verify-App.command": {
       "bytes": 336,
