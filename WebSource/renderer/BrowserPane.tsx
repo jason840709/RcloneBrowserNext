@@ -120,6 +120,14 @@ export default function BrowserPane({ side, browser, remotes, locations, home, p
       const diff = Number.isFinite(primary) && primary !== 0 ? primary : a.name.localeCompare(b.name, language, {numeric: true});
       return sort.ascending ? diff : -diff;
     }), [rows, query, showHidden, sort, language]);
+  // 4.14 keeps the seeded row count until the viewport has been measured.
+  // Replace only an unmeasured list if its data size changes, so it cannot
+  // reuse seed rows from a larger folder. Once measured, keep normal state.
+  const [listMeasured, setListMeasured] = useState(false);
+  const initialList = useRef({count: filtered.length, key: 0});
+  if (!listMeasured && initialList.current.count !== filtered.length) {
+    initialList.current = {count: filtered.length, key: initialList.current.key + 1};
+  }
   const visibleNames = useMemo(() => new Set(filtered.map(item => item.name)), [filtered]);
   const allSelected = useMemo(() => filtered.length > 0 && selected.size > 0 && filtered.every(item => selected.has(item.name)), [filtered, selected]);
   const someSelected = useMemo(() => selected.size > 0 && filtered.some(item => selected.has(item.name)), [filtered, selected]);
@@ -228,8 +236,9 @@ export default function BrowserPane({ side, browser, remotes, locations, home, p
           <EmptyState compact kind="error" icon={endpoint.remote ? <Cloud size={30}/> : <FolderOpen size={30}/>} title={t('cannotBrowse')} action={<button type="button" onClick={browser.retry}>{t('retry')}</button>}>{error}</EmptyState> : !browser.hasListing ? null :
           <EmptyState compact icon={query ? <MagnifyingGlass size={32}/> : <FolderOpen size={34} weight="duotone"/>} title={t(query || entries.length > 0 ? 'noMatches' : 'emptyFolder')}>{(query || entries.length > 0) ? t('noMatchesHint') : null}</EmptyState>}
         </div> :
-        <TableVirtuoso ref={virtuoso} data={filtered} components={tableComponents} context={context} fixedItemHeight={22} overscan={200}
-          initialItemCount={Math.min(filtered.length, Math.ceil(window.innerHeight / 22))}
+        <TableVirtuoso key={initialList.current.key} ref={virtuoso} data={filtered} components={tableComponents} context={context} fixedItemHeight={22} overscan={200}
+          initialItemCount={listMeasured ? 0 : Math.min(filtered.length, Math.ceil(window.innerHeight / 22))}
+          itemsRendered={items => { if (!listMeasured && items.some(item => item.size > 0)) setListMeasured(true); }}
           computeItemKey={(_index, item) => item.rowKey}
           fixedHeaderContent={() => <tr><th scope="col" className="check-cell" aria-hidden={!isSource || undefined} inert={!isSource || undefined}>{<input type="checkbox" tabIndex={isSource ? undefined : -1} aria-label={`${t(side)} ${t('selectAll')}`} checked={allSelected} disabled={listingDisabled} ref={element => { if (element) element.indeterminate = someSelected && !allSelected; }} onChange={selectVisible}/>}</th><th scope="col" aria-sort={sort.key === 'name' ? sort.ascending ? 'ascending' : 'descending' : 'none'}>{sortHeader('name', t('name'))}{resizeHandle('name', t('name'))}</th><th scope="col" className="numeric" aria-sort={sort.key === 'size' ? sort.ascending ? 'ascending' : 'descending' : 'none'}>{sortHeader('size', t('size'))}{resizeHandle('size', t('size'))}</th><th scope="col" aria-sort={sort.key === 'modified' ? sort.ascending ? 'ascending' : 'descending' : 'none'}>{sortHeader('modified', t('modified'))}{resizeHandle('modified', t('modified'))}</th><th scope="col" className="row-fill" aria-label=""/></tr>}
           itemContent={(_index, entry) => <><td className="check-cell" aria-hidden={!isSource || undefined} inert={!isSource || undefined}>{<input type="checkbox" tabIndex={isSource ? undefined : -1} aria-label={`${t('selected')} ${entry.name}`} checked={isSource && selected.has(entry.name)} disabled={listingDisabled} onChange={() => toggle(entry)} onClick={event => event.stopPropagation()}/>}</td><td><div className="file-name" title={entry.name}>{(entry.isDir ? preferences.showFolderIcons : preferences.showFileIcons) && <EntryIcon entry={entry}/>}<span>{entry.name}</span>{entry.isLink && <span className="link-marker">↗</span>}</div></td><td className="numeric muted">{entry.isDir ? '—' : formatBytes(entry.size)}</td><td className="date-cell muted" title={formatDate(entry.modified, language)}>{formatDate(entry.modified, language)}</td><td className="row-fill" aria-hidden="true"/></>}/>

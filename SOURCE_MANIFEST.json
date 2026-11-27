@@ -1,7 +1,7 @@
 {
   "version": "0.12.1",
   "file_count_excluding_manifest": 373,
-  "total_bytes_excluding_manifest": 17477209,
+  "total_bytes_excluding_manifest": 17479517,
   "files": {
     ".github/workflows/mac-local-recovery.yml": {
       "bytes": 1856,
@@ -188,8 +188,8 @@
       "sha256": "401a52547c510b5c231c69f9077b192e2759d282e68f74d13339922f9d9e8552"
     },
     "Resources/Web/app.js": {
-      "bytes": 794810,
-      "sha256": "3eadbd5c814bce03f592b6ef4140aba97869c03da2312418ecfdfb1a63e5b669"
+      "bytes": 795035,
+      "sha256": "710a0a402fa0616695aceeb5602f798a286abea8cc25e619800960e84e82454b"
     },
     "Resources/Web/appearance-bootstrap.js": {
       "bytes": 499,
@@ -797,7 +797,7 @@
     },
     "Tests/fixtures/ui-changes-0.12.1.json": {
       "bytes": 478,
-      "sha256": "41565204676c4586719cb00aceb23285ba41fdc50ce2eab6a8e30f1e74ed74bf"
+      "sha256": "141a84af6b64a99c56fcf5e231a3a198c22358efa1815ea5a6ce6993ac049c41"
     },
     "Tests/fixtures/windows-foundation-0.11.0-order.json": {
       "bytes": 3599,
@@ -880,8 +880,8 @@
       "sha256": "545d55733edad26532cfa45efab9c5e4d7be508b49679accf1c02f19374952cc"
     },
     "WebSource/renderer/BrowserPane.tsx": {
-      "bytes": 27442,
-      "sha256": "8ea19c3c1e224fa2139e27e720eb717f7e6e8692545a33a40df7135262d1f408"
+      "bytes": 28122,
+      "sha256": "6b41835e55f86ca6a73f75d53c040a44190c0e7ec23699815221af148d2f2aa9"
     },
     "WebSource/renderer/JobReport.tsx": {
       "bytes": 11422,
@@ -1156,8 +1156,8 @@
       "sha256": "8b3ffbe9ea0672d1fd31b3c5410993c857902349012bf896b3916b05a3a88757"
     },
     "WebSource/tests/revision0121-render.spec.ts": {
-      "bytes": 2115,
-      "sha256": "5eedcf996cfef4d95f26ea23d004299f8544cd35f543ee6e88f919a17625f507"
+      "bytes": 3518,
+      "sha256": "45155141a584390bad8a0a3eab235e13e5f45414713ce5e5b7f88cf91b229e04"
     },
     "WebSource/tests/revision04.spec.ts": {
       "bytes": 29482,

@@ -33,3 +33,28 @@ for(const running of [false,true]) {
     for(const frame of frames){expect(frame.left).toBeGreaterThan(0);expect(frame.right).toBeGreaterThan(0);}
   });
 }
+
+test('a smaller folder can replace initial rows before viewport measurement completes',async({page})=>{
+  await page.addInitScript(()=>{
+    const win=window as any, Native=window.ResizeObserver;
+    win.__holdResize=true;win.__resizeCallbacks=[];
+    window.ResizeObserver=class extends Native {
+      constructor(callback:ResizeObserverCallback){super((entries,observer)=>{
+        if(win.__holdResize)win.__resizeCallbacks.push(()=>callback(entries,observer));
+        else callback(entries,observer);
+      });}
+    };
+    win.__releaseResize=()=>{win.__holdResize=false;for(const call of win.__resizeCallbacks.splice(0))call();};
+  });
+  await installHostFixture(page,{fileCount:200,settings:{autoCheckUpdates:false}});
+  await page.goto(url);
+  const pane=page.getByTestId('right-pane');
+  await expect(pane.locator('.file-name').first()).toBeVisible();
+  await page.evaluate(()=>{(window as any).__fixture.listings['research-drive:A']=[{name:'A.txt',path:'A.txt',size:42,modified:'2026-10-20T12:00:00Z',isDir:false}];});
+  await pane.locator('.path-form input').fill('A');
+  await pane.locator('.path-form input').press('Enter');
+  await expect(pane.locator('.path-form input')).toHaveValue('A');
+  await expect(pane.locator('.file-name')).toHaveText(['A.txt']);
+  await page.evaluate(()=>(window as any).__releaseResize());
+  await expect(pane.locator('.file-name')).toHaveText(['A.txt']);
+});
