@@ -14,7 +14,7 @@ RBN_TMP_ROOT="$RBN_TASK_ROOT/.tmp"
 RBN_APP_PATH="$RBN_CACHE_ROOT/products/Rclone Browser Next.app"
 RBN_BUNDLE_ID="org.rclone.browser.next.lite"
 RBN_EXECUTABLE="RcloneBrowserNext"
-RBN_VERSION="0.12.0"
+RBN_VERSION="0.12.1"
 RBN_MINIMUM_MACOS="13.0"
 # SDK 15 keeps the released toolbar appearance on macOS 26 and newer.
 RBN_DESIGN_SDK="15.0"

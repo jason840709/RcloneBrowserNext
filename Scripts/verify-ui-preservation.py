@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Verify the phase-one UI matches the recorded 0.11.0 files except its version."""
+"""Verify UI preservation, including the explicit 0.12.1 first-frame fix."""
 from pathlib import Path
 import argparse
 import hashlib
@@ -29,7 +29,12 @@ def main():
                 if path.suffix in ('.tsx', '.ts', '.js', '.json'):
                     data = data.replace(version, b'@VERSION@')
                 actual[path.relative_to(ROOT).as_posix()] = hashlib.sha256(data).hexdigest()
-    expected = fixture['files']
+    expected = dict(fixture['files'])
+    if tuple(map(int, version.decode().split('.'))) >= (0, 12, 1):
+        # Only these pinned outputs may differ from the phase-one baseline.
+        # Styles, wording and existing web tests retain their original hashes.
+        reviewed = json.loads((ROOT / 'Tests/fixtures/ui-changes-0.12.1.json').read_text())
+        expected.update(reviewed['files'])
     differences = sorted(path for path in set(expected) | set(actual) if expected.get(path) != actual.get(path))
     result = {'passed': not differences, 'baselineVersion': fixture['baselineVersion'],
               'candidateVersion': version.decode(), 'checkedFiles': len(actual), 'differences': differences}

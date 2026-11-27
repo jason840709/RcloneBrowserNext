@@ -66,7 +66,7 @@ jobs:
           RBN_TEST_WEBKIT: '1'
           RBN_TEST_OUTPUT: ${{ github.workspace }}/.build-cache/webkit-tests
           PLAYWRIGHT_JSON_OUTPUT_FILE: ${{ github.workspace }}/.build-cache/web-evidence/webkit.json
-        run: npx playwright test --config tests/playwright.config.ts revision091.spec.ts accounts.spec.ts revision094-navigation.spec.ts duplicate-entry-navigation.spec.ts --reporter=list,json
+        run: npx playwright test --config tests/playwright.config.ts revision091.spec.ts accounts.spec.ts revision094-navigation.spec.ts duplicate-entry-navigation.spec.ts revision0121-render.spec.ts --reporter=list,json
       - name: Verify local copy failure explanations in WebKit
         if: always()
         working-directory: WebSource
@@ -302,8 +302,8 @@ jobs:
         with:
           name: RcloneBrowserNext-Windows-x64
           path: |
-            Distribution/Rclone_Browser_Next_0.12.0_Windows_x64_Setup.exe
-            Distribution/Rclone_Browser_Next_0.12.0_Windows_x64_Setup.exe.sha256
+            Distribution/Rclone_Browser_Next_0.12.1_Windows_x64_Setup.exe
+            Distribution/Rclone_Browser_Next_0.12.1_Windows_x64_Setup.exe.sha256
             .build-cache/compat/package-windows.json
           include-hidden-files: true
           if-no-files-found: error
@@ -358,7 +358,7 @@ jobs:
       - name: Verify a clean installation and PE versions
         id: fresh
         if: always() && steps.package.outcome == 'success' && steps.rclone.outcome == 'success'
-        run: python Scripts/windows/verify-installation.py --phase fresh --candidate Distribution/Rclone_Browser_Next_0.12.0_Windows_x64_Setup.exe --receipt .build-cache/compat/package-windows.json --rclone .build-cache/ci-engine/rclone.exe --output .build-cache/windows-candidate/verification
+        run: python Scripts/windows/verify-installation.py --phase fresh --candidate Distribution/Rclone_Browser_Next_0.12.1_Windows_x64_Setup.exe --receipt .build-cache/compat/package-windows.json --rclone .build-cache/ci-engine/rclone.exe --output .build-cache/windows-candidate/verification
       - name: Probe the installed helper against real Windows locations
         if: always() && steps.fresh.outcome == 'success'
         run: python Scripts/windows/probe-filesystem.py --engine "${{ steps.fresh.outputs.engine }}" --rclone .build-cache/ci-engine/rclone.exe --output .build-cache/windows-candidate/verification/filesystem.json
@@ -367,12 +367,12 @@ jobs:
         run: python Scripts/windows/probe-mutations.py --engine "${{ steps.fresh.outputs.engine }}" --rclone .build-cache/ci-engine/rclone.exe --output .build-cache/windows-candidate/verification/mutations.json
       - name: Exercise the real WebView2 remote selectors and navigation
         if: always() && steps.fresh.outcome == 'success' && steps.playwright.outcome == 'success'
-        run: python Scripts/windows/probe-ui.py --app "${{ steps.fresh.outputs.app }}" --rclone .build-cache/ci-engine/rclone.exe --output .build-cache/windows-candidate/verification/ui --label unified-0.12.0
+        run: python Scripts/windows/probe-ui.py --app "${{ steps.fresh.outputs.app }}" --rclone .build-cache/ci-engine/rclone.exe --output .build-cache/windows-candidate/verification/ui --label unified-0.12.1
       - name: Upgrade the published baseline and verify state preservation
         if: always() && steps.fresh.outcome == 'success'
         env:
           GH_TOKEN: ${{ github.token }}
-        run: python Scripts/windows/verify-installation.py --phase upgrade --baseline "${{ matrix.baseline }}" --candidate Distribution/Rclone_Browser_Next_0.12.0_Windows_x64_Setup.exe --receipt .build-cache/compat/package-windows.json --rclone .build-cache/ci-engine/rclone.exe --output .build-cache/windows-candidate/verification
+        run: python Scripts/windows/verify-installation.py --phase upgrade --baseline "${{ matrix.baseline }}" --candidate Distribution/Rclone_Browser_Next_0.12.1_Windows_x64_Setup.exe --receipt .build-cache/compat/package-windows.json --rclone .build-cache/ci-engine/rclone.exe --output .build-cache/windows-candidate/verification
       - name: Verify unified version on the clean runner
         if: always()
         run: python Scripts/verify-version.py
@@ -424,7 +424,7 @@ jobs:
       - name: Verify a clean installation and PE versions
         id: fresh
         if: always() && steps.package.outcome == 'success' && steps.rclone.outcome == 'success'
-        run: python Scripts/windows/verify-installation.py --phase fresh --candidate Distribution/Rclone_Browser_Next_0.12.0_Windows_x64_Setup.exe --receipt .build-cache/compat/package-windows.json --rclone .build-cache/ci-engine/rclone.exe --output .build-cache/windows-candidate/verification
+        run: python Scripts/windows/verify-installation.py --phase fresh --candidate Distribution/Rclone_Browser_Next_0.12.1_Windows_x64_Setup.exe --receipt .build-cache/compat/package-windows.json --rclone .build-cache/ci-engine/rclone.exe --output .build-cache/windows-candidate/verification
       - name: Probe the installed helper against real Windows locations
         if: always() && steps.fresh.outcome == 'success'
         run: python Scripts/windows/probe-filesystem.py --engine "${{ steps.fresh.outputs.engine }}" --rclone .build-cache/ci-engine/rclone.exe --output .build-cache/windows-candidate/verification/filesystem.json
@@ -433,12 +433,12 @@ jobs:
         run: python Scripts/windows/probe-mutations.py --engine "${{ steps.fresh.outputs.engine }}" --rclone .build-cache/ci-engine/rclone.exe --output .build-cache/windows-candidate/verification/mutations.json
       - name: Exercise the real WebView2 remote selectors and navigation
         if: always() && steps.fresh.outcome == 'success' && steps.playwright.outcome == 'success'
-        run: python Scripts/windows/probe-ui.py --app "${{ steps.fresh.outputs.app }}" --rclone .build-cache/ci-engine/rclone.exe --output .build-cache/windows-candidate/verification/ui --label unified-0.12.0
+        run: python Scripts/windows/probe-ui.py --app "${{ steps.fresh.outputs.app }}" --rclone .build-cache/ci-engine/rclone.exe --output .build-cache/windows-candidate/verification/ui --label unified-0.12.1
       - name: Upgrade the published baseline and verify state preservation
         if: always() && steps.fresh.outcome == 'success'
         env:
           GH_TOKEN: ${{ github.token }}
-        run: python Scripts/windows/verify-installation.py --phase upgrade --baseline "0.11.0" --candidate Distribution/Rclone_Browser_Next_0.12.0_Windows_x64_Setup.exe --receipt .build-cache/compat/package-windows.json --rclone .build-cache/ci-engine/rclone.exe --output .build-cache/windows-candidate/verification
+        run: python Scripts/windows/verify-installation.py --phase upgrade --baseline "0.11.0" --candidate Distribution/Rclone_Browser_Next_0.12.1_Windows_x64_Setup.exe --receipt .build-cache/compat/package-windows.json --rclone .build-cache/ci-engine/rclone.exe --output .build-cache/windows-candidate/verification
       - name: Verify unified version on the clean runner
         if: always()
         run: python Scripts/verify-version.py

@@ -41,6 +41,7 @@ The Windows and Linux editions share the Mac edition's interface and transfer co
 
 ## Recent versions
 
+- [0.12.1](docs/RELEASE_0.12.1.md): fixes briefly empty file lists when returning from Transfers, while keeping the existing appearance and page transition.
 - [0.12.0](docs/RELEASE_0.12.0.md): smaller Windows and Linux downloads, with the same interface and controls. Existing settings and transfer history continue to work.
 - [0.11.0](docs/RELEASE_0.11.0.md): clearer Traditional Chinese interface text, error messages and user guide, including sync deletion scope, comparison and retry conditions.
 - [0.10.6](docs/RELEASE_0.10.6.md): direct SMB connections, NAS connection labels and double-click window zoom on Mac.
