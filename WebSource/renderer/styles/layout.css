@@ -131,9 +131,14 @@
 
 /* ===== Page switching =====
  * The new page slides 16 pt from the side of the tab that was chosen and fades
- * in; the old page is replaced at once, so the switch never feels blocked. */
+ * in; the old page is replaced at once, so the switch never feels blocked.
+ * The slide moves the page with paired margins (same width, same travel)
+ * instead of a transform: in WKWebView a transform-animated page could show
+ * the window background in place of most of the Files page for ~0.25 s after
+ * a transfer had finished. Margins keep the page out of that layer path and,
+ * unlike a relative offset, leave positioning of popups and menus unchanged. */
 .page-view { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; animation: page-forward var(--d-page) var(--ease-glide); }
 .page-view[data-direction="none"] { animation: none; }
 .page-view[data-direction="back"] { animation-name: page-back; }
-@keyframes page-forward { from { opacity: 0; transform: translateX(16px); } }
-@keyframes page-back { from { opacity: 0; transform: translateX(-16px); } }
+@keyframes page-forward { from { opacity: 0; margin-left: 16px; margin-right: -16px; } }
+@keyframes page-back { from { opacity: 0; margin-left: -16px; margin-right: 16px; } }

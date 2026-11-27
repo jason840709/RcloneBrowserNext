@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Verify UI preservation, including the explicit 0.12.1 first-frame fix."""
+"""Verify UI preservation, including the explicit 0.12.1 and 0.12.2 page-switch fixes."""
 from pathlib import Path
 import argparse
 import hashlib
@@ -34,6 +34,9 @@ def main():
         # Only these pinned outputs may differ from the phase-one baseline.
         # Styles, wording and existing web tests retain their original hashes.
         reviewed = json.loads((ROOT / 'Tests/fixtures/ui-changes-0.12.1.json').read_text())
+        expected.update(reviewed['files'])
+    if tuple(map(int, version.decode().split('.'))) >= (0, 12, 2):
+        reviewed = json.loads((ROOT / 'Tests/fixtures/ui-changes-0.12.2.json').read_text())
         expected.update(reviewed['files'])
     differences = sorted(path for path in set(expected) | set(actual) if expected.get(path) != actual.get(path))
     result = {'passed': not differences, 'baselineVersion': fixture['baselineVersion'],

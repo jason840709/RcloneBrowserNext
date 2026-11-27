@@ -70,10 +70,16 @@ export default function BrowserPane({ side, browser, remotes, locations, home, p
   const [dragWidths, setDragWidths] = useState<PaneColumnWidths | null>(null);
   const dragging = useRef<{column: keyof PaneColumnWidths; startX: number; widths: PaneColumnWidths; pointerId: number; latest: PaneColumnWidths} | null>(null);
   const widths: PaneColumnWidths = dragWidths || columnWidths || {name: Math.max(120, paneWidth - 16 - checkWidth - 82 - 158), size: 82, modified: 158};
-  useEffect(() => {
+  // Measure before the first paint (also when the Files page is shown again),
+  // and ignore the zero width a hidden page reports, so automatic column widths
+  // never flash at their minimum for a frame.
+  useLayoutEffect(() => {
     const element = sectionRef.current;
     if (!element) return;
-    const observer = new ResizeObserver(entries => setPaneWidth(Math.floor(entries[0].contentRect.width)));
+    const measure = (width: number) => { if (width > 0) setPaneWidth(Math.floor(width)); };
+    const style = getComputedStyle(element);
+    measure(element.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight));
+    const observer = new ResizeObserver(entries => measure(entries[0].contentRect.width));
     observer.observe(element);
     return () => observer.disconnect();
   }, []);

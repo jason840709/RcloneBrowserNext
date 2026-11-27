@@ -1,5 +1,5 @@
 import { useHistoryNavigation } from './useHistoryNavigation';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { Activity, useCallback, useEffect, useRef, useState } from 'react';
 import { ArrowDown, ArrowLeft, ArrowRight, ArrowsLeftRight, ArrowsDownUp, Folder, BookmarkSimple, FolderOpen, ListBullets, BookBookmark, GearSix, CaretDown, SlidersHorizontal, TerminalWindow, Play, Eye, CheckCircle, WarningCircle, ArrowSquareOut, X, Cloud, HardDrives, ChartBar, PushPin } from '@phosphor-icons/react';
 import { DEFAULT_OPTIONS, type Bootstrap, type CommandPreview, type Endpoint, type Job, type SavedTask, type Settings, type SettingsPatch, type TransferMode, type TransferOptions, type TransferRequest, type UpdateStatus, type ToolSession, type AppUpdateResult, type ResolvedLanguage, type BuiltinPresetID } from '../shared/types';
 import OperationPicker from './OperationPicker';
@@ -470,8 +470,14 @@ export default function App() {
     {!ready && <div className="engine-banner" role="status"><WarningCircle size={18} weight="fill"/><div><strong>{t('unavailable')}</strong><span>{t('unavailableHint')}</span></div><button type="button" onClick={() => setModal('settings')}>{t('openSettings')}</button></div>}
     <FloatingNotice message={error || notice} kind={error ? 'error' : 'success'} serial={noticeSerial} onClose={() => { setError(''); setNotice(''); }}/>
     <main className={`app-main page-${page}`}>
-      <div key={page} className="page-view" data-direction={pageDirection}>
-      {page === 'files' && <div className="workspace">
+      {/* Files stays mounted while another page is shown, as tab views do, so its
+          lists keep their rows, scroll position and scroll bars. Activity hides the
+          lists and transfer controls while away; the outer page and its compact job
+          list follow `page` directly, so the visible page stays the only one of each.
+          Showing the page again replays the page slide. */}
+      <div className={page === 'files' ? 'page-view' : undefined} hidden={page !== 'files'} data-direction={pageDirection}>
+      <div className="workspace">
+        <Activity mode={page === 'files' ? 'visible' : 'hidden'}>
         <div className="browser-grid"><BrowserPane side="left" browser={left} remotes={bootstrap.remotes} locations={bootstrap.localLocations || []} home={bootstrap.home} platform={bootstrap.environment.platform} t={t} language={language} active={activePane === 'left'} isSource={direction === 'lr'} disabled={fileBusy} remoteAvailable={ready} onToolAction={action => void toolAction('left', action)} preferences={settings} columnWidths={settings.paneColumnWidths.left} onColumnWidths={widths => void saveSettings({paneColumnWidths: {left: widths}}).catch(reason => showError(errorMessage(reason)))} onActivate={() => setActivePane('left')} onFileAction={kind => void fileAction('left', kind)} onError={showError}/>
           <aside className="transfer-controls" aria-label={t('options')}>
             {loadedTask && <div className="loaded-task" title={`${t('loadedTask')}：${loadedTask.name}`}><BookBookmark size={13}/><span>{loadedTask.name}</span><IconButton title={t('close')} onClick={() => setLoadedTask(null)}><X size={11}/></IconButton></div>}
@@ -505,13 +511,16 @@ export default function App() {
           </aside>
           <BrowserPane side="right" browser={right} remotes={bootstrap.remotes} locations={bootstrap.localLocations || []} home={bootstrap.home} platform={bootstrap.environment.platform} t={t} language={language} active={activePane === 'right'} isSource={direction === 'rl'} disabled={fileBusy} remoteAvailable={ready} onToolAction={action => void toolAction('right', action)} preferences={settings} columnWidths={settings.paneColumnWidths.right} onColumnWidths={widths => void saveSettings({paneColumnWidths: {right: widths}}).catch(reason => showError(errorMessage(reason)))} onActivate={() => setActivePane('right')} onFileAction={kind => void fileAction('right', kind)} onError={showError}/>
         </div>
-        <Jobs jobs={jobs} t={t} language={language} compact expanded={jobsExpanded} onExpanded={setJobsExpanded} onViewAll={() => setPage('jobs')} onJobsCleared={removeClearedJobs} onError={showError} onNotice={showNotice} onRetry={upsertJob}/>
-      </div>}
+        </Activity>
+        {page === 'files' && <Jobs jobs={jobs} t={t} language={language} compact expanded={jobsExpanded} onExpanded={setJobsExpanded} onViewAll={() => setPage('jobs')} onJobsCleared={removeClearedJobs} onError={showError} onNotice={showNotice} onRetry={upsertJob}/>}
+      </div>
+      </div>
+      {page !== 'files' && <div key={page} className="page-view" data-direction={pageDirection}>
       {page === 'jobs' && <div className="jobs-page-layout"><Jobs jobs={jobs} t={t} language={language} onJobsCleared={removeClearedJobs} onError={showError} onNotice={showNotice} onRetry={upsertJob}/><ToolSessions sessions={toolSessions} t={t} language={language} onError={showError}/></div>}
       {page === 'tasks' && <Tasks tasks={tasks} t={t} language={language} available={ready && pendingSettings === 0} onEdit={editTask} onRun={runTask} onTasksChange={setTasks} onSaveCurrent={() => openSaveTask(true)} onError={showError} onNotice={showNotice}/>}
-      </div>
+      </div>}
     </main>
-    <footer className="app-statusbar"><div><span className={`status-dot ${ready ? 'ready' : ''}`}/><span>{ready ? `rclone ${bootstrap.environment.version.replace(/^rclone\s+/i, '')}` : t('notReady')}</span></div><span className="statusbar-center" role={updateStatus?.message ? 'status' : undefined}>{updateStatus?.message || t('remoteCount').replace('{count}', bootstrap.remotes.length.toLocaleString())}</span><span className="statusbar-version">0.12.1</span></footer>
+    <footer className="app-statusbar"><div><span className={`status-dot ${ready ? 'ready' : ''}`}/><span>{ready ? `rclone ${bootstrap.environment.version.replace(/^rclone\s+/i, '')}` : t('notReady')}</span></div><span className="statusbar-center" role={updateStatus?.message ? 'status' : undefined}>{updateStatus?.message || t('remoteCount').replace('{count}', bootstrap.remotes.length.toLocaleString())}</span><span className="statusbar-version">0.12.2</span></footer>
 
     {toolTarget && <ToolDialog target={toolTarget} t={t} onClose={() => setToolTarget(null)} onSession={session => { upsertToolSession(session); setPage('jobs'); }}/> }
     {modal === 'accounts' && <AccountSetup language={language} t={t} onClose={() => setModal(null)} onSettings={saveSettings} onTerminal={configureTerminal} onSaved={async () => { setModal(null); await resetListingContext(); await loadBootstrap(); showNotice(language === 'en' ? 'Account settings saved.' : language === 'ja' ? 'アカウント設定を保存しました。' : '帳號設定已儲存。'); }}/>}

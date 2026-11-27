@@ -1,0 +1,12 @@
+{
+  "reason": "Return to Files without a transform slide (margins instead) and keep the Files lists mounted while hidden (React Activity), so the page no longer blanks after a finished transfer and list scroll bars no longer flash (measuring pane width before paint and ignoring the hidden zero width, so automatic column widths never flash); wording and existing assertions unchanged",
+  "files": {
+    "Resources/Web/app.js": "778ba32bea80087c8426ef6dd174a589cdb1d331561c852d5c42655964895ea4",
+    "Resources/Web/style.css": "6225457ff1a7a815b9a2119ddd00d6cb7b32315fda54ac83c143b4881be2b468",
+    "WebSource/renderer/App.tsx": "c1c64d4aeec3028a91a0863695e73daba806e484a184a6a34063272b91d09d96",
+    "WebSource/renderer/BrowserPane.tsx": "dfc7605540093995d06ac1fb4179e664cfae5874aeaa00ea267fc4269802cc58",
+    "WebSource/renderer/env.d.ts": "b5dc7e3b42c839e2d2e0eaee163a1dad5f1c68404b58d8387f0c11d0b55ed025",
+    "WebSource/renderer/styles/layout.css": "defbf3b748e5b8f889bc58e3941900260866963e6410571184d9a7bdc8e1bdff",
+    "WebSource/tests/revision0122-page-switch.spec.ts": "28950ad74148e3ab7f08de23965f8d3ac06970e2ac60eb9b30d82d89d8f793a8"
+  }
+}
