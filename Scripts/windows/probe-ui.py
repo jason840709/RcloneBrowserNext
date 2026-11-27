@@ -20,6 +20,7 @@ import ctypes
 from ctypes import wintypes
 from datetime import datetime, timezone
 import hashlib
+import importlib.util
 import json
 import os
 from pathlib import Path
@@ -35,6 +36,9 @@ import urllib.request
 
 
 APP_ID = "org.rclone.browser.next"
+DIAGNOSTICS_SPEC = importlib.util.spec_from_file_location("windows_ui_cleanup_diagnostics", Path(__file__).with_name("installation-diagnostics.py"))
+DIAGNOSTICS = importlib.util.module_from_spec(DIAGNOSTICS_SPEC)
+DIAGNOSTICS_SPEC.loader.exec_module(DIAGNOSTICS)
 EVENT_OBSERVER = r"""() => {
   if (window.__windowsProbeEvents) return;
   window.__windowsProbeEvents = [];
@@ -698,12 +702,11 @@ async def inspect(args, report: dict) -> None:
         cleanup_errors = []
         if process is not None:
             report["appExitBeforeCleanup"] = process.poll()
-            if process.poll() is None:
-                try:
-                    subprocess.run(["taskkill.exe", "/PID", str(process.pid), "/T", "/F"], capture_output=True, timeout=30)
-                    process.wait(timeout=10)
-                except Exception as error:
-                    cleanup_errors.append(str(error))
+            report["appCleanup"] = DIAGNOSTICS.terminate_owned_ui_process(process)
+            if not report["appCleanup"]["complete"]:
+                cleanup_errors.extend("Owned UI cleanup: " + json.dumps(error, ensure_ascii=False)
+                                      for error in report["appCleanup"]["errors"])
+                report["passed"] = False
         if log is not None:
             log.close()
         if debug_policy is not None:

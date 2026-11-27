@@ -1,7 +1,7 @@
 {
   "version": "0.12.0",
-  "file_count_excluding_manifest": 365,
-  "total_bytes_excluding_manifest": 17407356,
+  "file_count_excluding_manifest": 367,
+  "total_bytes_excluding_manifest": 17450138,
   "files": {
     ".github/workflows/mac-local-recovery.yml": {
       "bytes": 1856,
@@ -339,6 +339,10 @@
       "bytes": 1607,
       "sha256": "c1901bb26a513962b046e8541733ff24f32ff7f7ce28f9fa4c0ccf68bfbb0ca3"
     },
+    "Scripts/windows/installation-diagnostics.py": {
+      "bytes": 20377,
+      "sha256": "39b57374dcc6afb6817b88d28c57c44b227889491ebdf0fd57a68e2c52454e59"
+    },
     "Scripts/windows/prepare-baseline.py": {
       "bytes": 13558,
       "sha256": "e2cae728a66450409c494ead5ec0864743d4d73559f63e6649d3d68bebcfb5f5"
@@ -356,20 +360,20 @@
       "sha256": "ec6a23b84c5e2f69fdd00e2d1f5fecbdf9f085c1867ba5aa35eff4bce66d15a9"
     },
     "Scripts/windows/probe-ui.py": {
-      "bytes": 45006,
-      "sha256": "110c92ffcfa7d0eec9c25219acb85f59c2b6c7805e2f291faf325327710b38e6"
+      "bytes": 45323,
+      "sha256": "0952ea882ca6efe1624f492c98777af24b4641e4ee575d3f6ea08a4eb11bed31"
     },
     "Scripts/windows/unicode-runtime.py": {
       "bytes": 7225,
       "sha256": "8d206e22bb6036f07a5472f3a9fb0f760a7c91ff83cfac5478c8edf0ad054c7b"
     },
     "Scripts/windows/verify-candidate.py": {
-      "bytes": 23094,
-      "sha256": "e4ca339deedb65aaabb9b1ae6607281e5de165cee921c538301435f4fdaa14b1"
+      "bytes": 24990,
+      "sha256": "bdd5f9ad0a28c24f4d418e4cb1f3746d7e1e345b1a4b7c0fa2ef311bcc2d33c6"
     },
     "Scripts/windows/verify-installation.py": {
-      "bytes": 35825,
-      "sha256": "9a6f80aa34d1d23bd45d8f01a8a0c32e9e2c1d39836ea5fadf5b9955a2f2886a"
+      "bytes": 38829,
+      "sha256": "cdc3110c07fb8e07687589a40d4194ba2706d22d2dbc9bcf271add8a10cff335"
     },
     "Scripts/windows/verify-rust-regressions.py": {
       "bytes": 10327,
@@ -726,6 +730,10 @@
     "Tests/Web/run.sh": {
       "bytes": 1066,
       "sha256": "2ee516b471cf5afbca8283a60d68fc52746f6b36343a934fdb60186077327972"
+    },
+    "Tests/WindowsInstallationDiagnosticsTests.py": {
+      "bytes": 17188,
+      "sha256": "9d4e6857eff199a167ad2c2bb74f84369b4a41798aea253486f4f7c7c1b34d9d"
     },
     "Tests/WindowsLocalListOracleTests.py": {
       "bytes": 7881,

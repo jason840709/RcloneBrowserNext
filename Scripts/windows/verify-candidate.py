@@ -48,6 +48,9 @@ ORACLE_SPEC.loader.exec_module(LISTING_ORACLE)
 UNICODE_SPEC = importlib.util.spec_from_file_location("windows_unicode_runtime", ROOT / "Scripts/windows/unicode-runtime.py")
 UNICODE = importlib.util.module_from_spec(UNICODE_SPEC)
 UNICODE_SPEC.loader.exec_module(UNICODE)
+DIAGNOSTICS_SPEC = importlib.util.spec_from_file_location("windows_installation_diagnostics", ROOT / "Scripts/windows/installation-diagnostics.py")
+DIAGNOSTICS = importlib.util.module_from_spec(DIAGNOSTICS_SPEC)
+DIAGNOSTICS_SPEC.loader.exec_module(DIAGNOSTICS)
 
 
 def require(condition, message):
@@ -127,6 +130,9 @@ def main():
                 "The Rust candidate unexpectedly contains or imports Swift runtime libraries")
         UNICODE.validate_package(runtime)
         guard = read(build / "source-check.json", "build/source-check.json")
+        record(ROOT / "Scripts/windows/installation-diagnostics.py", "source/installation-diagnostics.py")
+        require(sha256(ROOT / "Scripts/windows/installation-diagnostics.py") == DIAGNOSTICS.source_identity()["rawSHA256"],
+                "Recorded diagnostic source differs from the helper used by this aggregate")
         require(guard.get("passed") is True and guard.get("version") == VERSION
                 and guard.get("sourceCommit") == report["sourceCommit"]
                 and guard.get("windowsFilesystemImplementation") == "Rust"
@@ -200,10 +206,24 @@ def main():
                     and private_probe.get("sourceCommit") == report["sourceCommit"]
                     and private_probe.get("runID") == report["runID"],
                     "The installed private ICU runtime differs from the package or raw probe")
+            diagnostic_name = f"{phase}-installer.diagnostics.json"
+            require(diagnostic_name in {item["file"] for item in receipt["evidence"]},
+                    "The installed-product process/RM diagnostic was not retained")
+            diagnostic = read(evidence / diagnostic_name, diagnostic_name)
+            DIAGNOSTICS.validate_installer(diagnostic, report["sourceCommit"], report["runID"],
+                                          receipt["installedExecutables"]["app"]["path"])
         fresh, upgrade = installations["fresh"], installations["upgrade"]
         require(all(upgrade.get(key) is True for key in ("settingsPreservedByteForByte", "tasksPreservedByteForByte",
                     "configurationPreservedByteForByte", "savedStateReloadedByInstalledHelper", "ownedStateRemoved"))
                 and upgrade.get("downgradeGuard", {}).get("passed") is True, "Upgrade/state preservation or downgrade protection failed")
+        for phase, snapshot_name in (("old", "upgrade-before.json"), ("new", "upgrade-after.json")):
+            helper_name = f"upgrade-{phase}-helper.json"
+            require(helper_name in {item["file"] for item in upgrade["evidence"]},
+                    "The actual baseline/candidate helper lifecycle was not retained")
+            helper = read(evidence / helper_name, helper_name)
+            snapshot = read(evidence / snapshot_name, snapshot_name)
+            DIAGNOSTICS.validate_helper(helper, report["sourceCommit"], report["runID"],
+                                        snapshot["installedExecutables"]["engine"]["path"])
         if upgrade.get("upgradeFrom") == "0.11.0":
             original_listing = upgrade.get("originalListingOracle", {})
             require(original_listing.get("passed") is True and original_listing.get("entries") == 34
@@ -276,6 +296,8 @@ def main():
         require(ui.get("completed") is True and ui.get("passed") is True and ui.get("ownedStateRemoved") is True
                 and not ui.get("pageErrors") and not ui.get("cleanupErrors") and ui.get("app", {}).get("sha256") == app_hash
                 and ui.get("rclone", {}).get("sha256") == rclone_hash, "Normal WebView2 UI verification did not pass completely")
+        DIAGNOSTICS.validate_ui_cleanup(ui.get("appCleanup", {}), report["sourceCommit"], report["runID"],
+                                       ui.get("appProcessID"))
         count = complete_cases(ui, UI_CASES, "normal WebView2 UI", ui=True)
         for case in ui["cases"]:
             if case["name"] != "windows-drive-catalog":

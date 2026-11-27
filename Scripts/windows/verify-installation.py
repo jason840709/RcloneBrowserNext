@@ -43,6 +43,9 @@ ORACLE_SPEC.loader.exec_module(LISTING_ORACLE)
 UNICODE_SPEC = importlib.util.spec_from_file_location("windows_unicode_runtime", ROOT / "Scripts/windows/unicode-runtime.py")
 UNICODE = importlib.util.module_from_spec(UNICODE_SPEC)
 UNICODE_SPEC.loader.exec_module(UNICODE)
+DIAGNOSTICS_SPEC = importlib.util.spec_from_file_location("windows_installation_diagnostics", ROOT / "Scripts/windows/installation-diagnostics.py")
+DIAGNOSTICS = importlib.util.module_from_spec(DIAGNOSTICS_SPEC)
+DIAGNOSTICS_SPEC.loader.exec_module(DIAGNOSTICS)
 
 
 def utc_now():
@@ -233,20 +236,17 @@ def probe_installed_unicode(engine, evidence, phase):
     return probe
 
 
-def running_apps():
-    """Image names of app processes the installer treats as "still running"."""
+def running_apps(queries=None):
+    """The existing app-name preflight; Restart Manager is recorded separately."""
     names = {"rclone-browser-next.exe", (PRODUCT + ".exe").lower()}
-    result = subprocess.run(["tasklist", "/FO", "CSV", "/NH"], capture_output=True, text=True,
-                            encoding="utf-8", errors="replace", env=clean_environment(), timeout=30)
-    found = []
-    for line in result.stdout.splitlines():
-        fields = [field.strip('"') for field in line.split('","')]
-        if fields and fields[0].lower() in names:
-            found.append({"image": fields[0], "pid": fields[1] if len(fields) > 1 else ""})
-    return found
+    result = DIAGNOSTICS.tasklist_snapshot(names, clean_environment())
+    if queries is not None:
+        queries.append(result)
+    require(result["complete"], f"The app process query failed: {result.get('error')}")
+    return result["matchingProcesses"]
 
 
-def wait_for_app_exit(log_path, deadline=60):
+def wait_for_app_exit(log_path, deadline=60, queries=None):
     # A window opened by an earlier check (for example the UI probe) can take a
     # few seconds to finish closing its WebView2. The installer refuses to run
     # while any app process exists ("is running! Please close it first"), so
@@ -254,7 +254,7 @@ def wait_for_app_exit(log_path, deadline=60):
     # that never exits is reported as a failure.
     started = time.monotonic()
     while True:
-        found = running_apps()
+        found = running_apps(queries)
         if not found:
             waited = round(time.monotonic() - started, 1)
             if waited:
@@ -266,14 +266,37 @@ def wait_for_app_exit(log_path, deadline=60):
 
 
 def run_installer(installer, directory, log_path, *, allow_failure=False):
-    wait_for_app_exit(log_path)
-    # NSIS /D must remain the final argument and must not contain extra quotes.
-    with log_path.open("w", encoding="utf-8") as log:
-        result = subprocess.run([str(installer), "/S", f"/D={directory}"],
-                                stdout=log, stderr=subprocess.STDOUT, env=clean_environment(), timeout=240)
-    if not allow_failure:
-        require(result.returncode == 0, f"Installer failed with exit code {result.returncode}")
-    return result.returncode
+    diagnostic_path = log_path.with_suffix(".diagnostics.json")
+    diagnostics = {"started": DIAGNOSTICS.stamp(), "tasklistQueries": [], "installerExitCode": None,
+                   "source": DIAGNOSTICS.source_identity()}
+    executable = directory / "rclone-browser-next.exe"
+    try:
+        wait_for_app_exit(log_path, queries=diagnostics["tasklistQueries"])
+        diagnostics["before"] = DIAGNOSTICS.restart_manager_snapshot(executable, OWNED_CACHE)
+        write_json(diagnostic_path, diagnostics)
+        require(diagnostics["before"]["complete"], "The read-only pre-install Restart Manager inventory failed")
+        # NSIS /D must remain the final argument and must not contain extra quotes.
+        diagnostics["installerStarted"] = DIAGNOSTICS.stamp()
+        with log_path.open("w", encoding="utf-8") as log:
+            result = subprocess.run([str(installer), "/S", f"/D={directory}"],
+                                    stdout=log, stderr=subprocess.STDOUT, env=clean_environment(), timeout=240)
+        diagnostics["installerFinished"] = DIAGNOSTICS.stamp()
+        diagnostics["installerExitCode"] = result.returncode
+        if result.returncode:
+            diagnostics["afterFailure"] = DIAGNOSTICS.restart_manager_snapshot(executable, OWNED_CACHE)
+        if not allow_failure:
+            require(result.returncode == 0, f"Installer failed with exit code {result.returncode}")
+        if "afterFailure" in diagnostics:
+            require(diagnostics["afterFailure"]["complete"], "The read-only post-failure Restart Manager inventory failed")
+        return result.returncode
+    except Exception as error:
+        if "installerStarted" in diagnostics and "afterFailure" not in diagnostics:
+            diagnostics["afterFailure"] = DIAGNOSTICS.restart_manager_snapshot(executable, OWNED_CACHE)
+        diagnostics["error"] = {"type": type(error).__name__, "message": str(error)}
+        raise
+    finally:
+        diagnostics["finished"] = DIAGNOSTICS.stamp()
+        write_json(diagnostic_path, diagnostics)
 
 
 def uninstall(directory, expected_uninstaller, evidence):
@@ -292,9 +315,12 @@ class StateClient:
         self.evidence, self.label = evidence, label
         self.records, self.stderr, self.stdout, self.events = [], [], [], []
         self.replies, self.sequence = queue.Queue(), 0
+        self.lifecycle = {"spawnStarted": DIAGNOSTICS.stamp()}
         self.process = subprocess.Popen([str(engine), "--state-dir", str(state), "--engine-dir", str(fixture / "empty-engine")],
             stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, encoding="utf-8",
             errors="replace", bufsize=1, env=clean_environment())
+        self.lifecycle["spawnReturned"] = DIAGNOSTICS.stamp()
+        self.process_evidence = DIAGNOSTICS.process_snapshot(self.process.pid)
 
         def read():
             try:
@@ -333,25 +359,44 @@ class StateClient:
     def close(self):
         error = None
         try:
+            self.lifecycle["shutdownRequested"] = DIAGNOSTICS.stamp()
             self.call("_shutdown")
+            self.lifecycle["shutdownReplied"] = DIAGNOSTICS.stamp()
             self.process.stdin.close()
-            self.process.wait(timeout=20)
+            self.lifecycle["waitStarted"] = DIAGNOSTICS.stamp()
+            try:
+                self.process.wait(timeout=20)
+            finally:
+                self.lifecycle["waitFinished"] = DIAGNOSTICS.stamp()
             require(self.process.returncode == 0, "The installed helper did not exit cleanly")
         except Exception as failure:
             error = failure
             if self.process.poll() is None:
-                self.process.kill()
-                self.process.wait(timeout=10)
+                self.lifecycle["fallbackKillRequested"] = DIAGNOSTICS.stamp()
+                try:
+                    self.process.kill()
+                    self.lifecycle["fallbackWaitStarted"] = DIAGNOSTICS.stamp()
+                    try:
+                        self.process.wait(timeout=10)
+                    finally:
+                        self.lifecycle["fallbackWaitFinished"] = DIAGNOSTICS.stamp()
+                except Exception as cleanup_error:
+                    self.lifecycle["fallbackError"] = DIAGNOSTICS.failure(cleanup_error)
+                    raise
         finally:
             for reader in self.readers:
                 reader.join(timeout=2)
+            self.lifecycle.update(finished=DIAGNOSTICS.stamp(), exitCode=self.process.returncode)
             write_json(self.evidence / f"{self.label}-helper.json", {
                 "requests": self.records, "events": self.events, "stdout": self.stdout, "stderr": self.stderr,
                 "exitCode": self.process.returncode, "shutdownError": str(error) if error else None,
+                "pid": self.process.pid, "process": self.process_evidence, "lifecycle": self.lifecycle,
+                "diagnosticsSource": DIAGNOSTICS.source_identity(),
                 "runtimePathPolicy": "System directories only; SDKROOT and RCLONE_* removed",
             })
         if error:
             raise error
+        require(self.process_evidence["complete"], "The owned helper process creation/image inventory failed")
 
 
 def baseline_installer(evidence, baseline):
