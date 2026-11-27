@@ -9,6 +9,7 @@ import os
 from pathlib import Path
 import tarfile
 import tempfile
+from types import SimpleNamespace
 import unittest
 from unittest.mock import patch
 import urllib.request
@@ -164,8 +165,7 @@ class WindowsUnicodeRuntimeTests(unittest.TestCase):
             UNICODE.validate_core(core, self.package)
 
     def test_builder_configures_only_cpp_static_crt_and_original_data(self):
-        with patch.object(BUILDER.shutil, "which", return_value="C:/LLVM/bin/clang-cl.exe"):
-            configure, build = BUILDER.cmake_commands(self.area / "source", self.area / "build", 2)
+        configure, build = BUILDER.cmake_commands(self.area / "source", self.area / "build", 2, "C:/LLVM/bin/clang-cl.exe")
         self.assertIn("-DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded", configure)
         self.assertEqual(build[-2:], ["--parallel", "2"])
         text = UNICODE.WRAPPER.read_text(encoding="utf-8")
@@ -173,9 +173,66 @@ class WindowsUnicodeRuntimeTests(unittest.TestCase):
         self.assertNotIn("LANGUAGES CXX Swift", text)
         for flag in ("U_DISABLE_RENAMING=0", "U_COMBINED_IMPLEMENTATION", "USE_PACKAGE_DATA=1", "APPLE_ICU_CHANGES=1", "OUTPUT_NAME RBNUnicode"):
             self.assertIn(flag, text)
-        with patch.object(BUILDER.shutil, "which", return_value="C:/Program Files/Swift/Toolchains/6.1.2/usr/bin/clang-cl.exe"):
-            with self.assertRaisesRegex(AssertionError, "standalone LLVM"):
-                BUILDER.cmake_commands(self.area / "source", self.area / "build", 2)
+        with self.assertRaisesRegex(AssertionError, "non-Swift"):
+            BUILDER.cmake_commands(self.area / "source", self.area / "build", 2,
+                                   "C:/Program Files/Swift/Toolchains/6.1.2/usr/bin/clang-cl.exe")
+
+    def compiler_environment(self, *, swift=False):
+        tools = self.area / "VS/VC/Tools/MSVC/14.52"
+        header = tools / "include/yvals_core.h"
+        header.parent.mkdir(parents=True)
+        header.write_text('_EMIT_STL_ERROR(STL1000, "Unexpected compiler version, expected Clang 22 or newer.");\n', encoding="utf-8")
+        active = self.area / ("Swift/Toolchains/current/usr/bin" if swift else "VS/VC/Tools/Llvm/x64/bin") / "clang-cl.exe"
+        global_llvm = self.area / "LLVM/bin/clang-cl.exe"
+        for path in (active, global_llvm):
+            path.parent.mkdir(parents=True)
+            path.write_bytes(b"non-executable compiler version fixture")
+        return {"VCToolsInstallDir": str(tools), "VCToolsVersion": "14.52.synthetic",
+                "llvmX64": str(active.parent), "PATH": str(global_llvm.parent)}, active, global_llvm
+
+    def test_compiler_prefers_compatible_active_vs_and_records_old_path_llvm(self):
+        env, active, other = self.compiler_environment()
+
+        def version(command, **kwargs):
+            self.assertEqual(command[1:], ["--version"])
+            major = 22 if Path(command[0]) == active else 20
+            return SimpleNamespace(returncode=0, stdout=f"clang version {major}.1.0\nTarget: x86_64-pc-windows-msvc\n", stderr="")
+
+        with patch.object(BUILDER.subprocess, "run", side_effect=version) as run:
+            selected = BUILDER.select_compiler(self.area / "selection.json", env)
+        self.assertEqual(run.call_count, 2)
+        self.assertEqual(selected["selected"]["path"], str(active))
+        self.assertEqual(selected["stl"]["minimumClangMajor"], 22)
+        self.assertIn("requires Clang 22", next(item for item in selected["candidates"] if item["path"] == str(other))["reason"])
+
+    def test_no_compatible_compiler_stops_with_complete_journal_without_override(self):
+        env, active, _ = self.compiler_environment()
+
+        def version(command, **kwargs):
+            major = 20 if Path(command[0]) == active else 21
+            return SimpleNamespace(returncode=0, stdout=f"clang version {major}.1.0\nTarget: x86_64-pc-windows-msvc\n", stderr="")
+
+        output = self.area / "selection.json"
+        with patch.object(BUILDER.subprocess, "run", side_effect=version) as run:
+            with self.assertRaisesRegex(AssertionError, "No existing non-Swift clang-cl"):
+                BUILDER.select_compiler(output, env)
+        self.assertEqual(run.call_count, 2)
+        self.assertTrue(all(call.args[0][1:] == ["--version"] for call in run.call_args_list))
+        journal = json.loads(output.read_text(encoding="utf-8"))
+        self.assertIsNone(journal["selected"])
+        self.assertEqual(len(journal["candidates"]), 2)
+        self.assertTrue(all(not item["accepted"] for item in journal["candidates"]))
+
+    def test_swift_compiler_is_not_invoked_even_if_a_newer_version_is_claimed(self):
+        env, swift, other = self.compiler_environment(swift=True)
+        result = SimpleNamespace(returncode=0, stdout="clang version 22.1.0\nTarget: x86_64-pc-windows-msvc\n", stderr="")
+        with patch.object(BUILDER.subprocess, "run", return_value=result) as run:
+            selected = BUILDER.select_compiler(self.area / "selection.json", env)
+        self.assertEqual(run.call_count, 1)
+        self.assertEqual(run.call_args.args[0][0], str(other))
+        self.assertEqual(selected["selected"]["path"], str(other))
+        self.assertEqual(selected["candidates"][0]["path"], str(swift))
+        self.assertIn("Swift toolchain", selected["candidates"][0]["reason"])
 
     def source_archive(self):
         archive = self.area / "source.tar.gz"

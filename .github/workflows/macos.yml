@@ -281,7 +281,7 @@ jobs:
             .build-cache/compat/target
             .build-cache/compat/npm
             .build-cache/compat/icu-74.1
-          key: windows-2025-rust1.90-icu74-${{ hashFiles('Sources/Rust/Cargo.lock', 'Compat/desktop/Cargo.lock', 'Compat/cli/package-lock.json', 'Scripts/windows/icu-source.json', 'Scripts/windows/icu-wrapper/CMakeLists.txt') }}
+          key: windows-2025-rust1.90-icu74-${{ hashFiles('Sources/Rust/Cargo.lock', 'Compat/desktop/Cargo.lock', 'Compat/cli/package-lock.json', 'Scripts/windows/icu-source.json', 'Scripts/windows/icu-wrapper/CMakeLists.txt', 'Scripts/windows/build-unicode-runtime.py') }}
           restore-keys: |
             windows-2025-rust1.90-icu74-
             windows-2025-rust1.90-core-

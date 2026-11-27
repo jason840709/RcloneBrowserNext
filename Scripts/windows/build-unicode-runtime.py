@@ -105,10 +105,78 @@ def verified_source(archive, parent, pin):
     return source, {"sha256": tree_sha, "files": len(records)}
 
 
-def cmake_commands(source, build, jobs):
-    compiler = shutil.which("clang-cl.exe")
-    UNICODE.require(compiler and not re.search(r"(?:^|[/\\])swift(?:[/\\\d-]|$)|\.xctoolchain(?:[/\\]|$)", compiler, re.I),
-                    "Use existing standalone LLVM clang-cl with the x64 MSVC environment; no Swift toolchain is accepted")
+def allowed_compiler(path):
+    return not re.search(r"(?:^|[/\\])swift(?:[/\\\d-]|$)|\.xctoolchain(?:[/\\]|$)", str(path), re.I)
+
+
+def select_compiler(output, environment=None):
+    env = environment if environment is not None else os.environ
+    headers = []
+    if env.get("VCToolsInstallDir"):
+        headers.append(Path(env["VCToolsInstallDir"]) / "include/yvals_core.h")
+    headers.extend(Path(part) / "yvals_core.h" for part in env.get("INCLUDE", "").split(";") if part)
+    header = next((path for path in headers if path.is_file()), None)
+    UNICODE.require(header is not None, "The active MSVC STL header is missing; use its x64 developer environment")
+    text = header.read_text(encoding="utf-8")
+    minimums = {int(value) for value in re.findall(r"Unexpected compiler version, expected Clang\s+(\d+)", text)}
+    UNICODE.require(len(minimums) == 1, "Cannot establish the active MSVC STL's minimum Clang version")
+    minimum = minimums.pop()
+    report = {"schemaVersion": 1, "stl": {"path": str(header.resolve()), "sha256": UNICODE.digest(header),
+               "minimumClangMajor": minimum, "toolsetVersion": env.get("VCToolsVersion")}, "candidates": [], "selected": None}
+    paths = []
+    if env.get("llvmX64"):
+        paths.append((Path(env["llvmX64"]) / "clang-cl.exe", "active VS llvmX64"))
+    if env.get("VCINSTALLDIR"):
+        paths.append((Path(env["VCINSTALLDIR"]) / "Tools/Llvm/x64/bin/clang-cl.exe", "active VC LLVM"))
+    if env.get("VSINSTALLDIR"):
+        paths.append((Path(env["VSINSTALLDIR"]) / "VC/Tools/Llvm/x64/bin/clang-cl.exe", "active VS LLVM"))
+    paths.extend((Path(part) / "clang-cl.exe", "PATH") for part in env.get("PATH", "").split(";") if part)
+    seen = set()
+    for path, origin in paths:
+        if not path.is_file():
+            if origin != "PATH":
+                report["candidates"].append({"path": str(path), "origin": origin, "accepted": False, "reason": "not installed"})
+            continue
+        actual = path.resolve(strict=True)
+        key = str(actual).casefold()
+        if key in seen:
+            continue
+        seen.add(key)
+        record = {"path": str(actual), "origin": origin, "accepted": False}
+        report["candidates"].append(record)
+        if not allowed_compiler(actual):
+            record["reason"] = "Swift toolchain is not allowed"
+            continue
+        try:
+            result = subprocess.run([str(actual), "--version"], capture_output=True, text=True,
+                                    encoding="utf-8", timeout=15)
+            version_text = (result.stdout + result.stderr).strip()
+            match = re.search(r"(?:clang|LLVM)(?:-cl)?\s+version\s+(\d+(?:\.\d+)*)", version_text, re.I)
+            target = re.search(r"^Target:\s*(\S+)", version_text, re.M)
+            record.update(exitCode=result.returncode, versionOutput=version_text)
+            if result.returncode != 0 or match is None or target is None:
+                record["reason"] = "compiler version/target could not be verified"
+                continue
+            record.update(version=match[1], major=int(match[1].split(".")[0]), target=target[1])
+            if not target[1].startswith("x86_64-") or "windows-msvc" not in target[1]:
+                record["reason"] = "compiler does not target Windows x64 MSVC"
+            elif record["major"] < minimum:
+                record["reason"] = f"active STL requires Clang {minimum} or newer"
+            else:
+                record.update(accepted=True, reason="verified compiler/active STL and x64 MSVC target are compatible")
+                if report["selected"] is None:
+                    report["selected"] = dict(record)
+        except (OSError, subprocess.TimeoutExpired) as error:
+            record["reason"] = f"version probe failed: {error}"
+    output.write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
+    print(json.dumps({"privateICUCompilerSelection": report}, indent=2))
+    UNICODE.require(report["selected"] is not None,
+                    "No existing non-Swift clang-cl satisfies the active MSVC STL; no mismatch override or tool installation is permitted")
+    return report
+
+
+def cmake_commands(source, build, jobs, compiler):
+    UNICODE.require(allowed_compiler(compiler), "Use a non-Swift clang-cl compiler")
     return (["cmake", "-S", str(HERE / "icu-wrapper"), "-B", str(build), "-G", "Ninja",
              "-DCMAKE_BUILD_TYPE=Release", "-DCMAKE_CXX_COMPILER=" + compiler,
              "-DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded", "-DRBN_ICU_SOURCE=" + str(source)],
@@ -125,13 +193,17 @@ def main():
     pin = UNICODE.load_pin()
     cache = ROOT / ".build-cache/compat/icu-74.1" / pin["commit"]
     cache.mkdir(parents=True, exist_ok=True)
+    selection = select_compiler(cache / "compiler-selection.json")
     archive = args.source_archive.resolve(strict=True) if args.source_archive else cache / "source.tar.gz"
     if args.source_archive is None:
         download_source(archive, pin)
     source, tree = verified_source(archive, cache / "source", pin)
-    build = cache / "build"
+    selected = selection["selected"]
+    fingerprint = hashlib.sha256(json.dumps({"compiler": selected["path"], "version": selected["version"],
+                    "stl": selection["stl"]["sha256"], "wrapper": UNICODE.wrapper_digest()}, sort_keys=True).encode()).hexdigest()[:16]
+    build = cache / ("build-" + fingerprint)
     jobs = max(1, min(2, int(os.environ.get("CARGO_BUILD_JOBS", "2"))))
-    for command in cmake_commands(source, build, jobs):
+    for command in cmake_commands(source, build, jobs, selected["path"]):
         subprocess.run(command, check=True)
     library = build / "bin" / pin["library"]
     UNICODE.require(library.is_file(), "CMake did not produce the private ICU DLL")
@@ -152,6 +224,9 @@ def main():
     compiler_settings = compiler_file.read_text(encoding="utf-8")
     compiler = re.search(r'set\(CMAKE_CXX_COMPILER_VERSION "([^\"]+)"\)', compiler_settings)
     UNICODE.require(compiler, "The configured C++ compiler version is missing")
+    UNICODE.require(int(compiler[1].split(".")[0]) == selected["major"]
+                    and selected["major"] >= selection["stl"]["minimumClangMajor"],
+                    "CMake's actual compiler differs from the verified compatible selection")
     UNICODE.require('set(CMAKE_CXX_COMPILER_ID "Clang")' in compiler_settings
                     and 'set(CMAKE_CXX_COMPILER_FRONTEND_VARIANT "MSVC")' in compiler_settings,
                     "CMake did not configure the requested standalone clang-cl MSVC ABI")
@@ -161,7 +236,7 @@ def main():
                     "wrapperRawSHA256": UNICODE.digest(UNICODE.WRAPPER), "pinRawSHA256": UNICODE.digest(UNICODE.PIN_PATH),
                     "pinCanonicalSHA256": UNICODE.pin_digest(pin), "sourceTree": tree,
                     "compilerID": "Clang", "frontendVariant": "MSVC",
-                    "compilerVersion": compiler[1], "cmakeVersion": cmake_version})
+                    "compilerVersion": compiler[1], "cmakeVersion": cmake_version, "compilerSelection": selection})
     args.runtime.mkdir(parents=True, exist_ok=True)
     destination = args.runtime / pin["library"]
     # The probe child has exited and released the DLL before either copy.

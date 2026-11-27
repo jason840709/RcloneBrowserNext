@@ -1,15 +1,15 @@
 {
   "version": "0.12.0",
   "file_count_excluding_manifest": 363,
-  "total_bytes_excluding_manifest": 17371989,
+  "total_bytes_excluding_manifest": 17380307,
   "files": {
     ".github/workflows/mac-local-recovery.yml": {
       "bytes": 1856,
       "sha256": "363fad0de80a365145b276eed488ae8bb1652d0006a61fabd8eaaddc87459c95"
     },
     ".github/workflows/macos.yml": {
-      "bytes": 25127,
-      "sha256": "fd4ea463d89512abb4863cc9745562951140e16b9a55daf36069b437794347c8"
+      "bytes": 25171,
+      "sha256": "949cf235cdbfd6e2ac60b816d1f2c78b44d21b294f640d2fb11031cf4291d6cb"
     },
     ".gitignore": {
       "bytes": 278,
@@ -328,8 +328,8 @@
       "sha256": "a97979efe1326a3b4195e8e66577df00efc11be1e6caedf987909e414a2a227e"
     },
     "Scripts/windows/build-unicode-runtime.py": {
-      "bytes": 9833,
-      "sha256": "c1c55d81b67ed5ae014ac98af00039bcfac647da9cb4b3fb5fce966447349705"
+      "bytes": 14455,
+      "sha256": "f2f56aa8ffcb67cce02d1b325ed2b3b38bda899821461abf2f96af5749583437"
     },
     "Scripts/windows/icu-source.json": {
       "bytes": 668,
@@ -728,8 +728,8 @@
       "sha256": "9db5eec25db44651fa72fe844a56f41b45e820912b1fb009a24e5849e82bf31c"
     },
     "Tests/WindowsUnicodeRuntimeTests.py": {
-      "bytes": 14399,
-      "sha256": "97c05ad33669a295947a4ba842010ddecf85adb895c3699a1df8adec44bd54b7"
+      "bytes": 17889,
+      "sha256": "9ee9035ef9f6c0fbf5868d843cb4fe43c1f0de8b198a0156626a49e6e265cd40"
     },
     "Tests/WindowsUpgradeSettingsTests.py": {
       "bytes": 3824,
@@ -1200,8 +1200,8 @@
       "sha256": "07528d9e28988401803429ceed4421ed0c67f83bc2d80a96dbd76ca1952b4d2f"
     },
     "docs/BUILD_COMPATIBILITY.md": {
-      "bytes": 6532,
-      "sha256": "18d31c4ca8c4439c3079b959442e475e35a8cafea9a1bd9157f06e6295f7c8e2"
+      "bytes": 6694,
+      "sha256": "7f2c63c29734ff77728bdce5f83836c59edda69e34c5bb8ae3682ed8c9ba86c5"
     },
     "docs/BUILD_MAC.zh-TW.md": {
       "bytes": 3732,
