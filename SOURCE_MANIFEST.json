@@ -1,7 +1,7 @@
 {
   "version": "0.12.0",
-  "file_count_excluding_manifest": 367,
-  "total_bytes_excluding_manifest": 17450138,
+  "file_count_excluding_manifest": 370,
+  "total_bytes_excluding_manifest": 17473216,
   "files": {
     ".github/workflows/mac-local-recovery.yml": {
       "bytes": 1856,
@@ -64,8 +64,8 @@
       "sha256": "51d542272e23ca88fb240b7965967136a41fa54c39f3998725f4fd5931b1ce8a"
     },
     "Compat/desktop/tauri.windows.conf.json": {
-      "bytes": 156,
-      "sha256": "b579e69f794e2d6db73bc6acd67cb7b6e05b36e6453c3f52c261e66dfc51830e"
+      "bytes": 252,
+      "sha256": "06dc08164f64807d068d64fd919f54e0603455baa38c80f28afe8ec4b03b339c"
     },
     "Compat/licenses/Foundation-LICENSE.txt": {
       "bytes": 11759,
@@ -232,8 +232,8 @@
       "sha256": "5b74397758200b0f7159d37fec5e837333a43a055a677d2f49db91788ea39a09"
     },
     "Scripts/build-compat-windows.ps1": {
-      "bytes": 7670,
-      "sha256": "be7f2e85b6613080396737143b10bf12050268deaf003143378e0b81ba8624e5"
+      "bytes": 8291,
+      "sha256": "b741bec5919b34b3934e9398f767103ea59d9c41eac4ee0a57135eae5f11bd99"
     },
     "Scripts/build-mac.sh": {
       "bytes": 7504,
@@ -324,8 +324,8 @@
       "sha256": "0fda1362ca7bd4859dc9b7a3df13098d8de3acce5de994598f93b81e1655d48d"
     },
     "Scripts/verify-version.py": {
-      "bytes": 4442,
-      "sha256": "a97979efe1326a3b4195e8e66577df00efc11be1e6caedf987909e414a2a227e"
+      "bytes": 4779,
+      "sha256": "5efb4e95fe32b2406e0dfba453f65f15278e314643b6ce57bc73ab0b70446265"
     },
     "Scripts/windows/build-unicode-runtime.py": {
       "bytes": 14455,
@@ -342,6 +342,14 @@
     "Scripts/windows/installation-diagnostics.py": {
       "bytes": 20377,
       "sha256": "39b57374dcc6afb6817b88d28c57c44b227889491ebdf0fd57a68e2c52454e59"
+    },
+    "Scripts/windows/nsis-diagnostics.nsh": {
+      "bytes": 3588,
+      "sha256": "195a3e4c61d371ba4a44dd6a9a85aa7cdfcccc87442db3954824928433dab682"
+    },
+    "Scripts/windows/nsis-diagnostics.py": {
+      "bytes": 7493,
+      "sha256": "5b6a8167023d9dd5f9ad30c2ca8f527e22cf86bf1a22a4b0d05d616cb4dddf6d"
     },
     "Scripts/windows/prepare-baseline.py": {
       "bytes": 13558,
@@ -738,6 +746,10 @@
     "Tests/WindowsLocalListOracleTests.py": {
       "bytes": 7881,
       "sha256": "6aaacb901212bbb6fcb49ce53e93c0c60eff430a5b8d45f434972749fb1d062b"
+    },
+    "Tests/WindowsNSISDiagnosticsTests.py": {
+      "bytes": 10943,
+      "sha256": "b2931c9762ec52eba931e8337ac8c7bbc69bc1c95d6f5cb28494fe130079ac2c"
     },
     "Tests/WindowsRustGateTests.py": {
       "bytes": 8821,

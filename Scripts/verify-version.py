@@ -8,6 +8,7 @@ This checker never invokes Git or a credential helper.
 from pathlib import Path
 import argparse
 import hashlib
+import importlib.util
 import json
 import os
 import plistlib
@@ -57,6 +58,10 @@ def main():
     windows = load('Compat/desktop/tauri.windows.conf.json')
     require(config['version'] == version and config['identifier'] == 'org.rclone.browser.next', 'Compatibility version or identity differs')
     require('version' not in windows and windows['bundle']['windows']['allowDowngrades'] is False, 'Windows version inheritance or downgrade protection changed')
+    nsis_spec = importlib.util.spec_from_file_location('windows_nsis_diagnostics', ROOT / 'Scripts/windows/nsis-diagnostics.py')
+    nsis = importlib.util.module_from_spec(nsis_spec)
+    nsis_spec.loader.exec_module(nsis)
+    nsis_guard = nsis.verify_source(ROOT)
     launcher = text('Scripts/native/WindowsRcloneLauncher.c').encode('utf-8')
     require(blob_id(launcher) == WINDOWS_LAUNCHER_BLOB, 'The verified Windows C launcher changed')
     require(hashlib.sha256(text('Scripts/reviewed-wording-0.11.0.json').encode('utf-8')).hexdigest() ==
@@ -67,7 +72,8 @@ def main():
               'sourceCommit': os.environ.get('GITHUB_SHA') or os.environ.get('RBN_SOURCE_COMMIT'), 'usedLocalGit': False,
               'windowsFilesystemImplementation': 'Rust', 'windowsLauncherUnchanged': True,
               'windowsLauncherBaseline': {'ref': 'windows-v0.9.0-r1', 'blob': WINDOWS_LAUNCHER_BLOB},
-              'windowsFilesystemGates': ['core-rust.json', 'filesystem.json', 'mutations.json']}
+              'windowsFilesystemGates': ['core-rust.json', 'filesystem.json', 'mutations.json'],
+              'windowsNSISDiagnostic': nsis_guard}
     if a.output:
         a.output.parent.mkdir(parents=True, exist_ok=True)
         a.output.write_text(json.dumps(result, indent=2) + '\n', encoding='utf-8')

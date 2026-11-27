@@ -3,7 +3,10 @@
   "bundle": {
     "useLocalToolsDir": true,
     "windows": {
-      "allowDowngrades": false
+      "allowDowngrades": false,
+      "nsis": {
+        "installerHooks": "../../Scripts/windows/nsis-diagnostics.nsh"
+      }
     }
   }
 }

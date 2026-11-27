@@ -101,6 +101,8 @@ New-Item -ItemType Directory -Force -Path $RbnCli | Out-Null
 Copy-Item -LiteralPath 'Compat/cli/package.json','Compat/cli/package-lock.json' -Destination $RbnCli -Force
 & npm.cmd ci --prefix $RbnCli --ignore-scripts --no-audit --no-fund
 if ($LASTEXITCODE -ne 0) { throw 'The pinned Tauri CLI could not be installed into the project.' }
+python Scripts/windows/nsis-diagnostics.py --installed-cli (Join-Path $RbnCli 'node_modules/@tauri-apps/cli/package.json')
+if ($LASTEXITCODE -ne 0) { throw 'The pinned NSIS diagnostic macro or CLI changed.' }
 Push-Location -LiteralPath (Join-Path $RbnRoot 'Compat/desktop')
 try {
     & cargo.exe test --release --locked
@@ -109,6 +111,8 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'Runtime dependency notices could not be collected.' }
     & (Join-Path $RbnCli 'node_modules/.bin/tauri.cmd') build --bundles nsis --ci
     if ($LASTEXITCODE -ne 0) { throw 'The Windows installer build failed.' }
+    python (Join-Path $RbnRoot 'Scripts/windows/nsis-diagnostics.py') --installed-cli (Join-Path $RbnCli 'node_modules/@tauri-apps/cli/package.json') --generated-utils (Join-Path $RbnRelease 'nsis/x64/utils.nsh') --output (Join-Path $RbnRoot '.build-cache/windows-candidate/build/nsis-diagnostics.json')
+    if ($LASTEXITCODE -ne 0) { throw 'The actual NSIS build no longer matches the pinned original macro.' }
 } finally { Pop-Location }
 python Scripts/package-compat.py --platform windows --cache $RbnCache
 if ($LASTEXITCODE -ne 0) { throw 'The Windows package could not be prepared.' }
