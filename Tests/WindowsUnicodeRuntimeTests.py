@@ -29,6 +29,7 @@ UNICODE = load("private_unicode", ROOT / "Scripts/windows/unicode-runtime.py")
 BUILDER = load("private_unicode_builder", ROOT / "Scripts/windows/build-unicode-runtime.py")
 RUNNER = load("private_unicode_runner", ROOT / "Scripts/test-rust.py")
 PROBE = load("private_unicode_probe", ROOT / "Scripts/windows/probe-runtime-provenance.py")
+INSTALLATION = load("private_unicode_installation", ROOT / "Scripts/windows/verify-installation.py")
 
 
 class WindowsUnicodeRuntimeTests(unittest.TestCase):
@@ -64,6 +65,39 @@ class WindowsUnicodeRuntimeTests(unittest.TestCase):
 
     def test_verified_private_library_package_passes(self):
         self.assertEqual(UNICODE.validate_package(self.package, directory=self.library.parent), self.receipt)
+
+    def test_fresh_installation_evidence_records_probe_json_and_log_with_original_files(self):
+        evidence = self.area / "installation-evidence"
+        evidence.mkdir()
+        originals = {"fresh-before.json": b'{"before": true}\n', "fresh-after.json": b'{"after": true}\n',
+                     "fresh-installer.log": b"installer succeeded\n", "fresh-installer.wait.json": b'{"waitedSeconds": 1}\n'}
+        probes = {"fresh-unicode-runtime.json": json.dumps(self.receipt).encode("utf-8"),
+                  "fresh-unicode-runtime.log": b"private ICU probe succeeded\n"}
+        for name, payload in {**originals, **probes, "fresh-installation.json": b"old report",
+                              "upgrade-unicode-runtime.json": b"other phase", "unrelated.json": b"unrelated"}.items():
+            (evidence / name).write_bytes(payload)
+        (evidence / "fresh-unicode-runtime-directory").mkdir()
+        actual = INSTALLATION.collect_installation_evidence(evidence, "fresh")
+        self.assertEqual({row["file"] for row in actual}, set(originals) | set(probes))
+        self.assertEqual([row["file"] for row in actual], sorted(row["file"] for row in actual))
+        for row in actual:
+            payload = {**originals, **probes}[row["file"]]
+            self.assertEqual(row["bytes"], len(payload))
+            self.assertEqual(row["sha256"], hashlib.sha256(payload).hexdigest())
+
+    def test_installation_evidence_keeps_upgrade_scope_and_never_invents_missing_probe(self):
+        evidence = self.area / "incomplete-installation-evidence"
+        evidence.mkdir()
+        names = {"upgrade-before.json", "upgrade-after.json", "upgrade-unicode-runtime.json",
+                 "upgrade-unicode-runtime.log", "downgrade-after.json", "fresh-uninstall.log",
+                 "windows-listing-oracle-runtime.json", "fresh-unicode-runtime.json", "upgrade-installation.json"}
+        for name in names:
+            (evidence / name).write_bytes(name.encode("utf-8"))
+        actual = INSTALLATION.collect_installation_evidence(evidence, "upgrade")
+        self.assertEqual({row["file"] for row in actual}, names - {"fresh-unicode-runtime.json", "upgrade-installation.json"})
+        fresh = INSTALLATION.collect_installation_evidence(evidence, "fresh")
+        self.assertEqual([row["file"] for row in fresh], ["fresh-unicode-runtime.json"])
+        self.assertNotIn("fresh-unicode-runtime.log", {row["file"] for row in fresh})
 
     def test_native_probe_requires_all_five_suffixed_exports_and_data(self):
         exports = list(UNICODE.REQUIRED_EXPORTS) + ["u_getVersion", "ucol_open", "ucol_getVersion_74"]

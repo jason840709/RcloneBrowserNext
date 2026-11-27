@@ -66,6 +66,13 @@ def metadata(path):
     return {"path": str(path), "bytes": path.stat().st_size, "sha256": digest(path)}
 
 
+def collect_installation_evidence(evidence, phase):
+    prefixes = ("fresh-before", "fresh-after", "fresh-installer", "fresh-unicode-runtime") if phase == "fresh" else ("upgrade-", "downgrade-", "fresh-uninstall", "windows-listing-oracle")
+    return [{"file": path.name, "bytes": path.stat().st_size, "sha256": digest(path)}
+            for path in sorted(evidence.iterdir()) if path.is_file() and path.name != f"{phase}-installation.json"
+            and path.name.startswith(prefixes)]
+
+
 def require(condition, message):
     if not condition:
         raise AssertionError(message)
@@ -569,10 +576,7 @@ def main():
                 report["passed"] = False
                 report["cleanupError"] = str(error)
         report["finishedAt"] = utc_now()
-        prefixes = ("fresh-before", "fresh-after", "fresh-installer") if args.phase == "fresh" else ("upgrade-", "downgrade-", "fresh-uninstall", "windows-listing-oracle")
-        report["evidence"] = [{"file": path.name, "bytes": path.stat().st_size, "sha256": digest(path)}
-                              for path in sorted(evidence.iterdir()) if path.is_file() and path.name != f"{args.phase}-installation.json"
-                              and path.name.startswith(prefixes)]
+        report["evidence"] = collect_installation_evidence(evidence, args.phase)
         write_json(evidence / f"{args.phase}-installation.json", report)
     print(json.dumps({key: report.get(key) for key in ("phase", "passed", "sourceCommit", "version", "error", "cleanupError")}, indent=2))
     return 0 if report["passed"] else 1

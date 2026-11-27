@@ -1,7 +1,7 @@
 {
   "version": "0.12.0",
   "file_count_excluding_manifest": 363,
-  "total_bytes_excluding_manifest": 17380307,
+  "total_bytes_excluding_manifest": 17382938,
   "files": {
     ".github/workflows/mac-local-recovery.yml": {
       "bytes": 1856,
@@ -368,8 +368,8 @@
       "sha256": "e4ca339deedb65aaabb9b1ae6607281e5de165cee921c538301435f4fdaa14b1"
     },
     "Scripts/windows/verify-installation.py": {
-      "bytes": 35733,
-      "sha256": "5c277a76ed3f9f260c8beb443bb0f0f0340db5617d0d62735e5b3f02c4d9686a"
+      "bytes": 35825,
+      "sha256": "9a6f80aa34d1d23bd45d8f01a8a0c32e9e2c1d39836ea5fadf5b9955a2f2886a"
     },
     "Scripts/windows/verify-rust-regressions.py": {
       "bytes": 10327,
@@ -728,8 +728,8 @@
       "sha256": "9db5eec25db44651fa72fe844a56f41b45e820912b1fb009a24e5849e82bf31c"
     },
     "Tests/WindowsUnicodeRuntimeTests.py": {
-      "bytes": 17889,
-      "sha256": "9ee9035ef9f6c0fbf5868d843cb4fe43c1f0de8b198a0156626a49e6e265cd40"
+      "bytes": 20428,
+      "sha256": "9697ce713894e16e709a2a02752b6270a0f9a3168c94f9fb734f090d91f34f69"
     },
     "Tests/WindowsUpgradeSettingsTests.py": {
       "bytes": 3824,
